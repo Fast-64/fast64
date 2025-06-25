@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
@@ -22,10 +23,10 @@ from .constants import (
 
 def decomp_path_update(self, context: Context):
     fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
+    if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    directory_path_checks(self.abs_decomp_path)
+    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
@@ -80,10 +81,24 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    write_all: BoolProperty(
+        name="Write All",
+        description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
+    )
 
     @property
     def binary_export(self):
-        return self.export_type in ["Binary", "Insertable Binary"]
+        return self.export_type in {"Binary", "Insertable Binary"}
+
+    @property
+    def abs_decomp_path(self) -> Path:
+        return Path(abspath(self.decomp_path))
+
+    @property
+    def gfx_write_method(self):
+        from ...f3d.f3d_gbi import GfxMatWriteMethod
+
+        return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
     @staticmethod
     def upgrade_changed_props():
@@ -140,6 +155,7 @@ class SM64_Properties(PropertyGroup):
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
+        data["write_all"] = self.write_all
         return data
 
     def from_repo_settings(self, data: dict):
@@ -147,6 +163,7 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        set_prop_if_in_data(self, "write_all", data, "write_all")
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
@@ -156,6 +173,7 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
         col.prop(self, "matstack_fix")
+        col.prop(self, "write_all")
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
@@ -173,7 +191,7 @@ class SM64_Properties(PropertyGroup):
             col.prop(self, "extend_bank_4")
         elif not self.binary_export:
             prop_split(col, self, "decomp_path", "Decomp Path")
-            directory_ui_warnings(col, abspath(self.decomp_path))
+            directory_ui_warnings(col, self.abs_decomp_path)
         col.separator()
 
         if show_repo_settings:

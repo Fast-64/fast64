@@ -204,7 +204,7 @@ def maybeSaveSingleLargeTextureSetup(
             # SL, SH is * 2 for 4 bit and * 4 otherwise, because actually loading
             # 8 bit pairs of texels. Also written using f3d.G_TEXTURE_IMAGE_FRAC.
             sm = 2 if is4bit else 4
-            nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+            nocm = ("G_TX_WRAP", "G_TX_NOMIRROR")
             if curImgSet != i:
                 gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
 
@@ -394,7 +394,7 @@ class TexInfo:
     # Parameters from moreSetupFromModel
     pal: Optional[list[int]] = None
     palLen: int = 0
-    imDependencies: Optional[list[bpy.types.Image]] = None
+    imDependencies: Optional[set[bpy.types.Image]] = None
     flipbook: Optional["TextureFlipbook"] = None
     isPalRef: bool = False
 
@@ -402,7 +402,7 @@ class TexInfo:
     texAddr: int = 0
     palAddr: int = 0
     palIndex: int = 0
-    palDependencies: list[bpy.types.Image] = field(default_factory=list)
+    palDependencies: set[bpy.types.Image] = field(default_factory=set)
     palBaseName: str = ""
     loadPal: bool = False
     doTexLoad: bool = True
@@ -420,10 +420,10 @@ class TexInfo:
         texProp = getattr(f3dMat, "tex" + str(index))
         return self.fromProp(texProp, index)
 
-    def fromProp(self, texProp: TextureProperty, index: int) -> bool:
+    def fromProp(self, texProp: TextureProperty, index: int, ignore_tex_set=False) -> bool:
         self.indexInMat = index
         self.texProp = texProp
-        if not texProp.tex_set:
+        if not texProp.tex_set and not ignore_tex_set:
             return True
 
         self.useTex = True
@@ -463,6 +463,34 @@ class TexInfo:
 
         return True
 
+    def materialless_setup(self) -> None:
+        """moreSetupFromModel equivalent that does not handle material properties like OOT flipbooks"""
+        if not self.useTex:
+            return
+
+        if self.isTexCI:
+            self.imDependencies, self.flipbook, self.pal = (
+                set() if self.texProp.tex is None else {self.texProp.tex},
+                None,
+                None,
+            )
+            if self.isTexRef:
+                self.palLen = self.texProp.pal_reference_size
+            else:
+                assert self.flipbook is None
+                self.pal = getColorsUsedInImage(self.texProp.tex, self.palFormat)
+                self.palLen = len(self.pal)
+            if self.palLen > (16 if self.texFormat == "CI4" else 256):
+                raise PluginError(
+                    f"Error in Texture {self.indexInMat} uses too many unique colors to fit in format {self.texFormat}."
+                )
+        else:
+            self.imDependencies = set() if self.texProp.tex is None else {self.texProp.tex}
+            self.flipbook = None
+
+        self.isPalRef = self.isTexRef and self.flipbook is None
+        self.palDependencies = self.imDependencies
+
     def moreSetupFromModel(
         self,
         material: bpy.types.Material,
@@ -487,7 +515,7 @@ class TexInfo:
                 self.palLen = len(self.pal)
             if self.palLen > (16 if self.texFormat == "CI4" else 256):
                 raise PluginError(
-                    f"Error in {material.name}: texture {self.indexInMat}"
+                    f"Texture {self.indexInMat}"
                     + (" (all flipbook textures)" if self.flipbook is not None else "")
                     + f" uses too many unique colors to fit in format {self.texFormat}."
                 )
@@ -504,6 +532,26 @@ class TexInfo:
             return self.flipbook.name
         return getImageName(self.texProp.tex)
 
+    def setup_single_tex(self, is_ci: bool, use_large_tex: bool):
+        is_large = False
+        tmem_size = 256 if is_ci else 512
+        if is_ci:
+            assert self.useTex  # should this be here?
+            if self.useTex:
+                self.loadPal = True
+            self.palBaseName = self.getPaletteName()
+        if self.tmemSize > tmem_size:
+            if use_large_tex:
+                self.doTexLoad = False
+                return True
+            elif not bpy.context.scene.ignoreTextureRestrictions:
+                raise PluginError(
+                    "Textures are too big. Max TMEM size is 4k "
+                    "bytes, ex. 2 32x32 RGBA 16 bit textures.\n"
+                    "Note that texture width will be internally padded to 64 bit boundaries."
+                )
+        return is_large
+
     def writeAll(
         self,
         fMaterial: FMaterial,
@@ -514,7 +562,7 @@ class TexInfo:
             return
         assert (
             self.imDependencies is not None
-        )  # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imDependencies = [tex]
+        ), "self.imDependencies is None, either moreSetupFromModel or materialless_setup must be called beforehand"
 
         # Get definitions
         imageKey, fImage = saveOrGetTextureDefinition(
@@ -551,6 +599,9 @@ class TexInfo:
                     fModel.writeTexRefNonCITextures(self.flipbook, self.texFormat)
             else:
                 if self.isTexCI:
+                    assert (
+                        self.pal is not None
+                    ), "self.pal is None, either moreSetupFromModel or materialless_setup must be called beforehand"
                     writeCITextureData(self.texProp.tex, fImage, self.pal, self.palFormat, self.texFormat)
                 else:
                     writeNonCITextureData(self.texProp.tex, fImage, self.texFormat)
@@ -566,9 +617,9 @@ class MultitexManager:
         f3dMat = material.f3d_mat
         self.ti0, self.ti1 = TexInfo(), TexInfo()
         if not self.ti0.fromMat(0, f3dMat):
-            raise PluginError(f"In {material.name} tex0: {self.ti0.errorMsg}")
+            raise PluginError(f"Tex0: {self.ti0.errorMsg}")
         if not self.ti1.fromMat(1, f3dMat):
-            raise PluginError(f"In {material.name} tex1: {self.ti1.errorMsg}")
+            raise PluginError(f"Tex1: {self.ti1.errorMsg}")
         self.ti0.moreSetupFromModel(material, fMaterial, fModel)
         self.ti1.moreSetupFromModel(material, fMaterial, fModel)
 
@@ -576,39 +627,24 @@ class MultitexManager:
 
         if self.ti0.useTex and self.ti1.useTex:
             if self.ti0.isTexCI != self.ti1.isTexCI:
-                raise PluginError(
-                    "In material "
-                    + material.name
-                    + ": N64 does not support CI + non-CI texture. "
-                    + "Must be both CI or neither CI."
-                )
+                raise PluginError("N64 does not support CI + non-CI texture. Must be both CI or neither CI.")
             if (
                 self.ti0.isTexRef
                 and self.ti1.isTexRef
                 and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
                 and self.ti0.texProp.tex_reference_size != self.ti1.texProp.tex_reference_size
             ):
-                raise PluginError(
-                    "In material " + material.name + ": Two textures with the same reference must have the same size."
-                )
+                raise PluginError("Two textures with the same reference must have the same size.")
             if self.isCI:
                 if self.ti0.palFormat != self.ti1.palFormat:
-                    raise PluginError(
-                        "In material "
-                        + material.name
-                        + ": Both CI textures must use the same palette format (usually RGBA16)."
-                    )
+                    raise PluginError("Both CI textures must use the same palette format (usually RGBA16).")
                 if (
                     self.ti0.isTexRef
                     and self.ti1.isTexRef
                     and self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
                     and self.ti0.texProp.pal_reference_size != self.ti1.texProp.pal_reference_size
                 ):
-                    raise PluginError(
-                        "In material "
-                        + material.name
-                        + ": Two textures with the same palette reference must have the same palette size."
-                    )
+                    raise PluginError("Two textures with the same palette reference must have the same palette size.")
 
         self.palFormat = self.ti0.palFormat if self.ti0.useTex else self.ti1.palFormat
 
@@ -626,9 +662,7 @@ class MultitexManager:
             elif not convertTextureData:
                 if self.ti0.texFormat == "CI8" or self.ti1.texFormat == "CI8":
                     raise PluginError(
-                        "In material "
-                        + material.name
-                        + ": When using export as PNGs mode, can't have multitexture with one or more CI8 textures."
+                        "When using export as PNGs mode, can't have multitexture with one or more CI8 textures."
                         + " Only single CI texture or two CI4 textures."
                     )
                 self.ti0.loadPal = self.ti1.loadPal = True
@@ -638,34 +672,26 @@ class MultitexManager:
                 if self.ti0.texFormat == "CI8" and self.ti1.texFormat == "CI8":
                     if (self.ti0.pal is None) != (self.ti1.pal is None):
                         raise PluginError(
-                            "In material "
-                            + material.name
-                            + ": can't have two CI8 textures where only one is a non-flipbook reference; "
+                            "Can't have two CI8 textures where only one is a non-flipbook reference; "
                             + "no way to assign the palette."
                         )
                     self.ti0.loadPal = True
                     if self.ti0.pal is None:
                         if self.ti0.texProp.pal_reference != self.ti1.texProp.pal_reference:
-                            raise PluginError(
-                                "In material "
-                                + material.name
-                                + ": can't have two CI8 textures with different palette references."
-                            )
+                            raise PluginError("Can't have two CI8 textures with different palette references.")
                     else:
                         self.ti0.pal = mergePalettes(self.ti0.pal, self.ti1.pal)
                         self.ti0.palLen = len(self.ti0.pal)
                         if self.ti0.palLen > 256:
                             raise PluginError(
-                                "In material "
-                                + material.name
-                                + ": the two CI textures together contain a total of "
+                                "The two CI textures together contain a total of "
                                 + str(self.ti0.palLen)
                                 + " colors, which can't fit in a CI8 palette (256)."
                             )
                         # self.ti0.imDependencies remains what it was; the CIs in im0 are the same as they
                         # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
                         self.ti1.imDependencies = self.ti0.palDependencies = (
-                            self.ti0.imDependencies + self.ti1.imDependencies
+                            self.ti0.imDependencies | self.ti1.imDependencies
                         )
                 elif self.ti0.texFormat != self.ti1.texFormat:  # One CI8, one CI4
                     ci8Pal, ci4Pal = (
@@ -679,9 +705,7 @@ class MultitexManager:
                     if self.ti0.pal is None or self.ti1.pal is None:
                         if ci8PalLen > 256 - 16:
                             raise PluginError(
-                                "In material "
-                                + material.name
-                                + ": the CI8 texture has over 240 colors, which can't fit together with the CI4 palette."
+                                "The CI8 texture has over 240 colors, which can't fit together with the CI4 palette."
                             )
                         self.ti0.loadPal = self.ti1.loadPal = True
                         if self.ti0.texFormat == "CI8":
@@ -697,9 +721,7 @@ class MultitexManager:
                         self.ti0.palLen = len(self.ti0.pal)
                         if self.ti0.palLen > 256:
                             raise PluginError(
-                                "In material "
-                                + material.name
-                                + ": the two CI textures together contain a total of "
+                                "The two CI textures together contain a total of "
                                 + str(self.ti0.palLen)
                                 + " colors, which can't fit in a CI8 palette (256)."
                                 + " The CI8 texture must contain up to 240 unique colors,"
@@ -707,7 +729,7 @@ class MultitexManager:
                             )
                         # The use for the CI4 texture remains what it was; its CIs are the
                         # same as if it was alone. But both the palette and the CI8 CIs are affected.
-                        self.ti0.palDependencies = self.ti0.imDependencies + self.ti1.imDependencies
+                        self.ti0.palDependencies = self.ti0.imDependencies | self.ti1.imDependencies
                         if self.ti0.texFormat == "CI8":
                             self.ti0.imDependencies = self.ti0.palDependencies
                         else:
@@ -735,7 +757,7 @@ class MultitexManager:
                             # self.ti0.imDependencies remains what it was; the CIs in im0 are the same as they
                             # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
                             self.ti1.imDependencies = self.ti0.palDependencies = (
-                                self.ti0.imDependencies + self.ti1.imDependencies
+                                self.ti0.imDependencies | self.ti1.imDependencies
                             )
                         else:
                             # Load one palette across 0-1. Put the longer in slot 0
@@ -753,7 +775,7 @@ class MultitexManager:
                                 self.ti0.palIndex = 1
                             # The up-to-32 entries in self.ti0.pal depend on both images. But the
                             # CIs in both im0 and im1 are the same as if there was no shared palette.
-                            self.ti0.palDependencies = self.ti0.imDependencies + self.ti1.imDependencies
+                            self.ti0.palDependencies = self.ti0.imDependencies | self.ti1.imDependencies
         fMaterial.texPaletteIndex = [self.ti0.palIndex, self.ti1.palIndex]
         self.ti0.palBaseName = self.ti0.getPaletteName()
         self.ti1.palBaseName = self.ti1.getPaletteName()
@@ -792,7 +814,7 @@ class MultitexManager:
         if sameTextures:
             assert (
                 self.ti0.tmemSize == self.ti1.tmemSize
-            ), f"Unreachable code path in material {material.name}, same textures (same image or reference) somehow not the same size"
+            ), f"Unreachable code path, same textures (same image or reference) somehow not the same size"
             tmemOccupied = self.ti0.tmemSize
             self.ti1.doTexLoad = False
             self.ti1.texAddr = 0
@@ -835,11 +857,7 @@ class MultitexManager:
                     self.ti1.texAddr = tmemSize - self.ti1.tmemSize
                 else:
                     # Both textures large
-                    raise PluginError(
-                        'Error in "'
-                        + material.name
-                        + '": Multitexture with two large textures is not currently supported.'
-                    )
+                    raise PluginError("Multitexture with two large textures is not currently supported.")
                     # Limited cases of 2x large textures could be supported in the
                     # future. However, these cases are either of questionable
                     # utility or have substantial restrictions. Most cases could be
@@ -877,16 +895,10 @@ class MultitexManager:
                 tmemOccupied = tmemSize
         if tmemOccupied > tmemSize:
             if sameTextures and useLargeTextures:
-                raise PluginError(
-                    'Error in "'
-                    + material.name
-                    + '": Using the same texture for Tex0 and Tex1 is not compatible with large textures.'
-                )
+                raise PluginError("Using the same texture for Tex0 and Tex1 is not compatible with large textures.")
             elif not bpy.context.scene.ignoreTextureRestrictions:
                 raise PluginError(
-                    'Error in "'
-                    + material.name
-                    + '": Textures are too big. Max TMEM size is 4k '
+                    "Textures are too big. Max TMEM size is 4k "
                     + "bytes, ex. 2 32x32 RGBA 16 bit textures.\nNote that texture width will be internally padded to 64 bit boundaries."
                 )
 
@@ -958,7 +970,7 @@ def saveTextureLoadOnly(
 ):
     fmt = texFormatOf[texProp.tex_format]
     siz = texBitSizeF3D[texProp.tex_format]
-    nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+    nocm = ("G_TX_WRAP", "G_TX_NOMIRROR")
     SL, TL, SH, TH, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
 
     # LoadTile will pad rows to 64 bit word alignment, while
@@ -1028,8 +1040,8 @@ def saveTextureTile(
         mask_T = texProp.T.mask
         shift_S = texProp.S.shift
         shift_T = texProp.T.shift
-    cms = [("G_TX_CLAMP" if clamp_S else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_S else "G_TX_NOMIRROR")]
-    cmt = [("G_TX_CLAMP" if clamp_T else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_T else "G_TX_NOMIRROR")]
+    cms = (("G_TX_CLAMP" if clamp_S else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_S else "G_TX_NOMIRROR"))
+    cmt = (("G_TX_CLAMP" if clamp_T else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_T else "G_TX_NOMIRROR"))
     masks = mask_S
     maskt = mask_T
     shifts = shift_S if shift_S >= 0 else (shift_S + 16)
@@ -1069,7 +1081,7 @@ def savePaletteLoad(
 ):
     assert 0 <= palAddr < 256 and (palAddr & 0xF) == 0
     palFmt = texFormatOf[palFormat]
-    nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+    nocm = ("G_TX_WRAP", "G_TX_NOMIRROR")
     gfxOut.commands.extend(
         [
             DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
