@@ -4831,11 +4831,13 @@ class F3DMaterialProperty(PropertyGroup):
 
     @property
     def is_multi_tex(self):
-        use_dict = all_combiner_uses(self)
-        return use_dict["Texture 0"] and use_dict["Texture 1"]
+        return combiner_uses_tex0(self) and combiner_uses_tex1(self)
 
     def get_uv_basis(self):
-        return self.uv_basis if (self.is_multi_tex and self.tex0.is_set and self.tex1.is_set) else None
+        uses_tex0, uses_tex1 = combiner_uses_tex0(self), combiner_uses_tex1(self)
+        if uses_tex0 and uses_tex1:
+            return self.uv_basis
+        return "TEXEL0" if uses_tex0 else ("TEXEL1" if uses_tex1 else None)
 
     def combiner_to_dict(self):
         cycles = [self.combiner1.to_dict()]
