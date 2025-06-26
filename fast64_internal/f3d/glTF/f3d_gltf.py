@@ -775,7 +775,7 @@ class F3DGlTFSettings(PropertyGroup):
     raise_texture_limits: BoolProperty(
         name="Tex Limits",
         description="Raises errors when texture limits are exceeded,\n"
-        "such as texture resolution, pallete size, format conflicts, etc",
+        "such as texture resolution, palette size, format conflicts, etc",
         default=True,
     )
     raise_large_multitex: BoolProperty(

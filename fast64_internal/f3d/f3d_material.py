@@ -3044,14 +3044,14 @@ class TextureProperty(PropertyGroup):
     def reference_to_dict(self):
         data = {"texture": self.tex_reference, "size": list(self.tex_reference_size)}
         if self.is_ci:
-            data["pallete"], data["palleteCount"] = self.pal_reference, self.pal_reference_size
+            data["palette"], data["paletteCount"] = self.pal_reference, self.pal_reference_size
         return data
 
     def reference_from_dict(self, data: dict):
         self.tex_reference = data.get("texture", self.tex_reference)
         self.tex_reference_size = data.get("size", self.tex_reference_size)
-        self.pal_reference = data.get("pallete", self.pal_reference)
-        self.pal_reference_size = data.get("palleteCount", self.pal_reference_size)
+        self.pal_reference = data.get("palette", self.pal_reference)
+        self.pal_reference_size = data.get("paletteCount", self.pal_reference_size)
 
     def to_dict(self):
         """Does not include actual texture and tile scroll"""
