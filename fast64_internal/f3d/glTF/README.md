@@ -97,7 +97,7 @@ Extension of [FAST64_materials_n64](#FAST64_materials_n64)
 
 ## Overview
 
-This extension implements an abstraction of F3D material features, properties from other revisions are implemented in seperate extensions:
+This extension implements an abstraction of F3D material features, properties from other revisions are implemented in separate extensions:
 
 - [F3DLX](#FAST64_materials_f3dlx)
 - [F3DEX3](#FAST64_materials_f3dex3)
@@ -194,7 +194,7 @@ Extension of [FAST64_materials_f3d](#FAST64_materials_f3d)
 
 ## Overview
 
-This extension implements F3DEX3 material features such as ambient occulsion, fresnel, attribute offsets and cel shading. F3DEX3 is based of F3DEX2 but does not include G_CLIPPING as an optional geometry mode, fast64 will never export both FAST64_materials_f3dlx and FAST64_materials_f3dex3.
+This extension implements F3DEX3 material features such as ambient occlusion, fresnel, attribute offsets and cel shading. F3DEX3 is based of F3DEX2 but does not include G_CLIPPING as an optional geometry mode, fast64 will never export both FAST64_materials_f3dlx and FAST64_materials_f3dex3.
 
 ### JSON Schema
 
