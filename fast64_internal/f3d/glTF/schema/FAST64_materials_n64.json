@@ -11,11 +11,11 @@
     "properties": {
         "combiner": {
             "type": "object",
-            "description": "The n64 color combiner lerp inputs",
+            "description": "The n64 color combiner inputs",
             "properties": {
                 "set": {
                     "type": "boolean",
-                    "description": "When toggled the material should update the combiner lerp inputs"
+                    "description": "When toggled the material should update the combiner inputs"
                 },
                 "cycles": {
                     "type": "array",
