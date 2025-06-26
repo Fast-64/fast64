@@ -626,7 +626,7 @@
         },
         "large": {
             "type": "object",
-            "description": "Settings for large textures, if property exits large texture mode is being used",
+            "description": "Settings for large textures, if property exists large texture mode is being used",
             "properties": {
                 "edges": {
                     "type": "string",
