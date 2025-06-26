@@ -4,9 +4,9 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
 
-from .fast64_internal.utility import multilineLabel, prop_group_to_json, json_to_prop_group
-from .fast64_internal.gltf_utility import get_gltf_settings, prefix_function, update_gltf2_addon
-from .fast64_internal.f3d.glTF.f3d_gltf import (
+from .utility import multilineLabel, prop_group_to_json, json_to_prop_group
+from .gltf_utility import get_gltf_settings, prefix_function, update_gltf2_addon
+from .f3d.glTF.f3d_gltf import (
     F3DGlTFSettings,
     F3DGlTFPanel,
     F3DExtensions,

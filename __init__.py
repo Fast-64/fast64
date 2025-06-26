@@ -56,7 +56,7 @@ from .fast64_internal.render_settings import (
     on_update_render_settings,
 )
 
-from .gltf_extension import (
+from .fast64_internal.gltf_extension import (
     glTF2ExportUserExtension,  # Import these so they are visible to the glTF add-on
     glTF2ImportUserExtension,
     glTF2_pre_export_callback,

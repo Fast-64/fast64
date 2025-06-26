@@ -932,8 +932,11 @@ def modify_f3d_nodes_for_export(use: bool):
             mix["f3d_gltf_owned"] = True
         mix.location = (1075, 850)
         mix.blend_type = "MULTIPLY"
-        mix.data_type = "FLOAT"
-        mix.inputs["B" if bpy.data.version >= (4, 2, 0) else 2].default_value = 1.0
+        if bpy.data.version > (4, 2, 0):
+            mix.data_type = "FLOAT"
+            mix.inputs["B"].default_value = 1.0
+        else:
+            mix.inputs[2].default_value = [1.0, 1.0, 1.0, 1.0]
         mix.inputs[0].default_value = 1.0
 
         vertex_color = next(
@@ -956,12 +959,11 @@ def modify_f3d_nodes_for_export(use: bool):
             )
             if bpy.app.version >= (4, 4, 0):
                 link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
-            elif bpy.app.version >= (4, 2, 1):
-                link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs[1])
-                link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
             else:
-                link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs["A"])
-                link_if_none_exist(mat, mix.outputs["Result"], bsdf.inputs["Alpha"])
+                link_if_none_exist(
+                    mat, vertex_color.outputs["Alpha"], mix.inputs["A" if bpy.data.version >= (4, 2, 0) else 1]
+                )
+                link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 
