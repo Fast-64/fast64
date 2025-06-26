@@ -204,7 +204,7 @@ def f3d_tex_to_abstracted(f3d_tex: TextureProperty, set_color: bool, set_alpha: 
         return offset
 
     if f3d_tex.tex is None:
-        raise PluginError("No texture set")
+        print("No texture set")
 
     abstracted_tex = AbstractedN64Texture(f3d_tex.tex, repeat=not f3d_tex.S.clamp or not f3d_tex.T.clamp)
     size = f3d_tex.get_tex_size()
