@@ -403,7 +403,7 @@
                 },
                 "perspectiveCorrection": {
                     "type": "string",
-                    "description": "ATurns on/off texture perspective correction",
+                    "description": "Turns on/off texture perspective correction",
                     "default": "NONE",
                     "enum": [
                         "NONE",
