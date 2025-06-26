@@ -89,11 +89,11 @@
                         32
                     ]
                 },
-                "pallete": {
+                "palette": {
                     "type": "string",
                     "default": "0x08000000"
                 },
-                "palleteCount": {
+                "paletteCount": {
                     "type": "integer",
                     "minimum": 1,
                     "default": 16

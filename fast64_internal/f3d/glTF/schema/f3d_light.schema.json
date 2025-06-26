@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema",
     "title": "F3D Light",
     "type": "object",
-    "description": "glTF extension that provides a representation of F3D light data. Color must be set, direction and positional are both optional but can´t be both set.",
+    "description": "glTF extension that provides a representation of F3D light data. Color must be set, direction and positional are both optional but can't be both set.",
     "required": [
         "color"
     ],
