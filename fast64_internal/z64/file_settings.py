@@ -7,8 +7,8 @@ from ..panels import OOT_Panel
 
 
 class OOT_FileSettingsPanel(OOT_Panel):
-    bl_idname = "OOT_PT_file_settings"
-    bl_label = "OOT File Settings"
+    bl_idname = "Z64_PT_file_settings"
+    bl_label = "Workspace Settings"
     bl_options = set()  # default to being open
 
     # called every frame

@@ -5,7 +5,7 @@ from .properties import CutsceneCmdCameraShotProperty, CutsceneCmdCameraShotPoin
 
 class OOT_CSMotionCameraShotPanel(OOT_Panel):
     bl_label = "Cutscene Motion Camera Shot Controls"
-    bl_idname = "OOT_PT_camera_shot_panel"
+    bl_idname = "Z64_PT_camera_shot_panel"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
