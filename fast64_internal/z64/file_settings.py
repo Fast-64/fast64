@@ -1,6 +1,8 @@
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, FloatProperty, BoolProperty
+from bpy.props import StringProperty, FloatProperty
 from bpy.types import Scene
+
+from ..game_data import game_data
 from ..utility import prop_split
 from ..render_settings import on_update_render_settings
 from ..panels import OOT_Panel
@@ -19,7 +21,8 @@ class OOT_FileSettingsPanel(OOT_Panel):
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
 
-        prop_split(col, context.scene.fast64.oot, "oot_version", "OoT Version")
+        version = "oot_version" if game_data.z64.is_oot() else "mm_version"
+        prop_split(col, context.scene.fast64.oot, version, "Game Version")
         if context.scene.fast64.oot.oot_version == "Custom":
             prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
 
