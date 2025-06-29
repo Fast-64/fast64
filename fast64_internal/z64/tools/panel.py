@@ -13,8 +13,8 @@ from .operators import (
 
 
 class OoT_ToolsPanel(OOT_Panel):
-    bl_idname = "OOT_PT_tools"
-    bl_label = "OOT Tools"
+    bl_idname = "Z64_PT_tools"
+    bl_label = "Tools"
 
     def draw(self, context):
         col = self.layout.column()

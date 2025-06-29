@@ -7,19 +7,18 @@ from .operators import OOT_ExportCutscene, OOT_ExportAllCutscenes, OOT_ImportCut
 
 
 class OoT_PreviewSettingsPanel(OOT_Panel):
-    bl_idname = "OOT_PT_preview_settings"
-    bl_label = "OOT CS Preview Settings"
+    bl_idname = "Z64_PT_preview_settings"
+    bl_label = "CS Preview Settings"
 
     def draw(self, context):
         context.scene.ootPreviewSettingsProperty.draw_props(self.layout)
 
 
 class OOT_CutscenePanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_cutscene"
-    bl_label = "OOT Cutscene Exporter"
+    bl_idname = "Z64_PT_export_cutscene"
+    bl_label = "Cutscene Exporter"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "OOT"
 
     def draw(self, context):
         layout = self.layout

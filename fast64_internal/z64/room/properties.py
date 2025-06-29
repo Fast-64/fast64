@@ -1,6 +1,8 @@
 import bpy
-from bpy.types import PropertyGroup, UILayout, Image, Object
+
+from bpy.types import PropertyGroup, UILayout, Image, Object, Context
 from bpy.utils import register_class, unregister_class
+
 from ...utility import prop_split
 from ...game_data import game_data
 from ..collection_utility import drawCollectionOps, drawAddButton
@@ -150,9 +152,9 @@ class OOTRoomHeaderProperty(PropertyGroup):
             if not self.expandTab:
                 return
         if headerIndex is not None and headerIndex > 3:
-            drawCollectionOps(layout, headerIndex - 4, "Room", None, objName)
+            drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Room", None, objName)
 
-        if headerIndex is not None and headerIndex > 0 and headerIndex < 4:
+        if headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -238,6 +240,13 @@ class OOTRoomHeaderProperty(PropertyGroup):
             drawAddButton(objBox, len(self.objectList), "Object", headerIndex, objName)
 
 
+def update_cutscene_index(self: "OOTAlternateRoomHeaderProperty", context: Context):
+    if self.currentCutsceneIndex < game_data.z64.cs_index_start:
+        self.currentCutsceneIndex = game_data.z64.cs_index_start
+
+    onHeaderMenuTabChange(self, context)
+
+
 class OOTAlternateRoomHeaderProperty(PropertyGroup):
     childNightHeader: PointerProperty(name="Child Night Header", type=OOTRoomHeaderProperty)
     adultDayHeader: PointerProperty(name="Adult Day Header", type=OOTRoomHeaderProperty)
@@ -245,7 +254,7 @@ class OOTAlternateRoomHeaderProperty(PropertyGroup):
     cutsceneHeaders: CollectionProperty(type=OOTRoomHeaderProperty)
 
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
-    currentCutsceneIndex: IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: IntProperty(default=1, update=update_cutscene_index)
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
@@ -263,8 +272,8 @@ class OOTAlternateRoomHeaderProperty(PropertyGroup):
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Room", None, objName)
             index = self.currentCutsceneIndex
-            if index - 4 < len(self.cutsceneHeaders):
-                self.cutsceneHeaders[index - 4].draw_props(headerSetup, None, index, objName)
+            if index - game_data.z64.cs_index_start < len(self.cutsceneHeaders):
+                self.cutsceneHeaders[index - game_data.z64.cs_index_start].draw_props(headerSetup, None, index, objName)
             else:
                 headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 
