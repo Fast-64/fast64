@@ -749,6 +749,42 @@
     <Item Key="surface_material_carpet" ID="SURFACE_MATERIAL_CARPET" Name="Carpet" Index="13"/>
     <Item Key="surface_material_snow" ID="SURFACE_MATERIAL_SNOW" Name="Snow" Index="14"/>
   </Enum>
+  <Enum Key="floor_type" ID="FloorType">
+    <Item Key="floor_type_0" ID="FLOOR_TYPE_0" Name="Default" Index="0"/>
+    <Item Key="floor_type_1" ID="FLOOR_TYPE_1" Name="Unused (?)" Index="1"/>
+    <Item Key="floor_type_2" ID="FLOOR_TYPE_2" Name="Fire Damages (burns Player every second)" Index="2"/>
+    <Item Key="floor_type_3" ID="FLOOR_TYPE_3" Name="Fire Damages 2 (burns Player every second)" Index="3"/>
+    <Item Key="floor_type_4" ID="FLOOR_TYPE_4" Name="Shallow Sand" Index="4"/>
+    <Item Key="floor_type_5" ID="FLOOR_TYPE_5" Name="Ice (Slippery)" Index="5"/>
+    <Item Key="floor_type_6" ID="FLOOR_TYPE_6" Name="Ignore Fall Damages" Index="6"/>
+    <Item Key="floor_type_7" ID="FLOOR_TYPE_7" Name="Quicksand (blocks Epona)" Index="7"/>
+    <Item Key="floor_type_8" ID="FLOOR_TYPE_8" Name="Jabu Jabu's Belly Floor (Unused)" Index="8"/>
+    <Item Key="floor_type_9" ID="FLOOR_TYPE_9" Name="Triggers Void" Index="9"/>
+    <Item Key="floor_type_10" ID="FLOOR_TYPE_10" Name="Stops Air Momentum" Index="10"/>
+    <Item Key="floor_type_11" ID="FLOOR_TYPE_11" Name="Grotto Exit Animation" Index="11"/>
+    <Item Key="floor_type_12" ID="FLOOR_TYPE_12" Name="Quicksand (doesn't block Epona)" Index="12"/>
+    <Item Key="floor_type_13" ID="FLOOR_TYPE_13" Name="Deeper Shallow Sand" Index="13"/>
+    <Item Key="floor_type_14" ID="FLOOR_TYPE_14" Name="Shallow Snow" Index="14"/>
+    <Item Key="floor_type_15" ID="FLOOR_TYPE_15" Name="Deeper Shallow Snow" Index="15"/>
+  </Enum>
+  <Enum Key="floor_property" ID="FloorProperty">
+      <Item Key="floor_property_0" ID="FLOOR_PROPERTY_0" Name="Default" Index="0"/>
+      <Item Key="floor_property_1" ID="FLOOR_PROPERTY_1" Name="Frontflip Jump Animation" Index="1"/>
+      <Item Key="floor_property_2" ID="FLOOR_PROPERTY_2" Name="Sideflip Jump Animation" Index="2"/>
+      <Item Key="floor_property_5" ID="FLOOR_PROPERTY_5" Name="Trigger Respawn (sets human no mask)" Index="5"/>
+      <Item Key="floor_property_6" ID="FLOOR_PROPERTY_6" Name="Grab Wall" Index="6"/>
+      <Item Key="floor_property_7" ID="FLOOR_PROPERTY_7" Name="Unknown (sets speed to 0)" Index="7"/>
+      <Item Key="floor_property_8" ID="FLOOR_PROPERTY_8" Name="Stop Air Momentum" Index="8"/>
+      <Item Key="floor_property_9" ID="FLOOR_PROPERTY_9" Name="Fall Instead Of Jumping" Index="9"/>
+      <Item Key="floor_property_11" ID="FLOOR_PROPERTY_11" Name="Dive Animation" Index="11"/>
+      <Item Key="floor_property_12" ID="FLOOR_PROPERTY_12" Name="Trigger Void" Index="12"/>
+      <Item Key="floor_property_13" ID="FLOOR_PROPERTY_13" Name="Trigger Void (runs `Player_Action_1`)" Index="13"/>
+  </Enum>
+  <Enum Key="floor_effect" ID="FloorEffect">
+      <Item Key="floor_effect_0" ID="FLOOR_EFFECT_0" Name="Default" Index="0"/>
+      <Item Key="floor_effect_1" ID="FLOOR_EFFECT_1" Name="Steep/Slippery Slope" Index="1"/>
+      <Item Key="floor_effect_2" ID="FLOOR_EFFECT_2" Name="Walkable (Preserves Exit Flags)" Index="2"/>
+  </Enum>
   <Enum Key="global_object" ID="GlobalObjects">
     <Item Key="gameplay_field_keep" ID="GAMEPLAY_FIELD_KEEP" Name="Overworld" Index="1"/>
     <Item Key="gameplay_dangeon_keep" ID="GAMEPLAY_DANGEON_KEEP" Name="Dungeon" Index="2"/>

@@ -4,52 +4,6 @@ ootEnumConveyer = [
     ("Water", "Water", "Water"),
 ]
 
-ootEnumWallSetting = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "None", "None"),
-    ("0x01", "No Ledge Grab", "No Ledge Grab"),
-    ("0x02", "Ladder", "Ladder"),
-    ("0x03", "Ladder Top", "Ladder Top"),
-    ("0x04", "Vines", "Vines"),
-    ("0x05", "Crawl Space", "Crawl Space"),
-    ("0x06", "Crawl Space 2", "Crawl Space 2"),
-    ("0x07", "Push Block", "Push Block"),
-]
-
-ootEnumCollisionTerrain = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Walkable", "Walkable"),
-    ("0x01", "Steep", "Steep"),
-    ("0x02", "Walkable (Preserves Exit Flags)", "Walkable (Preserves Exit Flags)"),
-    ("0x03", "Walkable (?)", "Walkable (?)"),
-]
-
-ootEnumCollisionSound = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Dirt", "Dirt (aka Earth)"),
-    ("0x01", "Sand", "Sand"),
-    ("0x02", "Stone", "Stone"),
-    ("0x03", "Jabu", "Jabu-Jabu flesh (aka Wet Stone)"),
-    ("0x04", "Shallow Water", "Shallow Water"),
-    ("0x05", "Deep Water", "Deep Water"),
-    ("0x06", "Tall Grass", "Tall Grass"),
-    ("0x07", "Lava", "Lava (aka Goo)"),
-    ("0x08", "Grass", "Grass (aka Earth 2)"),
-    ("0x09", "Bridge", "Bridge (aka Wooden Plank)"),
-    ("0x0A", "Wood", "Wood (aka Packed Earth)"),
-    ("0x0B", "Soft Dirt", "Soft Dirt (aka Earth 3)"),
-    ("0x0C", "Ice", "Ice (aka Ceramic)"),
-    ("0x0D", "Carpet", "Carpet (aka Loose Earth)"),
-]
-
-enum_conveyor_speed = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "None", "None"),
-    ("0x01", "Slow", "Slow"),
-    ("0x02", "Medium", "Medium"),
-    ("0x03", "Fast", "Fast"),
-]
-
 ootEnumCameraCrawlspaceSType = [
     ("Custom", "Custom", "Custom"),
     ("CAM_SET_CRAWLSPACE", "Crawlspace", "Crawlspace"),

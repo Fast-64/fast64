@@ -24,7 +24,6 @@ from .scene_pathways import parsePathList
 
 from ..constants import (
     ootEnumAudioSessionPreset,
-    ootEnumMusicSeq,
     ootEnumCameraMode,
     ootEnumMapLocation,
     ootEnumNaviHints,
@@ -270,8 +269,9 @@ def parseSceneCommands(
     for command, args in cmd_map.items():
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
+            seq_id = game_data.z64.enums.enumByKey["seq_id"].item_by_id[args[2]].key
             setCustomProperty(sceneHeader, "nightSeq", args[1], game_data.z64.get_enum("nature_id"))
-            setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
+            setCustomProperty(sceneHeader, "musicSeq", seq_id, game_data.z64.get_enum("seq_id"))
         elif command == "SCENE_CMD_ROOM_LIST":
             # Assumption that all scenes use the same room list.
             if headerIndex == 0:
