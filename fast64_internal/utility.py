@@ -1998,3 +1998,13 @@ def get_include_data(include: str, strip: bool = False):
 
     # return the data as a string
     return data
+
+
+def get_prop_annotations(cls):
+    prop_annotations = getattr(cls, "__annotations__", None)
+
+    if prop_annotations is None:
+        setattr(cls, "__annotations__", dict())
+        prop_annotations = getattr(cls, "__annotations__")
+
+    return prop_annotations

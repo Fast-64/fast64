@@ -185,76 +185,6 @@ mm_enum_room_type = [
     ("ROOM_TYPE_BOSS", "Boss", "0x05"),
 ]
 
-oot_enum_floor_property = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "Default"),
-    ("0x05", "Trigger Respawn", "Trigger Respawn"),
-    ("0x06", "Grab Wall", "Grab Wall"),
-    ("0x08", "Stop Air Momentum", "Stop Air Momentum"),
-    ("0x09", "Fall Instead Of Jumping", "Fall Instead Of Jumping"),
-    ("0x0B", "Dive Animation", "Dive Animation"),
-    ("0x0C", "Trigger Void", "Trigger Void"),
-]
-
-mm_enum_floor_property = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "FLOOR_PROPERTY_0"),
-    ("0x01", "Frontflip Jump Animation", "FLOOR_PROPERTY_1"),
-    ("0x02", "Sideflip Jump Animation", "FLOOR_PROPERTY_2"),
-    ("0x05", "Trigger Respawn (sets human no mask)", "FLOOR_PROPERTY_5"),
-    ("0x06", "Grab Wall", "FLOOR_PROPERTY_6"),
-    ("0x07", "Unknown (sets speed to 0)", "FLOOR_PROPERTY_7"),
-    ("0x08", "Stop Air Momentum", "FLOOR_PROPERTY_8"),
-    ("0x09", "Fall Instead Of Jumping", "FLOOR_PROPERTY_9"),
-    ("0x0B", "Dive Animation", "FLOOR_PROPERTY_11"),
-    ("0x0C", "Trigger Void", "FLOOR_PROPERTY_12"),
-    ("0x0D", "Trigger Void (runs `Player_Action_1`)", "FLOOR_PROPERTY_13"),
-]
-
-oot_enum_floor_type = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "Default"),
-    ("0x01", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
-    ("0x02", "Fire (damages every 6s)", "Fire (damages every 6s)"),
-    ("0x03", "Fire (damages every 3s)", "Fire (damages every 3s)"),
-    ("0x04", "Shallow Sand", "Shallow Sand"),
-    ("0x05", "Slippery", "Slippery"),
-    ("0x06", "Ignore Fall Damage", "Ignore Fall Damage"),
-    ("0x07", "Quicksand Crossing (Blocks Epona)", "Quicksand Crossing (Epona Uncrossable)"),
-    ("0x08", "Jabu Jabu's Belly Floor", "Jabu Jabu's Belly Floor"),
-    ("0x09", "Trigger Void", "Trigger Void"),
-    ("0x0A", "Stops Air Momentum", "Stops Air Momentum"),
-    ("0x0B", "Grotto Exit Animation", "Link Looks Up"),
-    ("0x0C", "Quicksand Crossing (Epona Crossable)", "Quicksand Crossing (Epona Crossable)"),
-]
-
-mm_enum_floor_type = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "FLOOR_TYPE_0"),
-    ("0x01", "Unused (?)", "FLOOR_TYPE_1"),
-    ("0x02", "Fire Damages (burns Player every second)", "FLOOR_TYPE_2"),
-    ("0x03", "Fire Damages 2 (burns Player every second)", "FLOOR_TYPE_3"),
-    ("0x04", "Shallow Sand", "FLOOR_TYPE_4"),
-    ("0x05", "Ice (Slippery)", "FLOOR_TYPE_5"),
-    ("0x06", "Ignore Fall Damages", "FLOOR_TYPE_6"),
-    ("0x07", "Quicksand (blocks Epona)", "FLOOR_TYPE_7"),
-    ("0x08", "Jabu Jabu's Belly Floor (Unused)", "FLOOR_TYPE_8"),
-    ("0x09", "Triggers Void", "FLOOR_TYPE_9"),
-    ("0x0A", "Stops Air Momentum", "FLOOR_TYPE_10"),
-    ("0x0B", "Grotto Exit Animation", "FLOOR_TYPE_11"),
-    ("0x0C", "Quicksand (doesn't block Epona)", "FLOOR_TYPE_12"),
-    ("0x0D", "Deeper Shallow Sand", "FLOOR_TYPE_13"),
-    ("0x0E", "Shallow Snow", "FLOOR_TYPE_14"),
-    ("0x0F", "Deeper Shallow Snow", "FLOOR_TYPE_15"),
-]
-
-enum_floor_effect = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "FLOOR_EFFECT_0"),
-    ("0x01", "Steep/Slippery Slope", "FLOOR_EFFECT_1"),
-    ("0x02", "Walkable (Preserves Exit Flags)", "FLOOR_EFFECT_2"),
-]
-
 oot_enum_camera_setting_type = [
     ("Custom", "Custom", "Custom"),
     ("CAM_SET_NONE", "None", "None"),
@@ -820,8 +750,6 @@ class Z64_Data:
         self.is_registering = True
         self.update(None, game, True)  # forcing the update as we're in the init function
 
-        self.enum_floor_effect = enum_floor_effect
-
     def is_oot(self):
         self.update(bpy.context, None)
         return self.game == "OOT"
@@ -877,8 +805,6 @@ class Z64_Data:
             self.enum_skybox_config = oot_enum_skybox_config
             self.enum_environment_type = oot_enum_environment_type
             self.enum_room_type = oot_enum_room_type
-            self.enum_floor_property = oot_enum_floor_property
-            self.enum_floor_type = oot_enum_floor_type
             self.enum_camera_setting_type = oot_enum_camera_setting_type
             self.enum_cs_list_type = oot_enum_cs_list_type
             self.skeleton_dict = oot_skeleton_dict
@@ -892,8 +818,6 @@ class Z64_Data:
             self.enum_skybox_config = mm_enum_skybox_config
             self.enum_environment_type = mm_enum_environment_type
             self.enum_room_type = mm_enum_room_type
-            self.enum_floor_property = mm_enum_floor_property
-            self.enum_floor_type = mm_enum_floor_type
             self.enum_camera_setting_type = mm_enum_camera_setting_type
             self.enum_cs_list_type = mm_enum_cs_list_type
             self.skeleton_dict = mm_skeleton_dict
@@ -903,25 +827,29 @@ class Z64_Data:
 
         self.enum_map: dict[str, list[tuple[str, str, str]]] = {
             "globalObject": self.enums.enum_global_object,
-            "musicSeq": self.enums.enum_seq_id,
+            "seq_id": self.enums.enum_seq_id,
             "drawConfig": self.enums.enum_draw_config,
-            "sound": self.enums.enum_surface_material,
-            "csDestination": self.enums.enum_cs_destination,
-            "seqId": self.enums.enum_seq_id,
-            "playerCueID": self.enums.enum_cs_player_cue_id,
-            "ocarinaAction": self.enums.enum_ocarina_song_action_id,
-            "csTextType": self.enums.enum_cs_text_type,
-            "csSeqPlayer": self.enums.enum_cs_fade_out_seq_player,
-            "csMiscType": self.enums.enum_cs_misc_type,
-            "transitionType": self.enums.enum_cs_transition_type,
-            "actor_cue_list_cmd_type": self.enums.enum_cs_actor_cue_list_cmd_type,
+            "surface_material": self.enums.enum_surface_material,
+            "cs_destination": self.enums.enum_cs_destination,
+            "cs_player_cue_id": self.enums.enum_cs_player_cue_id,
+            "cs_song_action_id": self.enums.enum_ocarina_song_action_id,
+            "cs_text_type": self.enums.enum_cs_text_type,
+            "cs_seq_player": self.enums.enum_cs_fade_out_seq_player,
+            "cs_misc_type": self.enums.enum_cs_misc_type,
+            "cs_transition_type": self.enums.enum_cs_transition_type,
+            "cs_actor_cue_list": self.enums.enum_cs_actor_cue_list_cmd_type,
             "spline_interp_type": self.enums.enum_cs_spline_interp_type,
             "spline_rel_to": self.enums.enum_cs_spline_rel,
             "trans_general": self.enums.enum_cs_transition_general,
             "blur_type": self.enums.enum_cs_motion_blur_type,
             "credits_scene_type": self.enums.enum_cs_credits_scene_type,
             "mod_seq_type": self.enums.enum_cs_modify_seq_type,
-            "objectKey": self.objects.ootEnumObjectKey,
+            "wall_type": self.enums.enum_wall_type,
+            "floor_effect": self.enums.enum_floor_effect,
+            "floor_property": self.enums.enum_floor_property,
+            "floor_type": self.enums.enum_floor_type,
+            "conveyor_speed": self.enums.enum_conveyor_speed,
+            "object_key": self.objects.ootEnumObjectKey,
             "actor_id": self.actors.ootEnumActorID,
             "chest_content": self.actors.ootEnumChestContent,
             "navi_msg_id": self.actors.ootEnumNaviMessageData,
@@ -931,8 +859,6 @@ class Z64_Data:
             "nature_id": self.enum_nature_id,
             "room_type": self.enum_room_type,
             "environment_type": self.enum_environment_type,
-            "floor_property": self.enum_floor_property,
-            "floor_type": self.enum_floor_type,
             "camera_setting_type": self.enum_camera_setting_type,
             "cs_list_type": self.enum_cs_list_type,
             "skeleton_mode": self.enum_skeleton_mode,
