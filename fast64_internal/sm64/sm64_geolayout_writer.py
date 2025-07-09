@@ -1504,16 +1504,22 @@ def processMesh(
 
             if len(src_meshes):
                 fMeshes = {}
-                if useGeoEmpty:
-                    node.dlRef = src_meshes[0]["name"]
+                # find dl
+                draw, name = None, src_meshes[0]["dl"]
+                for fmesh in fModel.meshes.values():
+                    for fmesh_draw in [fmesh.draw] + fmesh.draw_overrides:
+                        if fmesh_draw.name == name:
+                            draw = fmesh_draw
+                            break
+                node.dlRef = draw
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
                 for src_mesh in src_meshes[1:]:
                     additionalNode = (
-                        DisplayListNode(src_mesh["layer"], src_mesh["name"])
+                        DisplayListNode(src_mesh["layer"], src_mesh["dl"])
                         if not isinstance(node, BillboardNode)
-                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["name"])
+                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["dl"])
                     )
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
@@ -1531,10 +1537,9 @@ def processMesh(
                 )
                 if fMeshes:
                     temp_obj["src_meshes"] = [
-                        ({"name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
+                        ({"dl": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    if useGeoEmpty:
-                        node.dlRef = temp_obj["src_meshes"][0]["name"]
+                    node.dlRef = temp_obj["src_meshes"][0]["dl"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
