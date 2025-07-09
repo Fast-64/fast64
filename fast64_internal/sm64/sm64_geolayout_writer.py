@@ -1505,7 +1505,7 @@ def processMesh(
             if len(src_meshes):
                 fMeshes = {}
                 # find dl
-                draw, name = None, src_meshes[0]["dl"]
+                draw, name = None, src_meshes[0]["dl_name"]
                 for fmesh in fModel.meshes.values():
                     for fmesh_draw in [fmesh.draw] + fmesh.draw_overrides:
                         if fmesh_draw.name == name:
@@ -1517,9 +1517,9 @@ def processMesh(
 
                 for src_mesh in src_meshes[1:]:
                     additionalNode = (
-                        DisplayListNode(src_mesh["layer"], src_mesh["dl"])
+                        DisplayListNode(src_mesh["layer"], src_mesh["dl_name"])
                         if not isinstance(node, BillboardNode)
-                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["dl"])
+                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["dl_name"])
                     )
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
@@ -1537,9 +1537,9 @@ def processMesh(
                 )
                 if fMeshes:
                     temp_obj["src_meshes"] = [
-                        ({"dl": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
+                        ({"dl_name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    node.dlRef = temp_obj["src_meshes"][0]["dl"]
+                    node.dlRef = temp_obj["src_meshes"][0]["dl_name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
