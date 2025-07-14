@@ -1255,7 +1255,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
             box.prop(obj, "actSelectorIgnore")
             box.prop(obj, "setAsStartLevel")
-            grid = box.grid_flow(columns=2)
+            grid = box.grid_flow(columns=1)
             obj.fast64.sm64.segment_loads.draw(grid)
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
