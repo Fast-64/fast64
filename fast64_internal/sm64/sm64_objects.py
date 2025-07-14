@@ -46,6 +46,7 @@ from .sm64_constants import (
     obj_group_enums,
     groupsSeg5,
     groupsSeg6,
+    groupsSeg8,
     groups_obj_export,
 )
 from .sm64_utility import convert_addr_to_func
@@ -2780,8 +2781,11 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
     seg5_group_custom: bpy.props.StringProperty(name="Segment 5 Group")
     seg6_load_custom: bpy.props.StringProperty(name="Segment 6 Seg")
     seg6_group_custom: bpy.props.StringProperty(name="Segment 6 Group")
+    seg8_load_custom: bpy.props.StringProperty(name="Segment 8 Seg")
+    seg8_group_custom: bpy.props.StringProperty(name="Segment 8 Group")
     seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
     seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
+    seg8_enum: bpy.props.EnumProperty(name="Segment 8 Group", default="Do Not Write", items=groupsSeg8)
 
     def draw(self, layout):
         col = layout.column()
@@ -2794,10 +2798,17 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
         if self.seg6_enum == "Custom":
             prop_split(col, self, "seg6_load_custom", "Segment 6 Seg")
             prop_split(col, self, "seg6_group_custom", "Segment 6 Group")
+        col = layout.column()
+        prop_split(col, self, "seg8_enum", "Segment 8 Select")
+        if self.seg8_enum == "Custom":
+            prop_split(col, self, "seg8_load_custom", "Segment 8 Seg")
+            prop_split(col, self, "seg8_group_custom", "Segment 8 Group")
 
     def jump_link_from_enum(self, grp):
         if grp == "Do Not Write":
             return grp
+        elif grp == "common0":
+            return f"script_func_global_1"
         num = int(grp.removeprefix("group")) + 1
         return f"script_func_global_{num}"
 
@@ -2814,6 +2825,13 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.seg6_load_custom
         else:
             return self.seg6_enum
+        
+    @property
+    def seg8(self):
+        if self.seg8_enum == "Custom":
+            return self.seg8_load_custom
+        else:
+            return self.seg8_enum
 
     @property
     def group5(self):
@@ -2828,6 +2846,13 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.seg6_group_custom
         else:
             return self.jump_link_from_enum(self.seg6_enum)
+        
+    @property
+    def group8(self):
+        if self.seg8_enum == "Custom":
+            return self.seg8_group_custom
+        else:
+            return self.jump_link_from_enum(self.seg8_enum)
 
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):

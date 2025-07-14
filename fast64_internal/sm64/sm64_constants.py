@@ -2117,6 +2117,12 @@ groupsSeg6 = [
     ("Custom", "Custom", "Custom"),
 ]
 
+groupsSeg8 = [
+    ("common0", "common0", "Generic course objects (Goomba, Bob-ombs, Cannon etc.)"),
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("Custom", "Custom", "Custom"),
+]
+
 # groups you can use for the combined object export
 groups_obj_export = [
     ("common0", "common0", "chuckya, boxes, blue coin switch"),

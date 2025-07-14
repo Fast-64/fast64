@@ -468,8 +468,7 @@ def replaceScriptLoads(levelscript, obj):
         scriptNum = int(re.findall(r"\d+", target)[-1])
         # this is common0
         if scriptNum == 1:
-            newFuncs.append(jumpLink)
-            continue
+            newNum = obj.fast64.sm64.segment_loads.group8
         if scriptNum < 13:
             newNum = obj.fast64.sm64.segment_loads.group5
         else:
@@ -850,6 +849,14 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
             0x06,
         )
         replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+    if group_seg_loads.seg8_enum != "Do Not Write":
+        replaceSegmentLoad(
+            prev_level_script,
+            f"_{group_seg_loads.seg8}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x08,
+        )
+        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg8}_geo", "LOAD_RAW", 0x0F)
 
     # write data
     replaceScriptLoads(prev_level_script, obj)
