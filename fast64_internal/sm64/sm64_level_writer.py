@@ -460,6 +460,7 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
 
 def replaceScriptLoads(levelscript, obj):
     newFuncs = []
+    oldFuncs = [None] * 3
     for jumpLink in levelscript.levelFunctions:
         target = jumpLink.args[0]  # format is [macro, list[args], comment]
         if "script_func_global_" not in target:
@@ -468,15 +469,22 @@ def replaceScriptLoads(levelscript, obj):
         scriptNum = int(re.findall(r"\d+", target)[-1])
         # this is common0
         if scriptNum == 1:
-            newNum = obj.fast64.sm64.segment_loads.group8
-        if scriptNum < 13:
-            newNum = obj.fast64.sm64.segment_loads.group5
+            oldFuncs[0] = jumpLink
+        elif scriptNum < 13:
+            oldFuncs[1] = jumpLink
         else:
-            newNum = obj.fast64.sm64.segment_loads.group6
-        if newNum == "Do Not Write":
-            newFuncs.append(jumpLink)
-            continue
-        newFuncs.append(Macro("JUMP_LINK", [newNum], jumpLink.comment))
+            oldFuncs[2] = jumpLink
+
+    group_seg_loads = obj.fast64.sm64.segment_loads
+    scriptFuncs = (group_seg_loads.group8, group_seg_loads.group5, group_seg_loads.group6)
+
+    for func in zip(scriptFuncs, oldFuncs):
+        if func[0] == "Do Not Write":
+            if func[1] != None:
+                newFuncs.append(func[1])
+        else:
+            newFuncs.append(Macro("JUMP_LINK", [func[0]], ""))
+        
     levelscript.levelFunctions = newFuncs
 
 
