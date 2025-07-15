@@ -229,7 +229,7 @@ class SceneEntranceActors:
         """Returns the spawn list scene command"""
 
         name = self.name if len(self.entries) > 0 else "NULL"
-        return indent + f"SCENE_CMD_SPAWN_LIST({len(self.entries)}, {name}),\n"
+        return indent + f"SCENE_CMD_PLAYER_ENTRY_LIST({len(self.entries)}, {name}),\n"
 
     def getC(self):
         """Returns the spawn actor array"""
@@ -258,7 +258,7 @@ class SceneSpawns(Utility):
     def getCmd(self):
         """Returns the entrance list scene command"""
 
-        return indent + f"SCENE_CMD_ENTRANCE_LIST({self.name if len(self.entries) > 0 else 'NULL'}),\n"
+        return indent + f"SCENE_CMD_SPAWN_LIST({self.name if len(self.entries) > 0 else 'NULL'}),\n"
 
     def getC(self):
         """Returns the spawn array"""

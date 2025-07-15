@@ -283,6 +283,17 @@ class Scene:
                 '#include "scene.h"',
             ]
 
+        backwards_compatibility = [
+            "// For older decomp versions",
+            "#ifndef SCENE_CMD_PLAYER_ENTRY_LIST",
+            "#define SCENE_CMD_PLAYER_ENTRY_LIST(length, playerEntryList) \\",
+            indent + "{ SCENE_CMD_ID_SPAWN_LIST, length, CMD_PTR(playerEntryList) }",
+            "#undef SCENE_CMD_SPAWN_LIST",
+            "#define SCENE_CMD_SPAWN_LIST(spawnList) \\",
+            indent + "{ SCENE_CMD_ID_ENTRANCE_LIST, 0, CMD_PTR(spawnList) }",
+            "#endif\n\n",
+        ]
+
         return SceneFile(
             self.name,
             sceneMainData.source,
@@ -299,6 +310,7 @@ class Scene:
                 f"#ifndef {self.name.upper()}_H\n"
                 + f"#define {self.name.upper()}_H\n\n"
                 + ("\n".join(includes) + "\n\n")
+                + "\n".join(backwards_compatibility)
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

@@ -293,7 +293,11 @@ def parseSceneCommands(
             if headerIndex == 0:
                 collisionHeaderName = args[0][1:]  # remove '&'
                 parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName, sharedSceneData)
-        elif command == "SCENE_CMD_ENTRANCE_LIST" and sharedSceneData.includeActors:
+        elif (
+            command in {"SCENE_CMD_ENTRANCE_LIST", "SCENE_CMD_SPAWN_LIST"}
+            and sharedSceneData.includeActors
+            and len(args) == 1
+        ):
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = stripName(args[0])
                 entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
@@ -305,7 +309,7 @@ def parseSceneCommands(
             parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
 
         # This must be handled after entrance list, so that entrance list can be referenced
-        elif command == "SCENE_CMD_SPAWN_LIST" and sharedSceneData.includeActors:
+        elif command in {"SCENE_CMD_SPAWN_LIST", "SCENE_CMD_PLAYER_ENTRY_LIST"} and sharedSceneData.includeActors:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 spawnListName = stripName(args[1])
                 parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedSceneData, headerIndex)
