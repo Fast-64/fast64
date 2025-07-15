@@ -2827,7 +2827,7 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.seg6_load_custom
         else:
             return self.seg6_enum
-        
+
     @property
     def seg8(self):
         if self.seg8_enum == "Custom":
@@ -2848,7 +2848,7 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.seg6_group_custom
         else:
             return self.jump_link_from_enum(self.seg6_enum)
-        
+
     @property
     def group8(self):
         if self.seg8_enum == "Custom":

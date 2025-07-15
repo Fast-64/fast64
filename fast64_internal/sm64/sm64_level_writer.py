@@ -457,6 +457,7 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
     changedLoad[1][1] = segmentName + "SegmentRomStart"
     changedLoad[1][2] = segmentName + "SegmentRomEnd"
 
+
 def removeSegmentLoad(levelscript, removedSegment):
     for segmentLoad in levelscript.segmentLoads:
         segmentString = segmentLoad[1][0].lower()
@@ -464,6 +465,7 @@ def removeSegmentLoad(levelscript, removedSegment):
         if segment == removedSegment:
             levelscript.segmentLoads.remove(segmentLoad)
             return
+
 
 def replaceScriptLoads(levelscript, obj):
     newFuncs = []
@@ -478,7 +480,7 @@ def replaceScriptLoads(levelscript, obj):
     for func in scriptFuncs:
         if func != "None":
             newFuncs.append(Macro("JUMP_LINK", [func], ""))
-        
+
     levelscript.levelFunctions = newFuncs
 
 
