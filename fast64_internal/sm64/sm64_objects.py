@@ -1255,8 +1255,10 @@ class SM64ObjectPanel(bpy.types.Panel):
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
             box.prop(obj, "actSelectorIgnore")
             box.prop(obj, "setAsStartLevel")
-            grid = box.grid_flow(columns=1)
-            obj.fast64.sm64.segment_loads.draw(grid)
+            box.prop(obj, "writeActorLoads")
+            if obj.writeActorLoads:
+                grid = box.grid_flow(columns=1)
+                obj.fast64.sm64.segment_loads.draw(grid)
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
 
@@ -2783,9 +2785,9 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
     seg6_group_custom: bpy.props.StringProperty(name="Segment 6 Group")
     seg8_load_custom: bpy.props.StringProperty(name="Segment 8 Seg")
     seg8_group_custom: bpy.props.StringProperty(name="Segment 8 Group")
-    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
-    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
-    seg8_enum: bpy.props.EnumProperty(name="Segment 8 Group", default="Do Not Write", items=groupsSeg8)
+    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="None", items=groupsSeg5)
+    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="None", items=groupsSeg6)
+    seg8_enum: bpy.props.EnumProperty(name="Segment 8 Group", default="None", items=groupsSeg8)
 
     def draw(self, layout):
         col = layout.column()
@@ -2805,7 +2807,7 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             prop_split(col, self, "seg8_group_custom", "Segment 8 Group")
 
     def jump_link_from_enum(self, grp):
-        if grp == "Do Not Write":
+        if grp == "None":
             return grp
         elif grp == "common0":
             return f"script_func_global_1"
@@ -3072,6 +3074,7 @@ def sm64_obj_register():
     bpy.types.Object.startDialog = bpy.props.StringProperty(name="Start Dialog", default="DIALOG_000")
     bpy.types.Object.actSelectorIgnore = bpy.props.BoolProperty(name="Skip Act Selector")
     bpy.types.Object.setAsStartLevel = bpy.props.BoolProperty(name="Set As Start Level")
+    bpy.types.Object.writeActorLoads = bpy.props.BoolProperty(name="Write Actor Loads")
 
     bpy.types.Object.switchFunc = bpy.props.StringProperty(
         name="Function", default="", description="Name of function for C, hex address for binary."
@@ -3164,6 +3167,7 @@ def sm64_obj_unregister():
     del bpy.types.Object.startDialog
     del bpy.types.Object.actSelectorIgnore
     del bpy.types.Object.setAsStartLevel
+    del bpy.types.Object.writeActorLoads
     del bpy.types.Object.switchFunc
     del bpy.types.Object.switchParam
     del bpy.types.Object.enableRoomSwitch

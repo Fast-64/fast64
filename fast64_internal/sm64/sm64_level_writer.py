@@ -457,33 +457,22 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
     changedLoad[1][1] = segmentName + "SegmentRomStart"
     changedLoad[1][2] = segmentName + "SegmentRomEnd"
 
+def removeSegmentLoad(levelscript, removedSegment):
+    for segmentLoad in levelscript.segmentLoads:
+        segmentString = segmentLoad[1][0].lower()
+        segment = int(segmentString, 16 if "x" in segmentString else 10)
+        if segment == removedSegment:
+            levelscript.segmentLoads.remove(segmentLoad)
+            return
 
 def replaceScriptLoads(levelscript, obj):
     newFuncs = []
-    oldFuncs = [None] * 3
-    for jumpLink in levelscript.levelFunctions:
-        target = jumpLink.args[0]  # format is [macro, list[args], comment]
-        if "script_func_global_" not in target:
-            newFuncs.append(jumpLink)
-            continue
-        scriptNum = int(re.findall(r"\d+", target)[-1])
-        # this is common0
-        if scriptNum == 1:
-            oldFuncs[0] = jumpLink
-        elif scriptNum < 13:
-            oldFuncs[1] = jumpLink
-        else:
-            oldFuncs[2] = jumpLink
-
     group_seg_loads = obj.fast64.sm64.segment_loads
     scriptFuncs = (group_seg_loads.group8, group_seg_loads.group5, group_seg_loads.group6)
 
-    for func in zip(scriptFuncs, oldFuncs):
-        if func[0] == "Do Not Write":
-            if func[1] != None:
-                newFuncs.append(func[1])
-        else:
-            newFuncs.append(Macro("JUMP_LINK", [func[0]], ""))
+    for func in scriptFuncs:
+        if func != "None":
+            newFuncs.append(Macro("JUMP_LINK", [func], ""))
         
     levelscript.levelFunctions = newFuncs
 
@@ -840,34 +829,44 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
         replaceSegmentLoad(prev_level_script, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
 
     # replace actor loads
-    group_seg_loads = obj.fast64.sm64.segment_loads
-    if group_seg_loads.seg5_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prev_level_script,
-            f"_{group_seg_loads.seg5}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x05,
-        )
-        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg5}_geo", "LOAD_RAW", 0x0C)
-    if group_seg_loads.seg6_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prev_level_script,
-            f"_{group_seg_loads.seg6}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x06,
-        )
-        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg6}_geo", "LOAD_RAW", 0x0D)
-    if group_seg_loads.seg8_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prev_level_script,
-            f"_{group_seg_loads.seg8}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x08,
-        )
-        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg8}_geo", "LOAD_RAW", 0x0F)
+    if obj.writeActorLoads:
+        group_seg_loads = obj.fast64.sm64.segment_loads
+        if group_seg_loads.seg5_enum != "None":
+            replaceSegmentLoad(
+                prev_level_script,
+                f"_{group_seg_loads.seg5}_{compressionFmt}",
+                f"LOAD_{compressionFmt.upper()}",
+                0x05,
+            )
+            replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg5}_geo", "LOAD_RAW", 0x0C)
+        else:
+            removeSegmentLoad(prev_level_script, 0x05)
+            removeSegmentLoad(prev_level_script, 0x0C)
+        if group_seg_loads.seg6_enum != "None":
+            replaceSegmentLoad(
+                prev_level_script,
+                f"_{group_seg_loads.seg6}_{compressionFmt}",
+                f"LOAD_{compressionFmt.upper()}",
+                0x06,
+            )
+            replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+        else:
+            removeSegmentLoad(prev_level_script, 0x06)
+            removeSegmentLoad(prev_level_script, 0x0D)
+        if group_seg_loads.seg8_enum != "None":
+            replaceSegmentLoad(
+                prev_level_script,
+                f"_{group_seg_loads.seg8}_{compressionFmt}",
+                f"LOAD_{compressionFmt.upper()}",
+                0x08,
+            )
+            replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg8}_geo", "LOAD_RAW", 0x0F)
+        else:
+            removeSegmentLoad(prev_level_script, 0x08)
+            removeSegmentLoad(prev_level_script, 0x0F)
+        replaceScriptLoads(prev_level_script, obj)
 
     # write data
-    replaceScriptLoads(prev_level_script, obj)
     saveDataToFile(os.path.join(level_dir, "script.c"), prev_level_script.to_c(level_data.area_data))
 
     return level_data
