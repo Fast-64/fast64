@@ -467,9 +467,14 @@ def removeSegmentLoad(levelscript, removedSegment):
 
 def replaceScriptLoads(levelscript, obj):
     newFuncs = []
+    for jumpLink in levelscript.levelFunctions:
+        target = jumpLink.args[0]  # format is [macro, list[args], comment]
+        if "script_func_global_" not in target:
+            newFuncs.append(jumpLink)
+            continue
+
     group_seg_loads = obj.fast64.sm64.segment_loads
     scriptFuncs = (group_seg_loads.group8, group_seg_loads.group5, group_seg_loads.group6)
-
     for func in scriptFuncs:
         if func != "None":
             newFuncs.append(Macro("JUMP_LINK", [func], ""))
