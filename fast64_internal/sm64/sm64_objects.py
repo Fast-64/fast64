@@ -46,7 +46,7 @@ from .sm64_constants import (
     obj_group_enums,
     groupsSeg5,
     groupsSeg6,
-    groupsSeg8,
+    groups_seg8,
     groups_obj_export,
 )
 from .sm64_utility import convert_addr_to_func
@@ -2787,7 +2787,7 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
     seg8_group_custom: bpy.props.StringProperty(name="Segment 8 Group")
     seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="None", items=groupsSeg5)
     seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="None", items=groupsSeg6)
-    seg8_enum: bpy.props.EnumProperty(name="Segment 8 Group", default="None", items=groupsSeg8)
+    seg8_enum: bpy.props.EnumProperty(name="Segment 8 Group", default="None", items=groups_seg8)
 
     def draw(self, layout):
         col = layout.column()
@@ -2808,9 +2808,9 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
 
     def jump_link_from_enum(self, grp):
         if grp == "None":
-            return grp
+            return None
         elif grp == "common0":
-            return f"script_func_global_1"
+            return "script_func_global_1"
         num = int(grp.removeprefix("group")) + 1
         return f"script_func_global_{num}"
 

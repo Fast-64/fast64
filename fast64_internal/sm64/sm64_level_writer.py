@@ -458,13 +458,11 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
     changedLoad[1][2] = segmentName + "SegmentRomEnd"
 
 
-def removeSegmentLoad(levelscript, removedSegment):
-    for segmentLoad in levelscript.segmentLoads:
-        segmentString = segmentLoad[1][0].lower()
-        segment = int(segmentString, 16 if "x" in segmentString else 10)
-        if segment == removedSegment:
-            levelscript.segmentLoads.remove(segmentLoad)
-            return
+def remove_segment_load(levelscript: LevelScript, segment_num: int):
+    for segment_load in levelscript.segmentLoads:
+        segment_string = segment_load[1][0].lower()
+        if int(segment_string, 0) == segment_num:
+            levelscript.segmentLoads.remove(segment_load)
 
 
 def replaceScriptLoads(levelscript, obj):
@@ -478,7 +476,7 @@ def replaceScriptLoads(levelscript, obj):
     group_seg_loads = obj.fast64.sm64.segment_loads
     scriptFuncs = (group_seg_loads.group8, group_seg_loads.group5, group_seg_loads.group6)
     for func in scriptFuncs:
-        if func != "None":
+        if func is not None:
             newFuncs.append(Macro("JUMP_LINK", [func], ""))
 
     levelscript.levelFunctions = newFuncs
@@ -847,8 +845,8 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
             )
             replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg5}_geo", "LOAD_RAW", 0x0C)
         else:
-            removeSegmentLoad(prev_level_script, 0x05)
-            removeSegmentLoad(prev_level_script, 0x0C)
+            remove_segment_load(prev_level_script, 0x05)
+            remove_segment_load(prev_level_script, 0x0C)
         if group_seg_loads.seg6_enum != "None":
             replaceSegmentLoad(
                 prev_level_script,
@@ -858,8 +856,8 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
             )
             replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg6}_geo", "LOAD_RAW", 0x0D)
         else:
-            removeSegmentLoad(prev_level_script, 0x06)
-            removeSegmentLoad(prev_level_script, 0x0D)
+            remove_segment_load(prev_level_script, 0x06)
+            remove_segment_load(prev_level_script, 0x0D)
         if group_seg_loads.seg8_enum != "None":
             replaceSegmentLoad(
                 prev_level_script,
@@ -869,8 +867,8 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
             )
             replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg8}_geo", "LOAD_RAW", 0x0F)
         else:
-            removeSegmentLoad(prev_level_script, 0x08)
-            removeSegmentLoad(prev_level_script, 0x0F)
+            remove_segment_load(prev_level_script, 0x08)
+            remove_segment_load(prev_level_script, 0x0F)
         replaceScriptLoads(prev_level_script, obj)
 
     # write data
