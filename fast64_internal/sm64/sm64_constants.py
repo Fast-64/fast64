@@ -2117,7 +2117,7 @@ groupsSeg6 = [
     ("Custom", "Custom", "Custom"),
 ]
 
-groupsSeg8 = [
+groups_seg8 = [
     ("common0", "common0", "Generic course objects (Goomba, Bob-ombs, Cannon etc.)"),
     ("None", "None", "None"),
     ("Custom", "Custom", "Custom"),
