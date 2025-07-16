@@ -834,8 +834,8 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
         replaceSegmentLoad(prev_level_script, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
 
     # replace actor loads
-    if obj.writeActorLoads:
-        group_seg_loads = obj.fast64.sm64.segment_loads
+    group_seg_loads = obj.fast64.sm64.segment_loads
+    if group_seg_loads.write_actor_loads:
         if group_seg_loads.seg5_enum != "None":
             replaceSegmentLoad(
                 prev_level_script,
