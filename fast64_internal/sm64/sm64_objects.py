@@ -2799,7 +2799,7 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
                 prop_split(col, self, f"seg{seg}_load_custom", "Segment")
                 prop_split(col, self, f"seg{seg}_group_custom", "Group")
                 col.separator()
-    
+
     def jump_link_from_enum(self, grp):
         if grp == "None":
             return None
