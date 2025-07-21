@@ -50,6 +50,7 @@ EXCLUDE_FROM_NODE = (
     "image_user",
     "color_tag",
     "bl_static_type",
+    "select",
 )
 EXCLUDE_FROM_INPUT_OUTPUT = (
     "rna_type",
