@@ -1272,7 +1272,7 @@ class F3DPanel(Panel):
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
             ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
 
-        if f3dMat.get_uv_basis():
+        if f3dMat.is_multi_tex:
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
@@ -1365,7 +1365,7 @@ class F3DPanel(Panel):
             if useDict["Texture 1"]:
                 ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
 
-            if f3dMat.get_uv_basis():
+            if f3dMat.is_multi_tex:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
@@ -2254,12 +2254,12 @@ def update_tex_values(self, context):
 
 
 def get_tex_basis_size(f3d_mat: "F3DMaterialProperty"):
-    useDict, tex_dimensions = all_combiner_uses(f3d_mat), [32, 32]
-    if useDict["Texture 0"] and f3d_mat.tex0.is_set:
-        tex_dimensions = tex0_dimensions = f3d_mat.tex0.tex_size
-    if useDict["Texture 1"] and f3d_mat.tex1.is_set:
-        tex_dimensions = f3d_mat.tex1.tex_size
-    return tex0_dimensions if f3d_mat.get_uv_basis() == "TEXEL0" else tex_dimensions
+    if (uv_basis := f3d_mat.uv_basis_index) is None:
+        return [0, 0]
+    tex_prop: TextureProperty | None = getattr(f3d_mat, f"tex{uv_basis}", None)
+    if tex_prop is None:
+        return [0, 0]
+    return tex_prop.tex_size
 
 
 def get_tex_gen_size(tex_size: list[int | float]):
@@ -2317,10 +2317,7 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
             texture_inputs["1 T TexSize"].default_value = f3dMat.tex1.tex.size[0]
 
     uv_basis: ShaderNodeGroup = nodes["UV Basis"]
-    if f3dMat.get_uv_basis() == "TEXEL1":
-        uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
-    else:
-        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
+    uv_basis.node_tree = bpy.data.node_groups[f"UV Basis {f3dMat.uv_basis_index}"]
 
     if not isTexGen:
         uv_basis.inputs["S Scale"].default_value = f3dMat.tex_scale[0]
@@ -4833,11 +4830,16 @@ class F3DMaterialProperty(PropertyGroup):
     def is_multi_tex(self):
         return combiner_uses_tex0(self) and combiner_uses_tex1(self)
 
-    def get_uv_basis(self):
+    @property
+    def uv_basis_index(self) -> int | None:
         uses_tex0, uses_tex1 = combiner_uses_tex0(self), combiner_uses_tex1(self)
         if uses_tex0 and uses_tex1:
-            return self.uv_basis
-        return "TEXEL0" if uses_tex0 else ("TEXEL1" if uses_tex1 else None)
+            value = self.uv_basis.lstrip("TEXEL")
+            try:
+                return int(value)
+            except ValueError:
+                return None
+        return 0 if uses_tex0 else (1 if uses_tex1 else None)
 
     def combiner_to_dict(self):
         cycles = [self.combiner1.to_dict()]
@@ -5041,9 +5043,8 @@ class F3DMaterialProperty(PropertyGroup):
             data["textureScale"] = [round(value, 4) for value in self.tex_scale]
         if self.use_large_textures:
             data["largeTextureMode"] = {"edges": self.large_edges.upper()}
-        uv_basis = self.get_uv_basis()
-        if uv_basis:
-            data["uvBasis"] = int(uv_basis.lstrip("TEXEL"))
+        if (uv_basis := self.uv_basis_index) is not None:
+            data["uvBasis"] = uv_basis
         return data
 
     def extra_texture_settings_from_dict(self, data):
