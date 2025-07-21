@@ -1981,3 +1981,48 @@ def wrap_func_with_error_message(error_message: Callable):
         return wrapper
 
     return decorator
+
+
+def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
+    # get the extracted path
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
+    decomp_path = bpy.context.scene.ootDecompPath if use_decomp_path else "."
+
+    # get the file's path
+    file_path = Path(f"{decomp_path}/{base_path}").resolve()
+
+    # check if the path exists
+    if not file_path.exists():
+        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{base_path}").resolve()
+
+    # if it doesn't check if the extracted path exists (we want to skip that for PNG files)
+    if check_exists and not file_path.exists():
+        raise PluginError(f"ERROR: that file don't exist ({repr(base_path)})")
+
+    return file_path
+
+
+def get_include_data(include: str, strip: bool = False):
+    """
+    Returns the file data pointed by an include's path (useful to parse *.inc.c files)
+
+    Parameters:
+    - `include`: the line where the include directive is located
+    - `strip`: set to True to return the data without any newlines or whitespaces
+    """
+
+    # remove the unwanted parts
+    include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
+
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
+        file_path = oot_get_assets_path(include)
+    else:
+        raise PluginError(f"ERROR: game not supported ({bpy.context.scene.gameEditorMode})")
+
+    data = removeComments(file_path.read_text())
+
+    if strip:
+        return data.replace("\n", "").replace(" ", "")
+
+    # return the data as a string
+    return data

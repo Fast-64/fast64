@@ -1275,7 +1275,7 @@ def getTexDimensions(material):
 
 
 @wrap_func_with_error_message(lambda args: (f"In material '{args['material'].name}': "))
-def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
+def saveOrGetF3DMaterial(material, fModel, _obj, drawLayer, convertTextureData):
     print(f"Writing material {material.name}")
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
@@ -1294,8 +1294,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if materialItem is not None:
         return materialItem
 
-    if len(obj.data.materials) == 0:
-        raise PluginError("Mesh must have at least one material.")
     materialName = (
         fModel.name
         + "_"
