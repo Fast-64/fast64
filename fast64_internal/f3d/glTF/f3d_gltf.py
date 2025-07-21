@@ -743,14 +743,13 @@ class F3DExtensions(GlTF2SubExtension):
         if new_data:
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
 
-    def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
+    def gather_import_mesh_after_hook(self, _gltf_mesh, blender_mesh, _gltf):
         if len(blender_mesh.vertex_colors) < 1 or not mesh_has_f3d_mat(blender_mesh):
             return
         color_layer = blender_mesh.vertex_colors[0]
         color_layer.name = "Col"
-        color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
-        color_layer.data.foreach_get("color", color)
-        color = color.reshape(-1, 4)
+        color = np.empty((len(blender_mesh.loops), 4), dtype=np.float32)
+        color_layer.data.foreach_get("color", color.ravel())
 
         alpha = color[:, 3]
         alpha_rgba = np.repeat(alpha[:, np.newaxis], 4, axis=1).flatten()
@@ -957,7 +956,7 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(
                 mat, vertex_color.outputs["Color"], bsdf.inputs.get("Color") or bsdf.inputs.get("Base Color")
             )
-            if bpy.app.version >= (4, 4, 0):
+            if bpy.app.version >= (4, 3, 0):
                 link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
             else:
                 link_if_none_exist(
@@ -968,11 +967,11 @@ def modify_f3d_nodes_for_export(use: bool):
 
 
 def get_gamma_corrected(layer):
-    colors = np.empty(len(layer) * 4, dtype=np.float32)
+    colors = np.empty((len(layer), 4), dtype=np.float32)
     if bpy.app.version > (3, 2, 0):
-        layer.foreach_get("color_srgb", colors)
+        layer.foreach_get("color_srgb", colors.ravel())
     else:  # vectorized linear -> sRGB conversion
-        layer.foreach_get("color", colors)
+        layer.foreach_get("color", colors.ravel())
         mask = colors > 0.0031308
         colors[mask] = 1.055 * (np.power(colors[mask], (1.0 / 2.4))) - 0.055
         colors[~mask] *= 12.0
@@ -993,9 +992,7 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     alpha_layer = getColorLayer(blender_mesh, layer="Alpha")
     if not color_layer or not alpha_layer:
         return
-    color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
-    color_layer.foreach_get("color", color)
-    color = color.reshape(-1, 4)
+    color = get_gamma_corrected(color_layer)
     rgb_alpha = get_gamma_corrected(alpha_layer)
 
     alpha_median = np.dot(rgb_alpha[:, :3], RGB_TO_LUM_COEF)
@@ -1008,11 +1005,10 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
 
 def get_fast64_custom_colors(blender_mesh):
     color_layer = getColorLayer(blender_mesh, layer="Col")  # assume Col already has alpha from other hack
-    colors = np.zeros(len(blender_mesh.loops) * 4, dtype=np.float32)
     if color_layer is not None:
-        color_layer.foreach_get("color", colors)
-    colors = colors.reshape(-1, 4)
-    return colors
+        return np.zeros(len(blender_mesh.loops) * 4, dtype=np.float32)
+    else:
+        return get_gamma_corrected(color_layer)
 
 
 def extract_primitives_fast64(
