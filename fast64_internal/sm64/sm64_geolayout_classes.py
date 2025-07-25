@@ -89,7 +89,8 @@ class GeolayoutGraph:
     def __init__(self, name):
         self.startGeolayout = Geolayout(name, True)
         # dict of Object : Geolayout
-        self.secondaryGeolayouts = {}
+        self.secondary_geolayouts: list[Geolayout] = []
+        self.secondary_geolayouts_dict: dict[object, Geolayout] = {}
         # dict of Geolayout : Geolayout List (which geolayouts are called)
         self.geolayoutCalls = {}
         self.sortedList = []
@@ -98,6 +99,11 @@ class GeolayoutGraph:
     def checkListSorted(self):
         if not self.sortedListGenerated:
             raise PluginError("Must generate sorted geolayout list first " + "before calling this function.")
+
+    @property
+    def names(self):
+        for geolayout in [self.startGeolayout] + self.secondary_geolayouts:
+            yield geolayout.name
 
     def get_ptr_addresses(self):
         self.checkListSorted()
@@ -114,9 +120,17 @@ class GeolayoutGraph:
 
         return size
 
-    def addGeolayout(self, obj, name):
+    def addGeolayout(self, obj: object | None, start_name: str):
+        name, i = start_name, 0
+        while True:
+            if name not in self.names:
+                break
+            i += 1
+            name = f"{start_name}_{i}"
         geolayout = Geolayout(name, False)
-        self.secondaryGeolayouts[obj] = geolayout
+        self.secondary_geolayouts.append(geolayout)
+        if obj is not None:
+            self.secondary_geolayouts_dict[obj] = geolayout
         return geolayout
 
     def addJumpNode(self, parentNode, caller, callee, index=None):
@@ -194,7 +208,7 @@ class GeolayoutGraph:
 
     def getDrawLayers(self):
         drawLayers = self.startGeolayout.getDrawLayers()
-        for obj, geolayout in self.secondaryGeolayouts.items():
+        for geolayout in self.secondary_geolayouts:
             drawLayers |= geolayout.getDrawLayers()
 
         return drawLayers
@@ -269,6 +283,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    override_layer = False
 
     def get_dl_address(self):
         assert self.dlRef is None, "dlRef not implemented in binary"
@@ -442,6 +457,7 @@ class SwitchOverrideNode:
         self.drawLayer = drawLayer
         self.overrideType = overrideType
         self.texDimensions = texDimensions  # None implies a draw layer override
+        self.hasDL = False
 
 
 class JumpNode:
@@ -491,7 +507,8 @@ class GeoLayoutBleed(BleedGraphics):
                     cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
                 ):
                     cmds_resets[i] = None
-            cmds_resets = [cr for cr in cmds_resets if cr is not None]
+            while None in cmds_resets:
+                cmds_resets.remove(None)
             if not cmds_resets:
                 last_materials.pop(draw_layer, 0)
             return last_materials
@@ -499,7 +516,7 @@ class GeoLayoutBleed(BleedGraphics):
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
             for draw_layer in copy(list(last_materials.keys())):
                 last_materials = reset_layer(last_materials, draw_layer)
-            return {}
+            return last_materials
 
         def walk(node, last_materials: LastMaterials) -> LastMaterials:
             last_materials = copy_last(last_materials)
@@ -511,8 +528,6 @@ class GeoLayoutBleed(BleedGraphics):
 
             fMesh = getattr(base_node, "fMesh", None)
             last_mat, last_cmds_resets = None, []
-            if fMesh is not None:
-                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
 
             if node.revert_previous_mat:
                 if fMesh is not None:
@@ -520,11 +535,12 @@ class GeoLayoutBleed(BleedGraphics):
                     last_materials = reset_layer(last_materials, base_node.drawLayer)
                 else:
                     last_materials = reset_all_layers(last_materials)
-                last_mat, last_cmds_resets = None, []
 
-            if fMesh:
+            if fMesh is not None:
+                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
+
                 base_node: BaseDisplayListNode
-                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+                cmd_list = base_node.DLmicrocode
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
 
                 reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}
@@ -562,7 +578,7 @@ class GeoLayoutBleed(BleedGraphics):
                 # if a switch took up the responsability of its reset, remove any previous reset of that layer
                 for draw_layer in set_layers:
                     last_mat, cmds_resets = cur_last_materials.get(draw_layer, (None, []))
-                    for i, (cmd_list, reset_cmd_dict) in enumerate(cmds_resets):
+                    for i in range(len(cmds_resets)):
                         last_materials[draw_layer][1][i] = None
                     while None in last_materials[draw_layer][1]:
                         last_materials[draw_layer][1].remove(None)
