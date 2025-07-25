@@ -668,10 +668,10 @@ class SerializedMaterialNodeTree(SerializedNodeTree):
     def dump(self, path: Path):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as f:
-            json.dump(self.to_json(), f, indent="\t")
+            json.dump(self.to_json(), f, indent="\t", sort_keys=True)
         for name, node_tree in self.dependencies.items():
             with Path(path.parent / to_valid_file_name(name + ".json")).open("w") as f:
-                json.dump(node_tree.to_json(), f, indent="\t")
+                json.dump(node_tree.to_json(), f, indent="\t", sort_keys=True)
 
 
 class GatherF3DNodes(OperatorBase):

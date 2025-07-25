@@ -1,13 +1,73 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "c76945b1578e6506f3a0fd3623f3ef64",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "Ambient Color"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "AO Ambient Factor"
+		}
+	],
+	"interface_hash": "e514b7b679d4ada3b7d1cfc1448b34a3",
 	"name": "AmbientLight",
 	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-200.0,
+				0.0
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Vector Math.003"
+						}
+					],
+					"name": "Ambient Color"
+				},
+				"1": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Vector Math.003"
+						},
+						{
+							"index": 3,
+							"node": "Vector Math.003"
+						}
+					],
+					"name": "AO Ambient Factor"
+				}
+			},
+			"width_hidden": 80.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Light Level"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				183.8044,
+				54.8822
+			],
+			"width_hidden": 80.0
+		},
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
-			"location": [
-				-10.621,
-				53.1117
-			],
-			"operation": "SCALE",
 			"inputs": {
 				"0": {},
 				"1": {
@@ -17,96 +77,36 @@
 					"enabled": false
 				},
 				"3": {
-					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"name": "Scale"
 				}
 			},
+			"location": [
+				-10.621,
+				53.1117
+			],
+			"operation": "SCALE",
 			"outputs": {
 				"0": {
-					"name": "Vector",
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Group Output"
 						}
-					]
+					],
+					"name": "Vector"
 				},
 				"1": {
-					"name": "Value",
-					"enabled": false
-				}
-			}
-		},
-		"Group Input": {
-			"bl_idname": "NodeGroupInput",
-			"location": [
-				-200.0,
-				0.0
-			],
-			"width_hidden": 80.0,
-			"outputs": {
-				"0": {
-					"name": "Ambient Color",
-					"links": [
-						{
-							"node": "Vector Math.003",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "AO Ambient Factor",
-					"links": [
-						{
-							"node": "Vector Math.003",
-							"index": 1
-						},
-						{
-							"node": "Vector Math.003",
-							"index": 3
-						}
-					]
-				}
-			}
-		},
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				183.8044,
-				54.8822
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Light Level"
-				},
-				"1": {
-					"name": ""
+					"enabled": false,
+					"name": "Value"
 				}
 			}
 		}
 	},
-	"cached_hash": "c76945b1578e6506f3a0fd3623f3ef64",
-	"inputs": [
-		{
-			"name": "Ambient Color",
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "AO Ambient Factor",
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Light Level",
-			"bl_idname": "NodeSocketVector"
+			"bl_idname": "NodeSocketVector",
+			"name": "Light Level"
 		}
-	],
-	"interface_hash": "e514b7b679d4ada3b7d1cfc1448b34a3",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

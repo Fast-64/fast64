@@ -1,341 +1,95 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "ed16f84c1583cb98dc4be307d117549e",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Vertex Alpha"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"default_value": 1,
+			"hide_value": true,
+			"name": "G_AMBOCCLUSION"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "AO Ambient"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "AO Directional"
+		}
+	],
+	"interface_hash": "804714ea5edbb8ad9e6372ad65a2891a",
 	"name": "AOFactors",
 	"nodes": {
-		"Math.006": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-225.0053,
-				-11.5223
-			],
-			"hide": true,
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Math.008",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Math.008": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-43.9841,
-				-12.4326
-			],
-			"hide": true,
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Math.010",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Math.007": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-225.0053,
-				-51.0922
-			],
-			"hide": true,
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Math.009",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"Math.009": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-44.8938,
-				-51.0922
-			],
-			"hide": true,
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Math.011",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.025": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				-61.9695,
-				-41.2905
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Math.008",
-							"index": 1
-						},
-						{
-							"node": "Math.009",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Math.005": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-226.4448,
-				27.3194
-			],
-			"hide": true,
-			"label": "Alpha - 1",
-			"operation": "SUBTRACT",
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 1.0
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Reroute.025",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.024": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				-252.7907,
-				-42.9377
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Math.006",
-							"index": 1
-						},
-						{
-							"node": "Math.007",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-457.6445,
 				50.1908
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
-					"name": "Vertex Alpha",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Math.005",
-							"index": 0
+							"index": 0,
+							"node": "Math.005"
 						}
-					]
+					],
+					"name": "Vertex Alpha"
 				},
 				"1": {
-					"name": "G_AMBOCCLUSION",
 					"default_value": 1,
 					"hide_value": true,
 					"links": [
 						{
-							"node": "Reroute.024",
-							"index": 0
+							"index": 0,
+							"node": "Reroute.024"
 						}
-					]
+					],
+					"name": "G_AMBOCCLUSION"
 				},
 				"2": {
-					"name": "AO Ambient",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Math.006",
-							"index": 0
+							"index": 0,
+							"node": "Math.006"
 						}
-					]
+					],
+					"name": "AO Ambient"
 				},
 				"3": {
-					"name": "AO Directional",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Math.007",
-							"index": 1
+							"index": 1,
+							"node": "Math.007"
 						}
-					]
-				}
-			}
-		},
-		"Math.010": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				119.3752,
-				-18.7716
-			],
-			"hide": true,
-			"label": "+ 1",
-			"operation": "ADD",
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 1.0
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					],
+					"name": "AO Directional"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Math.011": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				119.3752,
-				-58.3919
-			],
-			"hide": true,
-			"label": "+ 1",
-			"operation": "ADD",
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 1.0
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 1
-						}
-					]
-				}
-			}
+			"width_hidden": 80.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				296.9822,
-				-0.9841
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "AO Amb Factor"
@@ -346,53 +100,299 @@
 				"2": {
 					"name": ""
 				}
+			},
+			"location": [
+				296.9822,
+				-0.9841
+			],
+			"width_hidden": 80.0
+		},
+		"Math.005": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"label": "Alpha - 1",
+			"location": [
+				-226.4448,
+				27.3194
+			],
+			"operation": "SUBTRACT",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.025"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.006": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-225.0053,
+				-11.5223
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.008"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.007": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-225.0053,
+				-51.0922
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.009"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.008": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-43.9841,
+				-12.4326
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.010"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.009": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-44.8938,
+				-51.0922
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.011"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.010": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"label": "+ 1",
+			"location": [
+				119.3752,
+				-18.7716
+			],
+			"operation": "ADD",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.011": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"label": "+ 1",
+			"location": [
+				119.3752,
+				-58.3919
+			],
+			"operation": "ADD",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Reroute.024": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-252.7907,
+				-42.9377
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.006"
+						},
+						{
+							"index": 0,
+							"node": "Math.007"
+						}
+					],
+					"name": "Output"
+				}
+			}
+		},
+		"Reroute.025": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-61.9695,
+				-41.2905
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.008"
+						},
+						{
+							"index": 0,
+							"node": "Math.009"
+						}
+					],
+					"name": "Output"
+				}
 			}
 		}
 	},
-	"cached_hash": "ed16f84c1583cb98dc4be307d117549e",
-	"inputs": [
-		{
-			"name": "Vertex Alpha",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "G_AMBOCCLUSION",
-			"default_value": 1,
-			"hide_value": true,
-			"bl_idname": "NodeSocketInt"
-		},
-		{
-			"name": "AO Ambient",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "AO Directional",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "AO Amb Factor",
-			"bl_idname": "NodeSocketFloat"
+			"bl_idname": "NodeSocketFloat",
+			"name": "AO Amb Factor"
 		},
 		{
-			"name": "AO Dir Factor",
-			"bl_idname": "NodeSocketFloat"
+			"bl_idname": "NodeSocketFloat",
+			"name": "AO Dir Factor"
 		}
-	],
-	"interface_hash": "804714ea5edbb8ad9e6372ad65a2891a",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }
