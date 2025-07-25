@@ -1,0 +1,526 @@
+{
+	"name": "OffsetXY",
+	"nodes": {
+		"Combine XY": {
+			"bl_idname": "ShaderNodeCombineXYZ",
+			"location": [
+				-323.8419,
+				24.5723
+			],
+			"label": "Combine XY",
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": "Z"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math.001",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Vector Math.001": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-150.32,
+				80.3419
+			],
+			"operation": "MULTIPLY",
+			"inputs": {
+				"0": {},
+				"1": {
+					"default_value": [
+						-1.0,
+						1.0,
+						1.0
+					]
+				},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math",
+							"index": 1
+						}
+					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
+				}
+			}
+		},
+		"Vector Math.002": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				296.125,
+				-10.2964
+			],
+			"label": "ShiftIfEnabled",
+			"operation": "MULTIPLY",
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math.003",
+							"index": 1
+						}
+					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
+				}
+			}
+		},
+		"Combine XYZ.001": {
+			"bl_idname": "ShaderNodeCombineXYZ",
+			"location": [
+				-148.7409,
+				-137.2627
+			],
+			"label": "Combine UV",
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": "Z"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math.003",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Separate XYZ": {
+			"bl_idname": "ShaderNodeSeparateXYZ",
+			"location": [
+				669.2014,
+				-9.0905
+			],
+			"hide": false,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "X",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Y",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 1
+						}
+					]
+				},
+				"2": {
+					"name": "Z",
+					"hide": true
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"location": [
+				831.0713,
+				-9.341
+			],
+			"width_hidden": 80.0,
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": ""
+				}
+			}
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-579.4422,
+				0.0
+			],
+			"width_hidden": 80.0,
+			"outputs": {
+				"0": {
+					"name": "Width",
+					"links": [
+						{
+							"node": "Combine XY",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Height",
+					"links": [
+						{
+							"node": "Combine XY",
+							"index": 1
+						}
+					]
+				},
+				"2": {
+					"name": "X",
+					"links": [
+						{
+							"node": "Combine XYZ.001",
+							"index": 0
+						}
+					]
+				},
+				"3": {
+					"name": "Y",
+					"links": [
+						{
+							"node": "Combine XYZ.001",
+							"index": 1
+						}
+					]
+				},
+				"4": {
+					"name": "Enable",
+					"links": [
+						{
+							"node": "Vector Math.002",
+							"index": 1
+						}
+					]
+				},
+				"5": {
+					"name": "TexelOffsetX",
+					"links": [
+						{
+							"node": "Reroute.001",
+							"index": 0
+						}
+					]
+				},
+				"6": {
+					"name": "TexelOffsetY",
+					"links": [
+						{
+							"node": "Reroute.003",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				-379.3498,
+				-144.1663
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Reroute",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				-379.3498,
+				97.2086
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "TexelOffset",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute.002": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				-353.6244,
+				75.2043
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "TexelOffset",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Reroute.003": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				-353.6244,
+				-166.7248
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Reroute.002",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"TexelOffset": {
+			"bl_idname": "ShaderNodeCombineXYZ",
+			"location": [
+				-324.7933,
+				156.8215
+			],
+			"label": "TexelOffset",
+			"inputs": {
+				"0": {
+					"name": "X",
+					"default_value": 0.5
+				},
+				"1": {
+					"name": "Y",
+					"default_value": 0.5
+				},
+				"2": {
+					"name": "Z"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Vector Math": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				55.1199,
+				189.8493
+			],
+			"operation": "DIVIDE",
+			"inputs": {
+				"0": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0
+					]
+				},
+				"1": {},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math.002",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
+				}
+			}
+		},
+		"Vector Math.003": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				498.9052,
+				-58.0213
+			],
+			"operation": "SUBTRACT",
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Separate XYZ",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
+				}
+			}
+		}
+	},
+	"cached_hash": "01a9fab2e3c2b5027ef0850af9f5d5a5",
+	"inputs": [
+		{
+			"name": "Width",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Height",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "X",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Y",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Enable",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "TexelOffsetX",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "TexelOffsetY",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"outputs": [
+		{
+			"name": "X",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Y",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"interface_hash": "f19c30af1d0d19f965498b30b7494bea",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
+}
