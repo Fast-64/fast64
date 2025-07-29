@@ -25,6 +25,7 @@ from ..f3d.f3d_bleed import BleedGraphics
 from ..f3d.f3d_gbi import (
     DPSetCombineMode,
     DPSetTextureLUT,
+    FMesh,
     get_F3D_GBI,
     GbiMacro,
     GfxTag,
@@ -111,6 +112,8 @@ class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        self.layer_adapted_fmats = {}
+        self.draw_overrides: dict[FMesh, dict[tuple, tuple[GfxList, list["DisplayListNode"]]]] = {}
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -119,7 +122,7 @@ class SM64Model(FModel):
         world = create_or_get_world(bpy.context.scene)
         cycle1 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_1")
         cycle2 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_2")
-        return [cycle1, cycle2]
+        return (cycle1, cycle2)
 
 
 class SM64GfxFormatter(GfxFormatter):
@@ -320,8 +323,8 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
     fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
 
-    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
-    fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
+    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(("G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"), None))
+    fMaterial.revert.commands.append(DPSetRenderMode(("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"), None))
 
     saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
@@ -370,7 +373,7 @@ def sm64ExportF3DtoC(
     fModel = SM64Model(
         name,
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        bpy.context.scene.fast64.sm64.gfx_write_method,
     )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, not savePNG)
 
@@ -492,11 +495,7 @@ def sm64ExportF3DtoC(
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, includeChildren):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(
-        obj.name,
-        DLFormat.Static,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
-    )
+    fModel = SM64Model(obj.name, DLFormat, bpy.context.scene.fast64.sm64.gfx_write_method)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
@@ -522,11 +521,7 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, i
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, includeChildren):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(
-        obj.name,
-        DLFormat.Static,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
-    )
+    fModel = SM64Model(obj.name, DLFormat, bpy.context.scene.fast64.sm64.gfx_write_method)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
@@ -554,11 +549,7 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, 
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(
-        obj.name,
-        DLFormat.Static,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
-    )
+    fModel = SM64Model(obj.name, DLFormat, bpy.context.scene.fast64.sm64.gfx_write_method)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:

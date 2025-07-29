@@ -10,7 +10,22 @@ CollectionProperty = Any  # collection prop as defined by using bpy.props.Collec
 
 
 class PluginError(Exception):
-    pass
+    # arguments for exception processing
+    exc_halt = "exc_halt"
+    exc_warn = "exc_warn"
+
+    """
+    because exceptions generally go through multiple funcs
+    and layers, the easiest way to check if we have an exception
+    of a certain type is to check for our input string
+    """
+
+    @classmethod
+    def check_exc_warn(self, exc):
+        for arg in exc.args:
+            if type(arg) is str and self.exc_warn in arg:
+                return True
+        return False
 
 
 class VertexWeightError(PluginError):
@@ -165,18 +180,26 @@ def checkObjectReference(obj, title):
         )
 
 
-def selectSingleObject(obj: bpy.types.Object):
-    bpy.ops.object.select_all(action="DESELECT")
+def setActiveObject(obj: bpy.types.Object):
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
 
 
+def deselectAllObjects():
+    for obj in bpy.data.objects:
+        obj.select_set(False)
+
+
+def selectSingleObject(obj: bpy.types.Object):
+    deselectAllObjects()
+    setActiveObject(obj)
+
+
 def parentObject(parent, child):
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
 
     child.select_set(True)
-    parent.select_set(True)
-    bpy.context.view_layer.objects.active = parent
+    setActiveObject(parent)
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
 
 
@@ -640,11 +663,9 @@ def highlightWeightErrors(obj, elements, elementType):
     return  # Doesn't work currently
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    selectSingleObject(obj)
     bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="DESELECT")
+    deselectAllObjects()
     bpy.ops.mesh.select_mode(type=elementType)
     bpy.ops.object.mode_set(mode="OBJECT")
     print(elements)
@@ -670,14 +691,20 @@ def checkIdentityRotation(obj, rotation, allowYaw):
         )
 
 
-def setOrigin(target, obj):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.transform_apply()
-    bpy.context.scene.cursor.location = target.location
-    bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
-    bpy.ops.object.select_all(action="DESELECT")
+def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
+    if not target_loc.is_frozen:
+        target_loc = target_loc.copy()
+    with bpy.context.temp_override(
+        selected_objects=[obj],
+        active_object=obj,
+    ):
+        obj.location += -target_loc
+        # Applying location puts the object origin at world origin
+        # (It is only needed to apply location to set the origin,
+        #  but historically this function has applied all transforms
+        #  so just keep doing that to not break anything)
+        bpy.ops.object.transform_apply()
+        obj.location = target_loc
 
 
 def checkIfPathExists(filePath):
@@ -903,25 +930,21 @@ def get_obj_temp_mesh(obj):
 def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
-        bpy.ops.object.select_all(action="DESELECT")
-        selectedObj.select_set(True)
-        bpy.context.view_layer.objects.active = selectedObj
+        selectSingleObject(selectedObj)
 
         for modifier in selectedObj.modifiers:
             attemptModifierApply(modifier)
 
     # apply transformations now that world space changes are applied
     for selectedObj in allObjs:
-        bpy.ops.object.select_all(action="DESELECT")
-        selectedObj.select_set(True)
-        bpy.context.view_layer.objects.active = selectedObj
+        selectSingleObject(selectedObj)
 
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex)
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
@@ -937,9 +960,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
                 for child in selectedObj.children:
-                    bpy.ops.object.select_all(action="DESELECT")
-                    child.select_set(True)
-                    bpy.context.view_layer.objects.active = child
+                    selectSingleObject(child)
                     bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
                     selectedObj.parent.select_set(True)
                     bpy.context.view_layer.objects.active = selectedObj.parent
@@ -1037,7 +1058,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
     obj.original_name = obj.name
 
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     if includeChildren:
         selectMeshChildrenOnly(obj, ignoreAttr, False, areaIndex)
     else:
@@ -1053,7 +1074,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 
         apply_objects_modifiers_and_transformations(allObjs)
 
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         # Joining causes orphan data, so we remove it manually.
         meshList = []
@@ -1066,11 +1087,9 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         joinedObj.select_set(True)
         meshList.remove(joinedObj.data)
         bpy.ops.object.join()
-        setOrigin(obj, joinedObj)
+        setOrigin(joinedObj, obj.location)
 
-        bpy.ops.object.select_all(action="DESELECT")
-        bpy.context.view_layer.objects.active = joinedObj
-        joinedObj.select_set(True)
+        selectSingleObject(joinedObj)
 
         # Need to clear parent transform in order to correctly apply transform.
         bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
@@ -1152,7 +1171,7 @@ def applyRotation(objList, angle, axis):
     bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
     bpy.context.scene.tool_settings.use_transform_skip_children = False
 
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     for obj in objList:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = objList[0]
@@ -1958,3 +1977,48 @@ def wrap_func_with_error_message(error_message: Callable):
         return wrapper
 
     return decorator
+
+
+def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
+    # get the extracted path
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
+    decomp_path = bpy.context.scene.ootDecompPath if use_decomp_path else "."
+
+    # get the file's path
+    file_path = Path(f"{decomp_path}/{base_path}").resolve()
+
+    # check if the path exists
+    if not file_path.exists():
+        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{base_path}").resolve()
+
+    # if it doesn't check if the extracted path exists (we want to skip that for PNG files)
+    if check_exists and not file_path.exists():
+        raise PluginError(f"ERROR: that file don't exist ({repr(base_path)})")
+
+    return file_path
+
+
+def get_include_data(include: str, strip: bool = False):
+    """
+    Returns the file data pointed by an include's path (useful to parse *.inc.c files)
+
+    Parameters:
+    - `include`: the line where the include directive is located
+    - `strip`: set to True to return the data without any newlines or whitespaces
+    """
+
+    # remove the unwanted parts
+    include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
+
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
+        file_path = oot_get_assets_path(include)
+    else:
+        raise PluginError(f"ERROR: game not supported ({bpy.context.scene.gameEditorMode})")
+
+    data = removeComments(file_path.read_text())
+
+    if strip:
+        return data.replace("\n", "").replace(" ", "")
+
+    # return the data as a string
+    return data
