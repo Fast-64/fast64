@@ -1600,12 +1600,13 @@ def unpackNormal(packedNormal: int) -> Vector:
 
 def packNormal(normal: Vector) -> int:
     if bpy.context.scene.packed_normals_algorithm == "565":
+
         def convertComponent(v: float, range: int):
             v = int(round(v * float(range)))
             v = min(max(v, -range), range - 1)
             v = v if v >= 0 else v + 2 * range
             return v
-        
+
         x = convertComponent(normal[0], 16) << 11
         y = convertComponent(normal[1], 32) << 5
         z = convertComponent(normal[2], 16)
