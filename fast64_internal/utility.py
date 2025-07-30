@@ -1955,6 +1955,13 @@ def wrap_func_with_error_message(error_message: Callable):
     return decorator
 
 
+def to_valid_file_name(name: str):
+    """Replace any invalid characters with an underscore"""
+    valid_chars = set(string.ascii_letters + string.digits) | {"."}
+    valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
+    return "".join(c if c in valid_chars else "_" for c in name)
+
+
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
     # get the extracted path
     extracted = bpy.context.scene.fast64.oot.get_extracted_path()
