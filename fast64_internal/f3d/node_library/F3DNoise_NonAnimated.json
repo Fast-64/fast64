@@ -1,4 +1,11 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "9305b69dd280f13630863fa43a37210b",
+	"interface_hash": "3fab49e63148eaa09bad80a92cf3e96c",
 	"name": "F3DNoise_NonAnimated",
 	"nodes": {
 		"Group Input": {
@@ -7,16 +14,11 @@
 				-541.8596,
 				0.0
 			],
-			"width_hidden": 80.0,
-			"outputs": {}
+			"outputs": {},
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				63.28,
-				0.0
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Noise Factor"
@@ -24,7 +26,12 @@
 				"1": {
 					"name": ""
 				}
-			}
+			},
+			"location": [
+				63.28,
+				0.0
+			],
+			"width_hidden": 42.0
 		},
 		"Value": {
 			"bl_idname": "ShaderNodeValue",
@@ -34,28 +41,22 @@
 			],
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Group Output"
 						}
-					]
+					],
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "9a5a42fe144725066d8cd33d885cfc89",
 	"outputs": [
 		{
-			"name": "Noise Factor",
-			"bl_idname": "NodeSocketFloat"
+			"bl_idname": "NodeSocketFloat",
+			"name": "Noise Factor"
 		}
-	],
-	"interface_hash": "3fab49e63148eaa09bad80a92cf3e96c",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

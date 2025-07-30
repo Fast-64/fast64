@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "6e6b91fdc22912b0269ee69ad2a63970",
+	"cached_hash": "a9028cbc330139f46420b267894fc237",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketColor",
@@ -91,7 +91,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -200,7 +200,7 @@
 					"name": "Lerp T"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -225,7 +225,7 @@
 				1282.6998,
 				-122.6014
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group.001": {
 			"bl_idname": "ShaderNodeGroup",
@@ -257,7 +257,7 @@
 					"name": "Result"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.002": {
 			"bl_idname": "ShaderNodeGroup",
@@ -291,7 +291,7 @@
 					"name": "Vector"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.003": {
 			"bl_idname": "ShaderNodeGroup",
@@ -325,7 +325,7 @@
 					"name": "Vector"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.004": {
 			"bl_idname": "ShaderNodeGroup",
@@ -359,7 +359,7 @@
 					"name": "Vector"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.005": {
 			"bl_idname": "ShaderNodeGroup",
@@ -393,7 +393,7 @@
 					"name": "Vector"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.006": {
 			"bl_idname": "ShaderNodeGroup",
@@ -430,7 +430,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.007": {
 			"bl_idname": "ShaderNodeGroup",
@@ -467,7 +467,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.008": {
 			"bl_idname": "ShaderNodeGroup",
@@ -504,7 +504,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.009": {
 			"bl_idname": "ShaderNodeGroup",
@@ -539,7 +539,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.010": {
 			"bl_idname": "ShaderNodeGroup",
@@ -574,7 +574,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
@@ -608,7 +608,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
@@ -642,7 +643,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
@@ -675,7 +677,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Math.003": {
 			"bl_idname": "ShaderNodeMath",
@@ -708,7 +711,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Math.004": {
 			"bl_idname": "ShaderNodeMath",
@@ -741,7 +745,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Math.005": {
 			"bl_idname": "ShaderNodeMath",
@@ -774,7 +779,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Mix": {
 			"bl_idname": "ShaderNodeMixRGB",
@@ -821,7 +827,8 @@
 					],
 					"name": "Color"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Mix.005": {
 			"bl_idname": "ShaderNodeMixRGB",
@@ -869,7 +876,8 @@
 					],
 					"name": "Color"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -900,7 +908,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -923,7 +933,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -950,7 +962,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
@@ -981,7 +995,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.004": {
 			"bl_idname": "NodeReroute",
@@ -1004,7 +1020,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
@@ -1027,7 +1045,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.006": {
 			"bl_idname": "NodeReroute",
@@ -1050,7 +1070,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
@@ -1073,7 +1095,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
@@ -1100,7 +1124,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.009": {
 			"bl_idname": "NodeReroute",
@@ -1127,7 +1153,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
@@ -1150,7 +1178,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.011": {
 			"bl_idname": "NodeReroute",
@@ -1177,7 +1207,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.012": {
 			"bl_idname": "NodeReroute",
@@ -1204,7 +1236,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.013": {
 			"bl_idname": "NodeReroute",
@@ -1235,7 +1269,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.014": {
 			"bl_idname": "NodeReroute",
@@ -1266,7 +1302,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.015": {
 			"bl_idname": "NodeReroute",
@@ -1289,7 +1327,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.016": {
 			"bl_idname": "NodeReroute",
@@ -1320,7 +1360,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
@@ -1343,7 +1385,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.018": {
 			"bl_idname": "NodeReroute",
@@ -1366,7 +1410,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.019": {
 			"bl_idname": "NodeReroute",
@@ -1389,7 +1435,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.020": {
 			"bl_idname": "NodeReroute",
@@ -1412,7 +1460,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.021": {
 			"bl_idname": "NodeReroute",
@@ -1435,7 +1485,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.022": {
 			"bl_idname": "NodeReroute",
@@ -1462,7 +1514,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.023": {
 			"bl_idname": "NodeReroute",
@@ -1489,7 +1543,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.024": {
 			"bl_idname": "NodeReroute",
@@ -1512,7 +1568,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.025": {
 			"bl_idname": "NodeReroute",
@@ -1535,7 +1593,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.026": {
 			"bl_idname": "NodeReroute",
@@ -1558,7 +1618,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.027": {
 			"bl_idname": "NodeReroute",
@@ -1581,7 +1643,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.028": {
 			"bl_idname": "NodeReroute",
@@ -1604,7 +1668,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.029": {
 			"bl_idname": "NodeReroute",
@@ -1627,7 +1693,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.030": {
 			"bl_idname": "NodeReroute",
@@ -1650,7 +1718,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.031": {
 			"bl_idname": "NodeReroute",
@@ -1673,7 +1743,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.032": {
 			"bl_idname": "NodeReroute",
@@ -1696,7 +1768,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.033": {
 			"bl_idname": "NodeReroute",
@@ -1719,7 +1793,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.034": {
 			"bl_idname": "NodeReroute",
@@ -1742,7 +1818,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.035": {
 			"bl_idname": "NodeReroute",
@@ -1769,7 +1847,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.036": {
 			"bl_idname": "NodeReroute",
@@ -1792,7 +1872,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.037": {
 			"bl_idname": "NodeReroute",
@@ -1815,7 +1897,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.038": {
 			"bl_idname": "NodeReroute",
@@ -1838,7 +1922,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.039": {
 			"bl_idname": "NodeReroute",
@@ -1865,7 +1951,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.040": {
 			"bl_idname": "NodeReroute",
@@ -1888,7 +1976,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.041": {
 			"bl_idname": "NodeReroute",
@@ -1911,7 +2001,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.042": {
 			"bl_idname": "NodeReroute",
@@ -1938,7 +2030,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.043": {
 			"bl_idname": "NodeReroute",
@@ -1965,7 +2059,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.044": {
 			"bl_idname": "NodeReroute",
@@ -1988,7 +2084,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.045": {
 			"bl_idname": "NodeReroute",
@@ -2011,7 +2109,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.046": {
 			"bl_idname": "NodeReroute",
@@ -2042,7 +2142,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.047": {
 			"bl_idname": "NodeReroute",
@@ -2065,7 +2167,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.048": {
 			"bl_idname": "NodeReroute",
@@ -2088,7 +2192,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.049": {
 			"bl_idname": "NodeReroute",
@@ -2111,7 +2217,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.050": {
 			"bl_idname": "NodeReroute",
@@ -2134,7 +2242,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.051": {
 			"bl_idname": "NodeReroute",
@@ -2157,7 +2267,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.052": {
 			"bl_idname": "NodeReroute",
@@ -2180,7 +2292,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.053": {
 			"bl_idname": "NodeReroute",
@@ -2203,7 +2317,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.054": {
 			"bl_idname": "NodeReroute",
@@ -2226,7 +2342,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.055": {
 			"bl_idname": "NodeReroute",
@@ -2249,7 +2367,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.056": {
 			"bl_idname": "NodeReroute",
@@ -2276,7 +2396,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.057": {
 			"bl_idname": "NodeReroute",
@@ -2299,7 +2421,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.058": {
 			"bl_idname": "NodeReroute",
@@ -2322,7 +2446,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.059": {
 			"bl_idname": "NodeReroute",
@@ -2345,7 +2471,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.060": {
 			"bl_idname": "NodeReroute",
@@ -2368,7 +2496,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.061": {
 			"bl_idname": "NodeReroute",
@@ -2391,7 +2521,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.062": {
 			"bl_idname": "NodeReroute",
@@ -2414,7 +2546,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.063": {
 			"bl_idname": "NodeReroute",
@@ -2437,7 +2571,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.064": {
 			"bl_idname": "NodeReroute",
@@ -2460,7 +2596,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.065": {
 			"bl_idname": "NodeReroute",
@@ -2483,7 +2621,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.066": {
 			"bl_idname": "NodeReroute",
@@ -2506,7 +2646,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -2542,7 +2684,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Vector Math.004": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -2578,7 +2721,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Vector Math.005": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -2614,7 +2758,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		},
 		"Vector Math.006": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -2650,7 +2795,8 @@
 					"name": "Value"
 				}
 			},
-			"width": 100.0
+			"width": 100.0,
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "75535f7de8dd81ac4648837e0d967ccb",
+	"cached_hash": "00c706260d2b099ab9e7c0ff179b4437",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketVector",
@@ -73,7 +73,8 @@
 					],
 					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Combine XYZ.001": {
 			"bl_idname": "ShaderNodeCombineXYZ",
@@ -102,7 +103,8 @@
 					],
 					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -166,7 +168,7 @@
 					"name": "Apply Offset"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -182,7 +184,7 @@
 				327.3811,
 				30.8211
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -205,7 +207,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -228,7 +232,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Vector Math.001": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -269,7 +275,8 @@
 					"enabled": false,
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Vector Math.002": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -309,7 +316,8 @@
 					"enabled": false,
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -350,7 +358,8 @@
 					"enabled": false,
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Vector Math.004": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -385,7 +394,8 @@
 					"enabled": false,
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

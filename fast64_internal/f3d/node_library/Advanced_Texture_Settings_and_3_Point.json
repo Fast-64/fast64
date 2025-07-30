@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "be1f6a88fcc0805a5f6e9207d56100d6",
+	"cached_hash": "d295b0161bf71af699ad395b109c04f3",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketFloat",
@@ -117,7 +117,8 @@
 					],
 					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Combine XYZ.003": {
 			"bl_idname": "ShaderNodeCombineXYZ",
@@ -148,7 +149,8 @@
 					],
 					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Frame.001": {
 			"bl_idname": "NodeFrame",
@@ -164,7 +166,8 @@
 				74.1561
 			],
 			"use_custom_color": true,
-			"width": 503.0043640136719
+			"width": 503.0043640136719,
+			"width_hidden": 42.0
 		},
 		"Frame.003": {
 			"bl_idname": "NodeFrame",
@@ -181,7 +184,8 @@
 				675.6448
 			],
 			"use_custom_color": true,
-			"width": 295.88427734375
+			"width": 295.88427734375,
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -346,7 +350,7 @@
 					"name": "Enable 3 Point"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -377,7 +381,7 @@
 				876.6541,
 				-90.8818
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group.002": {
 			"bl_idname": "ShaderNodeGroup",
@@ -452,7 +456,7 @@
 				}
 			},
 			"width": 195.6847381591797,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.006": {
 			"bl_idname": "ShaderNodeGroup",
@@ -528,7 +532,7 @@
 				}
 			},
 			"width": 195.6847381591797,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.007": {
 			"bl_idname": "ShaderNodeGroup",
@@ -572,7 +576,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.008": {
 			"bl_idname": "ShaderNodeGroup",
@@ -617,7 +621,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.010": {
 			"bl_idname": "ShaderNodeGroup",
@@ -697,7 +701,7 @@
 			},
 			"use_custom_color": true,
 			"width": 160.1077423095703,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -720,7 +724,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -747,7 +753,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -774,7 +782,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
@@ -801,7 +811,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.004": {
 			"bl_idname": "NodeReroute",
@@ -828,7 +840,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
@@ -855,7 +869,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.006": {
 			"bl_idname": "NodeReroute",
@@ -882,7 +898,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
@@ -909,7 +927,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
@@ -936,7 +956,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.009": {
 			"bl_idname": "NodeReroute",
@@ -963,7 +985,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
@@ -990,7 +1014,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.011": {
 			"bl_idname": "NodeReroute",
@@ -1017,7 +1043,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.012": {
 			"bl_idname": "NodeReroute",
@@ -1044,7 +1072,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.013": {
 			"bl_idname": "NodeReroute",
@@ -1067,7 +1097,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.014": {
 			"bl_idname": "NodeReroute",
@@ -1090,7 +1122,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.015": {
 			"bl_idname": "NodeReroute",
@@ -1121,7 +1155,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.016": {
 			"bl_idname": "NodeReroute",
@@ -1152,7 +1188,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
@@ -1175,7 +1213,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.018": {
 			"bl_idname": "NodeReroute",
@@ -1198,7 +1238,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.019": {
 			"bl_idname": "NodeReroute",
@@ -1225,7 +1267,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.020": {
 			"bl_idname": "NodeReroute",
@@ -1252,7 +1296,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.021": {
 			"bl_idname": "NodeReroute",
@@ -1275,7 +1321,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.022": {
 			"bl_idname": "NodeReroute",
@@ -1298,7 +1346,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.023": {
 			"bl_idname": "NodeReroute",
@@ -1321,7 +1371,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.024": {
 			"bl_idname": "NodeReroute",
@@ -1344,7 +1396,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.025": {
 			"bl_idname": "NodeReroute",
@@ -1367,7 +1421,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.026": {
 			"bl_idname": "NodeReroute",
@@ -1390,7 +1446,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.027": {
 			"bl_idname": "NodeReroute",
@@ -1417,7 +1475,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.028": {
 			"bl_idname": "NodeReroute",
@@ -1444,7 +1504,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.029": {
 			"bl_idname": "NodeReroute",
@@ -1471,7 +1533,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.030": {
 			"bl_idname": "NodeReroute",
@@ -1498,7 +1562,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.031": {
 			"bl_idname": "NodeReroute",
@@ -1525,7 +1591,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.032": {
 			"bl_idname": "NodeReroute",
@@ -1548,7 +1616,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.033": {
 			"bl_idname": "NodeReroute",
@@ -1571,7 +1641,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.034": {
 			"bl_idname": "NodeReroute",
@@ -1594,7 +1666,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.035": {
 			"bl_idname": "NodeReroute",
@@ -1617,7 +1691,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.036": {
 			"bl_idname": "NodeReroute",
@@ -1640,7 +1716,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.037": {
 			"bl_idname": "NodeReroute",
@@ -1663,7 +1741,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.038": {
 			"bl_idname": "NodeReroute",
@@ -1686,7 +1766,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.043": {
 			"bl_idname": "NodeReroute",
@@ -1709,7 +1791,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.044": {
 			"bl_idname": "NodeReroute",
@@ -1732,7 +1816,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.045": {
 			"bl_idname": "NodeReroute",
@@ -1755,7 +1841,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.046": {
 			"bl_idname": "NodeReroute",
@@ -1778,7 +1866,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.047": {
 			"bl_idname": "NodeReroute",
@@ -1801,7 +1891,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.048": {
 			"bl_idname": "NodeReroute",
@@ -1828,7 +1920,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.049": {
 			"bl_idname": "NodeReroute",
@@ -1855,7 +1949,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.050": {
 			"bl_idname": "NodeReroute",
@@ -1878,7 +1974,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.051": {
 			"bl_idname": "NodeReroute",
@@ -1901,7 +1999,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.052": {
 			"bl_idname": "NodeReroute",
@@ -1924,7 +2024,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.053": {
 			"bl_idname": "NodeReroute",
@@ -1947,7 +2049,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.054": {
 			"bl_idname": "NodeReroute",
@@ -1970,7 +2074,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.055": {
 			"bl_idname": "NodeReroute",
@@ -1993,7 +2099,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.056": {
 			"bl_idname": "NodeReroute",
@@ -2016,7 +2124,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.057": {
 			"bl_idname": "NodeReroute",
@@ -2039,7 +2149,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.058": {
 			"bl_idname": "NodeReroute",
@@ -2062,7 +2174,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.059": {
 			"bl_idname": "NodeReroute",
@@ -2085,7 +2199,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.060": {
 			"bl_idname": "NodeReroute",
@@ -2112,7 +2228,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.061": {
 			"bl_idname": "NodeReroute",
@@ -2139,7 +2257,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.062": {
 			"bl_idname": "NodeReroute",
@@ -2162,7 +2282,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.063": {
 			"bl_idname": "NodeReroute",
@@ -2189,7 +2311,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Separate XYZ.002": {
 			"bl_idname": "ShaderNodeSeparateXYZ",
@@ -2225,7 +2349,8 @@
 					"hide": true,
 					"name": "Z"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Separate XYZ.003": {
 			"bl_idname": "ShaderNodeSeparateXYZ",
@@ -2262,7 +2387,8 @@
 					"name": "Z"
 				}
 			},
-			"width": 141.7603302001953
+			"width": 141.7603302001953,
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "349cd7e56ee1e6bea71ca5084472e896",
+	"cached_hash": "7e6e7131d560c49380009e7a733068f9",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketFloat",
@@ -78,7 +78,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -151,7 +151,7 @@
 					"name": "T Shift"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -176,7 +176,7 @@
 				402.5118,
 				225.9913
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group.001": {
 			"bl_idname": "ShaderNodeGroup",
@@ -208,7 +208,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.006": {
 			"bl_idname": "ShaderNodeGroup",
@@ -263,7 +263,7 @@
 					"name": "Y"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.007": {
 			"bl_idname": "ShaderNodeGroup",
@@ -319,7 +319,7 @@
 					"name": "Y"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -346,7 +346,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -373,7 +375,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -396,7 +400,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
@@ -419,7 +425,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.004": {
 			"bl_idname": "NodeReroute",
@@ -442,7 +450,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
@@ -465,7 +475,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.006": {
 			"bl_idname": "NodeReroute",
@@ -492,7 +504,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
@@ -515,7 +529,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
@@ -538,7 +554,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.009": {
 			"bl_idname": "NodeReroute",
@@ -561,7 +579,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
@@ -584,7 +604,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.011": {
 			"bl_idname": "NodeReroute",
@@ -607,7 +629,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.012": {
 			"bl_idname": "NodeReroute",
@@ -630,7 +654,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.013": {
 			"bl_idname": "NodeReroute",
@@ -657,7 +683,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.014": {
 			"bl_idname": "NodeReroute",
@@ -684,7 +712,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.015": {
 			"bl_idname": "NodeReroute",
@@ -707,7 +737,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.016": {
 			"bl_idname": "NodeReroute",
@@ -730,7 +762,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
@@ -753,7 +787,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.018": {
 			"bl_idname": "NodeReroute",
@@ -776,7 +812,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.019": {
 			"bl_idname": "NodeReroute",
@@ -799,7 +837,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.020": {
 			"bl_idname": "NodeReroute",
@@ -822,7 +862,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.021": {
 			"bl_idname": "NodeReroute",
@@ -845,7 +887,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.022": {
 			"bl_idname": "NodeReroute",
@@ -868,7 +912,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.023": {
 			"bl_idname": "NodeReroute",
@@ -891,7 +937,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Value": {
 			"bl_idname": "ShaderNodeValue",
@@ -914,7 +962,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

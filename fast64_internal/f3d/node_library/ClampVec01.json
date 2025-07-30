@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "2a56b28ee17522a44b9f975abd0eeb58",
+	"cached_hash": "8ebce4f9e2c54de9c938f77481cba691",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketVector",
@@ -46,7 +46,8 @@
 					],
 					"name": "Result"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Clamp.002": {
 			"bl_idname": "ShaderNodeClamp",
@@ -78,7 +79,8 @@
 					],
 					"name": "Result"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Clamp.003": {
 			"bl_idname": "ShaderNodeClamp",
@@ -110,7 +112,8 @@
 					],
 					"name": "Result"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Combine XYZ": {
 			"bl_idname": "ShaderNodeCombineXYZ",
@@ -139,7 +142,8 @@
 					],
 					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -158,7 +162,7 @@
 					"name": "Vector"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -174,7 +178,7 @@
 				372.2784,
 				0.0
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Separate XYZ": {
 			"bl_idname": "ShaderNodeSeparateXYZ",
@@ -216,7 +220,8 @@
 					],
 					"name": "Z"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

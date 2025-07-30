@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "2852d7280b5f9fc4001128c4b91420ef",
+	"cached_hash": "bdccb72fb1b2cc7b900a0ad5429daf57",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketFloat",
@@ -84,7 +84,7 @@
 					"name": "Average"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -100,7 +100,7 @@
 				450.9673,
 				-13.5289
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group.001": {
 			"bl_idname": "ShaderNodeGroup",
@@ -135,7 +135,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
@@ -166,7 +166,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
@@ -197,7 +198,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
@@ -228,7 +230,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -251,7 +254,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -274,7 +279,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -301,7 +308,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
@@ -324,7 +333,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

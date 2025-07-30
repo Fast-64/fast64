@@ -1,146 +1,13 @@
 {
-	"name": "Is ia",
-	"nodes": {
-		"Group Input": {
-			"bl_idname": "NodeGroupInput",
-			"location": [
-				-736.4277,
-				-84.1609
-			],
-			"width_hidden": 80.0,
-			"outputs": {
-				"0": {
-					"name": "Color",
-					"default_value": [
-						0.5,
-						0.5,
-						0.5,
-						1.0
-					],
-					"hide_value": true,
-					"links": [
-						{
-							"node": "Group",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Alpha",
-					"hide_value": true,
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"RGB to BW": {
-			"bl_idname": "ShaderNodeRGBToBW",
-			"location": [
-				-364.3542,
-				-54.8081
-			],
-			"inputs": {
-				"0": {
-					"name": "Color",
-					"default_value": [
-						0.5,
-						0.5,
-						0.5,
-						1.0
-					]
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Val",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				-157.7389,
-				-84.721
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					],
-					"hide_value": true
-				},
-				"1": {
-					"name": "Alpha",
-					"default_value": 0.5,
-					"hide_value": true
-				},
-				"2": {
-					"name": ""
-				}
-			}
-		},
-		"Group": {
-			"bl_idname": "ShaderNodeGroup",
-			"location": [
-				-546.5447,
-				-103.7424
-			],
-			"hide": true,
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "Gamma Correct Fast64"
-			},
-			"width": 167.0988006591797,
-			"width_hidden": 60.0,
-			"inputs": {
-				"0": {
-					"name": "Color",
-					"default_value": [
-						0.800000011920929,
-						0.800000011920929,
-						0.800000011920929,
-						1.0
-					]
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Corrected Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					],
-					"links": [
-						{
-							"node": "RGB to BW",
-							"index": 0
-						}
-					]
-				}
-			}
-		}
-	},
-	"cached_hash": "e8b362222414252e021688a5343b1ae3",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "1714ac595dc1d22ac570f390a72e1f3f",
 	"inputs": [
 		{
-			"name": "Color",
+			"bl_idname": "NodeSocketColor",
 			"default_value": [
 				0.5,
 				0.5,
@@ -148,17 +15,157 @@
 				1.0
 			],
 			"hide_value": true,
-			"bl_idname": "NodeSocketColor"
+			"name": "Color"
 		},
 		{
-			"name": "Alpha",
+			"bl_idname": "NodeSocketFloat",
 			"hide_value": true,
-			"bl_idname": "NodeSocketFloat"
+			"name": "Alpha"
 		}
 	],
+	"interface_hash": "fe4c592da9848bfe470c65acc9855c24",
+	"name": "Is ia",
+	"nodes": {
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					],
+					"name": "Color"
+				}
+			},
+			"location": [
+				-546.5447,
+				-103.7424
+			],
+			"node_tree": {
+				"name": "Gamma Correct Fast64",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "RGB to BW"
+						}
+					],
+					"name": "Corrected Color"
+				}
+			},
+			"width": 167.0988006591797,
+			"width_hidden": 42.0
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-736.4277,
+				-84.1609
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5,
+						1.0
+					],
+					"hide_value": true,
+					"links": [
+						{
+							"index": 0,
+							"node": "Group"
+						}
+					],
+					"name": "Color"
+				},
+				"1": {
+					"hide_value": true,
+					"links": [
+						{
+							"index": 1,
+							"node": "Group Output"
+						}
+					],
+					"name": "Alpha"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"hide_value": true,
+					"name": "Color"
+				},
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true,
+					"name": "Alpha"
+				},
+				"2": {
+					"name": ""
+				}
+			},
+			"location": [
+				-157.7389,
+				-84.721
+			],
+			"width_hidden": 42.0
+		},
+		"RGB to BW": {
+			"bl_idname": "ShaderNodeRGBToBW",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5,
+						1.0
+					],
+					"name": "Color"
+				}
+			},
+			"location": [
+				-364.3542,
+				-54.8081
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Val"
+				}
+			},
+			"width_hidden": 42.0
+		}
+	},
 	"outputs": [
 		{
-			"name": "Color",
+			"bl_idname": "NodeSocketColor",
 			"default_value": [
 				0.0,
 				0.0,
@@ -166,19 +173,13 @@
 				0.0
 			],
 			"hide_value": true,
-			"bl_idname": "NodeSocketColor"
+			"name": "Color"
 		},
 		{
-			"name": "Alpha",
+			"bl_idname": "NodeSocketFloat",
 			"default_value": 0.5,
 			"hide_value": true,
-			"bl_idname": "NodeSocketFloat"
+			"name": "Alpha"
 		}
-	],
-	"interface_hash": "fe4c592da9848bfe470c65acc9855c24",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

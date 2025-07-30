@@ -1,4 +1,26 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "8c347be038cebaf326e4f4dd3b7b784b",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketInt",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"name": "Shift"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Value"
+		}
+	],
+	"interface_hash": "6426508139668983dca234de1f93c685",
 	"name": "UnshiftValue",
 	"nodes": {
 		"Group Input": {
@@ -7,35 +29,79 @@
 				-313.9069,
 				0.0
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
-					"name": "Shift",
 					"links": [
 						{
-							"node": "Math.017",
-							"index": 0
+							"index": 0,
+							"node": "Math.017"
 						}
-					]
+					],
+					"name": "Shift"
 				},
 				"1": {
-					"name": "Value",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Group.001",
-							"index": 1
+							"index": 1,
+							"node": "Group.001"
 						}
-					]
+					],
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Value"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				245.7738,
+				6.0149
+			],
+			"width_hidden": 42.0
+		},
+		"Group.001": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"name": "Shift"
+				},
+				"1": {
+					"default_value": 0.5,
+					"name": "Value"
+				}
+			},
+			"location": [
+				83.1698,
+				6.0405
+			],
+			"node_tree": {
+				"name": "ShiftValue",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
 		},
 		"Math.017": {
 			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-95.8656,
-				-29.4316
-			],
 			"hide": true,
 			"inputs": {
 				"0": {
@@ -49,93 +115,28 @@
 					"enabled": false
 				}
 			},
+			"location": [
+				-95.8656,
+				-29.4316
+			],
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Group.001",
-							"index": 0
+							"index": 0,
+							"node": "Group.001"
 						}
-					]
-				}
-			}
-		},
-		"Group.001": {
-			"bl_idname": "ShaderNodeGroup",
-			"location": [
-				83.1698,
-				6.0405
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "ShiftValue"
-			},
-			"width_hidden": 60.0,
-			"inputs": {
-				"0": {
-					"name": "Shift"
-				},
-				"1": {
-					"name": "Value",
-					"default_value": 0.5
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				245.7738,
-				6.0149
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
+					],
 					"name": "Value"
-				},
-				"1": {
-					"name": ""
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "3c2001bdc3e20c467b8d3574bf86c05f",
-	"inputs": [
-		{
-			"name": "Shift",
-			"max_value": 2147483647,
-			"min_value": -2147483648,
-			"bl_idname": "NodeSocketInt"
-		},
-		{
-			"name": "Value",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Value",
-			"bl_idname": "NodeSocketFloat"
+			"bl_idname": "NodeSocketFloat",
+			"name": "Value"
 		}
-	],
-	"interface_hash": "6426508139668983dca234de1f93c685",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

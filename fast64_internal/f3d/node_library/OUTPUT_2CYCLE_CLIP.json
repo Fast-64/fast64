@@ -1,108 +1,64 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "4eb848f8d6ac706bfb736fde5dce23c3",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "Cycle_C_1"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"name": "Cycle_A_1"
+		},
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "Cycle_C_2"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 1.0,
+			"min_value": 0.0,
+			"name": "Cycle_A_2"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.125,
+			"name": "Alpha Threshold"
+		}
+	],
+	"interface_hash": "126fcd722cdfbddbdd2ecf5b3e6a0fb6",
 	"name": "OUTPUT_2CYCLE_CLIP",
 	"nodes": {
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				334.0443,
-				3.2077
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Shader"
-				},
-				"1": {
-					"name": ""
-				}
-			}
-		},
-		"Mix Shader": {
-			"bl_idname": "ShaderNodeMixShader",
-			"location": [
-				181.1692,
-				4.9553
-			],
-			"inputs": {
-				"0": {
-					"name": "Fac"
-				},
-				"1": {},
-				"2": {}
-			},
-			"outputs": {
-				"0": {
-					"name": "Shader",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Transparent BSDF": {
-			"bl_idname": "ShaderNodeBsdfTransparent",
-			"location": [
-				2.5901,
-				-67.7904
-			],
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
 			"hide": true,
 			"inputs": {
 				"0": {
-					"name": "Color",
 					"default_value": [
-						1.0,
-						1.0,
-						1.0,
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
 						1.0
-					]
-				},
-				"1": {
-					"name": "Weight",
-					"enabled": false
+					],
+					"name": "Gamma Corrected Color"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "BSDF",
-					"links": [
-						{
-							"node": "Mix Shader",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"Group": {
-			"bl_idname": "ShaderNodeGroup",
 			"location": [
 				2.4201,
 				-105.2821
 			],
-			"hide": true,
 			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "Gamma Inverse Fast64"
-			},
-			"width": 168.8801727294922,
-			"width_hidden": 60.0,
-			"inputs": {
-				"0": {
-					"name": "Gamma Corrected Color",
-					"default_value": [
-						0.800000011920929,
-						0.800000011920929,
-						0.800000011920929,
-						1.0
-					]
-				}
+				"name": "Gamma Inverse Fast64",
+				"serialized_type": "NodeTree"
 			},
 			"outputs": {
 				"0": {
-					"name": "Inverse Corrected Color",
 					"default_value": [
 						0.0,
 						0.0,
@@ -111,12 +67,15 @@
 					],
 					"links": [
 						{
-							"node": "Mix Shader",
-							"index": 2
+							"index": 2,
+							"node": "Mix Shader"
 						}
-					]
+					],
+					"name": "Inverse Corrected Color"
 				}
-			}
+			},
+			"width": 168.8801727294922,
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -124,46 +83,56 @@
 				-171.8638,
 				6.4153
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"2": {
-					"name": "Cycle_C_2",
 					"links": [
 						{
-							"node": "Group",
-							"index": 0
+							"index": 0,
+							"node": "Group"
 						}
-					]
+					],
+					"name": "Cycle_C_2"
 				},
 				"3": {
-					"name": "Cycle_A_2",
 					"links": [
 						{
-							"node": "Math",
-							"index": 0
+							"index": 0,
+							"node": "Math"
 						}
-					]
+					],
+					"name": "Cycle_A_2"
 				},
 				"4": {
-					"name": "Alpha Threshold",
 					"links": [
 						{
-							"node": "Math",
-							"index": 1
+							"index": 1,
+							"node": "Math"
 						}
-					]
+					],
+					"name": "Alpha Threshold"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Shader"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				334.0443,
+				3.2077
+			],
+			"width_hidden": 42.0
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
-			"location": [
-				2.6008,
-				-36.379
-			],
 			"hide": true,
-			"operation": "GREATER_THAN",
-			"use_clamp": true,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -176,57 +145,91 @@
 					"enabled": false
 				}
 			},
+			"location": [
+				2.6008,
+				-36.379
+			],
+			"operation": "GREATER_THAN",
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Mix Shader",
-							"index": 0
+							"index": 0,
+							"node": "Mix Shader"
 						}
-					]
+					],
+					"name": "Value"
 				}
-			}
+			},
+			"use_clamp": true,
+			"width_hidden": 42.0
+		},
+		"Mix Shader": {
+			"bl_idname": "ShaderNodeMixShader",
+			"inputs": {
+				"0": {
+					"name": "Fac"
+				},
+				"1": {},
+				"2": {}
+			},
+			"location": [
+				181.1692,
+				4.9553
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Shader"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Transparent BSDF": {
+			"bl_idname": "ShaderNodeBsdfTransparent",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0,
+						1.0
+					],
+					"name": "Color"
+				},
+				"1": {
+					"enabled": false,
+					"name": "Weight"
+				}
+			},
+			"location": [
+				2.5901,
+				-67.7904
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Mix Shader"
+						}
+					],
+					"name": "BSDF"
+				}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "220995134aaeb7a8fbebdddeb2246267",
-	"inputs": [
-		{
-			"name": "Cycle_C_1",
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "Cycle_A_1",
-			"default_value": 0.5,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "Cycle_C_2",
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "Cycle_A_2",
-			"default_value": 0.5,
-			"max_value": 1.0,
-			"min_value": 0.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "Alpha Threshold",
-			"default_value": 0.125,
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Shader",
-			"bl_idname": "NodeSocketShader"
+			"bl_idname": "NodeSocketShader",
+			"name": "Shader"
 		}
-	],
-	"interface_hash": "126fcd722cdfbddbdd2ecf5b3e6a0fb6",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

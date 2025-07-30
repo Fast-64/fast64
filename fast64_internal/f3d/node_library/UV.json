@@ -1,60 +1,60 @@
 {
-	"name": "UV",
-	"nodes": {
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				360.8631,
-				0.0
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Vector",
-					"hide_value": true
-				},
-				"1": {
-					"name": ""
-				}
-			}
-		},
-		"UV Map": {
-			"bl_idname": "ShaderNodeUVMap",
-			"location": [
-				134.5782,
-				12.0172
-			],
-			"from_instancer": false,
-			"uv_map": "",
-			"width": 150.0,
-			"width_hidden": 120.0,
-			"outputs": {
-				"0": {
-					"name": "UV",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
-		}
-	},
-	"cached_hash": "f642a9aa0355e34ecccd65d9c781f658",
-	"outputs": [
-		{
-			"name": "Vector",
-			"hide_value": true,
-			"max_value": 0.0,
-			"min_value": 0.0,
-			"bl_idname": "NodeSocketVector"
-		}
-	],
-	"interface_hash": "a9c1c15b8223a6be1ba239e62c7aa7df",
 	"bpy_ver": [
 		3,
 		2,
 		0
+	],
+	"cached_hash": "ae3760fcaa6e0991310ad53d9f7e92fd",
+	"interface_hash": "a9c1c15b8223a6be1ba239e62c7aa7df",
+	"name": "UV",
+	"nodes": {
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"hide_value": true,
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				360.8631,
+				0.0
+			],
+			"width_hidden": 42.0
+		},
+		"UV Map": {
+			"bl_idname": "ShaderNodeUVMap",
+			"from_instancer": false,
+			"location": [
+				134.5782,
+				12.0172
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "UV"
+				}
+			},
+			"uv_map": "",
+			"width": 150.0,
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketVector",
+			"hide_value": true,
+			"max_value": 0.0,
+			"min_value": 0.0,
+			"name": "Vector"
+		}
 	]
 }

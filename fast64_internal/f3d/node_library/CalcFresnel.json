@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "68121717c39587ec28ef515c200ad9d0",
+	"cached_hash": "4fcd217a733d5f4ad63135b8b5047cd9",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketFloat",
@@ -69,7 +69,7 @@
 					"name": "Fresnel Hi"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -85,7 +85,7 @@
 				514.3256,
 				128.7357
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
@@ -119,7 +119,8 @@
 					"name": "Value"
 				}
 			},
-			"use_clamp": true
+			"use_clamp": true,
+			"width_hidden": 42.0
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
@@ -150,7 +151,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Math.003": {
 			"bl_idname": "ShaderNodeMath",
@@ -182,7 +184,8 @@
 					"name": "Value"
 				}
 			},
-			"use_clamp": true
+			"use_clamp": true,
+			"width_hidden": 42.0
 		},
 		"Math.004": {
 			"bl_idname": "ShaderNodeMath",
@@ -213,7 +216,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Reroute.016": {
 			"bl_idname": "NodeReroute",
@@ -240,7 +244,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
@@ -263,7 +269,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

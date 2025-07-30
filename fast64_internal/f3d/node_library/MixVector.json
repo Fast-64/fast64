@@ -1,46 +1,66 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "85abfceb66e8a6140db58783ff658aa2",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "Fac"
+		},
+		{
+			"bl_idname": "NodeSocketVector",
+			"name": "Input0"
+		},
+		{
+			"bl_idname": "NodeSocketVector",
+			"name": "Input1"
+		}
+	],
+	"interface_hash": "25551426b2465ae56f135925858e0c9d",
 	"name": "MixVector",
 	"nodes": {
-		"Vector Math.009": {
-			"bl_idname": "ShaderNodeVectorMath",
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
 			"location": [
-				150.4822,
-				123.9848
+				-325.8933,
+				78.729
 			],
-			"operation": "MULTIPLY_ADD",
-			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {},
-				"3": {
-					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
-				}
-			},
 			"outputs": {
 				"0": {
-					"name": "Vector",
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Reroute.061"
 						}
-					]
+					],
+					"name": "Fac"
 				},
 				"1": {
-					"name": "Value",
-					"enabled": false
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.005"
+						}
+					],
+					"name": "Input0"
+				},
+				"2": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Vector Math.010"
+						}
+					],
+					"name": "Input1"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				351.3011,
-				123.0141
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -48,66 +68,104 @@
 				"1": {
 					"name": ""
 				}
-			}
-		},
-		"Reroute.061": {
-			"bl_idname": "NodeReroute",
+			},
 			"location": [
-				-73.7655,
-				11.796
+				351.3011,
+				123.0141
 			],
+			"width_hidden": 42.0
+		},
+		"Reroute.005": {
+			"bl_idname": "NodeReroute",
 			"inputs": {
 				"0": {
 					"name": "Input"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Vector Math.009",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"Reroute.005": {
-			"bl_idname": "NodeReroute",
 			"location": [
 				-75.7326,
 				-10.8386
 			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 2,
+							"node": "Vector Math.009"
+						},
+						{
+							"index": 1,
+							"node": "Vector Math.010"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.061": {
+			"bl_idname": "NodeReroute",
 			"inputs": {
 				"0": {
 					"name": "Input"
 				}
 			},
+			"location": [
+				-73.7655,
+				11.796
+			],
 			"outputs": {
 				"0": {
-					"name": "Output",
 					"links": [
 						{
-							"node": "Vector Math.009",
-							"index": 2
-						},
-						{
-							"node": "Vector Math.010",
-							"index": 1
+							"index": 1,
+							"node": "Vector Math.009"
 						}
-					]
+					],
+					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Vector Math.009": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {},
+				"3": {
+					"default_value": 1.0,
+					"enabled": false,
+					"name": "Scale"
+				}
+			},
+			"location": [
+				150.4822,
+				123.9848
+			],
+			"operation": "MULTIPLY_ADD",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Vector"
+				},
+				"1": {
+					"enabled": false,
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
 		},
 		"Vector Math.010": {
 			"bl_idname": "ShaderNodeVectorMath",
-			"location": [
-				-27.4709,
-				55.4415
-			],
 			"hide": true,
-			"operation": "SUBTRACT",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -115,90 +173,38 @@
 					"enabled": false
 				},
 				"3": {
-					"name": "Scale",
 					"default_value": 1.0,
-					"enabled": false
+					"enabled": false,
+					"name": "Scale"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Vector",
-					"links": [
-						{
-							"node": "Vector Math.009",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
-				}
-			}
-		},
-		"Group Input": {
-			"bl_idname": "NodeGroupInput",
 			"location": [
-				-325.8933,
-				78.729
+				-27.4709,
+				55.4415
 			],
-			"width_hidden": 80.0,
+			"operation": "SUBTRACT",
 			"outputs": {
 				"0": {
-					"name": "Fac",
 					"links": [
 						{
-							"node": "Reroute.061",
-							"index": 0
+							"index": 0,
+							"node": "Vector Math.009"
 						}
-					]
+					],
+					"name": "Vector"
 				},
 				"1": {
-					"name": "Input0",
-					"links": [
-						{
-							"node": "Reroute.005",
-							"index": 0
-						}
-					]
-				},
-				"2": {
-					"name": "Input1",
-					"links": [
-						{
-							"node": "Vector Math.010",
-							"index": 0
-						}
-					]
+					"enabled": false,
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "ce66a6c0f0f72a0124abd7a81f63bf4f",
-	"inputs": [
-		{
-			"name": "Fac",
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "Input0",
-			"bl_idname": "NodeSocketVector"
-		},
-		{
-			"name": "Input1",
-			"bl_idname": "NodeSocketVector"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Vector",
-			"bl_idname": "NodeSocketVector"
+			"bl_idname": "NodeSocketVector",
+			"name": "Vector"
 		}
-	],
-	"interface_hash": "25551426b2465ae56f135925858e0c9d",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

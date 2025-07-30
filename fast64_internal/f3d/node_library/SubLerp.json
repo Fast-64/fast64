@@ -1,48 +1,66 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "273f8a357e9b10e014f292fe35953c77",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "C1"
+		},
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "C2"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "Fac"
+		}
+	],
+	"interface_hash": "20c8478f4ab019e682ef6fb65b777ebc",
 	"name": "SubLerp",
 	"nodes": {
-		"Vector Math.007": {
-			"bl_idname": "ShaderNodeVectorMath",
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
 			"location": [
-				-94.0455,
-				-1.9878
+				-294.0455,
+				0.0
 			],
-			"operation": "SUBTRACT",
-			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
-				},
-				"3": {
-					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
-				}
-			},
 			"outputs": {
 				"0": {
-					"name": "Vector",
 					"links": [
 						{
-							"node": "Vector Math.008",
-							"index": 0
+							"index": 0,
+							"node": "Vector Math.007"
 						}
-					]
+					],
+					"name": "C1"
 				},
 				"1": {
-					"name": "Value",
-					"enabled": false
+					"links": [
+						{
+							"index": 1,
+							"node": "Vector Math.007"
+						}
+					],
+					"name": "C2"
+				},
+				"2": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Vector Math.008"
+						}
+					],
+					"name": "Fac"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				284.0454,
-				0.0
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -50,15 +68,15 @@
 				"1": {
 					"name": ""
 				}
-			}
-		},
-		"Vector Math.008": {
-			"bl_idname": "ShaderNodeVectorMath",
+			},
 			"location": [
-				94.0454,
-				1.9878
+				284.0454,
+				0.0
 			],
-			"operation": "MULTIPLY",
+			"width_hidden": 42.0
+		},
+		"Vector Math.007": {
+			"bl_idname": "ShaderNodeVectorMath",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -66,90 +84,74 @@
 					"enabled": false
 				},
 				"3": {
-					"name": "Scale",
 					"default_value": 1.0,
-					"enabled": false
+					"enabled": false,
+					"name": "Scale"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Vector",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
-				}
-			}
-		},
-		"Group Input": {
-			"bl_idname": "NodeGroupInput",
 			"location": [
-				-294.0455,
-				0.0
+				-94.0455,
+				-1.9878
 			],
-			"width_hidden": 80.0,
+			"operation": "SUBTRACT",
 			"outputs": {
 				"0": {
-					"name": "C1",
 					"links": [
 						{
-							"node": "Vector Math.007",
-							"index": 0
+							"index": 0,
+							"node": "Vector Math.008"
 						}
-					]
+					],
+					"name": "Vector"
 				},
 				"1": {
-					"name": "C2",
-					"links": [
-						{
-							"node": "Vector Math.007",
-							"index": 1
-						}
-					]
-				},
-				"2": {
-					"name": "Fac",
-					"links": [
-						{
-							"node": "Vector Math.008",
-							"index": 1
-						}
-					]
+					"enabled": false,
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Vector Math.008": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"default_value": 1.0,
+					"enabled": false,
+					"name": "Scale"
+				}
+			},
+			"location": [
+				94.0454,
+				1.9878
+			],
+			"operation": "MULTIPLY",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Vector"
+				},
+				"1": {
+					"enabled": false,
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "e6a2bb2f06fbe7d1e03288fbd33642bc",
-	"inputs": [
-		{
-			"name": "C1",
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "C2",
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "Fac",
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Vector",
-			"bl_idname": "NodeSocketColor"
+			"bl_idname": "NodeSocketColor",
+			"name": "Vector"
 		}
-	],
-	"interface_hash": "20c8478f4ab019e682ef6fb65b777ebc",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

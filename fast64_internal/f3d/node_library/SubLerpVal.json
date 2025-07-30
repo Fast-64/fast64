@@ -1,4 +1,34 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "c2b9a17e9dd192bfe54cdd1a0c00fc5f",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "V1"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "V2"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Fac"
+		}
+	],
+	"interface_hash": "dd6feb85eb9fc5dd71bb49ffc55c1a20",
 	"name": "SubLerpVal",
 	"nodes": {
 		"Group Input": {
@@ -7,77 +37,42 @@
 				-244.181,
 				33.8004
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
-					"name": "V1",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Math.002",
-							"index": 0
+							"index": 0,
+							"node": "Math.002"
 						}
-					]
+					],
+					"name": "V1"
 				},
 				"1": {
-					"name": "V2",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Math.002",
-							"index": 1
+							"index": 1,
+							"node": "Math.002"
 						}
-					]
-				},
-				"2": {
-					"name": "Fac",
-					"default_value": 0.5,
-					"links": [
-						{
-							"node": "Math.003",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"Math.003": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				68.059,
-				90.2504
-			],
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5
+					],
+					"name": "V2"
 				},
 				"2": {
 					"default_value": 0.5,
-					"enabled": false
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.003"
+						}
+					],
+					"name": "Fac"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				227.7747,
-				89.7458
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -85,15 +80,15 @@
 				"1": {
 					"name": ""
 				}
-			}
+			},
+			"location": [
+				227.7747,
+				89.7458
+			],
+			"width_hidden": 42.0
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-85.5307,
-				112.8277
-			],
-			"operation": "SUBTRACT",
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -106,53 +101,60 @@
 					"enabled": false
 				}
 			},
+			"location": [
+				-85.5307,
+				112.8277
+			],
+			"operation": "SUBTRACT",
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Math.003",
-							"index": 0
+							"index": 0,
+							"node": "Math.003"
 						}
-					]
+					],
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Math.003": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				68.059,
+				90.2504
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "e78322495d1dfb9d87dd0ad6eca97e58",
-	"inputs": [
-		{
-			"name": "V1",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "V2",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "Fac",
-			"default_value": 0.5,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Value",
-			"bl_idname": "NodeSocketFloat"
+			"bl_idname": "NodeSocketFloat",
+			"name": "Value"
 		}
-	],
-	"interface_hash": "dd6feb85eb9fc5dd71bb49ffc55c1a20",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

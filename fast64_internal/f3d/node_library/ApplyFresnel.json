@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "600007d88f3dc8a3dbab039750e94e4d",
+	"cached_hash": "75107f6e2034b7b36e1d4f0016bab052",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketColor",
@@ -113,7 +113,7 @@
 					"name": "Fresnel"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -138,7 +138,7 @@
 				315.2231,
 				106.1039
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group.004": {
 			"bl_idname": "ShaderNodeGroup",
@@ -174,7 +174,7 @@
 					"name": "Value"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
@@ -207,7 +207,8 @@
 					"name": "Value"
 				}
 			},
-			"use_clamp": true
+			"use_clamp": true,
+			"width_hidden": 42.0
 		},
 		"Mix.001": {
 			"bl_idname": "ShaderNodeMixRGB",
@@ -255,7 +256,8 @@
 					],
 					"name": "Color"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -278,7 +280,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -301,7 +305,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
@@ -328,7 +334,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.053": {
 			"bl_idname": "NodeReroute",
@@ -351,7 +359,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.054": {
 			"bl_idname": "NodeReroute",
@@ -378,7 +388,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.055": {
 			"bl_idname": "NodeReroute",
@@ -401,7 +413,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.056": {
 			"bl_idname": "NodeReroute",
@@ -424,7 +438,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

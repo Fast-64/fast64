@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "c76945b1578e6506f3a0fd3623f3ef64",
+	"cached_hash": "facc48fb0b7d0585abf62ff90f447a1e",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketColor",
@@ -48,7 +48,7 @@
 					"name": "AO Ambient Factor"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -64,7 +64,7 @@
 				183.8044,
 				54.8822
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
@@ -100,7 +100,8 @@
 					"enabled": false,
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

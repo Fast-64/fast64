@@ -1,94 +1,13 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "dabaff2d861d8e85d07695f1e9f036aa",
+	"interface_hash": "1103fa076bb5845fe3bbdb6fa496f092",
 	"name": "UV_EnvMap",
 	"nodes": {
-		"Vector Transform": {
-			"bl_idname": "ShaderNodeVectorTransform",
-			"location": [
-				13.4256,
-				12.2404
-			],
-			"inputs": {
-				"0": {
-					"name": "Vector",
-					"default_value": [
-						0.5,
-						0.5,
-						0.5
-					]
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Vector",
-					"links": [
-						{
-							"node": "Mapping",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Mapping": {
-			"bl_idname": "ShaderNodeMapping",
-			"location": [
-				170.8631,
-				62.3998
-			],
-			"width": 140.0,
-			"inputs": {
-				"0": {
-					"name": "Vector"
-				},
-				"1": {
-					"name": "Location",
-					"default_value": [
-						0.5,
-						0.5,
-						0.0
-					]
-				},
-				"2": {
-					"name": "Rotation",
-					"enabled": true
-				},
-				"3": {
-					"name": "Scale",
-					"default_value": [
-						0.5,
-						0.5,
-						1.0
-					]
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Vector",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				360.8631,
-				0.0
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Vector"
-				},
-				"1": {
-					"name": ""
-				}
-			}
-		},
 		"Geometry": {
 			"bl_idname": "ShaderNodeNewGeometry",
 			"location": [
@@ -97,62 +16,146 @@
 			],
 			"outputs": {
 				"0": {
-					"name": "Position",
-					"hide": true
+					"hide": true,
+					"name": "Position"
 				},
 				"1": {
-					"name": "Normal",
 					"links": [
 						{
-							"node": "Vector Transform",
-							"index": 0
+							"index": 0,
+							"node": "Vector Transform"
 						}
-					]
+					],
+					"name": "Normal"
 				},
 				"2": {
-					"name": "Tangent",
-					"hide": true
+					"hide": true,
+					"name": "Tangent"
 				},
 				"3": {
-					"name": "True Normal",
-					"hide": true
+					"hide": true,
+					"name": "True Normal"
 				},
 				"4": {
-					"name": "Incoming",
-					"hide": true
+					"hide": true,
+					"name": "Incoming"
 				},
 				"5": {
-					"name": "Parametric",
-					"hide": true
+					"hide": true,
+					"name": "Parametric"
 				},
 				"6": {
-					"name": "Backfacing",
-					"hide": true
+					"hide": true,
+					"name": "Backfacing"
 				},
 				"7": {
-					"name": "Pointiness",
-					"hide": true
+					"hide": true,
+					"name": "Pointiness"
 				},
 				"8": {
-					"name": "Random Per Island",
-					"hide": true
+					"hide": true,
+					"name": "Random Per Island"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				360.8631,
+				0.0
+			],
+			"width_hidden": 42.0
+		},
+		"Mapping": {
+			"bl_idname": "ShaderNodeMapping",
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.0
+					],
+					"name": "Location"
+				},
+				"2": {
+					"enabled": true,
+					"name": "Rotation"
+				},
+				"3": {
+					"default_value": [
+						0.5,
+						0.5,
+						1.0
+					],
+					"name": "Scale"
+				}
+			},
+			"location": [
+				170.8631,
+				62.3998
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Vector"
+				}
+			},
+			"width": 140.0,
+			"width_hidden": 42.0
+		},
+		"Vector Transform": {
+			"bl_idname": "ShaderNodeVectorTransform",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5
+					],
+					"name": "Vector"
+				}
+			},
+			"location": [
+				13.4256,
+				12.2404
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Mapping"
+						}
+					],
+					"name": "Vector"
+				}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "5d6282123a2badc9ab860e8775cd6a0e",
 	"outputs": [
 		{
-			"name": "Vector",
+			"bl_idname": "NodeSocketVector",
 			"max_value": 0.0,
 			"min_value": 0.0,
-			"bl_idname": "NodeSocketVector"
+			"name": "Vector"
 		}
-	],
-	"interface_hash": "1103fa076bb5845fe3bbdb6fa496f092",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

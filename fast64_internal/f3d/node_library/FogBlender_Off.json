@@ -1,38 +1,43 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "399a50983ee930ae7e7ad333cdca79ee",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"hide_value": true,
+			"name": "Color"
+		},
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "Fog Color"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"default_value": 1,
+			"hide_value": true,
+			"name": "FogEnable"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"min_value": 0.0,
+			"name": "FogAmount"
+		}
+	],
+	"interface_hash": "d33ae113cb1e99c1a98dbf3502421ebd",
 	"name": "FogBlender_Off",
 	"nodes": {
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				-128.7302,
-				-77.7192
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					]
-				},
-				"1": {
-					"name": ""
-				}
-			}
-		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-340.7661,
 				-81.033
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
-					"name": "Color",
 					"default_value": [
 						0.5,
 						0.5,
@@ -42,57 +47,52 @@
 					"hide_value": true,
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Group Output"
 						}
-					]
+					],
+					"name": "Color"
 				},
 				"2": {
-					"name": "FogEnable",
-					"hide_value": true
+					"hide_value": true,
+					"name": "FogEnable"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"name": "Color"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				-128.7302,
+				-77.7192
+			],
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "dbdcd9f6663d7ee4d19fcdfb892ab3d3",
-	"inputs": [
-		{
-			"name": "Color",
-			"hide_value": true,
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "Fog Color",
-			"bl_idname": "NodeSocketColor"
-		},
-		{
-			"name": "FogEnable",
-			"default_value": 1,
-			"hide_value": true,
-			"bl_idname": "NodeSocketInt"
-		},
-		{
-			"name": "FogAmount",
-			"min_value": 0.0,
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Color",
+			"bl_idname": "NodeSocketColor",
 			"default_value": [
 				0.0,
 				0.0,
 				0.0,
 				0.0
 			],
-			"bl_idname": "NodeSocketColor"
+			"name": "Color"
 		}
-	],
-	"interface_hash": "d33ae113cb1e99c1a98dbf3502421ebd",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

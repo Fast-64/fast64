@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "277e2038faf3b9983b03c45720780ed4",
+	"cached_hash": "628ed817b127abc7b76567645cc5120e",
 	"inputs": [
 		{
 			"bl_idname": "NodeSocketFloat",
@@ -103,7 +103,8 @@
 					],
 					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
@@ -257,7 +258,7 @@
 					"name": "T Mirror"
 				}
 			},
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -273,7 +274,7 @@
 				497.1576,
 				284.2268
 			],
-			"width_hidden": 80.0
+			"width_hidden": 42.0
 		},
 		"Group.005": {
 			"bl_idname": "ShaderNodeGroup",
@@ -327,7 +328,7 @@
 				}
 			},
 			"width": 199.55996704101562,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Group.006": {
 			"bl_idname": "ShaderNodeGroup",
@@ -381,7 +382,7 @@
 				}
 			},
 			"width": 202.857666015625,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
@@ -411,7 +412,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Math.004": {
 			"bl_idname": "ShaderNodeMath",
@@ -441,7 +443,8 @@
 					],
 					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -464,7 +467,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -487,7 +492,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -510,7 +517,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
@@ -533,7 +542,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.026": {
 			"bl_idname": "NodeReroute",
@@ -556,7 +567,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.027": {
 			"bl_idname": "NodeReroute",
@@ -579,7 +592,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		}
 	},
 	"outputs": [

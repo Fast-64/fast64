@@ -634,6 +634,8 @@ class SerializedNodeTree:
                 for link in out.links:
                     name = None
                     inputs = convert_inputs_to_3_2(link.to_node, link.to_node.inputs)
+                    if link.to_socket not in inputs:
+                        continue
                     if not any(
                         other for other in inputs if other == link.to_socket and other.name == link.to_socket.name
                     ):

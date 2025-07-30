@@ -1,105 +1,42 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "532adab945239da1e144ccf2b4950cf2",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketVector",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Vector"
+		}
+	],
+	"interface_hash": "f79f89b18fc4fa94c0f4f94db4b81a7c",
 	"name": "MaxOfComponents",
 	"nodes": {
-		"Separate XYZ": {
-			"bl_idname": "ShaderNodeSeparateXYZ",
-			"location": [
-				-156.9276,
-				-3.1859
-			],
-			"inputs": {
-				"0": {
-					"name": "Vector"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "X",
-					"links": [
-						{
-							"node": "Math.012",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Y",
-					"links": [
-						{
-							"node": "Math.012",
-							"index": 1
-						}
-					]
-				},
-				"2": {
-					"name": "Z",
-					"links": [
-						{
-							"node": "Math.013",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"Math.012": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-0.4549,
-				9.5576
-			],
-			"hide": true,
-			"operation": "MAXIMUM",
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Math.013",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-356.9276,
 				0.0
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
-					"name": "Vector",
 					"links": [
 						{
-							"node": "Separate XYZ",
-							"index": 0
+							"index": 0,
+							"node": "Separate XYZ"
 						}
-					]
+					],
+					"name": "Vector"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				346.9276,
-				0.0
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -107,16 +44,16 @@
 				"1": {
 					"name": ""
 				}
-			}
-		},
-		"Math.013": {
-			"bl_idname": "ShaderNodeMath",
+			},
 			"location": [
-				156.9276,
-				-9.5576
+				346.9276,
+				0.0
 			],
+			"width_hidden": 42.0
+		},
+		"Math.012": {
+			"bl_idname": "ShaderNodeMath",
 			"hide": true,
-			"operation": "MAXIMUM",
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -129,38 +66,104 @@
 					"enabled": false
 				}
 			},
+			"location": [
+				-0.4549,
+				9.5576
+			],
+			"operation": "MAXIMUM",
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Math.013"
 						}
-					]
+					],
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Math.013": {
+			"bl_idname": "ShaderNodeMath",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				156.9276,
+				-9.5576
+			],
+			"operation": "MAXIMUM",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Separate XYZ": {
+			"bl_idname": "ShaderNodeSeparateXYZ",
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				}
+			},
+			"location": [
+				-156.9276,
+				-3.1859
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.012"
+						}
+					],
+					"name": "X"
+				},
+				"1": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.012"
+						}
+					],
+					"name": "Y"
+				},
+				"2": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.013"
+						}
+					],
+					"name": "Z"
+				}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "75740109e0132b3f9a474be23ec79938",
-	"inputs": [
-		{
-			"name": "Vector",
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketVector"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Value",
-			"bl_idname": "NodeSocketFloat"
+			"bl_idname": "NodeSocketFloat",
+			"name": "Value"
 		}
-	],
-	"interface_hash": "f79f89b18fc4fa94c0f4f94db4b81a7c",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

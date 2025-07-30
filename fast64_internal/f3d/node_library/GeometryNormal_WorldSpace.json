@@ -1,22 +1,52 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "61317ce79b5f6ad21310cf8d2328b0c6",
+	"interface_hash": "650774806e0e91b0cec445c85284366c",
 	"name": "GeometryNormal_WorldSpace",
 	"nodes": {
+		"Geometry": {
+			"bl_idname": "ShaderNodeNewGeometry",
+			"location": [
+				84.8114,
+				39.71
+			],
+			"outputs": {
+				"1": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Normal"
+				},
+				"4": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Group Output"
+						}
+					],
+					"name": "Incoming"
+				}
+			},
+			"width_hidden": 42.0
+		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-293.9529,
 				0.0
 			],
-			"width_hidden": 80.0,
-			"outputs": {}
+			"outputs": {},
+			"width_hidden": 42.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"location": [
-				283.9528,
-				0.0
-			],
-			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Normal"
@@ -27,51 +57,22 @@
 				"2": {
 					"name": ""
 				}
-			}
-		},
-		"Geometry": {
-			"bl_idname": "ShaderNodeNewGeometry",
+			},
 			"location": [
-				84.8114,
-				39.71
+				283.9528,
+				0.0
 			],
-			"outputs": {
-				"1": {
-					"name": "Normal",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 0
-						}
-					]
-				},
-				"4": {
-					"name": "Incoming",
-					"links": [
-						{
-							"node": "Group Output",
-							"index": 1
-						}
-					]
-				}
-			}
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "ebeec0cf2717fd8937c76dc7f291f97c",
 	"outputs": [
 		{
-			"name": "Normal",
-			"bl_idname": "NodeSocketVector"
+			"bl_idname": "NodeSocketVector",
+			"name": "Normal"
 		},
 		{
-			"name": "Incoming",
-			"bl_idname": "NodeSocketVector"
+			"bl_idname": "NodeSocketVector",
+			"name": "Incoming"
 		}
-	],
-	"interface_hash": "650774806e0e91b0cec445c85284366c",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

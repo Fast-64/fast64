@@ -1,164 +1,15 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "39fdf1c1f904b0a72daacd2dc9963766",
+	"interface_hash": "1103fa076bb5845fe3bbdb6fa496f092",
 	"name": "UV_EnvMap_Linear",
 	"nodes": {
-		"Map Range": {
-			"bl_idname": "ShaderNodeMapRange",
-			"location": [
-				418.2646,
-				344.3111
-			],
-			"clamp": true,
-			"inputs": {
-				"0": {
-					"name": "Value",
-					"default_value": 1.0
-				},
-				"1": {},
-				"2": {
-					"default_value": 3.1415927410125732
-				},
-				"3": {
-					"default_value": 1.0
-				},
-				"4": {},
-				"5": {
-					"default_value": 4.0,
-					"enabled": false
-				},
-				"6": {
-					"name": "Vector",
-					"enabled": false,
-					"hide_value": true
-				},
-				"7": {
-					"enabled": false
-				},
-				"8": {
-					"default_value": [
-						1.0,
-						1.0,
-						1.0
-					],
-					"enabled": false
-				},
-				"9": {
-					"enabled": false
-				},
-				"10": {
-					"default_value": [
-						1.0,
-						1.0,
-						1.0
-					],
-					"enabled": false
-				},
-				"11": {
-					"default_value": [
-						4.0,
-						4.0,
-						4.0
-					],
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Result",
-					"links": [
-						{
-							"node": "Reroute.005",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Vector",
-					"enabled": false
-				}
-			}
-		},
-		"Map Range.001": {
-			"bl_idname": "ShaderNodeMapRange",
-			"location": [
-				416.3256,
-				84.9939
-			],
-			"clamp": true,
-			"inputs": {
-				"0": {
-					"name": "Value",
-					"default_value": 1.0
-				},
-				"1": {},
-				"2": {
-					"default_value": 3.1415927410125732
-				},
-				"3": {
-					"default_value": 1.0
-				},
-				"4": {},
-				"5": {
-					"default_value": 4.0,
-					"enabled": false
-				},
-				"6": {
-					"name": "Vector",
-					"enabled": false,
-					"hide_value": true
-				},
-				"7": {
-					"enabled": false
-				},
-				"8": {
-					"default_value": [
-						1.0,
-						1.0,
-						1.0
-					],
-					"enabled": false
-				},
-				"9": {
-					"enabled": false
-				},
-				"10": {
-					"default_value": [
-						1.0,
-						1.0,
-						1.0
-					],
-					"enabled": false
-				},
-				"11": {
-					"default_value": [
-						4.0,
-						4.0,
-						4.0
-					],
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Result",
-					"links": [
-						{
-							"node": "Reroute.004",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Vector",
-					"enabled": false
-				}
-			}
-		},
 		"Combine XYZ": {
 			"bl_idname": "ShaderNodeCombineXYZ",
-			"location": [
-				640.2026,
-				220.5324
-			],
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -170,319 +21,22 @@
 					"name": "Z"
 				}
 			},
+			"location": [
+				640.2026,
+				220.5324
+			],
 			"outputs": {
 				"0": {
-					"name": "Vector",
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Group Output"
 						}
-					]
-				}
-			}
-		},
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				803.3887,
-				220.6945
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
-					"name": "Vector"
-				},
-				"1": {
-					"name": ""
-				}
-			}
-		},
-		"Math": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				259.9283,
-				238.6412
-			],
-			"operation": "ARCCOSINE",
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5,
-					"enabled": false
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Map Range",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Math.001": {
-			"bl_idname": "ShaderNodeMath",
-			"location": [
-				257.685,
-				-20.653
-			],
-			"operation": "ARCCOSINE",
-			"inputs": {
-				"0": {
-					"default_value": 0.5
-				},
-				"1": {
-					"default_value": 0.5,
-					"enabled": false
-				},
-				"2": {
-					"default_value": 0.5,
-					"enabled": false
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Value",
-					"links": [
-						{
-							"node": "Map Range.001",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.005": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				598.8708,
-				309.2487
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Reroute.006",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.004": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				598.8708,
-				50.2324
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Reroute.007",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.006": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				598.8708,
-				161.2621
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Combine XYZ",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.007": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				598.8708,
-				139.1357
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Combine XYZ",
-							"index": 1
-						}
-					]
-				}
-			}
-		},
-		"Reroute.001": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				232.3399,
-				125.2303
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Math",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute.003": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				232.3399,
-				-134.0211
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Math.001",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Reroute": {
-			"bl_idname": "NodeReroute",
-			"location": [
-				232.3399,
-				52.3496
-			],
-			"inputs": {
-				"0": {
-					"name": "Input"
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"links": [
-						{
-							"node": "Reroute.001",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Separate XYZ": {
-			"bl_idname": "ShaderNodeSeparateXYZ",
-			"location": [
-				65.3822,
-				86.7655
-			],
-			"hide": false,
-			"inputs": {
-				"0": {
+					],
 					"name": "Vector"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "X",
-					"links": [
-						{
-							"node": "Reroute",
-							"index": 0
-						}
-					]
-				},
-				"1": {
-					"name": "Y",
-					"links": [
-						{
-							"node": "Reroute.002",
-							"index": 0
-						}
-					]
-				}
-			}
-		},
-		"Vector Transform": {
-			"bl_idname": "ShaderNodeVectorTransform",
-			"location": [
-				-91.8587,
-				18.0016
-			],
-			"inputs": {
-				"0": {
-					"name": "Vector",
-					"default_value": [
-						0.5,
-						0.5,
-						0.5
-					]
-				}
-			},
-			"outputs": {
-				"0": {
-					"name": "Vector",
-					"links": [
-						{
-							"node": "Separate XYZ",
-							"index": 0
-						}
-					]
-				}
-			}
+			"width_hidden": 42.0
 		},
 		"Geometry": {
 			"bl_idname": "ShaderNodeNewGeometry",
@@ -492,85 +46,555 @@
 			],
 			"outputs": {
 				"0": {
-					"name": "Position",
-					"hide": true
+					"hide": true,
+					"name": "Position"
 				},
 				"1": {
-					"name": "Normal",
 					"links": [
 						{
-							"node": "Vector Transform",
-							"index": 0
+							"index": 0,
+							"node": "Vector Transform"
 						}
-					]
+					],
+					"name": "Normal"
 				},
 				"2": {
-					"name": "Tangent",
-					"hide": true
+					"hide": true,
+					"name": "Tangent"
 				},
 				"3": {
-					"name": "True Normal",
-					"hide": true
+					"hide": true,
+					"name": "True Normal"
 				},
 				"4": {
-					"name": "Incoming",
-					"hide": true
+					"hide": true,
+					"name": "Incoming"
 				},
 				"5": {
-					"name": "Parametric",
-					"hide": true
+					"hide": true,
+					"name": "Parametric"
 				},
 				"6": {
-					"name": "Backfacing",
-					"hide": true
+					"hide": true,
+					"name": "Backfacing"
 				},
 				"7": {
-					"name": "Pointiness",
-					"hide": true
+					"hide": true,
+					"name": "Pointiness"
 				},
 				"8": {
-					"name": "Random Per Island",
-					"hide": true
+					"hide": true,
+					"name": "Random Per Island"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
-		"Reroute.002": {
-			"bl_idname": "NodeReroute",
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			},
 			"location": [
-				232.3399,
-				29.8204
+				803.3887,
+				220.6945
 			],
+			"width_hidden": 42.0
+		},
+		"Map Range": {
+			"bl_idname": "ShaderNodeMapRange",
+			"clamp": true,
+			"inputs": {
+				"0": {
+					"default_value": 1.0,
+					"name": "Value"
+				},
+				"1": {},
+				"2": {
+					"default_value": 3.1415927410125732
+				},
+				"3": {
+					"default_value": 1.0
+				},
+				"4": {},
+				"5": {
+					"default_value": 4.0,
+					"enabled": false
+				},
+				"6": {
+					"enabled": false,
+					"hide_value": true,
+					"name": "Vector"
+				},
+				"7": {
+					"enabled": false
+				},
+				"8": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0
+					],
+					"enabled": false
+				},
+				"9": {
+					"enabled": false
+				},
+				"10": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0
+					],
+					"enabled": false
+				},
+				"11": {
+					"default_value": [
+						4.0,
+						4.0,
+						4.0
+					],
+					"enabled": false
+				}
+			},
+			"location": [
+				418.2646,
+				344.3111
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.005"
+						}
+					],
+					"name": "Result"
+				},
+				"1": {
+					"enabled": false,
+					"name": "Vector"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Map Range.001": {
+			"bl_idname": "ShaderNodeMapRange",
+			"clamp": true,
+			"inputs": {
+				"0": {
+					"default_value": 1.0,
+					"name": "Value"
+				},
+				"1": {},
+				"2": {
+					"default_value": 3.1415927410125732
+				},
+				"3": {
+					"default_value": 1.0
+				},
+				"4": {},
+				"5": {
+					"default_value": 4.0,
+					"enabled": false
+				},
+				"6": {
+					"enabled": false,
+					"hide_value": true,
+					"name": "Vector"
+				},
+				"7": {
+					"enabled": false
+				},
+				"8": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0
+					],
+					"enabled": false
+				},
+				"9": {
+					"enabled": false
+				},
+				"10": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0
+					],
+					"enabled": false
+				},
+				"11": {
+					"default_value": [
+						4.0,
+						4.0,
+						4.0
+					],
+					"enabled": false
+				}
+			},
+			"location": [
+				416.3256,
+				84.9939
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.004"
+						}
+					],
+					"name": "Result"
+				},
+				"1": {
+					"enabled": false,
+					"name": "Vector"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Math": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5,
+					"enabled": false
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				259.9283,
+				238.6412
+			],
+			"operation": "ARCCOSINE",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Map Range"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5,
+					"enabled": false
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				257.685,
+				-20.653
+			],
+			"operation": "ARCCOSINE",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Map Range.001"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
 			"inputs": {
 				"0": {
 					"name": "Input"
 				}
 			},
+			"location": [
+				232.3399,
+				52.3496
+			],
 			"outputs": {
 				"0": {
-					"name": "Output",
 					"links": [
 						{
-							"node": "Reroute.003",
-							"index": 0
+							"index": 0,
+							"node": "Reroute.001"
 						}
-					]
+					],
+					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				232.3399,
+				125.2303
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.002": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				232.3399,
+				29.8204
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.003"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.003": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				232.3399,
+				-134.0211
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.001"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.004": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				598.8708,
+				50.2324
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.007"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.005": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				598.8708,
+				309.2487
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.006"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.006": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				598.8708,
+				161.2621
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Combine XYZ"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.007": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				598.8708,
+				139.1357
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Combine XYZ"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Separate XYZ": {
+			"bl_idname": "ShaderNodeSeparateXYZ",
+			"hide": false,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				}
+			},
+			"location": [
+				65.3822,
+				86.7655
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute"
+						}
+					],
+					"name": "X"
+				},
+				"1": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.002"
+						}
+					],
+					"name": "Y"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Vector Transform": {
+			"bl_idname": "ShaderNodeVectorTransform",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5
+					],
+					"name": "Vector"
+				}
+			},
+			"location": [
+				-91.8587,
+				18.0016
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Separate XYZ"
+						}
+					],
+					"name": "Vector"
+				}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "cd916052b26677967dce106f376351fd",
 	"outputs": [
 		{
-			"name": "Vector",
+			"bl_idname": "NodeSocketVector",
 			"max_value": 0.0,
 			"min_value": 0.0,
-			"bl_idname": "NodeSocketVector"
+			"name": "Vector"
 		}
-	],
-	"interface_hash": "1103fa076bb5845fe3bbdb6fa496f092",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

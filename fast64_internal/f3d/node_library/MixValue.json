@@ -1,4 +1,36 @@
 {
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "86294fca1667e80885382472fddbcd3f",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 1.0,
+			"min_value": 0.0,
+			"name": "Fac"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"hide_value": true,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Input0"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"hide_value": true,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Input1"
+		}
+	],
+	"interface_hash": "156e03c096a4b1b053e99c1d12a87120",
 	"name": "MixValue",
 	"nodes": {
 		"Group Input": {
@@ -7,53 +39,64 @@
 				-357.5402,
 				0.0
 			],
-			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
-					"name": "Fac",
 					"default_value": 0.5,
 					"links": [
 						{
-							"node": "Math.004",
-							"index": 1
+							"index": 1,
+							"node": "Math.004"
 						}
-					]
+					],
+					"name": "Fac"
 				},
 				"1": {
-					"name": "Input0",
 					"default_value": 0.5,
 					"hide_value": true,
 					"links": [
 						{
-							"node": "Math.003",
-							"index": 1
+							"index": 1,
+							"node": "Math.003"
 						},
 						{
-							"node": "Math.004",
-							"index": 2
+							"index": 2,
+							"node": "Math.004"
 						}
-					]
+					],
+					"name": "Input0"
 				},
 				"2": {
-					"name": "Input1",
 					"default_value": 0.5,
 					"hide_value": true,
 					"links": [
 						{
-							"node": "Math.003",
-							"index": 0
+							"index": 0,
+							"node": "Math.003"
 						}
-					]
+					],
+					"name": "Input1"
 				}
-			}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Value"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				343.5534,
+				90.1504
+			],
+			"width_hidden": 42.0
 		},
 		"Math.003": {
 			"bl_idname": "ShaderNodeMath",
-			"location": [
-				-76.1189,
-				43.4761
-			],
-			"operation": "SUBTRACT",
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -65,25 +108,26 @@
 					"enabled": false
 				}
 			},
+			"location": [
+				-76.1189,
+				43.4761
+			],
+			"operation": "SUBTRACT",
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Math.004",
-							"index": 0
+							"index": 0,
+							"node": "Math.004"
 						}
-					]
+					],
+					"name": "Value"
 				}
-			}
+			},
+			"width_hidden": 42.0
 		},
 		"Math.004": {
 			"bl_idname": "ShaderNodeMath",
-			"location": [
-				171.8792,
-				90.9843
-			],
-			"operation": "MULTIPLY_ADD",
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -93,73 +137,31 @@
 				},
 				"2": {}
 			},
+			"location": [
+				171.8792,
+				90.9843
+			],
+			"operation": "MULTIPLY_ADD",
 			"outputs": {
 				"0": {
-					"name": "Value",
 					"links": [
 						{
-							"node": "Group Output",
-							"index": 0
+							"index": 0,
+							"node": "Group Output"
 						}
-					]
-				}
-			}
-		},
-		"Group Output": {
-			"bl_idname": "NodeGroupOutput",
-			"location": [
-				343.5534,
-				90.1504
-			],
-			"width_hidden": 80.0,
-			"inputs": {
-				"0": {
+					],
 					"name": "Value"
-				},
-				"1": {
-					"name": ""
 				}
-			}
+			},
+			"width_hidden": 42.0
 		}
 	},
-	"cached_hash": "653562e7e35aaba1be1c2ce85410760b",
-	"inputs": [
-		{
-			"name": "Fac",
-			"default_value": 0.5,
-			"max_value": 1.0,
-			"min_value": 0.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "Input0",
-			"default_value": 0.5,
-			"hide_value": true,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
-			"name": "Input1",
-			"default_value": 0.5,
-			"hide_value": true,
-			"max_value": 10000.0,
-			"min_value": -10000.0,
-			"bl_idname": "NodeSocketFloat"
-		}
-	],
 	"outputs": [
 		{
-			"name": "Value",
+			"bl_idname": "NodeSocketFloat",
 			"max_value": 0.0,
 			"min_value": 0.0,
-			"bl_idname": "NodeSocketFloat"
+			"name": "Value"
 		}
-	],
-	"interface_hash": "156e03c096a4b1b053e99c1d12a87120",
-	"bpy_ver": [
-		3,
-		2,
-		0
 	]
 }

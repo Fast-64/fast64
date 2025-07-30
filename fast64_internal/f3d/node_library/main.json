@@ -4,7 +4,7 @@
 		2,
 		0
 	],
-	"cached_hash": "42f5da0c7355a403ac2b38ff4d9ed94f",
+	"cached_hash": "0bfc89eae22bfa1a07a47f587653fea9",
 	"dependencies": [
 		"3_Point_Lerp",
 		"3PointOffset",
@@ -73,7 +73,7 @@
 		"UV_EnvMap_Linear"
 	],
 	"interface_hash": "d751713988987e9331980363e24189ce",
-	"name": "f3d_material",
+	"name": "fast64_f3d_material_library_beefwashere",
 	"nodes": {
 		"3 Point Lerp": {
 			"bl_idname": "ShaderNodeGroup",
@@ -147,7 +147,7 @@
 					"name": "Alpha"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"3 Point Lerp.001": {
 			"bl_idname": "ShaderNodeGroup",
@@ -221,7 +221,7 @@
 					"name": "Alpha"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"AmbientColor": {
 			"bl_idname": "NodeReroute",
@@ -245,7 +245,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"AmbientColorOut": {
 			"bl_idname": "NodeReroute",
@@ -259,7 +261,9 @@
 				220.2553,
 				130.9037
 			],
-			"outputs": {}
+			"outputs": {},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"CalcFog": {
 			"bl_idname": "ShaderNodeGroup",
@@ -309,7 +313,7 @@
 				}
 			},
 			"width": 166.034912109375,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Combined_A": {
 			"bl_idname": "NodeReroute",
@@ -323,7 +327,9 @@
 				540.007,
 				432.865
 			],
-			"outputs": {}
+			"outputs": {},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Combined_C": {
 			"bl_idname": "NodeReroute",
@@ -337,7 +343,9 @@
 				540.0067,
 				455.5803
 			],
-			"outputs": {}
+			"outputs": {},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"CombinerInputs": {
 			"bl_idname": "ShaderNodeGroup",
@@ -421,7 +429,7 @@
 				}
 			},
 			"width": 138.9788818359375,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Cycle 1 A": {
 			"bl_idname": "NodeReroute",
@@ -448,7 +456,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Cycle C 2": {
 			"bl_idname": "NodeReroute",
@@ -472,7 +482,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Cycle_1": {
 			"bl_idname": "ShaderNodeGroup",
@@ -546,7 +558,7 @@
 					"name": "Alpha"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Cycle_2": {
 			"bl_idname": "ShaderNodeGroup",
@@ -620,7 +632,7 @@
 					"name": "Alpha"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"F3DNoiseFactor": {
 			"bl_idname": "ShaderNodeGroup",
@@ -645,7 +657,7 @@
 				}
 			},
 			"width": 141.82003784179688,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"FogBlender": {
 			"bl_idname": "ShaderNodeGroup",
@@ -703,7 +715,7 @@
 					"name": "Color"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"FogColor": {
 			"bl_idname": "NodeReroute",
@@ -727,7 +739,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"FogEnable": {
 			"bl_idname": "NodeReroute",
@@ -751,7 +765,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"GlobalFogColor": {
 			"bl_idname": "NodeReroute",
@@ -775,7 +791,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light0Color": {
 			"bl_idname": "NodeReroute",
@@ -799,7 +817,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light0ColorOut": {
 			"bl_idname": "NodeReroute",
@@ -818,7 +838,9 @@
 				240.4993,
 				108.4823
 			],
-			"outputs": {}
+			"outputs": {},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light0Dir": {
 			"bl_idname": "NodeReroute",
@@ -842,7 +864,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light0Size": {
 			"bl_idname": "NodeReroute",
@@ -866,7 +890,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light1Color": {
 			"bl_idname": "NodeReroute",
@@ -890,7 +916,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light1ColorOut": {
 			"bl_idname": "NodeReroute",
@@ -904,7 +932,9 @@
 				300.1822,
 				41.4949
 			],
-			"outputs": {}
+			"outputs": {},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light1Dir": {
 			"bl_idname": "NodeReroute",
@@ -928,7 +958,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Light1Size": {
 			"bl_idname": "NodeReroute",
@@ -952,7 +984,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Material Output F3D": {
 			"bl_idname": "ShaderNodeOutputMaterial",
@@ -979,7 +1013,8 @@
 				570.9524
 			],
 			"target": "ALL",
-			"width": 140.0
+			"width": 140.0,
+			"width_hidden": 42.0
 		},
 		"OUTPUT": {
 			"bl_idname": "ShaderNodeGroup",
@@ -1018,7 +1053,7 @@
 				}
 			},
 			"width": 219.2171630859375,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -1041,7 +1076,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
@@ -1064,7 +1101,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
@@ -1087,7 +1126,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
@@ -1110,7 +1151,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.004": {
 			"bl_idname": "NodeReroute",
@@ -1137,7 +1180,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
@@ -1160,7 +1205,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.006": {
 			"bl_idname": "NodeReroute",
@@ -1183,7 +1230,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
@@ -1206,7 +1255,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
@@ -1233,7 +1284,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.009": {
 			"bl_idname": "NodeReroute",
@@ -1256,7 +1309,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
@@ -1279,7 +1334,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.011": {
 			"bl_idname": "NodeReroute",
@@ -1302,7 +1359,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.012": {
 			"bl_idname": "NodeReroute",
@@ -1325,7 +1384,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.013": {
 			"bl_idname": "NodeReroute",
@@ -1348,7 +1409,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.014": {
 			"bl_idname": "NodeReroute",
@@ -1371,7 +1434,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.015": {
 			"bl_idname": "NodeReroute",
@@ -1394,7 +1459,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.016": {
 			"bl_idname": "NodeReroute",
@@ -1417,7 +1484,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
@@ -1440,7 +1509,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.018": {
 			"bl_idname": "NodeReroute",
@@ -1463,7 +1534,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.019": {
 			"bl_idname": "NodeReroute",
@@ -1486,7 +1559,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.020": {
 			"bl_idname": "NodeReroute",
@@ -1509,7 +1584,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.021": {
 			"bl_idname": "NodeReroute",
@@ -1532,7 +1609,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.022": {
 			"bl_idname": "NodeReroute",
@@ -1555,7 +1634,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.023": {
 			"bl_idname": "NodeReroute",
@@ -1578,7 +1659,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.024": {
 			"bl_idname": "NodeReroute",
@@ -1601,7 +1684,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.025": {
 			"bl_idname": "NodeReroute",
@@ -1624,7 +1709,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.026": {
 			"bl_idname": "NodeReroute",
@@ -1647,7 +1734,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.027": {
 			"bl_idname": "NodeReroute",
@@ -1670,7 +1759,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.028": {
 			"bl_idname": "NodeReroute",
@@ -1697,7 +1788,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.029": {
 			"bl_idname": "NodeReroute",
@@ -1720,7 +1813,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.030": {
 			"bl_idname": "NodeReroute",
@@ -1743,7 +1838,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.031": {
 			"bl_idname": "NodeReroute",
@@ -1766,7 +1863,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.032": {
 			"bl_idname": "NodeReroute",
@@ -1789,7 +1888,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.033": {
 			"bl_idname": "NodeReroute",
@@ -1816,7 +1917,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.035": {
 			"bl_idname": "NodeReroute",
@@ -1839,7 +1942,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.036": {
 			"bl_idname": "NodeReroute",
@@ -1862,7 +1967,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.037": {
 			"bl_idname": "NodeReroute",
@@ -1885,7 +1992,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.038": {
 			"bl_idname": "NodeReroute",
@@ -1908,7 +2017,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.039": {
 			"bl_idname": "NodeReroute",
@@ -1931,7 +2042,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.040": {
 			"bl_idname": "NodeReroute",
@@ -1954,7 +2067,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.041": {
 			"bl_idname": "NodeReroute",
@@ -1977,7 +2092,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.042": {
 			"bl_idname": "NodeReroute",
@@ -2000,7 +2117,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.043": {
 			"bl_idname": "NodeReroute",
@@ -2023,7 +2142,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.045": {
 			"bl_idname": "NodeReroute",
@@ -2046,7 +2167,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.046": {
 			"bl_idname": "NodeReroute",
@@ -2069,7 +2192,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.047": {
 			"bl_idname": "NodeReroute",
@@ -2092,7 +2217,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.048": {
 			"bl_idname": "NodeReroute",
@@ -2115,7 +2242,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.049": {
 			"bl_idname": "NodeReroute",
@@ -2138,7 +2267,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.050": {
 			"bl_idname": "NodeReroute",
@@ -2161,7 +2292,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.051": {
 			"bl_idname": "NodeReroute",
@@ -2184,7 +2317,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.052": {
 			"bl_idname": "NodeReroute",
@@ -2207,7 +2342,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.053": {
 			"bl_idname": "NodeReroute",
@@ -2230,7 +2367,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.054": {
 			"bl_idname": "NodeReroute",
@@ -2253,7 +2392,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.055": {
 			"bl_idname": "NodeReroute",
@@ -2276,7 +2417,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.056": {
 			"bl_idname": "NodeReroute",
@@ -2299,7 +2442,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.057": {
 			"bl_idname": "NodeReroute",
@@ -2322,7 +2467,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.058": {
 			"bl_idname": "NodeReroute",
@@ -2345,7 +2492,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.059": {
 			"bl_idname": "NodeReroute",
@@ -2368,7 +2517,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.060": {
 			"bl_idname": "NodeReroute",
@@ -2391,7 +2542,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.064": {
 			"bl_idname": "NodeReroute",
@@ -2414,7 +2567,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Reroute.065": {
 			"bl_idname": "NodeReroute",
@@ -2437,7 +2592,9 @@
 					],
 					"name": "Output"
 				}
-			}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
 		},
 		"Shade Color": {
 			"bl_idname": "ShaderNodeGroup",
@@ -2553,7 +2710,7 @@
 				}
 			},
 			"width": 139.40940856933594,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Tex0_1": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -2571,56 +2728,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -2681,7 +2788,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex0_2": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -2699,56 +2806,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -2809,7 +2866,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex0_3": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -2827,56 +2884,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -2937,7 +2944,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex0_4": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -2955,56 +2962,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -3065,7 +3022,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex0_I": {
 			"bl_idname": "ShaderNodeGroup",
@@ -3111,7 +3068,7 @@
 					"name": "Alpha"
 				}
 			},
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"Tex1_1": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -3129,56 +3086,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -3240,7 +3147,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex1_2": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -3258,56 +3165,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -3368,7 +3225,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex1_3": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -3386,56 +3243,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -3496,7 +3303,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex1_4": {
 			"bl_idname": "ShaderNodeTexImage",
@@ -3514,56 +3321,6 @@
 									1.0
 								],
 								"position": 0.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
-							},
-							{
-								"alpha": 1.0,
-								"color": [
-									1.0,
-									1.0,
-									1.0,
-									1.0
-								],
-								"position": 1.0
 							},
 							{
 								"alpha": 1.0,
@@ -3624,7 +3381,7 @@
 				"data": {},
 				"serialized_type": "Default"
 			},
-			"width_hidden": 140.0
+			"width_hidden": 42.0
 		},
 		"Tex1_I": {
 			"bl_idname": "ShaderNodeGroup",
@@ -3671,7 +3428,7 @@
 				}
 			},
 			"width": 140.05548095703125,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"TextureSettings": {
 			"bl_idname": "ShaderNodeGroup",
@@ -3934,7 +3691,7 @@
 				}
 			},
 			"width": 189.42694091796875,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"UV": {
 			"bl_idname": "ShaderNodeGroup",
@@ -3959,7 +3716,7 @@
 				}
 			},
 			"width": 165.39825439453125,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		},
 		"UV Basis": {
 			"bl_idname": "ShaderNodeGroup",
@@ -4079,7 +3836,7 @@
 				}
 			},
 			"width": 163.71954345703125,
-			"width_hidden": 60.0
+			"width_hidden": 42.0
 		}
 	}
 }
