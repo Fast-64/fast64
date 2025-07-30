@@ -43,11 +43,7 @@ from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import ManualUpdatePreviewOperator
 from .f3d_material_helpers import F3DMaterial_UpdateLock
-from .f3d_node_gen import (
-    create_f3d_nodes_in_material,
-    generate_f3d_node_groups,
-    DEBUG_MODE,
-)
+from .f3d_node_gen import create_f3d_nodes_in_material, generate_f3d_node_groups, DEBUG_MODE, find_node_group
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
 
@@ -1764,9 +1760,9 @@ def update_fog_nodes(material: Material, context: Context):
     # if NOT setting rendermode, it is more likely that the user is setting
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
-    fogBlender.node_tree = bpy.data.node_groups[
+    fogBlender.node_tree = find_node_group(
         ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings) else "FogBlender_Off")
-    ]
+    )
 
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
     if material.f3d_mat.rdp_settings.g_fog:
@@ -1795,7 +1791,7 @@ def update_fog_nodes(material: Material, context: Context):
 def update_noise_nodes(material: Material):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     uses_noise = f3dMat.combiner1.A == "NOISE" or f3dMat.combiner2.A == "NOISE"
-    noise_group = bpy.data.node_groups["F3DNoise_Animated" if uses_noise else "F3DNoise_NonAnimated"]
+    noise_group = find_node_group("F3DNoise_Animated" if uses_noise else "F3DNoise_NonAnimated")
 
     nodes = material.node_tree.nodes
     if nodes["F3DNoiseFactor"].node_tree is not noise_group:
@@ -1846,7 +1842,7 @@ def set_output_node_groups(material: Material):
         material.alpha_threshold = 0.125
 
     output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
-    output_group = bpy.data.node_groups[output_group_name]
+    output_group = find_node_group(output_group_name)
     output_node.node_tree = output_group
 
     for inp in output_node.inputs:
@@ -1942,11 +1938,11 @@ def update_node_values_of_material(material: Material, context):
 
     if (settings.is_geo_mode_on("g_lighting") or inherit_light_and_fog()) and settings.is_geo_mode_on("g_tex_gen"):
         if settings.is_geo_mode_on("g_tex_gen_linear"):
-            nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
+            nodes["UV"].node_tree = find_node_group("UV_EnvMap_Linear")
         else:
-            nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap"]
+            nodes["UV"].node_tree = find_node_group("UV_EnvMap")
     else:
-        nodes["UV"].node_tree = bpy.data.node_groups["UV"]
+        nodes["UV"].node_tree = find_node_group("UV")
 
     shdcol_inputs = nodes["Shade Color"].inputs
     for propName in [
@@ -1998,11 +1994,11 @@ def set_texture_settings_node(material: Material):
     nodes = material.node_tree.nodes
     textureSettings: ShaderNodeGroup = nodes["TextureSettings"]
 
-    desired_group = bpy.data.node_groups["TextureSettings_Lite"]
+    desired_group = find_node_group("TextureSettings_Lite")
     if (material.f3d_mat.tex0.tex and not material.f3d_mat.tex0.autoprop) or (
         material.f3d_mat.tex1.tex and not material.f3d_mat.tex1.autoprop
     ):
-        desired_group = bpy.data.node_groups["TextureSettings_Advanced"]
+        desired_group = find_node_group("TextureSettings_Advanced")
     if textureSettings.node_tree is not desired_group:
         textureSettings.node_tree = desired_group
 
@@ -2148,11 +2144,11 @@ def update_tex_values_index(self: Material, *, texProperty: "TextureProperty", t
             ciFormat = texProperty.ci_format
             if has_f3d_nodes(self):
                 tex_I_node = nodes["Tex" + str(texIndex) + "_I"]
-                desired_node = bpy.data.node_groups["Is not i"]
+                desired_node = find_node_group("Is not i")
                 if "IA" in texFormat or (texFormat[:2] == "CI" and "IA" in ciFormat):
-                    desired_node = bpy.data.node_groups["Is ia"]
+                    desired_node = find_node_group("Is ia")
                 elif texFormat[0] == "I" or (texFormat[:2] == "CI" and ciFormat[0] == "I"):
-                    desired_node = bpy.data.node_groups["Is i"]
+                    desired_node = find_node_group("Is i")
 
                 if tex_I_node.node_tree is not desired_node:
                     tex_I_node.node_tree = desired_node
@@ -2326,9 +2322,9 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
 
     uv_basis: ShaderNodeGroup = nodes["UV Basis"]
     if f3dMat.uv_basis == "TEXEL0":
-        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
+        uv_basis.node_tree = find_node_group("UV Basis 0")
     else:
-        uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
+        uv_basis.node_tree = find_node_group("UV Basis 1")
 
     if not isTexGen:
         uv_basis.inputs["S Scale"].default_value = f3dMat.tex_scale[0]

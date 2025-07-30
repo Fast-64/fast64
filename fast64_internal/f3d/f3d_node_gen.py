@@ -19,11 +19,11 @@ from bpy.types import (
     Node,
     NodeGroupOutput,
     Material,
+    PropertyGroup,
 )
+from bpy.props import StringProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from mathutils import Color, Vector, Euler
-
-from ..render_settings import update_scene_props_from_render_settings
 
 from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
@@ -247,6 +247,9 @@ def print_with_exc(error_state: ErrorState, exc: Exception):
 
 
 def createOrUpdateSceneProperties():
+    """TODO: Include in the library instead"""
+    from ..render_settings import update_scene_props_from_render_settings
+
     group = bpy.data.node_groups.get("SceneProperties")
     upgrade_group = bool(group and group.get("version", -1) < SCENE_PROPERTIES_VERSION)
 
@@ -653,20 +656,16 @@ class SerializedMaterialNodeTree(SerializedNodeTree):
         data["dependencies"] = [to_valid_file_name(name) for name in self.dependencies.keys()]
         return data
 
-    def from_json(self, data: dict):
-        super().from_json(data)
-        for name in data["dependencies"]:
-            self.dependencies[name] = SerializedNodeTree()
-        return self
-
     def load(self, path: Path):
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-        self.from_json(data)
-        for name, node_tree in self.dependencies.items():
+        super().from_json(data)
+        for name in data.get("dependencies", []):
+            node_tree = SerializedNodeTree()
             with Path(path.parent / (name + ".json")).open("r", encoding="utf-8") as f:
                 data = json.load(f)
             node_tree.from_json(data)
+            self.dependencies[node_tree.name] = node_tree
         return self
 
     def dump(self, path: Path):
@@ -714,7 +713,7 @@ class CreateWorkableF3DNodes(OperatorBase):
     def execute_operator(self, context):
         from .f3d_material import createF3DMat
 
-        mat = createF3DMat(context.object, editable=True)
+        _mat = createF3DMat(context.object, editable=True)
 
 
 class GatherF3DNodesPanel(Panel):
@@ -775,7 +774,7 @@ def set_node_prop(prop: object, attr: str, value: object, nodes, errors: ErrorSt
             prop_value.hue_interpolation = value["hue_interpolation"]
             prop_value.interpolation = value["interpolation"]
         elif value["serialized_type"] == "NodeTree":
-            setattr(prop, attr, bpy.data.node_groups[value["name"]])
+            setattr(prop, attr, find_node_group(value["name"]))
         elif value["serialized_type"] == "Node":
             setattr(prop, attr, nodes[value["name"]])
         else:
@@ -952,6 +951,20 @@ def is_f3d_mat(material: Material):
     return material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION
 
 
+def find_node_group(name: str):
+    def is_node_group(node_tree):
+        tree_props: Fast64_NodeTreeProperties = node_tree.fast64
+        return tree_props.name == name and tree_props.cached_hash and tree_props.interface_hash
+
+    name_for_sorting = f"(Fast64) {name}"
+    # bpy data is terribly slow, sorting by name should be faster even with startswith
+    for key in sorted(bpy.data.node_groups.keys(), key=lambda k: not k.startswith(name_for_sorting)):
+        node_tree = bpy.data.node_groups[key]
+        if is_node_group(node_tree):
+            return node_tree
+    return None
+
+
 def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=False, editable=False):
     """
     Forced generates node groups even if no f3d materials are present
@@ -968,52 +981,80 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
     errors = ErrorState()
     update_materials = False
     new_node_trees: list[tuple[NodeTree, list[Node]]] = []
+
+    existing_node_trees: dict[str, NodeTree] = {}
+    for node_tree in bpy.data.node_groups:
+        tree_props: Fast64_NodeTreeProperties = node_tree.fast64
+        name = tree_props.name
+        if name or tree_props.cached_hash or tree_props.interface_hash:
+            if name in SERIALIZED_NODE_LIBRARY.dependencies and name not in existing_node_trees:
+                existing_node_trees[name] = node_tree
+            else:
+                print(f'Node group "{name}" is no longer a fast64 dependency, removing')
+                node_tree.use_fake_user = False
+                tree_props.name = ""
+                tree_props.cached_hash = ""
+                tree_props.interface_hash = ""
+
     for serialized_node_group in SERIALIZED_NODE_LIBRARY.dependencies.values():
-        node_tree = None
         keep_interface = True
-        if serialized_node_group.name in bpy.data.node_groups:
-            node_tree = bpy.data.node_groups[serialized_node_group.name]
-            if (
-                node_tree.get("fast64_cached_hash", None) == serialized_node_group.cached_hash
-                and not DEBUG_MODE
-                and not ignore_hash
-            ):
-                continue
+        node_tree = existing_node_trees.get(serialized_node_group.name, None)
+        is_new = False
+        if node_tree is not None:
             if node_tree.type == "UNDEFINED":
                 bpy.data.node_groups.remove(node_tree, do_unlink=True)
                 node_tree = None
                 update_materials, keep_interface = True, False
-        if node_tree:
+            elif (
+                node_tree.fast64.cached_hash == serialized_node_group.cached_hash
+                and node_tree.fast64.interface_hash == serialized_node_group.interface_hash
+                and not DEBUG_MODE
+                and not ignore_hash
+            ):
+                continue
+
+        if node_tree is not None:
             print(
                 f'Node group "{serialized_node_group.name}" already exists, but serialized node group hash changed, updating'
             )
-            if node_tree.get("fast64_interface_hash", None) != serialized_node_group.interface_hash:
+            if node_tree.fast64.interface_hash != serialized_node_group.interface_hash:
                 update_materials, keep_interface = True, False
-                node_tree["fast64_interface_hash"] = serialized_node_group.interface_hash
                 bpy.data.node_groups.remove(node_tree, do_unlink=True)
                 node_tree = None
-        if not node_tree:
+
+        if node_tree is None:
             print(f'Creating node group "{serialized_node_group.name}"')
-            node_tree = bpy.data.node_groups.new(serialized_node_group.name, "ShaderNodeTree")
+            node_tree = bpy.data.node_groups.new(
+                ("" if editable else "(Fast64) ") + serialized_node_group.name, "ShaderNodeTree"
+            )
             node_tree.use_fake_user = not editable
-            update_materials, keep_interface = True, False
+            update_materials, keep_interface, is_new = True, False, True
+
         cur_errors = errors.copy(f'Failed to create node group "{serialized_node_group.name}"')
         try:
             new_node_trees.append(
                 (
                     serialized_node_group,
                     node_tree,
+                    is_new,
                     create_nodes(node_tree, serialized_node_group, keep_interface, cur_errors),
                 )
             )
+            node_tree.fast64.cached_hash = serialized_node_group.cached_hash
+            node_tree.fast64.interface_hash = serialized_node_group.interface_hash
+            node_tree.fast64.name = serialized_node_group.name
         except Exception as exc:
+            if is_new:
+                bpy.data.node_groups.remove(node_tree, do_unlink=True)
             print_with_exc(cur_errors, exc)
-    for serialized_node_group, node_tree, new_nodes in new_node_trees:
+
+    for serialized_node_group, node_tree, is_new, new_nodes in new_node_trees:
         cur_errors = errors.copy(f'Failed to create links for node group "{serialized_node_group.name}"')
         try:
             set_values_and_create_links(node_tree, serialized_node_group, new_nodes, cur_errors)
-            node_tree["fast64_cached_hash"] = serialized_node_group.cached_hash
         except Exception as exc:
+            if is_new:
+                bpy.data.node_groups.remove(node_tree, do_unlink=True)
             print_with_exc(cur_errors, exc)
     update_f3d_materials_nodes(ignore_hash=update_materials or force_mat_update)
 
@@ -1051,18 +1092,26 @@ def update_f3d_materials_nodes(ignore_hash=False):
         update_f3d_material_nodes(material, ignore_hash)
 
 
+class Fast64_NodeTreeProperties(PropertyGroup):
+    cached_hash: StringProperty()
+    interface_hash: StringProperty()
+    name: StringProperty()
+
+
 if DEBUG_MODE:
-    f3d_node_gen_classes = (GatherF3DNodes, CreateWorkableF3DNodes, GatherF3DNodesPanel)
+    f3d_node_gen_classes = (Fast64_NodeTreeProperties, GatherF3DNodes, CreateWorkableF3DNodes, GatherF3DNodesPanel)
 else:
-    f3d_node_gen_classes = tuple()
+    f3d_node_gen_classes = (Fast64_NodeTreeProperties,)
 
 
 def f3d_node_gen_register():
     load_f3d_nodes()
     for cls in f3d_node_gen_classes:
         register_class(cls)
+    bpy.types.NodeTree.fast64 = PointerProperty(type=Fast64_NodeTreeProperties)
 
 
 def f3d_node_gen_unregister():
     for cls in reversed(f3d_node_gen_classes):
         unregister_class(cls)
+    del bpy.types.NodeTree.fast64
