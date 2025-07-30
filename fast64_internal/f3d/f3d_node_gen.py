@@ -49,6 +49,9 @@ GENERAL_EXCLUDE = (
     "bl_height_min",
     "socket_idname",
     "color_tag",
+    "select",
+    "is_inactive",
+    "is_icon_visible",
 )
 EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "inputs",
@@ -58,7 +61,6 @@ EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "internal_links",
     "image_user",
     "image",
-    "select",
     "name",
     "location_absolute",
     "location",
