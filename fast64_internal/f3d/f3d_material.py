@@ -2457,8 +2457,6 @@ def load_handler(dummy):
             rendermode_preset_to_advanced(mat)
 
 
-bpy.app.handlers.load_post.append(load_handler)
-
 SCENE_PROPERTIES_VERSION = 2
 
 
@@ -5023,10 +5021,13 @@ def mat_register():
     Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
+    bpy.app.handlers.load_post.append(load_handler)
 
 
 def mat_unregister():
     VIEW3D_HT_header.remove(draw_f3d_render_settings)
+    while load_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_handler)
 
     del Material.menu_tab
     del Material.f3d_mat
