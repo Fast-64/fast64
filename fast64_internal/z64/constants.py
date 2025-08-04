@@ -1,7 +1,3 @@
-from .data import OoT_Data
-
-ootData = OoT_Data()
-
 ootEnumRoomShapeType = [
     # ("Custom", "Custom", "Custom"),
     ("ROOM_SHAPE_TYPE_NORMAL", "Normal", "Normal"),
@@ -18,24 +14,6 @@ ootEnumHeaderMenu = [
 ootEnumHeaderMenuComplete = [
     ("Child Day", "Child Day", "Child Day"),
 ] + ootEnumHeaderMenu
-
-ootEnumLinkIdle = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "Default"),
-    ("0x01", "Sneezing", "Sneezing"),
-    ("0x02", "Wiping Forehead", "Wiping Forehead"),
-    ("0x04", "Yawning", "Yawning"),
-    ("0x07", "Gasping For Breath", "Gasping For Breath"),
-    ("0x09", "Brandish Sword", "Brandish Sword"),
-    ("0x0A", "Adjust Tunic", "Adjust Tunic"),
-    ("0xFF", "Hops On Epona", "Hops On Epona"),
-]
-
-ootEnumCloudiness = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Sunny", "Sunny"),
-    ("0x01", "Cloudy", "Cloudy"),
-]
 
 ootEnumCameraMode = [
     ("Custom", "Custom", "Custom"),
@@ -72,37 +50,6 @@ ootEnumMapLocation = [
     ("0x14", "Dampe's Grave & Windmill", "Dampe's Grave & Windmill"),
     ("0x15", "Ganon's Castle", "Ganon's Castle"),
     ("0x16", "Grottos & Fairy Fountains", "Grottos & Fairy Fountains"),
-]
-
-ootEnumSkybox = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "None", "None"),
-    ("0x01", "Standard Sky", "Standard Sky"),
-    ("0x02", "Hylian Bazaar", "Hylian Bazaar"),
-    ("0x03", "Brown Cloudy Sky", "Brown Cloudy Sky"),
-    ("0x04", "Market Ruins", "Market Ruins"),
-    ("0x05", "Black Cloudy Night", "Black Cloudy Night"),
-    ("0x07", "Link's House", "Link's House"),
-    ("0x09", "Market (Main Square, Day)", "Market (Main Square, Day)"),
-    ("0x0A", "Market (Main Square, Night)", "Market (Main Square, Night)"),
-    ("0x0B", "Happy Mask Shop", "Happy Mask Shop"),
-    ("0x0C", "Know-It-All Brothers' House", "Know-It-All Brothers' House"),
-    ("0x0E", "Kokiri Twins' House", "Kokiri Twins' House"),
-    ("0x0F", "Stable", "Stable"),
-    ("0x10", "Stew Lady's House", "Stew Lady's House"),
-    ("0x11", "Kokiri Shop", "Kokiri Shop"),
-    ("0x13", "Goron Shop", "Goron Shop"),
-    ("0x14", "Zora Shop", "Zora Shop"),
-    ("0x16", "Kakariko Potions Shop", "Kakariko Potions Shop"),
-    ("0x17", "Hylian Potions Shop", "Hylian Potions Shop"),
-    ("0x18", "Bomb Shop", "Bomb Shop"),
-    ("0x1A", "Dog Lady's House", "Dog Lady's House"),
-    ("0x1B", "Impa's House", "Impa's House"),
-    ("0x1C", "Gerudo Tent", "Gerudo Tent"),
-    ("0x1D", "Environment Color", "Environment Color"),
-    ("0x20", "Mido's House", "Mido's House"),
-    ("0x21", "Saria's House", "Saria's House"),
-    ("0x22", "Dog Guy's House", "Dog Guy's House"),
 ]
 
 ootEnumSkyboxLighting = [
@@ -236,41 +183,6 @@ ootEnumMusicSeq = [
     ("NA_BGM_CUTSCENE_EFFECTS", "Various Cutscene Sounds", "Various Cutscene Sounds"),
     ("NA_BGM_NO_MUSIC", "No Music", "No Music"),
     ("NA_BGM_NATURE_SFX_RAIN", "Nature Ambiance: Rain", "Nature Ambiance: Rain"),
-]
-
-ootEnumNightSeq = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Standard night [day and night cycle]", "0x00"),
-    ("0x01", "Standard night [Kakariko]", "0x01"),
-    ("0x02", "Distant storm [Graveyard]", "0x02"),
-    ("0x03", "Howling wind and cawing [Ganon's Castle]", "0x03"),
-    ("0x04", "Wind + night birds [Kokiri]", "0x04"),
-    ("0x05", "Wind + crickets", "0x05"),
-    ("0x06", "Wind", "0x06"),
-    ("0x07", "Howling wind", "0x07"),
-    ("0x08", "Wind + crickets", "0x08"),
-    ("0x09", "Wind + crickets", "0x09"),
-    ("0x0A", "Tubed howling wind [Wasteland]", "0x0A"),
-    ("0x0B", "Tubed howling wind [Colossus]", "0x0B"),
-    ("0x0C", "Wind", "0x0C"),
-    ("0x0D", "Wind + crickets", "0x0D"),
-    ("0x0E", "Wind + crickets", "0x0E"),
-    ("0x0F", "Wind + birds", "0x0F"),
-    ("0x10", "Wind + crickets", "0x10"),
-    ("0x11", "?", "0x11"),
-    ("0x12", "Wind + crickets", "0x12"),
-    ("0x13", "Day music always playing", "0x13"),
-    ("0x14", "Silence", "0x14"),
-    ("0x16", "Silence", "0x16"),
-    ("0x17", "High tubed wind + rain", "0x17"),
-    ("0x18", "Silence", "0x18"),
-    ("0x19", "Silence", "0x19"),
-    ("0x1A", "High tubed wind + rain", "0x1A"),
-    ("0x1B", "Silence", "0x1B"),
-    ("0x1C", "Rain", "0x1C"),
-    ("0x1D", "High tubed wind + rain", "0x1D"),
-    ("0x1E", "Silence", "0x1E"),
-    ("0x1F", "High tubed wind + rain ", "0x1F"),
 ]
 
 ootEnumGlobalObject = [
@@ -529,17 +441,6 @@ ootEnumCamTransition = [
     ("0x00", "0x00", "0x00"),
     # ("0x0F", "0x0F", "0x0F"),
     # ("0xFF", "0xFF", "0xFF"),
-]
-
-# see curRoom.behaviorType1
-ootEnumRoomBehaviour = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "Default"),
-    ("0x01", "Dungeon Behavior (Z-Target, Sun's Song)", "Dungeon Behavior (Z-Target, Sun's Song)"),
-    ("0x02", "Disable Backflips/Sidehops", "Disable Backflips/Sidehops"),
-    ("0x03", "Disable Color Dither", "Disable Color Dither"),
-    ("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),
-    ("0x05", "Disable Darker Screen Effect (NL/Spins)", "Disable Darker Screen Effect (NL/Spins)"),
 ]
 
 ootEnumDrawConfig = [

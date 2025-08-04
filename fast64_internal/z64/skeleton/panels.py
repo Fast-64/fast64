@@ -17,7 +17,7 @@ class OOT_SkeletonPanel(Panel):
     @classmethod
     def poll(cls, context):
         return (
-            context.scene.gameEditorMode == "OOT"
+            context.scene.gameEditorMode in {"OOT", "MM"}
             and hasattr(context, "object")
             and context.object is not None
             and isinstance(context.object.data, Armature)
@@ -43,7 +43,7 @@ class OOT_BonePanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.bone is not None
+        return context.scene.gameEditorMode in {"OOT", "MM"} and context.bone is not None
 
     # called every frame
     def draw(self, context):
@@ -53,8 +53,8 @@ class OOT_BonePanel(Panel):
 
 
 class OOT_ExportSkeletonPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_skeleton"
-    bl_label = "OOT Skeleton Exporter"
+    bl_idname = "Z64_PT_export_skeleton"
+    bl_label = "Skeleton Exporter"
 
     # called every frame
     def draw(self, context):

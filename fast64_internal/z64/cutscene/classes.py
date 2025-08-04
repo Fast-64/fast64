@@ -3,7 +3,7 @@ import bpy
 from dataclasses import dataclass, field
 from bpy.types import Object
 from typing import Optional
-from ..constants import ootData
+from ...game_data import game_data
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
@@ -25,13 +25,13 @@ class CutsceneCmdBase:
     endFrame: Optional[int] = None
 
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
-        enum = ootData.enumData.enumByKey[enumKey]
-        item = enum.itemById.get(self.params[index])
+        enum = game_data.z64.enums.enumByKey[enumKey]
+        item = enum.item_by_id.get(self.params[index])
         if item is None:
             setting = getInteger(self.params[index])
             if isSeqLegacy:
                 setting -= 1
-            item = enum.itemByIndex.get(setting)
+            item = enum.item_by_index.get(setting)
         return item.key if item is not None else self.params[index]
 
 
@@ -99,7 +99,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
             else:
                 self.commandType = self.params[0]
                 if "CS_CMD_" in self.commandType:
-                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
+                    self.commandType = game_data.z64.enums.enumByKey["cs_cmd"].item_by_id[self.commandType].key
                 else:
                     # make it a 4 digit hex
                     self.commandType = self.commandType.removeprefix("0x")
@@ -204,7 +204,7 @@ class CutsceneCmdMisc(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.type = self.getEnumValue("csMiscType", 0)
+            self.type = self.getEnumValue("cs_misc_type", 0)
 
 
 @dataclass
@@ -233,7 +233,7 @@ class CutsceneCmdTransition(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.type = self.getEnumValue("csTransitionType", 0)
+            self.type = self.getEnumValue("cs_transition_type", 0)
 
 
 @dataclass
@@ -252,7 +252,7 @@ class CutsceneCmdText(CutsceneCmdBase):
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
             self.textId = getInteger(self.params[0])
-            self.type = self.getEnumValue("csTextType", 3)
+            self.type = self.getEnumValue("cs_text_type", 3)
             self.altTextId1 = (getInteger(self.params[4]),)
             self.altTextId2 = (getInteger(self.params[5]),)
 
@@ -283,7 +283,7 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.ocarinaActionId = self.getEnumValue("ocarinaSongActionId", 0)
+            self.ocarinaActionId = self.getEnumValue("ocarina_song_action_id", 0)
             self.messageId = getInteger(self.params[3])
 
 
@@ -374,7 +374,7 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.seqId = self.getEnumValue("seqId", 0, self.isLegacy)
+            self.seqId = self.getEnumValue("seq_id", 0, self.isLegacy)
 
 
 @dataclass
@@ -404,7 +404,7 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.seqPlayer = self.getEnumValue("csFadeOutSeqPlayer", 0)
+            self.seqPlayer = self.getEnumValue("cs_fade_out_seq_player", 0)
 
 
 @dataclass
@@ -463,7 +463,7 @@ class CutsceneCmdDestination(CutsceneCmdBase):
 
     def __post_init__(self):
         if self.params is not None:
-            self.id = self.getEnumValue("csDestination", 0)
+            self.id = self.getEnumValue("cs_destination", 0)
             self.startFrame = getInteger(self.params[1])
 
 
@@ -529,13 +529,15 @@ class CutsceneObjectFactory:
     def getNewActorCueListObject(self, name: str, commandType: str, parentObj: Object):
         newActorCueListObj = self.getNewEmptyObject(name, False, parentObj)
         newActorCueListObj.ootEmptyType = f"CS {'Player' if 'Player' in name else 'Actor'} Cue List"
-        cmdEnum = ootData.enumData.enumByKey["csCmd"]
+        cmdEnum = game_data.z64.enums.enumByKey["cs_cmd"]
 
         if commandType == "Player":
             commandType = "player_cue"
 
-        index = cmdEnum.itemByKey[commandType].index if commandType in cmdEnum.itemByKey else int(commandType, base=16)
-        item = cmdEnum.itemByIndex.get(index)
+        index = (
+            cmdEnum.item_by_key[commandType].index if commandType in cmdEnum.item_by_key else int(commandType, base=16)
+        )
+        item = cmdEnum.item_by_index.get(index)
 
         if item is not None:
             newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = item.key
@@ -568,11 +570,11 @@ class CutsceneObjectFactory:
 
         item = None
         if isPlayer:
-            playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+            playerEnum = game_data.z64.enums.enumByKey["cs_player_cue_id"]
             if isinstance(actionID, int):
-                item = playerEnum.itemByIndex.get(actionID)
+                item = playerEnum.item_by_index.get(actionID)
             else:
-                item = playerEnum.itemByKey.get(actionID)
+                item = playerEnum.item_by_key.get(actionID)
 
         if item is not None:
             newActorCueObj.ootCSMotionProperty.actorCueProp.playerCueID = item.key

@@ -7,7 +7,7 @@ from ...utility import PluginError, hexOrDecInt
 from ..utility import setCustomProperty
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
-from ..constants import ootData, ootEnumLinkIdle, ootEnumRoomBehaviour
+from ...game_data import game_data
 from .utility import getDataMatch, stripName, parse_commands_data
 from .classes import SharedSceneData
 from .constants import headerNames
@@ -21,7 +21,7 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = ootData.objectData.objectsByID.get(object)
+        objByID = game_data.z64.objects.objects_by_id.get(object)
 
         if objByID is not None:
             objectProp.objectKey = objByID.key
@@ -81,8 +81,8 @@ def parseRoomCommands(
         elif command == "SCENE_CMD_ECHO_SETTINGS":
             roomHeader.echo = args[0]
         elif command == "SCENE_CMD_ROOM_BEHAVIOR":
-            setCustomProperty(roomHeader, "roomBehaviour", args[0], ootEnumRoomBehaviour)
-            setCustomProperty(roomHeader, "linkIdleMode", args[1], ootEnumLinkIdle)
+            setCustomProperty(roomHeader, "roomBehaviour", args[0], game_data.z64.get_enum("room_type"))
+            setCustomProperty(roomHeader, "linkIdleMode", args[1], game_data.z64.get_enum("environment_type"))
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"
             roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
         elif command == "SCENE_CMD_SKYBOX_DISABLES":

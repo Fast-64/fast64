@@ -232,7 +232,7 @@ def update_draw_layer(self, context):
         drawLayer = material.f3d_mat.draw_layer
         if context.scene.gameEditorMode == "SM64":
             drawLayer.oot = drawLayerSM64toOOT[drawLayer.sm64]
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             if material.f3d_mat.draw_layer.oot == "Opaque":
                 if int(material.f3d_mat.draw_layer.sm64) > 4:
                     material.f3d_mat.draw_layer.sm64 = "1"
@@ -1053,7 +1053,7 @@ class F3DPanel(Panel):
     def ui_draw_layer(self, material, layout, context):
         if context.scene.gameEditorMode == "SM64":
             prop_split(layout, material.f3d_mat.draw_layer, "sm64", "Draw Layer")
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
     def ui_misc(self, f3dMat: "F3DMaterialProperty", inputCol: UILayout, showCheckBox: bool) -> None:
@@ -4987,6 +4987,7 @@ def mat_register():
     Scene.f3d_type = bpy.props.EnumProperty(
         name="Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
+    Scene.packed_normals_algorithm = bpy.props.EnumProperty(name="Packed normals alg", items=enumPackedNormalsAlgorithm)
 
     # RDP Defaults
     World.rdp_defaults = bpy.props.PointerProperty(type=RDPSettings)

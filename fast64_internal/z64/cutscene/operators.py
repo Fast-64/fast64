@@ -6,9 +6,9 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Object
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, raisePluginError
+from ...game_data import game_data
 from ..collection_utility import getCollection
-from ..constants import ootData
-from .constants import ootEnumCSTextboxType, ootEnumCSListType
+from .constants import ootEnumCSTextboxType
 from .importer import importCutsceneData
 from ..exporter.cutscene import Cutscene
 
@@ -36,7 +36,7 @@ class OOTCSListAdd(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     collectionType: StringProperty()
-    listType: EnumProperty(items=ootEnumCSListType)
+    listType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
     objName: StringProperty()
 
     def execute(self, context):
@@ -135,7 +135,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
     bl_property = "csDestination"
     bl_options = {"REGISTER", "UNDO"}
 
-    csDestination: EnumProperty(items=ootData.enumData.ootEnumCsDestination, default="cutscene_map_ganon_horse")
+    csDestination: EnumProperty(items=game_data.z64.enums.enum_cs_destination, default="cutscene_map_ganon_horse")
     objName: StringProperty()
 
     def execute(self, context):
@@ -157,7 +157,7 @@ class OOT_SearchCSSeqOperator(Operator):
     bl_property = "seqId"
     bl_options = {"REGISTER", "UNDO"}
 
-    seqId: EnumProperty(items=ootData.enumData.ootEnumSeqId, default="general_sfx")
+    seqId: EnumProperty(items=game_data.z64.enums.enum_seq_id, default="general_sfx")
     itemIndex: IntProperty()
     listType: StringProperty()
 

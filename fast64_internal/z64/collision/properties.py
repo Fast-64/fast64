@@ -1,19 +1,18 @@
 import math
+
 from bpy.props import StringProperty, PointerProperty, IntProperty, EnumProperty, BoolProperty, FloatProperty
-from bpy.types import PropertyGroup, Camera, Object, Material, UILayout
+from bpy.types import PropertyGroup, Object, Material, UILayout
 from bpy.utils import register_class, unregister_class
+
+from ...game_data import game_data
 from ...utility import prop_split
 from ..utility import drawEnumWithCustom
-from ..constants import ootEnumSceneID
 from .constants import (
-    ootEnumFloorSetting,
     ootEnumWallSetting,
-    ootEnumFloorProperty,
     ootEnumConveyer,
-    ootEnumConveyorSpeed,
+    enum_conveyor_speed,
     ootEnumCollisionTerrain,
     ootEnumCollisionSound,
-    ootEnumCameraSType,
 )
 
 
@@ -45,7 +44,7 @@ class OOTCollisionExportSettings(PropertyGroup):
 class OOTCameraPositionProperty(PropertyGroup):
     index: IntProperty(min=0)
     bgImageOverrideIndex: IntProperty(default=-1, min=-1)
-    camSType: EnumProperty(items=ootEnumCameraSType, default="CAM_SET_NONE")
+    camSType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("camera_setting_type"), default=1)
     camSTypeCustom: StringProperty(default="CAM_SET_NONE")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
 
@@ -68,17 +67,17 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     eponaBlock: BoolProperty()
     decreaseHeight: BoolProperty()
     floorSettingCustom: StringProperty(default="0x00")
-    floorSetting: EnumProperty(items=ootEnumFloorSetting, default="0x00")
+    floorSetting: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floor_property"), default=1)
     wallSettingCustom: StringProperty(default="0x00")
     wallSetting: EnumProperty(items=ootEnumWallSetting, default="0x00")
     floorPropertyCustom: StringProperty(default="0x00")
-    floorProperty: EnumProperty(items=ootEnumFloorProperty, default="0x00")
+    floorProperty: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floor_type"), default=1)
     exitID: IntProperty(default=0, min=0)
     cameraID: IntProperty(default=0, min=0)
     isWallDamage: BoolProperty()
     conveyorOption: EnumProperty(items=ootEnumConveyer)
     conveyorRotation: FloatProperty(min=0, max=2 * math.pi, subtype="ANGLE")
-    conveyorSpeed: EnumProperty(items=ootEnumConveyorSpeed, default="0x00")
+    conveyorSpeed: EnumProperty(items=enum_conveyor_speed, default="0x00")
     conveyorSpeedCustom: StringProperty(default="0x00")
     conveyorKeepMomentum: BoolProperty()
     hookshotable: BoolProperty()
@@ -109,9 +108,9 @@ class OOTMaterialCollisionProperty(PropertyGroup):
             layout.prop(self, "isWallDamage", text="Is Wall Damage")
             layout.prop(self, "hookshotable", text="Hookshotable")
 
-            drawEnumWithCustom(layout, self, "floorSetting", "Floor Setting", "")
+            drawEnumWithCustom(layout, self, "floorSetting", "Floor Property", "")
             drawEnumWithCustom(layout, self, "wallSetting", "Wall Setting", "")
-            drawEnumWithCustom(layout, self, "floorProperty", "Floor Property", "")
+            drawEnumWithCustom(layout, self, "floorProperty", "Floor Type", "")
 
             layout.prop(self, "ignoreCameraCollision", text="Ignore Camera Collision")
             layout.prop(self, "ignoreActorCollision", text="Ignore Actor Collision")
