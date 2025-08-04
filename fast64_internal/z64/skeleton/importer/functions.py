@@ -197,38 +197,6 @@ def ootBuildSkeleton(
 
     # Parse enums, which may be used to link bones by index
     enums = ootGetEnums(skeletonData)
-    if isLink:
-        # TODO parse this from player.h instead of hardcoding
-        enums.append(
-            OOTEnum(
-                "PlayerLimb",
-                [
-                    "PLAYER_LIMB_NONE",
-                    "PLAYER_LIMB_ROOT",
-                    "PLAYER_LIMB_WAIST",
-                    "PLAYER_LIMB_LOWER",
-                    "PLAYER_LIMB_R_THIGH",
-                    "PLAYER_LIMB_R_SHIN",
-                    "PLAYER_LIMB_R_FOOT",
-                    "PLAYER_LIMB_L_THIGH",
-                    "PLAYER_LIMB_L_SHIN",
-                    "PLAYER_LIMB_L_FOOT",
-                    "PLAYER_LIMB_UPPER",
-                    "PLAYER_LIMB_HEAD",
-                    "PLAYER_LIMB_HAT",
-                    "PLAYER_LIMB_COLLAR",
-                    "PLAYER_LIMB_L_SHOULDER",
-                    "PLAYER_LIMB_L_FOREARM",
-                    "PLAYER_LIMB_L_HAND",
-                    "PLAYER_LIMB_R_SHOULDER",
-                    "PLAYER_LIMB_R_FOREARM",
-                    "PLAYER_LIMB_R_HAND",
-                    "PLAYER_LIMB_SHEATH",
-                    "PLAYER_LIMB_TORSO",
-                    "PLAYER_LIMB_MAX",
-                ],
-            )
-        )
 
     if overlayName is not None:
         ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, flipbookArrayIndex2D)
