@@ -1574,7 +1574,7 @@ def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
         x = packedNormal & 0xF800
         y = (packedNormal & 0x07E0) << 5
         z = (packedNormal & 0x001F) << 11
-        x, y, z = tuple(map(lambda n: (n - 0x10000 if n & 0x8000 else n)))
+        x, y, z = tuple(map(lambda n: (n - 0x10000 if n & 0x8000 else n), (x, y, z)))
     elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
         xo, yo = packedNormal >> 8, packedNormal & 0xFF
         # This is following the instructions in F3DEX3
