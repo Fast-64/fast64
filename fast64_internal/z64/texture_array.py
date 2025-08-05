@@ -1,6 +1,6 @@
 import os, re
 from typing import Callable
-from ..utility import hexOrDecInt
+from ..utility import hexOrDecInt, removeComments
 
 from .model_classes import (
     OOTF3DContext,
@@ -30,6 +30,8 @@ def ootReadTextureArrays(
         actorData = ootGetLinkData(basePath)
         currentPaths = [os.path.join(basePath, f"src/code/z_player_lib.c")]
     actorData = ootGetIncludedAssetData(basePath, currentPaths, actorData) + actorData
+
+    actorData = removeComments(actorData)
 
     # search for texture arrays
     # this is done first so that its easier to tell which gSPSegment calls refer to texture data.
