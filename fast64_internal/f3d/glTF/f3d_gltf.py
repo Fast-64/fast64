@@ -931,7 +931,7 @@ def modify_f3d_nodes_for_export(use: bool):
             mix["f3d_gltf_owned"] = True
         mix.location = (1075, 850)
         mix.blend_type = "MULTIPLY"
-        if bpy.data.version > (4, 2, 0):
+        if bpy.data.version >= (4, 1, 0):
             mix.data_type = "FLOAT"
             mix.inputs["B"].default_value = 1.0
         else:
@@ -960,7 +960,7 @@ def modify_f3d_nodes_for_export(use: bool):
                 link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
             else:
                 link_if_none_exist(
-                    mat, vertex_color.outputs["Alpha"], mix.inputs["A" if bpy.data.version >= (4, 2, 0) else 1]
+                    mat, vertex_color.outputs["Alpha"], mix.inputs["A" if bpy.data.version >= (4, 1, 0) else 1]
                 )
                 link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
@@ -969,7 +969,7 @@ def modify_f3d_nodes_for_export(use: bool):
 def get_gamma_corrected(layer):
     colors = np.empty((len(layer), 4), dtype=np.float32)
     if bpy.app.version > (3, 2, 0):
-        layer.foreach_get("color_srgb", colors.ravel())
+        layer.foreach_get("color", colors.ravel())
     else:  # vectorized linear -> sRGB conversion
         layer.foreach_get("color", colors.ravel())
         mask = colors > 0.0031308
@@ -988,6 +988,8 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     if not mesh_has_f3d_mat(blender_mesh):
         return
     print("F3D glTF: Applying alpha")
+    if get_version() != (3, 2, 40) and get_version() < (4, 1, 0) and "Col" in blender_mesh.color_attributes:
+        blender_mesh.color_attributes.active = blender_mesh.color_attributes["Col"]
     color_layer = getColorLayer(blender_mesh, layer="Col")
     alpha_layer = getColorLayer(blender_mesh, layer="Alpha")
     if not color_layer or not alpha_layer:
