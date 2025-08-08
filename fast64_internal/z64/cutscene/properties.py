@@ -32,6 +32,7 @@ from .constants import (
     ootEnumCSTextboxTypeIcons,
     ootCSSubPropToName,
     csListTypeToIcon,
+    custom_values,
 )
 
 
@@ -94,21 +95,8 @@ class OOTCutsceneCommon:
                     seqOp.itemIndex = cmdIndex
                     seqOp.listType = listProp.listType
 
-                customValues = [
-                    "csMiscType",
-                    "csTextType",
-                    "ocarinaAction",
-                    "csSeqID",
-                    "csSeqPlayer",
-                    "rumble_type",
-                    "transition_type",
-                    "blur_type",
-                    "trans_general_type",
-                    "credits_scene_type",
-                    "mod_seq_type",
-                ]
                 value = getattr(self, p)
-                if name in customValues and value == "Custom":
+                if name in custom_values and value == "Custom":
                     prop_split(box, self, f"{name}_custom" if "_" in p else f"{name}Custom", f"{displayName} Custom")
 
                 if is_oot_features() and name == "csTextType" and value != "choice":

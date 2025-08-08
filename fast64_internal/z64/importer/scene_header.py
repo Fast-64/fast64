@@ -5,7 +5,7 @@ import bpy
 import mathutils
 
 from bpy.types import Object
-from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
+from ...utility import PluginError, readFile, parentObject, hexOrDecInt
 from ...game_data import game_data
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
@@ -19,6 +19,7 @@ from ..utility import (
     getEnumIndex,
     get_new_empty_object,
     twos_complement,
+    parseColor,
 )
 from .constants import headerNames
 from .utility import getDataMatch, stripName
@@ -35,10 +36,6 @@ from ..constants import (
     ootEnumNaviHints,
     ootEnumSkyboxLighting,
 )
-
-
-def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
-    return tuple(gammaInverse([hexOrDecInt(value) / 0xFF for value in values]))
 
 
 def parseDirection(index: int, values: tuple[str, str, str]) -> tuple[float, float, float] | int:

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from ....game_data import game_data
 from ....utility import PluginError, indent
-from ...utility import is_oot_features
+from ...utility import is_oot_features, parseColor
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -363,11 +363,13 @@ class CutsceneCmdTransitionGeneral(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
+        rgb = list(parseColor((getInteger(params[3]), getInteger(params[4]), getInteger(params[5]))))
+        rgb.append(1)
         return CutsceneCmdTransitionGeneral(
             getInteger(params[1]),
             getInteger(params[2]),
             CutsceneCmdBase.getEnumValue("cs_transition_general", params[0]),
-            [getInteger(params[3]), getInteger(params[4]), getInteger(params[5])],
+            rgb,
         )
 
     def to_c(self):

@@ -266,3 +266,17 @@ ootCSSingleCommands = [
 ootCSListAndSingleCommands = ootCSSingleCommands + ootCSListCommands
 ootCSListAndSingleCommands.remove("CS_HEADER")
 ootCutsceneCommandsC = ootCSSingleCommands + ootCSListCommands + ootCSListEntryCommands
+
+custom_values = [
+    "csMiscType",
+    "csTextType",
+    "ocarinaAction",
+    "csSeqID",
+    "csSeqPlayer",
+    "rumble_type",
+    "transition_type",
+    "blur_type",
+    "trans_general_type",
+    "credits_scene_type",
+    "mod_seq_type",
+]

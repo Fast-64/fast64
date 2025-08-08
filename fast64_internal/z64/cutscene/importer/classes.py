@@ -18,6 +18,7 @@ from ..constants import (
     ootCSListEntryCommands,
     ootCSSingleCommands,
     ootCSListAndSingleCommands,
+    custom_values,
 )
 
 from ..classes import (
@@ -136,6 +137,42 @@ cmdToClass = {
     "CS_TRANSITION_GENERAL_LIST": CutsceneCmdTransitionGeneralList,
     "CS_TRANSITION_GENERAL": CutsceneCmdTransitionGeneral,
     "CS_GIVE_TATL": CutsceneCmdGiveTatl,
+}
+
+list_type_to_list_prop_member = {
+    "Text": "textList",
+    "Misc": "miscList",
+    "Transition": "transition_list",
+    "LightSettings": "lightSettingsList",
+    "Time": "timeList",
+    "Rumble": "rumbleList",
+    "MotionBlur": "motion_blur_list",
+    "TransitionGeneral": "trans_general_list",
+    "CreditsScene": "credits_scene_list",
+    "ModifySeq": "mod_seq_list",
+    "StartSeq": "seqList",
+    "StopSeq": "seqList",
+    "FadeOutSeq": "seqList",
+    "StartAmbience": "seqList",
+    "FadeOutAmbience": "seqList",
+}
+
+list_type_to_cs_data_member = {
+    "Text": "textList",
+    "Misc": "miscList",
+    "Transition": "transitionList",
+    "LightSettings": "lightSettingsList",
+    "Time": "timeList",
+    "Rumble": "rumbleList",
+    "MotionBlur": "motion_blur_list",
+    "TransitionGeneral": "transition_general_list",
+    "CreditsScene": "credits_scene_list",
+    "ModifySeq": "modify_seq_list",
+    "StartSeq": "seqList",
+    "StopSeq": "seqList",
+    "FadeOutSeq": "fadeSeqList",
+    "StartAmbience": "start_ambience_list",
+    "FadeOutAmbience": "fade_out_ambience_list",
 }
 
 
@@ -475,6 +512,8 @@ class CutsceneImport(CutsceneObjectFactory):
                                     listEntry = entryCmd.from_params(
                                         params, "start" if isStartSeq else "stop", isLegacy
                                     )
+                                elif "CS_TEXT_" in cmdEntryName:
+                                    listEntry = entryCmd.from_params(params, cmdEntryName)
                                 else:
                                     listEntry = entryCmd.from_params(params)
                                 new_cs_list_data.entries.append(listEntry)
@@ -687,19 +726,9 @@ class CutsceneImport(CutsceneObjectFactory):
             setattr(prop, f"{propName}_custom" if "_" in propName else f"{propName}Custom", value)
 
     def setSubPropertyData(self, subPropsData: dict[str, str], newSubElem, entry):
-        customNames = [
-            "csMiscType",
-            "csTextType",
-            "ocarinaAction",
-            "transition_type",
-            "csSeqID",
-            "csSeqPlayer",
-            "transition",
-        ]
-
         for key, value in subPropsData.items():
             if value is not None:
-                if key in customNames:
+                if key in custom_values:
                     valueToSet = getattr(entry, value)
                     self.setPropOrCustom(newSubElem, key, valueToSet)
                 else:
@@ -707,44 +736,38 @@ class CutsceneImport(CutsceneObjectFactory):
 
     def setPropertyData(self, csProp: "OOTCutsceneProperty", cutscene: Cutscene, propDataList: list[PropertyData]):
         for data in propDataList:
-            listName = f"{data.listType[0].lower() + data.listType[1:]}List"
-            dataList = getattr(cutscene.data, (listName if data.listType != "FadeOutSeq" else "fadeSeqList"))
+            listName = list_type_to_list_prop_member[data.listType]
+            dataList = getattr(cutscene.data, list_type_to_cs_data_member[data.listType])
             for list in dataList:
                 newElem: "OOTCSListProperty" = csProp.csLists.add()
+                newElem.listType = f"{data.listType}List" if data.listType != "Transition" else data.listType
 
-                if data.listType == "Seq":
-                    type = "StartSeqList" if list.type == "start" else "StopSeqList"
-                else:
-                    type = f"{data.listType}List" if data.listType != "Transition" else data.listType
-                newElem.listType = type
+                list.entries.sort(key=lambda elem: elem.startFrame)
+                for entry in list.entries:
+                    name = listName
+                    if data.listType in {"StartSeq", "StopSeq", "StartAmbience", "FadeOutSeq"}:
+                        name = "seqList"
 
-                if data.listType == "Transition":
-                    newElem.transitionStartFrame = list.startFrame
-                    newElem.transitionEndFrame = list.endFrame
-                    self.setSubPropertyData(data.subPropsData, newElem, list)
-                else:
-                    list.entries.sort(key=lambda elem: elem.startFrame)
-                    for entry in list.entries:
-                        newSubElem = getattr(newElem, "seqList" if "fadeOut" in listName else listName).add()
-                        newSubElem.startFrame = entry.startFrame
+                    newSubElem = getattr(newElem, name).add()
+                    newSubElem.startFrame = entry.startFrame
 
-                        if data.useEndFrame:
-                            newSubElem.endFrame = entry.endFrame
+                    if data.useEndFrame:
+                        newSubElem.endFrame = entry.endFrame
 
-                        if data.listType == "Text":
-                            self.setPropOrCustom(newSubElem, "textboxType", entry.id)
-                            match entry.id:
-                                case "Text":
-                                    newSubElem.textID = f"0x{entry.textId:04X}"
-                                    self.setPropOrCustom(newSubElem, "csTextType", entry.type)
-                                case "None":
-                                    pass
-                                case "OcarinaAction":
-                                    newSubElem.ocarinaMessageId = f"0x{entry.messageId:04X}"
-                                    self.setPropOrCustom(newSubElem, "ocarinaAction", entry.ocarinaActionId)
-                                case _:
-                                    raise PluginError("ERROR: Unknown text type!")
-                        self.setSubPropertyData(data.subPropsData, newSubElem, entry)
+                    if data.listType == "Text":
+                        self.setPropOrCustom(newSubElem, "textboxType", entry.id)
+                        match entry.id:
+                            case "Text":
+                                newSubElem.textID = f"0x{entry.textId:04X}"
+                                self.setPropOrCustom(newSubElem, "csTextType", entry.type)
+                            case "None":
+                                pass
+                            case "OcarinaAction":
+                                newSubElem.ocarinaMessageId = f"0x{entry.messageId:04X}"
+                                self.setPropOrCustom(newSubElem, "ocarinaAction", entry.ocarinaActionId)
+                            case _:
+                                raise PluginError("ERROR: Unknown text type!")
+                    self.setSubPropertyData(data.subPropsData, newSubElem, entry)
 
     def setCutsceneData(self, csNumber, use_macros: bool, motion_only: bool):
         """Creates the cutscene empty objects from the file data"""
@@ -810,7 +833,9 @@ class CutsceneImport(CutsceneObjectFactory):
                 PropertyData("Transition", {"transition_type": "type"}, True),
                 PropertyData("LightSettings", {"lightSettingsIndex": "lightSetting"}, False),
                 PropertyData("Time", {"hour": "hour", "minute": "minute"}, False),
-                PropertyData("Seq", {"csSeqID": "seqId"}, False),
+                PropertyData("StartSeq", {"csSeqID": "seqId"}, True),
+                PropertyData("StopSeq", {"csSeqID": "seqId"}, True),
+                PropertyData("StartAmbience", {"csSeqID": "seqId"}, True),
                 PropertyData("FadeOutSeq", {"csSeqPlayer": "seqPlayer"}, True),
                 PropertyData(
                     "Rumble",
@@ -818,10 +843,30 @@ class CutsceneImport(CutsceneObjectFactory):
                         "rumbleSourceStrength": "sourceStrength",
                         "rumbleDuration": "duration",
                         "rumbleDecreaseRate": "decreaseRate",
+                        "rumble_type": "type",
                     },
                     False,
                 ),
             ]
+
+            if not is_oot_features():
+                propDataList.extend(
+                    [
+                        PropertyData("MotionBlur", {"blur_type": "type"}, True),
+                        PropertyData(
+                            "TransitionGeneral",
+                            {
+                                "trans_general_type": "type",
+                                "trans_color": "rgb",
+                            },
+                            True,
+                        ),
+                        PropertyData("CreditsScene", {"credits_scene_type": "type"}, False),
+                        PropertyData("ModifySeq", {"mod_seq_type": "type"}, False),
+                        PropertyData("FadeOutAmbience", {}, True),
+                    ]
+                )
+
             self.setPropertyData(csProp, cutscene, propDataList)
 
             # Init camera + preview objects and setup the scene

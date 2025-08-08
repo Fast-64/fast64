@@ -5,6 +5,16 @@ from ...utility import is_oot_features
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
+mm_cmd_name_to_type = {
+    "CS_TEXT_NONE": "CS_TEXT_TYPE_NONE",
+    "CS_TEXT_DEFAULT": "CS_TEXT_TYPE_DEFAULT",
+    "CS_TEXT_TYPE_1": "CS_TEXT_TYPE_1",
+    "CS_TEXT_OCARINA_ACTION": "CS_TEXT_OCARINA_ACTION",
+    "CS_TEXT_TYPE_3": "CS_TEXT_TYPE_3",
+    "CS_TEXT_BOSSES_REMAINS": "CS_TEXT_TYPE_BOSSES_REMAINS",
+    "CS_TEXT_ALL_NORMAL_MASKS": "CS_TEXT_TYPE_ALL_NORMAL_MASKS",
+}
+
 
 @dataclass
 class CutsceneCmdText(CutsceneCmdBase):
@@ -19,7 +29,7 @@ class CutsceneCmdText(CutsceneCmdBase):
     id: str = field(init=False, default="Text")
 
     @staticmethod
-    def from_params(params: list[str]):
+    def from_params(params: list[str], cmd_name: str):
         if is_oot_features():
             return CutsceneCmdText(
                 getInteger(params[1]),
@@ -34,7 +44,7 @@ class CutsceneCmdText(CutsceneCmdBase):
                 getInteger(params[1]),
                 getInteger(params[2]),
                 getInteger(params[0]),
-                None,
+                CutsceneCmdBase.getEnumValue("cs_text_type", mm_cmd_name_to_type[cmd_name]),
                 getInteger(params[3]),
                 getInteger(params[4]),
             )
@@ -70,7 +80,7 @@ class CutsceneCmdTextNone(CutsceneCmdBase):
     id: str = field(init=False, default="None")
 
     @staticmethod
-    def from_params(params: list[str]):
+    def from_params(params: list[str], cmd_name: str):
         return CutsceneCmdTextNone(getInteger(params[0]), getInteger(params[1]))
 
     def getCmd(self):
@@ -89,7 +99,7 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
     id: str = field(init=False, default="OcarinaAction")
 
     @staticmethod
-    def from_params(params: list[str]):
+    def from_params(params: list[str], cmd_name: str):
         return CutsceneCmdTextOcarinaAction(
             getInteger(params[1]),
             getInteger(params[2]),

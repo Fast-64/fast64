@@ -24,6 +24,7 @@ from ..utility import (
     applyRotation,
     cleanupDuplicatedObjects,
     hexOrDecInt,
+    gammaInverse,
     binOps,
 )
 
@@ -1058,3 +1059,7 @@ def twos_complement(hexstr: str, bits: int):
     if value & (1 << (bits - 1)):
         value -= 1 << bits
     return value
+
+
+def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
+    return tuple(gammaInverse([hexOrDecInt(value) / 0xFF for value in values]))
