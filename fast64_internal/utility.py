@@ -1657,7 +1657,7 @@ def get_blender_to_game_scale(context):
     match context.scene.gameEditorMode:
         case "SM64":
             return context.scene.fast64.sm64.blender_to_sm64_scale
-        case "OOT":
+        case "OOT" | "MM":
             return context.scene.ootBlenderScale
         case "F3D":
             # TODO: (V5) create F3D game editor mode, utilize that scale

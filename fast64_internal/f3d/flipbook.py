@@ -284,7 +284,7 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.material is not None and context.scene.gameEditorMode in ["OOT"]
+        return context.material is not None and context.scene.gameEditorMode in ["OOT", "MM"]
 
     def draw(self, context):
         layout = self.layout
