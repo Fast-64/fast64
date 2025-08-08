@@ -236,7 +236,7 @@ class CustomCmd(BaseDisplayListNode):
         def run_eval(value, bit_count=32, signed=True):
             if (
                 (not self.data["skip_eval"] or binary)
-                and isinstance(value, (int, float, complex, tuple))
+                and isinstance(value, (int, float, complex, tuple, list))
                 and (not isinstance(value, bool) or binary)
                 and "eval_expression" in data
             ):

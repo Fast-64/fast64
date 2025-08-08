@@ -1415,7 +1415,7 @@ def get_clean_color(color: list, include_alpha=False, round_color=True, srgb_to_
     color = color[: 4 if include_alpha else 3]
     if include_alpha and len(color) < 4:
         color = color + [1.0]
-    return [round(channel, 4) if round_color else channel for channel in color]
+    return tuple(round(channel, 4) if round_color else channel for channel in color)
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
