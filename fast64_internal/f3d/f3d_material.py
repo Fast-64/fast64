@@ -149,8 +149,8 @@ enumF3DSource = [
 ]
 
 defaultMaterialPresets = {
-    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid"},
-    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
+    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid", "MM": "oot_shaded_solid"},
+    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture", "MM": "oot_shaded_texture"},
 }
 
 F3D_GEO_MODES = {
@@ -4860,7 +4860,7 @@ class F3DRenderSettingsPanel(Panel):
             prop_split(globalSettingsBox, renderSettings, "light1SpecSize", "Light 1 Specular Size")
         prop_split(globalSettingsBox, renderSettings, "useWorldSpaceLighting", "Use World Space Lighting")
 
-        if context.scene.gameEditorMode in ["SM64", "OOT"]:
+        if context.scene.gameEditorMode in ["SM64", "OOT", "MM"]:
             layout.separator(factor=0.5)
             gameSettingsBox = layout.box()
             gameSettingsBox.label(text="Preview Context")
@@ -4872,7 +4872,7 @@ class F3DRenderSettingsPanel(Panel):
 
                     gameSettingsBox.prop(renderSettings, "sm64Area")
 
-                case "OOT":
+                case "OOT" | "MM":
                     if renderSettings.ootSceneObject is not None:
                         gameSettingsBox.prop(renderSettings, "useObjectRenderPreview", text="Use Scene for Preview")
 

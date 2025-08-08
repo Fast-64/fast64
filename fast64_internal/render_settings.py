@@ -252,7 +252,7 @@ def on_update_render_settings(self, context: bpy.types.Context):
     match context.scene.gameEditorMode:
         case "SM64":
             on_update_sm64_render_settings(self, context)
-        case "OOT":
+        case "OOT" | "MM":
             on_update_oot_render_settings(self, context)
         case _:
             pass
@@ -396,7 +396,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         update=on_update_sm64_render_settings,
         poll=poll_sm64_area,
     )
-    # OOT
+    # OOT and MM
     ootSceneObject: bpy.props.PointerProperty(
         name="Scene Object",
         type=bpy.types.Object,
