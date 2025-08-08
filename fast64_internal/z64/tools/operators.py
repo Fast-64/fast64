@@ -13,6 +13,7 @@ from ..utility import getNewPath, get_new_empty_object, is_oot_features
 from ..actor_cutscene.properties import enum_end_cam, enum_end_sfx, enum_hud_visibility
 from .quick_import import QuickImportAborted, quick_import_exec
 
+
 class OOT_AddWaterBox(AddWaterBox):
     bl_idname = "object.oot_add_water_box"
 
