@@ -1,5 +1,6 @@
 import bpy
-from bpy.types import PropertyGroup, Object, Light, UILayout, Scene
+
+from bpy.types import PropertyGroup, Object, Light, UILayout, Scene, Context
 from bpy.props import (
     EnumProperty,
     IntProperty,
@@ -10,6 +11,8 @@ from bpy.props import (
     FloatVectorProperty,
 )
 from bpy.utils import register_class, unregister_class
+
+from ...game_data import game_data
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
@@ -21,12 +24,9 @@ from ..constants import (
     ootEnumSceneID,
     ootEnumGlobalObject,
     ootEnumNaviHints,
-    ootEnumSkybox,
-    ootEnumCloudiness,
     ootEnumSkyboxLighting,
     ootEnumMapLocation,
     ootEnumCameraMode,
-    ootEnumNightSeq,
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
@@ -259,9 +259,11 @@ class OOTSceneHeaderProperty(PropertyGroup):
     naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
-    skyboxID: EnumProperty(name="Skybox", items=ootEnumSkybox, default="0x01")
+    skyboxID: EnumProperty(name="Skybox", items=lambda self, context: game_data.z64.get_enum("skybox"), default=2)
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
-    skyboxCloudiness: EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
+    skyboxCloudiness: EnumProperty(
+        name="Cloudiness", items=lambda self, context: game_data.z64.get_enum("skybox_config"), default=1
+    )
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
         name="Skybox Lighting",
@@ -280,7 +282,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
 
     musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=ootEnumNightSeq, default="0x00")
+    nightSeq: EnumProperty(
+        name="Nighttime SFX", items=lambda self, context: game_data.z64.get_enum("nature_id"), default=1
+    )
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")
@@ -321,9 +325,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
             if not self.expandTab:
                 return
         if headerIndex is not None and headerIndex > 3:
-            drawCollectionOps(layout, headerIndex - 4, "Scene", None, objName)
+            drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, objName)
 
-        if headerIndex is not None and headerIndex > 0 and headerIndex < 4:
+        if headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -403,6 +407,13 @@ class OOTSceneHeaderProperty(PropertyGroup):
             drawAddButton(exitBox, len(self.exitList), "Exit", headerIndex, objName)
 
 
+def update_cutscene_index(self: "OOTAlternateSceneHeaderProperty", context: Context):
+    if self.currentCutsceneIndex < game_data.z64.cs_index_start:
+        self.currentCutsceneIndex = game_data.z64.cs_index_start
+
+    onHeaderMenuTabChange(self, context)
+
+
 class OOTAlternateSceneHeaderProperty(PropertyGroup):
     childNightHeader: PointerProperty(name="Child Night Header", type=OOTSceneHeaderProperty)
     adultDayHeader: PointerProperty(name="Adult Day Header", type=OOTSceneHeaderProperty)
@@ -410,7 +421,7 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
     cutsceneHeaders: CollectionProperty(type=OOTSceneHeaderProperty)
 
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
-    currentCutsceneIndex: IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: IntProperty(default=1, update=update_cutscene_index)
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
@@ -428,8 +439,8 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, objName)
             index = self.currentCutsceneIndex
-            if index - 4 < len(self.cutsceneHeaders):
-                self.cutsceneHeaders[index - 4].draw_props(headerSetup, None, index, objName)
+            if index - game_data.z64.cs_index_start < len(self.cutsceneHeaders):
+                self.cutsceneHeaders[index - game_data.z64.cs_index_start].draw_props(headerSetup, None, index, objName)
             else:
                 headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 
