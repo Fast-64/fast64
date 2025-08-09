@@ -37,7 +37,7 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class OOTObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=game_data.z64.objects.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=lambda self, context: game_data.z64.get_enum("object_key"), default=1)
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod

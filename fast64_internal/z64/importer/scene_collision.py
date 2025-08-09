@@ -12,18 +12,11 @@ from ..exporter.collision.surface import SurfaceType
 from ..exporter.collision.polygons import CollisionPoly
 from ..exporter.collision.waterbox import WaterBox
 from ..collision.properties import OOTMaterialCollisionProperty
+from ..collision.constants import ootEnumCameraCrawlspaceSType
 from ..f3d_writer import getColliderMat
 from ..utility import setCustomProperty, ootParseRotation
-from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
+from .utility import getDataMatch, createCurveFromPoints, stripName
 from .classes import SharedSceneData
-
-from ..collision.constants import (
-    ootEnumWallSetting,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
-    ootEnumCameraCrawlspaceSType,
-    enum_conveyor_speed,
-)
 
 
 def parseCrawlSpaceData(
@@ -171,14 +164,23 @@ def parseWaterBoxes(
         parentObject(parent, waterBoxObj)
 
 
+def set_surface_prop(col_props: OOTMaterialCollisionProperty, prop: str, enum_key: str, value: str):
+    item = game_data.z64.enums.enumByKey[enum_key].item_by_index.get(int(value, 16))
+
+    if item is not None:
+        setattr(col_props, prop, item.key)
+    else:
+        setCustomProperty(col_props, prop, value, game_data.z64.get_enum(enum_key))
+
+
 def parseSurfaceParams(
     surface_type: SurfaceType, collision_poly: CollisionPoly, col_props: OOTMaterialCollisionProperty
 ):
     col_props.eponaBlock = surface_type.isHorseBlocked
     col_props.decreaseHeight = surface_type.isSoft
-    setCustomProperty(col_props, "floorSetting", surface_type.floorProperty, game_data.z64.get_enum("floor_property"))
-    setCustomProperty(col_props, "wallSetting", surface_type.wallType, ootEnumWallSetting)
-    setCustomProperty(col_props, "floorProperty", surface_type.floorType, game_data.z64.get_enum("floor_type"))
+    set_surface_prop(col_props, "floorSetting", "floor_property", surface_type.floorProperty)
+    set_surface_prop(col_props, "wallSetting", "wall_type", surface_type.wallType)
+    set_surface_prop(col_props, "floorProperty", "floor_type", surface_type.floorType)
     col_props.exitID = surface_type.exitIndex
     col_props.cameraID = surface_type.bgCamIndex
     col_props.isWallDamage = surface_type.isWallDamage
@@ -186,7 +188,7 @@ def parseSurfaceParams(
     col_props.conveyorRotation = (surface_type.conveyorDirection / 0x3F) * (2 * math.pi)
     col_props.conveyorSpeed = "Custom"
     col_props.conveyorSpeedCustom = str(surface_type.conveyorSpeed)
-    setCustomProperty(col_props, "conveyorSpeed", surface_type.conveyorSpeed, enum_conveyor_speed)
+    set_surface_prop(col_props, "conveyorSpeed", "conveyor_speed", surface_type.conveyorSpeed)
 
     if isinstance(surface_type.conveyorSpeed, int):
         speed_int = surface_type.conveyorSpeed
@@ -203,8 +205,8 @@ def parseSurfaceParams(
     col_props.hookshotable = surface_type.canHookshot
     col_props.echo = str(surface_type.echo)
     col_props.lightingSetting = surface_type.lightSetting
-    setCustomProperty(col_props, "terrain", str(surface_type.floorEffect), ootEnumCollisionTerrain)
-    setCustomProperty(col_props, "sound", str(surface_type.material), ootEnumCollisionSound)
+    set_surface_prop(col_props, "terrain", "floor_effect", str(surface_type.floorEffect))
+    set_surface_prop(col_props, "sound", "surface_material", str(surface_type.material))
 
     col_props.ignoreCameraCollision = collision_poly.ignoreCamera
     col_props.ignoreActorCollision = collision_poly.ignoreEntity

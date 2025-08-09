@@ -571,6 +571,12 @@ def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str
         if value in [enumItem[0] for enumItem in enumList]:
             setattr(data, prop, value)
             return
+        elif value in [enumItem[2] for enumItem in enumList]:
+            for item in enumList:
+                if value == item[2]:
+                    value = item[0]
+            setattr(data, prop, value)
+            return
         else:
             try:
                 numberValue = hexOrDecInt(value)

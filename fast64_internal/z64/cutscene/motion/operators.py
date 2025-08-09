@@ -1,14 +1,14 @@
 import bpy
+import mathutils
 
 from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
-import mathutils
 from dataclasses import dataclass
+
 from ....utility import PluginError
 from ....game_data import game_data
 from ..classes import CutsceneObjectFactory
-from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
 from .utility import (
     setupActorCuePreview,
@@ -418,7 +418,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_property = "commandType"
     bl_options = {"REGISTER", "UNDO"}
 
-    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, default="actor_cue_0_0")
+    commandType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_actor_cue_list"), default=1)
     objName: StringProperty()
 
     def execute(self, context):
@@ -440,7 +440,7 @@ class OOT_SearchPlayerCueIdEnumOperator(Operator):
     bl_property = "playerCueID"
     bl_options = {"REGISTER", "UNDO"}
 
-    playerCueID: EnumProperty(items=game_data.z64.enums.enum_cs_player_cue_id, default="cueid_none")
+    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_player_cue_id"), default=1)
     objName: StringProperty()
 
     def execute(self, context):

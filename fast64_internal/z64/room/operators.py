@@ -12,7 +12,7 @@ class OOT_SearchObjectEnumOperator(Operator):
     bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    objectKey: EnumProperty(items=game_data.z64.objects.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=lambda self, context: game_data.z64.get_enum("object_key"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     index: IntProperty(default=0, min=0)
     objName: StringProperty()
