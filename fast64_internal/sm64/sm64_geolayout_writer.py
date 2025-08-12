@@ -2434,7 +2434,7 @@ def saveModelGivenVertexGroup(
             fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, None)
             fMeshes[drawLayer] = fMesh
 
-        for material_index, bFaces in materialFaces.items():
+        for material_index, bFaces in sorted(materialFaces.items()):
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2681,7 +2681,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
     # For selecting on error
     notInGroupBlenderVerts = []
     loopDict = {}
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         # These MUST be arrays (not dicts) as order is important
         inGroupVerts = []
         inGroupVertArray.append([material_index, inGroupVerts])
@@ -2767,7 +2767,7 @@ def saveSkinnedMeshByMaterial(
     # It seems like material setup must be done BEFORE triangles are drawn.
     # Because of this we cannot share verts between materials (?)
     curIndex = 0
-    for material_index, vertData in notInGroupVertArray:
+    for material_index, vertData in sorted(notInGroupVertArray, key=lambda x: x[0]):
         material = obj.material_slots[material_index].material
         checkForF3dMaterialInFaces(obj, material)
         f3dMat = material.f3d_mat if material.mat_ver > 3 else material
@@ -2810,7 +2810,7 @@ def saveSkinnedMeshByMaterial(
     # Load current group vertices, then draw commands by material
     existingVertData, matRegionDict = convertVertDictToArray(notInGroupVertArray)
 
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
