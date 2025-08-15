@@ -95,6 +95,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "Microcode")
+        if context.scene.f3d_type in {"F3DEX3", "T3D"}:
+            prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")

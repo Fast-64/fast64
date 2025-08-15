@@ -1570,18 +1570,26 @@ def normToSigned8Vector(normal):
 
 def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
     assert isinstance(packedNormal, int) and packedNormal >= 0 and packedNormal <= 0xFFFF
-    xo, yo = packedNormal >> 8, packedNormal & 0xFF
-    # This is following the instructions in F3DEX3
-    x, y = xo & 0x7F, yo & 0x7F
-    z = x + y
-    zNeg = bool(z & 0x80)
-    x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
-    z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
-    if zNeg:
-        x, y = x2, y2
-    x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
-    z = z - 0x100 if z & 0x80 else z
-    assert abs(x) + abs(y) + abs(z) == 127
+    if bpy.context.scene.packed_normals_algorithm == "565":
+        x = packedNormal & 0xF800
+        y = (packedNormal & 0x07E0) << 5
+        z = (packedNormal & 0x001F) << 11
+        x, y, z = tuple(map(lambda n: (n - 0x10000 if n & 0x8000 else n), (x, y, z)))
+    elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
+        xo, yo = packedNormal >> 8, packedNormal & 0xFF
+        # This is following the instructions in F3DEX3
+        x, y = xo & 0x7F, yo & 0x7F
+        z = x + y
+        zNeg = bool(z & 0x80)
+        x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
+        z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
+        if zNeg:
+            x, y = x2, y2
+        x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
+        z = z - 0x100 if z & 0x80 else z
+        assert abs(x) + abs(y) + abs(z) == 127
+    else:
+        raise PluginError("Invalid packed normals algorithm")
     return x, y, z
 
 
@@ -1591,24 +1599,41 @@ def unpackNormal(packedNormal: int) -> Vector:
 
 
 def packNormal(normal: Vector) -> int:
-    # Convert standard normal to constant-L1 normal
-    assert len(normal) == 3
-    l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
-    xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
-    if abs(xo) + abs(yo) > 127:
-        yo = int(math.copysign(127 - abs(xo), yo))
-    zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
-    assert abs(xo) + abs(yo) + abs(zo) == 127
-    # Pack normals
-    xsign, ysign = xo & 0x80, yo & 0x80
-    x, y = abs(xo), abs(yo)
-    if zo < 0:
-        x, y = 0x7F - x, 0x7F - y
-    x, y = x | xsign, y | ysign
-    packedNormal = x << 8 | y
-    # The only error is in the float to int rounding above. The packing and unpacking
-    # will precisely restore the original int values.
-    assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    if bpy.context.scene.packed_normals_algorithm == "565":
+
+        def convertComponent(v: float, range: int):
+            v = int(round(v * float(range)))
+            v = min(max(v, -range), range - 1)
+            v = v if v >= 0 else v + 2 * range
+            return v
+
+        x = convertComponent(normal[0], 16) << 11
+        y = convertComponent(normal[1], 32) << 5
+        z = convertComponent(normal[2], 16)
+        assert (x & y) == 0 and (y & z) == 0 and (x & z) == 0
+        packedNormal = x | y | z
+        assert packedNormal >= 0 and packedNormal <= 0xFFFF
+    elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
+        # Convert standard normal to constant-L1 normal
+        assert len(normal) == 3
+        l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
+        xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
+        if abs(xo) + abs(yo) > 127:
+            yo = int(math.copysign(127 - abs(xo), yo))
+        zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
+        assert abs(xo) + abs(yo) + abs(zo) == 127
+        # Pack normals
+        xsign, ysign = xo & 0x80, yo & 0x80
+        x, y = abs(xo), abs(yo)
+        if zo < 0:
+            x, y = 0x7F - x, 0x7F - y
+        x, y = x | xsign, y | ysign
+        packedNormal = x << 8 | y
+        # The only error is in the float to int rounding above. The packing and unpacking
+        # will precisely restore the original int values.
+        assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    else:
+        raise PluginError("Invalid packed normals algorithm")
     return packedNormal
 
 

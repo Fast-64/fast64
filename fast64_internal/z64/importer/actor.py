@@ -132,6 +132,7 @@ def parseSpawnList(
             spawnObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
+            spawnObj.empty_display_type = "CONE"
             spawnProp = spawnObj.ootEntranceProperty
             spawnProp.tiedRoom = roomObjs[roomIndex]
             spawnProp.spawnIndex = spawnIndex
