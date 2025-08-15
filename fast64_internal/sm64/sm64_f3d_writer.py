@@ -15,7 +15,15 @@ from ..f3d.f3d_material import (
     update_world_default_rendermode,
 )
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import (
+    END_IF_FOOTER,
+    ModifyFoundDescriptor,
+    export_rom_checks,
+    starSelectWarning,
+    update_actor_includes,
+    write_or_delete_if_found,
+    write_material_headers,
+)
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
@@ -25,6 +33,7 @@ from ..f3d.f3d_bleed import BleedGraphics
 from ..f3d.f3d_gbi import (
     DPSetCombineMode,
     DPSetTextureLUT,
+    FMesh,
     get_F3D_GBI,
     GbiMacro,
     GfxTag,
@@ -65,11 +74,9 @@ from ..utility import (
     applyRotation,
     toAlnum,
     checkIfPathExists,
-    writeIfNotFound,
     overwriteData,
     getExportDir,
     writeMaterialFiles,
-    writeMaterialHeaders,
     get64bitAlignedAddr,
     writeInsertableFile,
     getPathAndLevel,
@@ -111,6 +118,8 @@ class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        self.layer_adapted_fmats = {}
+        self.draw_overrides: dict[FMesh, dict[tuple, tuple[GfxList, list["DisplayListNode"]]]] = {}
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -119,7 +128,7 @@ class SM64Model(FModel):
         world = create_or_get_world(bpy.context.scene)
         cycle1 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_1")
         cycle2 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_2")
-        return [cycle1, cycle2]
+        return (cycle1, cycle2)
 
 
 class SM64GfxFormatter(GfxFormatter):
@@ -210,8 +219,10 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
                 post_regex=r"\s?\s?",  # tex to c includes 2 newlines
             )
 
-            # Append texture declaration to segment2.h
-            writeIfNotFound(seg2HPath, data.header, "#endif")
+        # Append texture declaration to segment2.h
+        write_or_delete_if_found(
+            Path(seg2HPath), ModifyFoundDescriptor(data.header), path_must_exist=True, footer=END_IF_FOOTER
+        )
 
         # Write/Overwrite function to hud.c
         overwriteData("void\s*", fTexRect.name, code, hudPath, projectExportData[1], True, post_regex=r"\s?")
@@ -320,8 +331,8 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
     fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
 
-    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
-    fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
+    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(("G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"), None))
+    fMaterial.revert.commands.append(DPSetRenderMode(("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"), None))
 
     saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
@@ -370,7 +381,7 @@ def sm64ExportF3DtoC(
     fModel = SM64Model(
         name,
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        bpy.context.scene.fast64.sm64.gfx_write_method,
     )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, not savePNG)
 
@@ -428,24 +439,17 @@ def sm64ExportF3DtoC(
     cDefFile.write(staticData.header)
     cDefFile.close()
 
+    update_actor_includes(
+        headerType, groupName, Path(dirPath), name, levelName, [Path("model.inc.c")], [Path("header.h")]
+    )
     fileStatus = None
     if not customExport:
         if headerType == "Actor":
-            # Write to group files
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', "\n#endif")
-
             if DLFormat != DLFormat.Static:  # Change this
-                writeMaterialHeaders(
-                    basePath,
-                    '#include "actors/' + toAlnum(name) + '/material.inc.c"',
-                    '#include "actors/' + toAlnum(name) + '/material.inc.h"',
+                write_material_headers(
+                    Path(basePath),
+                    Path("actors", toAlnum(name), "material.inc.c"),
+                    Path("actors", toAlnum(name), "material.inc.h"),
                 )
 
             texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
@@ -454,19 +458,11 @@ def sm64ExportF3DtoC(
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + toAlnum(name) + '/model.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + toAlnum(name) + '/header.h"', "\n#endif"
-            )
-
             if DLFormat != DLFormat.Static:  # Change this
-                writeMaterialHeaders(
+                write_material_headers(
                     basePath,
-                    '#include "levels/' + levelName + "/" + toAlnum(name) + '/material.inc.c"',
-                    '#include "levels/' + levelName + "/" + toAlnum(name) + '/material.inc.h"',
+                    Path("actors", levelName, toAlnum(name), "material.inc.c"),
+                    Path("actors", levelName, toAlnum(name), "material.inc.h"),
                 )
 
             texscrollIncludeC = '#include "levels/' + levelName + "/" + name + '/texscroll.inc.c"'
@@ -492,11 +488,7 @@ def sm64ExportF3DtoC(
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, includeChildren):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(
-        obj.name,
-        DLFormat.Static,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
-    )
+    fModel = SM64Model(obj.name, DLFormat, bpy.context.scene.fast64.sm64.gfx_write_method)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
@@ -522,11 +514,7 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, i
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, includeChildren):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(
-        obj.name,
-        DLFormat.Static,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
-    )
+    fModel = SM64Model(obj.name, DLFormat, bpy.context.scene.fast64.sm64.gfx_write_method)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
@@ -554,11 +542,7 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, 
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(
-        obj.name,
-        DLFormat.Static,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
-    )
+    fModel = SM64Model(obj.name, DLFormat, bpy.context.scene.fast64.sm64.gfx_write_method)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:

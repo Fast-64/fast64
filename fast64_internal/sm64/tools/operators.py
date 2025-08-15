@@ -6,7 +6,7 @@ from bpy.props import EnumProperty, BoolProperty, IntProperty, FloatProperty, St
 from bpy.path import abspath
 
 from ...operators import OperatorBase, AddWaterBox
-from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr
+from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr, selectSingleObject
 from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
 from ...utility import parentObject, intToHex, bytesToHex
 
@@ -257,9 +257,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
             bounds_object.scale = (radius, radius, 1.40381 * radius / int(self.bounds))
             parentObject(level_object, bounds_object)
 
-        bpy.ops.object.select_all(action="DESELECT")
-        level_object.select_set(True)
-        bpy.context.view_layer.objects.active = level_object
+        selectSingleObject(level_object)
 
 
 class SM64_AddWaterBox(AddWaterBox):

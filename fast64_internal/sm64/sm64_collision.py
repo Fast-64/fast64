@@ -1,3 +1,4 @@
+from pathlib import Path
 import bpy, shutil, os, math, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
@@ -8,7 +9,7 @@ from .sm64_constants import (
     insertableBinaryTypes,
     defaultExtendSegment4,
 )
-from .sm64_utility import export_rom_checks
+from .sm64_utility import export_rom_checks, to_include_descriptor, update_actor_includes, write_or_delete_if_found
 from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
@@ -23,8 +24,6 @@ from ..utility import (
     get64bitAlignedAddr,
     prop_split,
     getExportDir,
-    writeIfNotFound,
-    deleteIfFound,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
     writeInsertableFile,
@@ -39,6 +38,7 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     enumExportHeaderType,
+    selectSingleObject,
 )
 
 
@@ -331,31 +331,24 @@ def exportCollisionC(
     cDefFile.write(cDefine)
     cDefFile.close()
 
-    if headerType == "Actor":
-        # Write to group files
-        if groupName == "" or groupName is None:
-            raise PluginError("Actor header type chosen but group name not provided.")
-
-        groupPathC = os.path.join(dirPath, groupName + ".c")
-        groupPathH = os.path.join(dirPath, groupName + ".h")
-
-        writeIfNotFound(groupPathC, '\n#include "' + name + '/collision.inc.c"', "")
-        if writeRoomsFile:
-            writeIfNotFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"', "")
-        else:
-            deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
-        writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', "\n#endif")
-
-    elif headerType == "Level":
-        groupPathC = os.path.join(dirPath, "leveldata.c")
-        groupPathH = os.path.join(dirPath, "header.h")
-
-        writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/collision.inc.c"', "")
-        if writeRoomsFile:
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"', "")
-        else:
-            deleteIfFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"')
-        writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + "/" + name + '/collision_header.h"', "\n#endif")
+    data_includes = [Path("collision.inc.c")]
+    if writeRoomsFile:
+        data_includes.append(Path("rooms.inc.c"))
+    update_actor_includes(
+        headerType, groupName, Path(dirPath), name, levelName, data_includes, [Path("collision_header.h")]
+    )
+    if not writeRoomsFile:  # TODO: Could be done better
+        if headerType == "Actor":
+            group_path_c = Path(dirPath, f"{groupName}.c")
+            write_or_delete_if_found(group_path_c, to_remove=[to_include_descriptor(Path(name, "rooms.inc.c"))])
+        elif headerType == "Level":
+            group_path_c = Path(dirPath, "leveldata.c")
+            write_or_delete_if_found(
+                group_path_c,
+                to_remove=[
+                    to_include_descriptor(Path(name, "rooms.inc.c"), Path("levels", levelName, name, "rooms.inc.c")),
+                ],
+            )
 
     return cDefine
 
@@ -377,8 +370,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath, includeSpeci
 
 
 def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, name, areaIndex):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}
@@ -387,7 +379,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     try:
         addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
         if not collisionDict:
-            raise PluginError("No collision data to export")
+            raise PluginError("No collision data to export", PluginError.exc_warn)
         cleanupDuplicatedObjects(allObjs)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj

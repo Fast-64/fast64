@@ -10,7 +10,22 @@ CollectionProperty = Any  # collection prop as defined by using bpy.props.Collec
 
 
 class PluginError(Exception):
-    pass
+    # arguments for exception processing
+    exc_halt = "exc_halt"
+    exc_warn = "exc_warn"
+
+    """
+    because exceptions generally go through multiple funcs
+    and layers, the easiest way to check if we have an exception
+    of a certain type is to check for our input string
+    """
+
+    @classmethod
+    def check_exc_warn(self, exc):
+        for arg in exc.args:
+            if type(arg) is str and self.exc_warn in arg:
+                return True
+        return False
 
 
 class VertexWeightError(PluginError):
@@ -165,18 +180,26 @@ def checkObjectReference(obj, title):
         )
 
 
-def selectSingleObject(obj: bpy.types.Object):
-    bpy.ops.object.select_all(action="DESELECT")
+def setActiveObject(obj: bpy.types.Object):
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
 
 
+def deselectAllObjects():
+    for obj in bpy.data.objects:
+        obj.select_set(False)
+
+
+def selectSingleObject(obj: bpy.types.Object):
+    deselectAllObjects()
+    setActiveObject(obj)
+
+
 def parentObject(parent, child):
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
 
     child.select_set(True)
-    parent.select_set(True)
-    bpy.context.view_layer.objects.active = parent
+    setActiveObject(parent)
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
 
 
@@ -511,11 +534,6 @@ def enableExtendedRAM(baseDir):
         segmentFile.close()
 
 
-def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.c"), "\n" + matCInclude, "")
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.h"), "\n" + matHInclude, "#endif")
-
-
 def writeMaterialFiles(
     exportDir, assetDir, headerInclude, matHInclude, headerDynamic, dynamic_data, geoString, customExport
 ):
@@ -640,11 +658,9 @@ def highlightWeightErrors(obj, elements, elementType):
     return  # Doesn't work currently
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    selectSingleObject(obj)
     bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="DESELECT")
+    deselectAllObjects()
     bpy.ops.mesh.select_mode(type=elementType)
     bpy.ops.object.mode_set(mode="OBJECT")
     print(elements)
@@ -670,14 +686,20 @@ def checkIdentityRotation(obj, rotation, allowYaw):
         )
 
 
-def setOrigin(target, obj):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.transform_apply()
-    bpy.context.scene.cursor.location = target.location
-    bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
-    bpy.ops.object.select_all(action="DESELECT")
+def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
+    if not target_loc.is_frozen:
+        target_loc = target_loc.copy()
+    with bpy.context.temp_override(
+        selected_objects=[obj],
+        active_object=obj,
+    ):
+        obj.location += -target_loc
+        # Applying location puts the object origin at world origin
+        # (It is only needed to apply location to set the origin,
+        #  but historically this function has applied all transforms
+        #  so just keep doing that to not break anything)
+        bpy.ops.object.transform_apply()
+        obj.location = target_loc
 
 
 def checkIfPathExists(filePath):
@@ -744,40 +766,6 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         dataFile.close()
     else:
         raise PluginError(filePath + " does not exist.")
-
-
-def writeIfNotFound(filePath, stringValue, footer):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue not in stringData:
-            if len(footer) > 0:
-                footerIndex = stringData.rfind(footer)
-                if footerIndex == -1:
-                    raise PluginError("Footer " + footer + " does not exist.")
-                stringData = stringData[:footerIndex] + stringValue + "\n" + stringData[footerIndex:]
-            else:
-                stringData += stringValue
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-    else:
-        raise PluginError(filePath + " does not exist.")
-
-
-def deleteIfFound(filePath, stringValue):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue in stringData:
-            stringData = stringData.replace(stringValue, "")
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
 
 
 def yield_children(obj: bpy.types.Object):
@@ -903,25 +891,21 @@ def get_obj_temp_mesh(obj):
 def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
-        bpy.ops.object.select_all(action="DESELECT")
-        selectedObj.select_set(True)
-        bpy.context.view_layer.objects.active = selectedObj
+        selectSingleObject(selectedObj)
 
         for modifier in selectedObj.modifiers:
             attemptModifierApply(modifier)
 
     # apply transformations now that world space changes are applied
     for selectedObj in allObjs:
-        bpy.ops.object.select_all(action="DESELECT")
-        selectedObj.select_set(True)
-        bpy.context.view_layer.objects.active = selectedObj
+        selectSingleObject(selectedObj)
 
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex)
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
@@ -937,9 +921,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
                 for child in selectedObj.children:
-                    bpy.ops.object.select_all(action="DESELECT")
-                    child.select_set(True)
-                    bpy.context.view_layer.objects.active = child
+                    selectSingleObject(child)
                     bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
                     selectedObj.parent.select_set(True)
                     bpy.context.view_layer.objects.active = selectedObj.parent
@@ -1037,7 +1019,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
     obj.original_name = obj.name
 
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     if includeChildren:
         selectMeshChildrenOnly(obj, ignoreAttr, False, areaIndex)
     else:
@@ -1053,7 +1035,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 
         apply_objects_modifiers_and_transformations(allObjs)
 
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         # Joining causes orphan data, so we remove it manually.
         meshList = []
@@ -1066,11 +1048,9 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         joinedObj.select_set(True)
         meshList.remove(joinedObj.data)
         bpy.ops.object.join()
-        setOrigin(obj, joinedObj)
+        setOrigin(joinedObj, obj.location)
 
-        bpy.ops.object.select_all(action="DESELECT")
-        bpy.context.view_layer.objects.active = joinedObj
-        joinedObj.select_set(True)
+        selectSingleObject(joinedObj)
 
         # Need to clear parent transform in order to correctly apply transform.
         bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
@@ -1152,7 +1132,7 @@ def applyRotation(objList, angle, axis):
     bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
     bpy.context.scene.tool_settings.use_transform_skip_children = False
 
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     for obj in objList:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = objList[0]
@@ -1551,18 +1531,26 @@ def normToSigned8Vector(normal):
 
 def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
     assert isinstance(packedNormal, int) and packedNormal >= 0 and packedNormal <= 0xFFFF
-    xo, yo = packedNormal >> 8, packedNormal & 0xFF
-    # This is following the instructions in F3DEX3
-    x, y = xo & 0x7F, yo & 0x7F
-    z = x + y
-    zNeg = bool(z & 0x80)
-    x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
-    z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
-    if zNeg:
-        x, y = x2, y2
-    x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
-    z = z - 0x100 if z & 0x80 else z
-    assert abs(x) + abs(y) + abs(z) == 127
+    if bpy.context.scene.packed_normals_algorithm == "565":
+        x = packedNormal & 0xF800
+        y = (packedNormal & 0x07E0) << 5
+        z = (packedNormal & 0x001F) << 11
+        x, y, z = tuple(map(lambda n: (n - 0x10000 if n & 0x8000 else n), (x, y, z)))
+    elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
+        xo, yo = packedNormal >> 8, packedNormal & 0xFF
+        # This is following the instructions in F3DEX3
+        x, y = xo & 0x7F, yo & 0x7F
+        z = x + y
+        zNeg = bool(z & 0x80)
+        x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
+        z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
+        if zNeg:
+            x, y = x2, y2
+        x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
+        z = z - 0x100 if z & 0x80 else z
+        assert abs(x) + abs(y) + abs(z) == 127
+    else:
+        raise PluginError("Invalid packed normals algorithm")
     return x, y, z
 
 
@@ -1572,24 +1560,41 @@ def unpackNormal(packedNormal: int) -> Vector:
 
 
 def packNormal(normal: Vector) -> int:
-    # Convert standard normal to constant-L1 normal
-    assert len(normal) == 3
-    l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
-    xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
-    if abs(xo) + abs(yo) > 127:
-        yo = int(math.copysign(127 - abs(xo), yo))
-    zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
-    assert abs(xo) + abs(yo) + abs(zo) == 127
-    # Pack normals
-    xsign, ysign = xo & 0x80, yo & 0x80
-    x, y = abs(xo), abs(yo)
-    if zo < 0:
-        x, y = 0x7F - x, 0x7F - y
-    x, y = x | xsign, y | ysign
-    packedNormal = x << 8 | y
-    # The only error is in the float to int rounding above. The packing and unpacking
-    # will precisely restore the original int values.
-    assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    if bpy.context.scene.packed_normals_algorithm == "565":
+
+        def convertComponent(v: float, range: int):
+            v = int(round(v * float(range)))
+            v = min(max(v, -range), range - 1)
+            v = v if v >= 0 else v + 2 * range
+            return v
+
+        x = convertComponent(normal[0], 16) << 11
+        y = convertComponent(normal[1], 32) << 5
+        z = convertComponent(normal[2], 16)
+        assert (x & y) == 0 and (y & z) == 0 and (x & z) == 0
+        packedNormal = x | y | z
+        assert packedNormal >= 0 and packedNormal <= 0xFFFF
+    elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
+        # Convert standard normal to constant-L1 normal
+        assert len(normal) == 3
+        l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
+        xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
+        if abs(xo) + abs(yo) > 127:
+            yo = int(math.copysign(127 - abs(xo), yo))
+        zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
+        assert abs(xo) + abs(yo) + abs(zo) == 127
+        # Pack normals
+        xsign, ysign = xo & 0x80, yo & 0x80
+        x, y = abs(xo), abs(yo)
+        if zo < 0:
+            x, y = 0x7F - x, 0x7F - y
+        x, y = x | xsign, y | ysign
+        packedNormal = x << 8 | y
+        # The only error is in the float to int rounding above. The packing and unpacking
+        # will precisely restore the original int values.
+        assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    else:
+        raise PluginError("Invalid packed normals algorithm")
     return packedNormal
 
 
@@ -1725,9 +1730,11 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
-def removeComments(text: str):
-    # https://stackoverflow.com/a/241506
+# https://stackoverflow.com/a/241506
+COMMENT_PATTERN = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
 
+
+def removeComments(text: str):
     def replacer(match: re.Match[str]):
         s = match.group(0)
         if s.startswith("/"):
@@ -1735,9 +1742,7 @@ def removeComments(text: str):
         else:
             return s
 
-    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
-
-    return re.sub(pattern, replacer, text)
+    return re.sub(COMMENT_PATTERN, replacer, text)
 
 
 binOps = {
@@ -1934,3 +1939,52 @@ def wrap_func_with_error_message(error_message: Callable):
         return wrapper
 
     return decorator
+
+
+def as_posix(path: Path) -> str:
+    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
+
+
+def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
+    # get the extracted path
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
+    decomp_path = bpy.context.scene.ootDecompPath if use_decomp_path else "."
+
+    # get the file's path
+    file_path = Path(f"{decomp_path}/{base_path}").resolve()
+
+    # check if the path exists
+    if not file_path.exists():
+        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{base_path}").resolve()
+
+    # if it doesn't check if the extracted path exists (we want to skip that for PNG files)
+    if check_exists and not file_path.exists():
+        raise PluginError(f"ERROR: that file don't exist ({repr(base_path)})")
+
+    return file_path
+
+
+def get_include_data(include: str, strip: bool = False):
+    """
+    Returns the file data pointed by an include's path (useful to parse *.inc.c files)
+
+    Parameters:
+    - `include`: the line where the include directive is located
+    - `strip`: set to True to return the data without any newlines or whitespaces
+    """
+
+    # remove the unwanted parts
+    include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
+
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
+        file_path = oot_get_assets_path(include)
+    else:
+        raise PluginError(f"ERROR: game not supported ({bpy.context.scene.gameEditorMode})")
+
+    data = removeComments(file_path.read_text())
+
+    if strip:
+        return data.replace("\n", "").replace(" ", "")
+
+    # return the data as a string
+    return data
