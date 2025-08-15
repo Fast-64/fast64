@@ -2101,7 +2101,7 @@ groupsSeg5 = [
     ("group9", "group9", "Haunted Objects (Boo, Mad Piano etc.)"),
     ("group10", "group10", "Peach/Yoshi"),
     ("group11", "group11", "THI Ojbects (Lakitu, Wiggler, Bubba)"),
-    ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("None", "None", "None"),
     ("Custom", "Custom", "Custom"),
 ]
 
@@ -2113,7 +2113,13 @@ groupsSeg6 = [
     ("group15", "group15", "Castle Objects (MIPS, Toad etc.)"),
     ("group16", "group16", "Ice Objects (Chill Bully, Moneybags)"),
     ("group17", "group17", "Cave Objects (Swoop, Scuttlebug, Dorrie etc.)"),
-    ("Do Not Write", "Do Not Write", "Do Not Write"),
+    ("None", "None", "None"),
+    ("Custom", "Custom", "Custom"),
+]
+
+groups_seg8 = [
+    ("common0", "common0", "Generic course objects (Goomba, Bob-ombs, Cannon etc.)"),
+    ("None", "None", "None"),
     ("Custom", "Custom", "Custom"),
 ]
 

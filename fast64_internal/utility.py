@@ -534,11 +534,6 @@ def enableExtendedRAM(baseDir):
         segmentFile.close()
 
 
-def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.c"), "\n" + matCInclude, "")
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.h"), "\n" + matHInclude, "#endif")
-
-
 def writeMaterialFiles(
     exportDir, assetDir, headerInclude, matHInclude, headerDynamic, dynamic_data, geoString, customExport
 ):
@@ -771,40 +766,6 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         dataFile.close()
     else:
         raise PluginError(filePath + " does not exist.")
-
-
-def writeIfNotFound(filePath, stringValue, footer):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue not in stringData:
-            if len(footer) > 0:
-                footerIndex = stringData.rfind(footer)
-                if footerIndex == -1:
-                    raise PluginError("Footer " + footer + " does not exist.")
-                stringData = stringData[:footerIndex] + stringValue + "\n" + stringData[footerIndex:]
-            else:
-                stringData += stringValue
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-    else:
-        raise PluginError(filePath + " does not exist.")
-
-
-def deleteIfFound(filePath, stringValue):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue in stringData:
-            stringData = stringData.replace(stringValue, "")
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
 
 
 def yield_children(obj: bpy.types.Object):
@@ -1769,9 +1730,11 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
-def removeComments(text: str):
-    # https://stackoverflow.com/a/241506
+# https://stackoverflow.com/a/241506
+COMMENT_PATTERN = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
 
+
+def removeComments(text: str):
     def replacer(match: re.Match[str]):
         s = match.group(0)
         if s.startswith("/"):
@@ -1779,9 +1742,7 @@ def removeComments(text: str):
         else:
             return s
 
-    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
-
-    return re.sub(pattern, replacer, text)
+    return re.sub(COMMENT_PATTERN, replacer, text)
 
 
 binOps = {
@@ -1985,6 +1946,10 @@ def to_valid_file_name(name: str):
     valid_chars = set(string.ascii_letters + string.digits) | {"."}
     valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
     return "".join(c if c in valid_chars else "_" for c in name)
+
+
+def as_posix(path: Path) -> str:
+    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
 
 
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
