@@ -440,19 +440,25 @@ def parseZoomMasks(filepath):
     return ZoomOutMasks(zoomMacros, cameraData)
 
 
-def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
+def replace_segment_load(level: LevelScript, name: str, commands: list[str], new_segment: int):
+    args = ["0x0{:X}".format(new_segment), name + "SegmentRomStart", name + "SegmentRomEnd"]
     changedLoad = None
-    for segmentLoad in levelscript.segmentLoads:
+    for i, segmentLoad in enumerate(level.segmentLoads):
         segmentString = segmentLoad[1][0].lower()
-        segment = int(segmentString, 16 if "x" in segmentString else 10)
-        if segmentLoad[0] == command and segment == changedSegment:
+        segment = int(segmentString, 0)
+        if segmentLoad[0] in commands and segment == new_segment:
+            level.segmentLoads[i] = Macro(commands[0], args, segmentLoad[2])
             changedLoad = segmentLoad
     if changedLoad is None:
-        changedLoad = Macro(command, [hex(changedSegment), "", ""], "")
-        levelscript.segmentLoads.append(changedLoad)
+        changedLoad = Macro(commands[0], args, "")
+        level.segmentLoads.append(changedLoad)
 
-    changedLoad[1][1] = segmentName + "SegmentRomStart"
-    changedLoad[1][2] = segmentName + "SegmentRomEnd"
+
+def remove_segment_load(levelscript: LevelScript, segment_num: int):
+    for segment_load in levelscript.segmentLoads:
+        segment_string = segment_load[1][0].lower()
+        if int(segment_string, 0) == segment_num:
+            levelscript.segmentLoads.remove(segment_load)
 
 
 def replaceScriptLoads(levelscript, obj):
@@ -462,19 +468,13 @@ def replaceScriptLoads(levelscript, obj):
         if "script_func_global_" not in target:
             newFuncs.append(jumpLink)
             continue
-        scriptNum = int(re.findall(r"\d+", target)[-1])
-        # this is common0
-        if scriptNum == 1:
-            newFuncs.append(jumpLink)
-            continue
-        if scriptNum < 13:
-            newNum = obj.fast64.sm64.segment_loads.group5
-        else:
-            newNum = obj.fast64.sm64.segment_loads.group6
-        if newNum == "Do Not Write":
-            newFuncs.append(jumpLink)
-            continue
-        newFuncs.append(Macro("JUMP_LINK", [newNum], jumpLink.comment))
+
+    group_seg_loads = obj.fast64.sm64.segment_loads
+    scriptFuncs = (group_seg_loads.group8, group_seg_loads.group5, group_seg_loads.group6)
+    for func in scriptFuncs:
+        if func is not None:
+            newFuncs.append(Macro("JUMP_LINK", [func], ""))
+
     levelscript.levelFunctions = newFuncs
 
 
@@ -818,38 +818,49 @@ def export_area_c(
 
 def export_level_script_c(obj, prev_level_script, level_name, level_data, level_dir, uses_env_fx):
     compressionFmt = bpy.context.scene.fast64.sm64.compression_format
+
+    def replace_compressed_segment_load(name: str, segment: int, add_compression_fmt=True):
+        compression_fmts = [compressionFmt.upper()] + list({"MIO0", "YAY0", "RAW"} - {compressionFmt.upper()})
+        valid_cmds = [f"LOAD_{fmt}" for fmt in compression_fmts]
+        if add_compression_fmt:
+            name += f"_{compressionFmt}"
+        replace_segment_load(prev_level_script, f"_{name}", valid_cmds, segment)
+
     # replace level loads
-    replaceSegmentLoad(prev_level_script, f"_{level_name}_segment_7", f"LOAD_{compressionFmt.upper()}", 0x07)
+    replace_compressed_segment_load(f"{level_name}_segment_7", 0x07, False)
     if uses_env_fx:
-        replaceSegmentLoad(prev_level_script, f"_effect_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0B)
+        replace_compressed_segment_load("effect", 0x0B)
     if not obj.useBackgroundColor:
         if obj.background == "CUSTOM":
             segment = obj.fast64.sm64.level.backgroundSegment
         else:
             segment = f"{backgroundSegments[obj.background]}_skybox"
-        replaceSegmentLoad(prev_level_script, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
+        replace_compressed_segment_load(segment, 0x0A)
 
     # replace actor loads
     group_seg_loads = obj.fast64.sm64.segment_loads
-    if group_seg_loads.seg5_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prev_level_script,
-            f"_{group_seg_loads.seg5}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x05,
-        )
-        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg5}_geo", "LOAD_RAW", 0x0C)
-    if group_seg_loads.seg6_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prev_level_script,
-            f"_{group_seg_loads.seg6}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x06,
-        )
-        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+    if group_seg_loads.write_actor_loads:
+        if group_seg_loads.seg5_enum != "None":
+            replace_compressed_segment_load(group_seg_loads.seg5, 0x05)
+            replace_segment_load(prev_level_script, f"_{group_seg_loads.seg5}_geo", ["LOAD_RAW"], 0x0C)
+        else:
+            remove_segment_load(prev_level_script, 0x05)
+            remove_segment_load(prev_level_script, 0x0C)
+        if group_seg_loads.seg6_enum != "None":
+            replace_compressed_segment_load(group_seg_loads.seg6, 0x06)
+            replace_segment_load(prev_level_script, f"_{group_seg_loads.seg6}_geo", ["LOAD_RAW"], 0x0D)
+        else:
+            remove_segment_load(prev_level_script, 0x06)
+            remove_segment_load(prev_level_script, 0x0D)
+        if group_seg_loads.seg8_enum != "None":
+            replace_compressed_segment_load(group_seg_loads.seg8, 0x08)
+            replace_segment_load(prev_level_script, f"_{group_seg_loads.seg8}_geo", ["LOAD_RAW"], 0x0F)
+        else:
+            remove_segment_load(prev_level_script, 0x08)
+            remove_segment_load(prev_level_script, 0x0F)
+        replaceScriptLoads(prev_level_script, obj)
 
     # write data
-    replaceScriptLoads(prev_level_script, obj)
     saveDataToFile(os.path.join(level_dir, "script.c"), prev_level_script.to_c(level_data.area_data))
 
     return level_data
