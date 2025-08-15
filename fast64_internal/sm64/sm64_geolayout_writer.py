@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 import typing
 
 import bpy, mathutils, math, copy, os, shutil, re
@@ -12,9 +13,9 @@ from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, write_material_headers
 
 from ..utility import (
     PluginError,
@@ -27,10 +28,8 @@ from ..utility import (
     getExportDir,
     toAlnum,
     writeMaterialFiles,
-    writeIfNotFound,
     get64bitAlignedAddr,
     encodeSegmentedAddr,
-    writeMaterialHeaders,
     writeInsertableFile,
     bytesToHex,
     checkSM64EmptyUsesGeoLayout,
@@ -52,11 +51,6 @@ from ..utility import (
     tempName,
     getAddressFromRAMAddress,
     prop_split,
-    customExportWarning,
-    decompFolderMessage,
-    makeWriteInfoBox,
-    writeBoxExportType,
-    enumExportHeaderType,
     geoNodeRotateOrder,
     deselectAllObjects,
     selectSingleObject,
@@ -102,7 +96,6 @@ from ..f3d.f3d_gbi import (
     DLFormat,
     SPEndDisplayList,
     SPDisplayList,
-    FMaterial,
 )
 
 from .sm64_geolayout_classes import (
@@ -131,14 +124,7 @@ from .sm64_geolayout_classes import (
     Geolayout,
 )
 
-from .sm64_constants import (
-    insertableBinaryTypes,
-    bank0Segment,
-    level_pointers,
-    defaultExtendSegment4,
-    level_enums,
-    enumLevelNames,
-)
+from .sm64_constants import insertableBinaryTypes, bank0Segment, defaultExtendSegment4
 
 if typing.TYPE_CHECKING:
     from .sm64_geolayout_bone import SM64_BoneProperties
@@ -739,38 +725,12 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = '#include "actors/' + dirName + '/material.inc.c"'
-        matHInclude = '#include "actors/' + dirName + '/material.inc.h"'
+        matCInclude = Path("actors", dirName, "material.inc.c")
+        matHInclude = Path("actors", dirName, "material.inc.h")
         headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
-
-        if not customExport:
-            # Group name checking, before anything is exported to prevent invalid state on error.
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            if not os.path.exists(groupPathC):
-                raise PluginError(
-                    groupPathC + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathGeoC):
-                raise PluginError(
-                    groupPathGeoC
-                    + ' not found.\n Most likely issue is that "'
-                    + groupName
-                    + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathH):
-                raise PluginError(
-                    groupPathH + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-
     else:
-        matCInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.c"'
-        matHInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.h"'
+        matCInclude = Path("levels", levelName, dirName, "material.inc.c")
+        matHInclude = Path("levels", levelName, dirName, "material.inc.h")
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
@@ -816,6 +776,16 @@ def saveGeolayoutC(
     cDefFile.close()
 
     fileStatus = None
+    update_actor_includes(
+        headerType,
+        groupName,
+        Path(dirPath),
+        dirName,
+        levelName,
+        [Path("model.inc.c")],
+        [Path("geo_header.h")],
+        [Path("geo.inc.c")],
+    )
     if not customExport:
         if headerType == "Actor":
             if dirName == "star" and bpy.context.scene.replaceStarRefs:
@@ -867,31 +837,12 @@ def saveGeolayoutC(
 				appendSecondaryGeolayout(geoDirPath, 'bully', 'bully_boss', 'GEO_SCALE(0x00, 0x2000), GEO_NODE_OPEN(),')
 			"""
 
-            # Write to group files
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "' + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + dirName + '/geo_header.h"', "\n#endif")
-
             texscrollIncludeC = '#include "actors/' + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "actors/' + dirName + '/texscroll.inc.h"'
             texscrollGroup = groupName
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathGeoC = os.path.join(dirPath, "geo.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "levels/' + levelName + "/" + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + dirName + '/geo_header.h"', "\n#endif"
-            )
-
             texscrollIncludeC = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.h"'
             texscrollGroup = levelName
@@ -908,7 +859,7 @@ def saveGeolayoutC(
         )
 
         if DLFormat != DLFormat.Static:  # Change this
-            writeMaterialHeaders(exportDir, matCInclude, matHInclude)
+            write_material_headers(Path(exportDir), matCInclude, matHInclude)
 
     return staticData.header, fileStatus
 
@@ -1504,16 +1455,22 @@ def processMesh(
 
             if len(src_meshes):
                 fMeshes = {}
-                if useGeoEmpty:
-                    node.dlRef = src_meshes[0]["name"]
+                # find dl
+                draw, name = None, src_meshes[0]["dl_name"]
+                for fmesh in fModel.meshes.values():
+                    for fmesh_draw in [fmesh.draw] + fmesh.draw_overrides:
+                        if fmesh_draw.name == name:
+                            draw = fmesh_draw
+                            break
+                node.dlRef = draw
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
                 for src_mesh in src_meshes[1:]:
                     additionalNode = (
-                        DisplayListNode(src_mesh["layer"], src_mesh["name"])
+                        DisplayListNode(src_mesh["layer"], src_mesh["dl_name"])
                         if not isinstance(node, BillboardNode)
-                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["name"])
+                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["dl_name"])
                     )
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
@@ -1531,10 +1488,9 @@ def processMesh(
                 )
                 if fMeshes:
                     temp_obj["src_meshes"] = [
-                        ({"name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
+                        ({"dl_name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    if useGeoEmpty:
-                        node.dlRef = temp_obj["src_meshes"][0]["name"]
+                    node.dlRef = temp_obj["src_meshes"][0]["dl_name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
@@ -2434,7 +2390,7 @@ def saveModelGivenVertexGroup(
             fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, None)
             fMeshes[drawLayer] = fMesh
 
-        for material_index, bFaces in materialFaces.items():
+        for material_index, bFaces in sorted(materialFaces.items()):
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2681,7 +2637,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
     # For selecting on error
     notInGroupBlenderVerts = []
     loopDict = {}
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         # These MUST be arrays (not dicts) as order is important
         inGroupVerts = []
         inGroupVertArray.append([material_index, inGroupVerts])
@@ -2767,7 +2723,7 @@ def saveSkinnedMeshByMaterial(
     # It seems like material setup must be done BEFORE triangles are drawn.
     # Because of this we cannot share verts between materials (?)
     curIndex = 0
-    for material_index, vertData in notInGroupVertArray:
+    for material_index, vertData in sorted(notInGroupVertArray, key=lambda x: x[0]):
         material = obj.material_slots[material_index].material
         checkForF3dMaterialInFaces(obj, material)
         f3dMat = material.f3d_mat if material.mat_ver > 3 else material
@@ -2810,7 +2766,7 @@ def saveSkinnedMeshByMaterial(
     # Load current group vertices, then draw commands by material
     existingVertData, matRegionDict = convertVertDictToArray(notInGroupVertArray)
 
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2944,7 +2900,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3142,7 +3098,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3246,6 +3202,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
+        props = context.scene.fast64.sm64.combined_export
         if context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
@@ -3256,7 +3213,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
             if context.scene.geoUseBank0:
                 prop_split(col, context.scene, "geoRAMAddr", "RAM Address")
             else:
-                col.prop(context.scene, "levelGeoExport")
+                prop_split(col, props, "level_name", "Level")
 
             col.prop(context.scene, "overwriteModelLoad")
             if context.scene.overwriteModelLoad:
@@ -3289,7 +3246,6 @@ def sm64_geo_writer_register():
     for cls in sm64_geo_writer_classes:
         register_class(cls)
 
-    bpy.types.Scene.levelGeoExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
     bpy.types.Scene.geoExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.geoExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
 
@@ -3322,7 +3278,6 @@ def sm64_geo_writer_unregister():
     for cls in reversed(sm64_geo_writer_classes):
         unregister_class(cls)
 
-    del bpy.types.Scene.levelGeoExport
     del bpy.types.Scene.geoExportStart
     del bpy.types.Scene.geoExportEnd
     del bpy.types.Scene.overwriteModelLoad

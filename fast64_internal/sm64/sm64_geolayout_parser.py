@@ -2,8 +2,8 @@ import bpy, mathutils, math, bmesh, copy
 from bpy.utils import register_class, unregister_class
 from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel
-from .sm64_level_parser import parseLevelAtPointer
-from .sm64_constants import level_pointers, level_enums
+from .sm64_level_parser import parse_level_binary
+from .sm64_constants import enumLevelNames
 from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
 from .sm64_utility import import_rom_checks
@@ -1540,7 +1540,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
             armatureObj = None
 
             # Get segment data
-            levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[levelGeoImport])
+            levelParsed = parse_level_binary(romfileSrc, levelGeoImport)
             segmentData = levelParsed.segmentData
             geoStart = int(geoImportAddr, 16)
             if context.scene.geoIsSegPtr:
@@ -1634,7 +1634,7 @@ def sm64_geo_parser_register():
 
     bpy.types.Scene.geoImportAddr = bpy.props.StringProperty(name="Start Address", default="1F1D60")
     bpy.types.Scene.generateArmature = bpy.props.BoolProperty(name="Generate Armature?", default=True)
-    bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
+    bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="hmc")
     bpy.types.Scene.ignoreSwitch = bpy.props.BoolProperty(name="Ignore Switch Nodes", default=True)
 
 

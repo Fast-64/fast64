@@ -23,8 +23,8 @@ from .operators import (
 
 
 class OOT_ExportScenePanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_level"
-    bl_label = "OOT Scene Exporter"
+    bl_idname = "Z64_PT_export_level"
+    bl_label = "Scene Exporter"
 
     def drawSceneSearchOp(self, layout: UILayout, enumValue: str, opName: str):
         searchBox = layout.box().row()

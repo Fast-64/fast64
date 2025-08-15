@@ -17,7 +17,7 @@ class OOT_LinkAnimPanel(Panel):
     @classmethod
     def poll(cls, context):
         return (
-            context.scene.gameEditorMode == "OOT"
+            context.scene.gameEditorMode in {"OOT", "MM"}
             and hasattr(context, "object")
             and context.object is not None
             and isinstance(context.object.data, Armature)
@@ -33,8 +33,8 @@ class OOT_LinkAnimPanel(Panel):
 
 
 class OOT_ExportAnimPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_anim"
-    bl_label = "OOT Animation Exporter"
+    bl_idname = "Z64_PT_export_anim"
+    bl_label = "Animation Exporter"
 
     # called every frame
     def draw(self, context):

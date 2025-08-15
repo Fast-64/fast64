@@ -3,7 +3,6 @@ from bpy.props import PointerProperty
 
 from .f3d_parser import *
 from .f3d_material import *
-from .f3d_render_engine import *
 from .f3d_gbi import *
 from .bsdf_converter import F3D_BSDFConverterProperties, bsdf_converter_register, bsdf_converter_unregister
 

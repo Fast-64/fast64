@@ -16,7 +16,7 @@ class OOTSplinePanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (
+        return context.scene.gameEditorMode in {"OOT", "MM"} and (
             context.object is not None and type(context.object.data) == Curve
         )
 

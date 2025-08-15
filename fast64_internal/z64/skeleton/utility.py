@@ -1,4 +1,6 @@
+import dataclasses
 import mathutils, bpy, os, re
+from typing import Optional
 from ...utility_anim import armatureApplyWithMesh
 from ..model_classes import OOTVertexGroupInfo
 from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
@@ -21,12 +23,19 @@ from ...utility import (
 )
 
 
-def ootGetSkeleton(skeletonData, skeletonName, continueOnError):
-    # TODO: Does this handle non flex skeleton?
+@dataclasses.dataclass
+class SkeletonInfo:
+    start: int
+    end: int
+    limbs_name: str
+    uses_include: bool
+
+
+def ootGetSkeleton(skeletonData: str, skeletonName: str, continueOnError: bool):
     matchResult = re.search(
-        "(Flex)?SkeletonHeader\s*"
+        r"(Flex)?SkeletonHeader\s*"
         + re.escape(skeletonName)
-        + "\s*=\s*\{\s*\{?\s*([^,\s]*)\s*,?\s*([^,\s\}]*)\s*\}?\s*(,\s*([^,\s]*))?\s*\}\s*;\s*",
+        + r"\s*=\s*\{\s*\{?\s*([^,\s]*)\s*,?\s*([^,\s\}]*)\s*\}?\s*(,\s*([^,\s]*))?\s*\}\s*;\s*",
         skeletonData,
     )
     if matchResult is None:
@@ -34,12 +43,29 @@ def ootGetSkeleton(skeletonData, skeletonName, continueOnError):
             return None
         else:
             raise PluginError("Cannot find skeleton named " + skeletonName)
-    return matchResult
+
+    if "#include" in matchResult.group(0):
+        uses_include = True
+        split = get_include_data(matchResult.group(3), strip=True).replace("{", "").replace(",}", "").split(",")
+        limbs_name = split[0]
+    else:
+        uses_include = False
+        limbs_name = matchResult.group(2)
+
+    return SkeletonInfo(matchResult.start(0), matchResult.end(0), limbs_name, uses_include)
+
+
+@dataclasses.dataclass
+class LimbsInfo:
+    start: int
+    end: int
+    limb_list: list[str]
+    uses_include: bool
 
 
 def ootGetLimbs(skeletonData, limbsName, continueOnError):
     matchResult = re.search(
-        "(static\s*)?void\s*\*\s*" + re.escape(limbsName) + "\s*\[\s*[0-9]*\s*\]\s*=\s*\{([^\}]*)\}\s*;\s*",
+        r"(static\s*)?void\s*\*\s*" + re.escape(limbsName) + r"\s*\[\s*[0-9]*\s*\]\s*=\s*\{([^\}]*)\}\s*;\s*",
         skeletonData,
         re.DOTALL,
     )
@@ -48,36 +74,65 @@ def ootGetLimbs(skeletonData, limbsName, continueOnError):
             return None
         else:
             raise PluginError("Cannot find skeleton limbs named " + limbsName)
-    return matchResult
+
+    if "#include" in matchResult.group(0):
+        uses_include = True
+        limbsData = removeComments(get_include_data(matchResult.group(2)))
+    else:
+        uses_include = False
+        limbsData = matchResult.group(2)
+
+    limb_list = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
+
+    return LimbsInfo(matchResult.start(0), matchResult.end(0), limb_list, uses_include)
+
+
+@dataclasses.dataclass
+class LimbInfo:
+    start: int
+    end: int
+    translationX_str: str
+    translationY_str: str
+    translationZ_str: str
+    nextChildIndex_str: str
+    nextSiblingIndex_str: str
+    is_lod: bool
+    dl_name: str
+    far_dl_name: Optional[str]
+    uses_include: bool
 
 
 def ootGetLimb(skeletonData, limbName, continueOnError):
-    matchResult = re.search(
+    matchResultIni = re.search(
         r"([A-Za-z0-9\_]*)Limb\s*" + re.escape(limbName) + r"\s*=\s*\{(.*?)\s*\}\s*;",
         skeletonData,
         re.DOTALL | re.MULTILINE,
     )
 
-    if matchResult is None:
+    if matchResultIni is None:
         if continueOnError:
             return None
         else:
             raise PluginError("Cannot find skeleton limb named " + limbName)
 
-    result = matchResult.group(2)
+    result = matchResultIni.group(2)
     if "#include" in result:
+        uses_include = True
         limb_data = removeComments(get_include_data(result))
     else:
+        uses_include = False
         limb_data = result
 
-    limbType = matchResult.group(1)
+    limbType = matchResultIni.group(1)
     if limbType == "Lod":
-        dlRegex = "\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,?\}"
+        is_lod = True
+        dlRegex = r"\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,?\}"
     else:
-        dlRegex = "([^,\s]*)"
+        is_lod = False
+        dlRegex = r"([^,\s]*)"
 
     matchResult = re.search(
-        "\{([^,\s]*),([^,\s]*),([^,\s]*),?\},([^,]*),([^,]*),\{?" + dlRegex,
+        r"\{([^,\s]*),([^,\s]*),([^,\s]*),?\},([^,]*),([^,]*),\{?" + dlRegex,
         limb_data.replace("\n", "").replace(" ", ""),
         re.DOTALL,
     )
@@ -87,7 +142,33 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
             return None
         else:
             raise PluginError("Cannot handle skeleton limb named " + limbName + " of type " + limbType)
-    return matchResult
+
+    translationX_str = matchResult.group(1)
+    translationY_str = matchResult.group(2)
+    translationZ_str = matchResult.group(3)
+    nextChildIndex_str = matchResult.group(4)
+    nextSiblingIndex_str = matchResult.group(5)
+
+    dl_name = matchResult.group(6)
+
+    if is_lod:
+        far_dl_name = matchResult.group(7)
+    else:
+        far_dl_name = None
+
+    return LimbInfo(
+        matchResultIni.start(0),
+        matchResultIni.end(0),
+        translationX_str,
+        translationY_str,
+        translationZ_str,
+        nextChildIndex_str,
+        nextSiblingIndex_str,
+        is_lod,
+        dl_name,
+        far_dl_name,
+        uses_include,
+    )
 
 
 def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
@@ -142,33 +223,29 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
     skeletonDataH = readFile(headerPath)
     originalDataH = skeletonDataH
 
-    data = ootGetSkeleton(skeletonDataC, skeletonName, True)
-    matchResult = data[0]
-    limbsName = data[1]
+    skel_info = ootGetSkeleton(skeletonDataC, skeletonName, True)
 
-    if matchResult is None:
+    if skel_info is None:
         return
-    skeletonDataC = skeletonDataC[: matchResult.start(0)] + skeletonDataC[matchResult.end(0) :]
+    skeletonDataC = skeletonDataC[: skel_info.start] + skeletonDataC[skel_info.end :]
 
     headerMatch = getDeclaration(skeletonDataH, skeletonName)
     if headerMatch is not None:
         skeletonDataH = skeletonDataH[: headerMatch.start(0)] + skeletonDataH[headerMatch.end(0) :]
 
-    matchResult = ootGetLimbs(skeletonDataC, limbsName, True)
-    if matchResult is None:
+    limbs_info = ootGetLimbs(skeletonDataC, skel_info.limbs_name, True)
+    if limbs_info is None:
         return
-    skeletonDataC = skeletonDataC[: matchResult.start(0)] + skeletonDataC[matchResult.end(0) :]
-    limbsData = matchResult.group(2)
-    limbList = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
+    skeletonDataC = skeletonDataC[: limbs_info.start] + skeletonDataC[limbs_info.end :]
 
-    headerMatch = getDeclaration(skeletonDataH, limbsName)
+    headerMatch = getDeclaration(skeletonDataH, skel_info.limbs_name)
     if headerMatch is not None:
         skeletonDataH = skeletonDataH[: headerMatch.start(0)] + skeletonDataH[headerMatch.end(0) :]
 
-    for limb in limbList:
-        matchResult = ootGetLimb(skeletonDataC, limb, True)
-        if matchResult is not None:
-            skeletonDataC = skeletonDataC[: matchResult.start(0)] + skeletonDataC[matchResult.end(0) :]
+    for limb in limbs_info.limb_list:
+        limb_info = ootGetLimb(skeletonDataC, limb, True)
+        if limb_info is not None:
+            skeletonDataC = skeletonDataC[: limb_info.start] + skeletonDataC[limb_info.end :]
         headerMatch = getDeclaration(skeletonDataH, limb)
         if headerMatch is not None:
             skeletonDataH = skeletonDataH[: headerMatch.start(0)] + skeletonDataH[headerMatch.end(0) :]

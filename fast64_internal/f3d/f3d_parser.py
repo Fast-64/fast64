@@ -2010,7 +2010,7 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
     if pathMatch is not None:
         path = pathMatch.group(1)
-        if bpy.context.scene.gameEditorMode == "OOT":
+        if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
             path = str(oot_get_assets_path(path, check_exists=False))
         data = readFile(f3dContext.getVTXPathFromInclude(path))
 
@@ -2116,7 +2116,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
-        is_oot = bpy.context.scene.gameEditorMode == "OOT"
+        is_oot = bpy.context.scene.gameEditorMode in {"OOT", "MM"}
         if is_oot:
             path = str(oot_get_assets_path(path, check_exists=False))
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path, is_oot))
