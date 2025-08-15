@@ -322,7 +322,7 @@ enumRenderModesCycle2 = [
     ("G_RM_AA_ZB_XLU_DECAL2", "Transparent Decal", "G_RM_AA_ZB_XLU_DECAL2"),
     ("G_RM_AA_ZB_XLU_INTER2", "Transparent Intersecting", "G_RM_AA_ZB_XLU_INTER2"),
     ("G_RM_ADD2", "Add", "G_RM_ADD2"),
-    ("G_RM_NOOP", "No Op", "G_RM_NOOP"),
+    ("G_RM_NOOP2", "No Op", "G_RM_NOOP2"),
     ("G_RM_ZB_OPA_SURF2", "Opaque (No AA)", "G_RM_ZB_OPA_SURF2"),
     ("G_RM_ZB_OPA_DECAL2", "Opaque Decal (No AA)", "G_RM_ZB_OPA_DECAL2"),
     ("G_RM_ZB_XLU_SURF2", "Transparent (No AA)", "G_RM_ZB_XLU_SURF2"),
@@ -400,6 +400,19 @@ enumF3D = [
     ("", "Homebrew", "", 8),
     ("RDPQ", "RDPQ", "Base libdragon microcode", 9),
     ("T3D", "Tiny3D", "Custom libdragon microcode by HailToDodongo", 10),
+]
+
+enumPackedNormalsAlgorithm = [
+    (
+        "565",
+        "565 (T3D, new EX3)",
+        "Packing algorithm by HailToDodongo used by Tiny3D and newer F3DEX3, simply concatenates 5, 6, and 5 bits of X, Y, Z",
+    ),
+    (
+        "Octahedral",
+        "Octahedral (old EX3)",
+        "Packing algorithm by Sauraen used in older F3DEX3, based on octahedral encoding",
+    ),
 ]
 
 enumLargeEdges = [
