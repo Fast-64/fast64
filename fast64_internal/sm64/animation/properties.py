@@ -29,7 +29,7 @@ from ...utility import (
 from ...utility_anim import getFrameInterval
 
 from ..sm64_utility import import_rom_ui_warnings, int_from_str, string_int_prop, string_int_warning
-from ..sm64_constants import MAX_U16, MIN_S16, MAX_S16, level_enums
+from ..sm64_constants import MAX_U16, MIN_S16, MAX_S16, enumLevelNames
 
 from .operators import (
     OperatorBase,
@@ -675,7 +675,7 @@ class SM64_AnimImportProperties(PropertyGroup):
     table_address: StringProperty(name="Address", default=intToHex(0x0600FC48))  # Toad
     animation_address: StringProperty(name="Address", default=intToHex(0x0600B75C))
     is_segmented_address_prop: BoolProperty(name="Is Segmented Address", default=True)
-    level: EnumProperty(items=level_enums, name="Level", default="IC")
+    level: EnumProperty(items=enumLevelNames, name="Level", default="castle_inside")
     dma_table_address: StringProperty(name="DMA Table Address", default="0x4EC000")
 
     read_from_rom: BoolProperty(

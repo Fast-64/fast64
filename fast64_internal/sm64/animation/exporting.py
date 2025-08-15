@@ -971,7 +971,7 @@ def export_animation(context: Context, obj: Object):
                 action_props,
                 anim_props,
                 bone_count,
-                combined_props.binary_level,
+                combined_props.level_name,
                 sm64_props.extend_bank_4,
             )
     else:
@@ -1025,7 +1025,7 @@ def export_animation_table(context: Context, obj: Object):
                 anim_props,
                 table,
                 anim_props.is_dma,
-                combined_props.binary_level,
+                combined_props.level_name,
                 sm64_props.extend_bank_4,
             )
     else:

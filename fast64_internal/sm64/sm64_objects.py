@@ -34,7 +34,6 @@ from ..f3d.f3d_gbi import (
 
 from .sm64_constants import (
     levelIDNames,
-    level_enums,
     enumLevelNames,
     enumModelIDs,
     enumMacrosNames,
@@ -2021,7 +2020,6 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         name="Selected Action",
         description="Animation export will only export the armature's current action like in older versions of fast64",
     )
-    binary_level: bpy.props.EnumProperty(items=level_enums, name="Level", default="IC")
     insertable_directory: bpy.props.StringProperty(name="Directory Path", subtype="FILE_PATH")
 
     # export options
@@ -2230,7 +2228,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             col.prop(self, "export_single_action")
         if export_type == "Binary":
             if not is_dma:
-                prop_split(col, self, "binary_level", "Level")
+                prop_split(col, self, "level_name", "Level")
         elif export_type == "Insertable Binary":
             prop_split(col, self, "insertable_directory", "Directory")
 
