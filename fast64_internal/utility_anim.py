@@ -112,6 +112,8 @@ def getRotationRelativeToRest(bone: bpy.types.Bone, inputEuler: mathutils.Euler)
 
 
 def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Context):
+    from .utility import selectSingleObject
+
     for child in armatureObj.children:
         if child.type != "MESH":
             continue
@@ -122,14 +124,12 @@ def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Cont
         if armatureModifier is None:
             continue
 
-        bpy.ops.object.select_all(action="DESELECT")
-        context.view_layer.objects.active = child
+        selectSingleObject(child)
         bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
         print(len(child.modifiers))
         attemptModifierApply(armatureModifier)
 
-    bpy.ops.object.select_all(action="DESELECT")
-    context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.mode_set(mode="POSE")
     bpy.ops.pose.armature_apply()
     if context.mode != "OBJECT":
