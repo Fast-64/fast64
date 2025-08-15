@@ -1930,10 +1930,6 @@ def create_or_get_world(scene: Scene) -> World:
         return bpy.data.worlds.new("Fast64")
 
 
-def as_posix(path: Path) -> str:
-    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
-
-
 def set_if_different(owner: object, prop: str, value):
     if getattr(owner, prop) != value:
         setattr(owner, prop, value)
@@ -1963,11 +1959,8 @@ def wrap_func_with_error_message(error_message: Callable):
     return decorator
 
 
-def to_valid_file_name(name: str):
-    """Replace any invalid characters with an underscore"""
-    valid_chars = set(string.ascii_letters + string.digits) | {"."}
-    valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
-    return "".join(c if c in valid_chars else "_" for c in name)
+def as_posix(path: Path) -> str:
+    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
 
 
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):

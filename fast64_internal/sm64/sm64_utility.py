@@ -299,6 +299,8 @@ def write_or_delete_if_found(
     always replace the file.
     error_if_no_header/error_if_no_footer will raise errors if the header/footer is not found.
     ignore_comments will ignore comments in the file, possibly breaking the search for matches.
+    header defines the start of a writable area in the file
+    footer defines the end of a writable area in the file after the header, the footer expects a header beforehand
 
     Returns True if the file was modified.
     """
@@ -442,7 +444,7 @@ def update_actor_includes(
         )
 
     if write_includes_with_alternate(data_path, data_includes):
-        print(f"Updated data includes at {header_path}.")
+        print(f"Updated data includes at {data_path}.")
     if write_includes_with_alternate(header_path, header_includes, before_endif=True):
         print(f"Updated header includes at {header_path}.")
     if write_includes_with_alternate(geo_path, geo_includes):
