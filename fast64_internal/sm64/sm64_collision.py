@@ -28,6 +28,7 @@ from ..utility import (
     tempName,
     bytesToHex,
     applyRotation,
+    selectSingleObject,
 )
 
 
@@ -366,8 +367,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath, includeSpeci
 
 
 def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, name, areaIndex):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}
@@ -376,7 +376,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     try:
         addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
         if not collisionDict:
-            raise PluginError("No collision data to export")
+            raise PluginError("No collision data to export", PluginError.exc_warn)
         cleanupDuplicatedObjects(allObjs)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
