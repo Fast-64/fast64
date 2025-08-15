@@ -1,3 +1,4 @@
+from pathlib import Path
 import bpy, os, copy, shutil, mathutils, math
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
@@ -14,7 +15,6 @@ from ..utility import (
     decodeSegmentedAddr,
     getExportDir,
     toAlnum,
-    writeIfNotFound,
     get64bitAlignedAddr,
     writeInsertableFile,
     getFrameInterval,
@@ -43,7 +43,7 @@ from .sm64_constants import (
     marioAnimations,
 )
 
-from .sm64_utility import export_rom_checks, import_rom_checks
+from .sm64_utility import export_rom_checks, import_rom_checks, update_actor_includes, write_includes
 
 sm64_anim_types = {"ROTATE", "TRANSLATE"}
 
@@ -231,12 +231,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
     headerFile.write("extern const struct Animation *const " + animsName + "[];\n")
     headerFile.close()
 
-    # write to data.inc.c
-    dataFilePath = os.path.join(animDirPath, "data.inc.c")
-    if not os.path.exists(dataFilePath):
-        dataFile = open(dataFilePath, "w", newline="\n")
-        dataFile.close()
-    writeIfNotFound(dataFilePath, '#include "' + animFileName + '"\n', "")
+    write_includes(Path(animDirPath, "data.inc.c"), [Path(animFileName)])
 
     # write to table.inc.c
     tableFilePath = os.path.join(animDirPath, "table.inc.c")
@@ -272,23 +267,17 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
         with open(tableFilePath, "w") as f:
             f.write(stringData)
 
-    if not customExport:
-        if headerType == "Actor":
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/anims/data.inc.c"', "")
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/anims/table.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + dirName + '/anim_header.h"', "#endif")
-        elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/anims/data.inc.c"', "")
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/anims/table.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + dirName + '/anim_header.h"', "\n#endif"
-            )
+    if customExport:
+        headerType = "Custom"
+    update_actor_includes(
+        headerType,
+        groupName,
+        Path(dirPath),
+        dirName,
+        levelName,
+        [Path("anims", "data.inc.c"), Path("anims", "table.inc.c")],
+        [Path("anim_header.h")],
+    )
 
 
 def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses, segmentData, isDMA, loopAnim):
