@@ -534,11 +534,6 @@ def enableExtendedRAM(baseDir):
         segmentFile.close()
 
 
-def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.c"), "\n" + matCInclude, "")
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.h"), "\n" + matHInclude, "#endif")
-
-
 def writeMaterialFiles(
     exportDir, assetDir, headerInclude, matHInclude, headerDynamic, dynamic_data, geoString, customExport
 ):
@@ -771,40 +766,6 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         dataFile.close()
     else:
         raise PluginError(filePath + " does not exist.")
-
-
-def writeIfNotFound(filePath, stringValue, footer):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue not in stringData:
-            if len(footer) > 0:
-                footerIndex = stringData.rfind(footer)
-                if footerIndex == -1:
-                    raise PluginError("Footer " + footer + " does not exist.")
-                stringData = stringData[:footerIndex] + stringValue + "\n" + stringData[footerIndex:]
-            else:
-                stringData += stringValue
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-    else:
-        raise PluginError(filePath + " does not exist.")
-
-
-def deleteIfFound(filePath, stringValue):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue in stringData:
-            stringData = stringData.replace(stringValue, "")
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
 
 
 def yield_children(obj: bpy.types.Object):
@@ -1570,18 +1531,26 @@ def normToSigned8Vector(normal):
 
 def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
     assert isinstance(packedNormal, int) and packedNormal >= 0 and packedNormal <= 0xFFFF
-    xo, yo = packedNormal >> 8, packedNormal & 0xFF
-    # This is following the instructions in F3DEX3
-    x, y = xo & 0x7F, yo & 0x7F
-    z = x + y
-    zNeg = bool(z & 0x80)
-    x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
-    z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
-    if zNeg:
-        x, y = x2, y2
-    x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
-    z = z - 0x100 if z & 0x80 else z
-    assert abs(x) + abs(y) + abs(z) == 127
+    if bpy.context.scene.packed_normals_algorithm == "565":
+        x = packedNormal & 0xF800
+        y = (packedNormal & 0x07E0) << 5
+        z = (packedNormal & 0x001F) << 11
+        x, y, z = tuple(map(lambda n: (n - 0x10000 if n & 0x8000 else n), (x, y, z)))
+    elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
+        xo, yo = packedNormal >> 8, packedNormal & 0xFF
+        # This is following the instructions in F3DEX3
+        x, y = xo & 0x7F, yo & 0x7F
+        z = x + y
+        zNeg = bool(z & 0x80)
+        x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
+        z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
+        if zNeg:
+            x, y = x2, y2
+        x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
+        z = z - 0x100 if z & 0x80 else z
+        assert abs(x) + abs(y) + abs(z) == 127
+    else:
+        raise PluginError("Invalid packed normals algorithm")
     return x, y, z
 
 
@@ -1591,24 +1560,41 @@ def unpackNormal(packedNormal: int) -> Vector:
 
 
 def packNormal(normal: Vector) -> int:
-    # Convert standard normal to constant-L1 normal
-    assert len(normal) == 3
-    l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
-    xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
-    if abs(xo) + abs(yo) > 127:
-        yo = int(math.copysign(127 - abs(xo), yo))
-    zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
-    assert abs(xo) + abs(yo) + abs(zo) == 127
-    # Pack normals
-    xsign, ysign = xo & 0x80, yo & 0x80
-    x, y = abs(xo), abs(yo)
-    if zo < 0:
-        x, y = 0x7F - x, 0x7F - y
-    x, y = x | xsign, y | ysign
-    packedNormal = x << 8 | y
-    # The only error is in the float to int rounding above. The packing and unpacking
-    # will precisely restore the original int values.
-    assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    if bpy.context.scene.packed_normals_algorithm == "565":
+
+        def convertComponent(v: float, range: int):
+            v = int(round(v * float(range)))
+            v = min(max(v, -range), range - 1)
+            v = v if v >= 0 else v + 2 * range
+            return v
+
+        x = convertComponent(normal[0], 16) << 11
+        y = convertComponent(normal[1], 32) << 5
+        z = convertComponent(normal[2], 16)
+        assert (x & y) == 0 and (y & z) == 0 and (x & z) == 0
+        packedNormal = x | y | z
+        assert packedNormal >= 0 and packedNormal <= 0xFFFF
+    elif bpy.context.scene.packed_normals_algorithm == "Octahedral":
+        # Convert standard normal to constant-L1 normal
+        assert len(normal) == 3
+        l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
+        xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
+        if abs(xo) + abs(yo) > 127:
+            yo = int(math.copysign(127 - abs(xo), yo))
+        zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
+        assert abs(xo) + abs(yo) + abs(zo) == 127
+        # Pack normals
+        xsign, ysign = xo & 0x80, yo & 0x80
+        x, y = abs(xo), abs(yo)
+        if zo < 0:
+            x, y = 0x7F - x, 0x7F - y
+        x, y = x | xsign, y | ysign
+        packedNormal = x << 8 | y
+        # The only error is in the float to int rounding above. The packing and unpacking
+        # will precisely restore the original int values.
+        assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    else:
+        raise PluginError("Invalid packed normals algorithm")
     return packedNormal
 
 
@@ -1744,9 +1730,11 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
-def removeComments(text: str):
-    # https://stackoverflow.com/a/241506
+# https://stackoverflow.com/a/241506
+COMMENT_PATTERN = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
 
+
+def removeComments(text: str):
     def replacer(match: re.Match[str]):
         s = match.group(0)
         if s.startswith("/"):
@@ -1754,9 +1742,7 @@ def removeComments(text: str):
         else:
             return s
 
-    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
-
-    return re.sub(pattern, replacer, text)
+    return re.sub(COMMENT_PATTERN, replacer, text)
 
 
 binOps = {
@@ -1953,6 +1939,10 @@ def wrap_func_with_error_message(error_message: Callable):
         return wrapper
 
     return decorator
+
+
+def as_posix(path: Path) -> str:
+    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
 
 
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):

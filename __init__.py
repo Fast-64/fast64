@@ -36,7 +36,6 @@ from .fast64_internal.f3d.f3d_material import (
     mat_unregister,
     check_or_ask_color_management,
 )
-from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
@@ -94,6 +93,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "Microcode")
+        if context.scene.f3d_type in {"F3DEX3", "T3D"}:
+            prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
@@ -426,7 +427,6 @@ def register():
     initOOTActorProperties()
     utility_anim_register()
     mat_register()
-    render_engine_register()
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
@@ -481,7 +481,6 @@ def unregister():
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
-    render_engine_unregister()
 
     del bpy.types.Scene.fullTraceback
     del bpy.types.Scene.ignoreTextureRestrictions
