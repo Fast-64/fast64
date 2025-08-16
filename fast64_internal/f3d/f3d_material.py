@@ -244,7 +244,7 @@ def update_draw_layer(self, context):
         drawLayer = material.f3d_mat.draw_layer
         if context.scene.gameEditorMode == "SM64":
             drawLayer.oot = drawLayerSM64toOOT[drawLayer.sm64]
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             if material.f3d_mat.draw_layer.oot == "Opaque":
                 if int(material.f3d_mat.draw_layer.sm64) > 4:
                     material.f3d_mat.draw_layer.sm64 = "1"
@@ -1124,7 +1124,7 @@ class F3DPanel(Panel):
     def ui_draw_layer(self, material, layout, context):
         if context.scene.gameEditorMode == "SM64":
             prop_split(layout, material.f3d_mat.draw_layer, "sm64", "Draw Layer")
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
     def ui_misc(self, f3dMat: "F3DMaterialProperty", inputCol: UILayout, showCheckBox: bool) -> None:
@@ -1170,10 +1170,29 @@ class F3DPanel(Panel):
             if showCheckBox:
                 inputGroup.prop(f3dMat, "set_fog", text="Set Fog")
             if f3dMat.set_fog:
-                inputGroup.prop(f3dMat, "use_global_fog", text="Use Global Fog (SM64)")
-                if f3dMat.use_global_fog:
-                    inputGroup.label(text="Only applies to levels (area fog settings).", icon="INFO")
-                else:
+                draw_fog = True
+                if bpy.context.scene.gameEditorMode == "SM64":
+                    obj, area_obj = bpy.context.object.parent, None
+                    while obj:
+                        if obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.fast64.sm64.area.set_fog:
+                            area_obj = obj
+                            break
+                        obj = obj.parent
+                    if area_obj:
+                        inputGroup.prop(f3dMat, "use_global_fog", text=f'Use Area "{area_obj.name}"\'s Fog')
+                        if f3dMat.use_global_fog:
+                            settings_col = inputGroup.column()
+                            settings_col.enabled = not f3dMat.use_global_fog
+                            prop_split(settings_col.row(), area_obj, "area_fog_color", "Fog Color")
+                            prop_split(settings_col.row(), area_obj, "area_fog_position", "Fog Range")
+                            draw_fog = False
+                    else:
+                        # show setting for preview
+                        inputGroup.prop(f3dMat, "use_global_fog", text="Use Area's Fog")
+                        inputGroup.label(
+                            text="Preview only in this context, no area fog settings to pick up", icon="INFO"
+                        )
+                if draw_fog:
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
@@ -1826,7 +1845,11 @@ def update_fog_nodes(material: Material, context: Context):
     else:  # If fog is not being calculated, pass in shade alpha
         material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
 
-    if f3dMat.use_global_fog or not f3dMat.set_fog or inherit_light_and_fog():  # Inherit fog
+    if (
+        (bpy.context.scene.gameEditorMode == "SM64" and f3dMat.use_global_fog)
+        or not f3dMat.set_fog
+        or inherit_light_and_fog()
+    ):  # Inherit fog
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
         link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
@@ -2326,9 +2349,9 @@ def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = Fa
     use_dict = all_combiner_uses(f3d_mat)
     textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
     textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
-    tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
+    tlut_modes = [tex.tlut_mode for tex in textures]
     if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
-        return "G_TT_" + tlut_modes[0]
+        return tlut_modes[0]
     return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
 
 
@@ -2506,8 +2529,6 @@ def load_handler(dummy):
         if mat is not None and mat.use_nodes and mat.is_f3d:
             rendermode_preset_to_advanced(mat)
 
-
-bpy.app.handlers.load_post.append(load_handler)
 
 SCENE_PROPERTIES_VERSION = 2
 
@@ -3049,6 +3070,15 @@ class TextureProperty(PropertyGroup):
     )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
+    @property
+    def is_ci(self):
+        self.tex_format: str
+        return self.tex_format.startswith("CI")
+
+    @property
+    def tlut_mode(self):
+        return f"G_TT_{self.ci_format if self.is_ci else 'NONE'}"
+
     def get_tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
@@ -3112,6 +3142,7 @@ def ui_image(
     textureProp: TextureProperty,
     name: str,
     showCheckBox: bool,
+    hide_lowhigh=False,
 ):
     is_fdzex_ac = bpy.context.scene.f3d_type == "F3DZEX2 (Emu64)"
     inputGroup = layout.box().column()
@@ -3229,7 +3260,8 @@ def ui_image(
                 shift = prop_input.row()
                 shift.prop(s, "shift", text="Shift S")
                 shift.prop(t, "shift", text="Shift T")
-
+                if hide_lowhigh:
+                    return
                 low = prop_input.row()
                 low.prop(s, "low", text="S Low")
                 low.prop(t, "low", text="T Low")
@@ -4102,10 +4134,6 @@ class CelLevelRemove(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
-
-
 class ApplyMaterialPresetOperator(Operator):
     bl_idname = "material.f3d_preset_apply"
     bl_label = "Apply F3D Material Preset"
@@ -4115,10 +4143,6 @@ class ApplyMaterialPresetOperator(Operator):
     def execute(self, context: Context):
         material_apply_preset(context.material, self.filepath)
         return {"FINISHED"}
-
-
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
 
 
 # modules/bpy_types.py -> Menu
@@ -4140,13 +4164,19 @@ class MATERIAL_MT_f3d_presets(Menu):
         ext_valid = getattr(self, "preset_extensions", {".py", ".xml"})
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
-        presetDir = getCurrentPresetDir()
 
+        game = bpy.context.scene.gameEditorMode.lower()
         paths = bpy.utils.preset_paths("f3d/user")
         if not bpy.context.scene.f3dUserPresetsOnly:
-            paths += bpy.utils.preset_paths(presetDir)
-            if bpy.context.scene.f3d_type == "F3DEX3":
-                paths += bpy.utils.preset_paths(f"{presetDir}_f3dex3")
+            if game == "sm64":
+                if bpy.context.scene.fast64.sm64.lighting_engine_presets:
+                    paths += bpy.utils.preset_paths("f3d/sm64_lighting_engine")
+                else:
+                    paths += bpy.utils.preset_paths("f3d/sm64")
+            elif game == "oot":
+                paths += bpy.utils.preset_paths("f3d/oot")
+                if bpy.context.scene.f3d_type == "F3DEX3":
+                    paths += bpy.utils.preset_paths("f3d/oot_f3dex3")
         self.path_menu(
             paths,
             self.preset_operator,
@@ -5126,6 +5156,7 @@ def mat_register():
     Scene.f3d_type = bpy.props.EnumProperty(
         name="Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
+    Scene.packed_normals_algorithm = bpy.props.EnumProperty(name="Packed normals alg", items=enumPackedNormalsAlgorithm)
 
     # RDP Defaults
     World.rdp_defaults = bpy.props.PointerProperty(type=RDPSettings)
@@ -5162,10 +5193,13 @@ def mat_register():
     Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
+    bpy.app.handlers.load_post.append(load_handler)
 
 
 def mat_unregister():
     VIEW3D_HT_header.remove(draw_f3d_render_settings)
+    while load_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_handler)
 
     del Material.menu_tab
     del Material.f3d_mat

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
@@ -6,8 +7,15 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
-from ..sm64_constants import defaultExtendSegment4
+from ...utility import (
+    directory_path_checks,
+    directory_ui_warnings,
+    prop_split,
+    set_prop_if_in_data,
+    upgrade_old_prop,
+    get_first_set_prop,
+)
+from ..sm64_constants import defaultExtendSegment4, OLD_BINARY_LEVEL_ENUMS
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
@@ -22,17 +30,17 @@ from .constants import (
 
 def decomp_path_update(self, context: Context):
     fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
+    if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    directory_path_checks(self.abs_decomp_path)
+    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 4  # version after property migration
+    cur_version = 5  # version after property migration
 
     # UI Selection
     show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
@@ -80,10 +88,25 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    lighting_engine_presets: BoolProperty(name="Lighting Engine Presets")
+    write_all: BoolProperty(
+        name="Write All",
+        description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
+    )
 
     @property
     def binary_export(self):
-        return self.export_type in ["Binary", "Insertable Binary"]
+        return self.export_type in {"Binary", "Insertable Binary"}
+
+    @property
+    def abs_decomp_path(self) -> Path:
+        return Path(abspath(self.decomp_path))
+
+    @property
+    def gfx_write_method(self):
+        from ...f3d.f3d_gbi import GfxMatWriteMethod
+
+        return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
     @staticmethod
     def upgrade_changed_props():
@@ -99,16 +122,22 @@ class SM64_Properties(PropertyGroup):
             "exportType": "export_type",
         }
         old_export_props_to_new = {
-            "custom_group_name": {"geoLevelName", "colLevelName", "animLevelName"},
-            "custom_export_path": {"geoExportPath", "colExportPath", "animExportPath"},
+            "custom_level_name": {"levelName", "geoLevelName", "colLevelName", "animLevelName", "DLLevelName"},
+            "custom_export_path": {"geoExportPath", "colExportPath", "animExportPath", "DLExportPath"},
             "object_name": {"geoName", "colName", "animName"},
-            "group_name": {"geoGroupName", "colGroupName", "animGroupName"},
-            "level_name": {"levelOption", "geoLevelOption", "colLevelOption", "animLevelOption"},
-            "custom_level_name": {"levelName", "geoLevelName", "colLevelName", "animLevelName"},
+            "group_name": {"geoGroupName", "colGroupName", "animGroupName", "DLGroupName"},
+            "level_name": {"levelOption", "geoLevelOption", "colLevelOption", "animLevelOption", "DLLevelOption"},
             "non_decomp_level": {"levelCustomExport"},
-            "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
-            "custom_include_directory": {"geoTexDir"},
+            "export_header_type": {
+                "geoExportHeaderType",
+                "colExportHeaderType",
+                "animExportHeaderType",
+                "DLExportHeaderType",
+            },
+            "custom_include_directory": {"geoTexDir", "DLTexDir"},
         }
+        binary_level_names = {"levelAnimExport", "colExportLevel", "levelDLExport", "levelGeoExport"}
+        old_custom_props = {"animCustomExport", "colCustomExport", "geoCustomExport", "DLCustomExport"}
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
             sm64_props.address_converter.upgrade_changed_props(scene)
@@ -129,9 +158,12 @@ class SM64_Properties(PropertyGroup):
                 upgrade_old_prop(sm64_props, new, scene, old)
             upgrade_old_prop(sm64_props, "show_importing_menus", sm64_props, "showImportingMenus")
 
-            combined_props = scene.fast64.sm64.combined_export
+            combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
             for new, old in old_export_props_to_new.items():
                 upgrade_old_prop(combined_props, new, scene, old)
+            if get_first_set_prop(combined_props, old_custom_props):
+                combined_props.export_header_type = "Custom"
+            upgrade_old_prop(combined_props, "level_name", scene, binary_level_names, old_enum=OLD_BINARY_LEVEL_ENUMS)
             sm64_props.version = SM64_Properties.cur_version
 
     def to_repo_settings(self):
@@ -140,6 +172,9 @@ class SM64_Properties(PropertyGroup):
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
+        if self.matstack_fix:
+            data["lighting_engine_presets"] = self.lighting_engine_presets
+        data["write_all"] = self.write_all
         return data
 
     def from_repo_settings(self, data: dict):
@@ -147,6 +182,8 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
+        set_prop_if_in_data(self, "write_all", data, "write_all")
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
@@ -156,6 +193,9 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
         col.prop(self, "matstack_fix")
+        if self.matstack_fix:
+            col.prop(self, "lighting_engine_presets")
+        col.prop(self, "write_all")
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
@@ -173,7 +213,7 @@ class SM64_Properties(PropertyGroup):
             col.prop(self, "extend_bank_4")
         elif not self.binary_export:
             prop_split(col, self, "decomp_path", "Decomp Path")
-            directory_ui_warnings(col, abspath(self.decomp_path))
+            directory_ui_warnings(col, self.abs_decomp_path)
         col.separator()
 
         if show_repo_settings:

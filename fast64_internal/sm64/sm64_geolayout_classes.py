@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import bpy
 from struct import pack
-from copy import copy
+from copy import copy, deepcopy
 
 from ..utility import (
     PluginError,
@@ -19,7 +19,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
-from ..f3d.f3d_gbi import FModel
+from ..f3d.f3d_gbi import FMaterial, FModel, GbiMacro, GfxList
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -89,7 +89,8 @@ class GeolayoutGraph:
     def __init__(self, name):
         self.startGeolayout = Geolayout(name, True)
         # dict of Object : Geolayout
-        self.secondaryGeolayouts = {}
+        self.secondary_geolayouts: list[Geolayout] = []
+        self.secondary_geolayouts_dict: dict[object, Geolayout] = {}
         # dict of Geolayout : Geolayout List (which geolayouts are called)
         self.geolayoutCalls = {}
         self.sortedList = []
@@ -98,6 +99,11 @@ class GeolayoutGraph:
     def checkListSorted(self):
         if not self.sortedListGenerated:
             raise PluginError("Must generate sorted geolayout list first " + "before calling this function.")
+
+    @property
+    def names(self):
+        for geolayout in [self.startGeolayout] + self.secondary_geolayouts:
+            yield geolayout.name
 
     def get_ptr_addresses(self):
         self.checkListSorted()
@@ -114,9 +120,17 @@ class GeolayoutGraph:
 
         return size
 
-    def addGeolayout(self, obj, name):
+    def addGeolayout(self, obj: object | None, start_name: str):
+        name, i = start_name, 0
+        while True:
+            if name not in self.names:
+                break
+            i += 1
+            name = f"{start_name}_{i}"
         geolayout = Geolayout(name, False)
-        self.secondaryGeolayouts[obj] = geolayout
+        self.secondary_geolayouts.append(geolayout)
+        if obj is not None:
+            self.secondary_geolayouts_dict[obj] = geolayout
         return geolayout
 
     def addJumpNode(self, parentNode, caller, callee, index=None):
@@ -194,7 +208,7 @@ class GeolayoutGraph:
 
     def getDrawLayers(self):
         drawLayers = self.startGeolayout.getDrawLayers()
-        for obj, geolayout in self.secondaryGeolayouts.items():
+        for geolayout in self.secondary_geolayouts:
             drawLayers |= geolayout.getDrawLayers()
 
         return drawLayers
@@ -269,14 +283,20 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
-    bleed_independently = False  # base behavior, can be changed with obj boolProp
+    override_layer = False
+    dlRef: str | GfxList | None
 
     def get_dl_address(self):
-        if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
-            return self.dlRef or self.DLmicrocode.startAddress
+        assert not isinstance(self.dlRef, str), "dlRef string not supported in binary"
+        if isinstance(self.dlRef, GfxList):
+            return self.dlRef.startAddress
+        if self.hasDL and self.DLmicrocode is not None:
+            return self.DLmicrocode.startAddress
         return None
 
     def get_dl_name(self):
+        if isinstance(self.dlRef, GfxList):
+            return self.dlRef.name
         if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
             return self.dlRef or self.DLmicrocode.name
         return "NULL"
@@ -305,6 +325,9 @@ class TransformNode:
         self.parent = None
         self.skinned = False
         self.skinnedWithoutDL = False
+        # base behavior, can be changed with obj boolProp
+        self.revert_previous_mat = False
+        self.revert_after_mat = False
 
     def convertToDynamic(self):
         if self.node.hasDL:
@@ -352,8 +375,8 @@ class TransformNode:
         size = self.node.size() if self.node is not None else 0
         if len(self.children) > 0 and type(self.node) in nodeGroupClasses:
             size += 8  # node open/close
-            for child in self.children:
-                size += child.size()
+        for child in self.children:
+            size += child.size()
 
         return size
 
@@ -368,11 +391,11 @@ class TransformNode:
             if type(self.node) is FunctionNode:
                 raise PluginError("An FunctionNode cannot have children.")
 
-            if data[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data.extend(bytearray([GEO_NODE_OPEN, 0x00, 0x00, 0x00]))
             for child in self.children:
                 data.extend(child.to_binary(segmentData))
-            if data[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data.extend(bytearray([GEO_NODE_CLOSE, 0x00, 0x00, 0x00]))
         elif type(self.node) is SwitchNode:
             raise PluginError("A switch bone must have at least one child bone.")
@@ -411,11 +434,11 @@ class TransformNode:
         data += "\n"
 
         if len(self.children) > 0:
-            if len(command) == 0 or command[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data += "\t" * nodeLevel + "04 00 00 00\n"
             for child in self.children:
-                data += child.toTextDump(nodeLevel + 1, segmentData)
-            if len(command) == 0 or command[0] in nodeGroupCmds:
+                data += child.toTextDump(nodeLevel + (1 if type(self.node) in nodeGroupClasses else 0), segmentData)
+            if type(self.node) in nodeGroupClasses:
                 data += "\t" * nodeLevel + "05 00 00 00\n"
         elif type(self.node) is SwitchNode:
             raise PluginError("A switch bone must have at least one child bone.")
@@ -439,6 +462,7 @@ class SwitchOverrideNode:
         self.drawLayer = drawLayer
         self.overrideType = overrideType
         self.texDimensions = texDimensions  # None implies a draw layer override
+        self.hasDL = False
 
 
 class JumpNode:
@@ -469,46 +493,105 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + "),"
 
 
+LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[GfxList, dict[type, GbiMacro]]]]]
+
+
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
-        last_materials = dict()  # last used material should be kept track of per layer
+        # last used material, last used cmd list and resets per layer
+        last_materials = {}
 
-        def walk(node, last_materials):
+        def copy_last(last_materials: LastMaterials) -> LastMaterials:
+            return {dl: [lm, [(c, deepcopy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
+
+        def reset_layer(last_materials: LastMaterials, draw_layer: int) -> LastMaterials:
+            _, cmds_resets = last_materials.get(draw_layer, (None, []))
+            for i, (cmd_list, reset_cmd_dict) in enumerate(copy(cmds_resets)):
+                # only discard reset if the reset was actually applied
+                if self.add_reset_cmds(
+                    cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
+                ):
+                    cmds_resets[i] = None
+            while None in cmds_resets:
+                cmds_resets.remove(None)
+            if not cmds_resets:
+                last_materials.pop(draw_layer, 0)
+            return last_materials
+
+        def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
+            for draw_layer in copy(list(last_materials.keys())):
+                last_materials = reset_layer(last_materials, draw_layer)
+            return last_materials
+
+        def walk(node, last_materials: LastMaterials) -> LastMaterials:
+            last_materials = copy_last(last_materials)
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = (
-                            walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
-                        )
-                else:
-                    last_materials = dict()
+                        last_materials = walk(node, last_materials)
+
             fMesh = getattr(base_node, "fMesh", None)
-            if fMesh:
-                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                last_mat = last_materials.get(base_node.drawLayer, None)
+            last_mat, last_cmds_resets = None, []
+
+            if node.revert_previous_mat:
+                if fMesh is not None:
+                    # add reset commands to previous cmd lists, reset last mat and reset dict
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
+                else:
+                    last_materials = reset_all_layers(last_materials)
+
+            if fMesh is not None:
+                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
+
+                base_node: BaseDisplayListNode
+                cmd_list = base_node.DLmicrocode
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
+
+                reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}
                 last_mat = self.bleed_fmesh(
-                    fMesh,
-                    last_mat if not base_node.bleed_independently else None,
+                    last_mat,
+                    reset_cmd_dict,
                     cmd_list,
                     fModel.getAllMaterials().items(),
+                    fModel.matWriteMethod,
                     default_render_mode,
                 )
-                # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
-                if fMesh.cullVertexList:
-                    last_materials[base_node.drawLayer] = None
-                else:
-                    last_materials[base_node.drawLayer] = last_mat
-            # don't carry over last_mat if it is a switch node or geo asm node
+                last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
+                # if the mesh has culling, we must revert to avoid bleed issues
+                if fMesh.cullVertexList or node.revert_after_mat:
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
+            elif node.revert_after_mat:  # if no mesh but still forced revert, revert all
+                last_materials = reset_all_layers(last_materials)
+
+            cur_last_materials = copy_last(last_materials)
+            set_layers = set()
+            is_switch = type(base_node) in {SwitchNode}
             for child in node.children:
-                if type(base_node) in [SwitchNode, FunctionNode]:
-                    last_materials = dict()
-                last_materials = walk(child, last_materials)
+                if is_switch:  # parent node is switch or function
+                    new_materials = walk(child, cur_last_materials)  # last material info from current switch option
+                    # add switch option reverts, to either revert at the end or in the option itself
+                    for draw_layer, (last_mat, cmds_resets) in new_materials.items():
+                        # resets were added or removed in the option, therefor the option can reset that layer
+                        if cmds_resets != cur_last_materials.get(draw_layer, (None, []))[1]:
+                            set_layers.add(draw_layer)
+                        last_materials.setdefault(draw_layer, [last_mat, []])[1].extend(cmds_resets)
+                        last_materials[draw_layer][0] = None  # reset last material
+                else:
+                    last_materials = walk(child, last_materials)
+            if is_switch:
+                # if a switch took up the responsability of its reset, remove any previous reset of that layer
+                for draw_layer in set_layers:
+                    last_mat, cmds_resets = cur_last_materials.get(draw_layer, (None, []))
+                    for i in range(len(cmds_resets)):
+                        last_materials[draw_layer][1][i] = None
+                    while None in last_materials[draw_layer][1]:
+                        last_materials[draw_layer][1].remove(None)
             return last_materials
 
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
+        reset_all_layers(last_materials)
         self.clear_gfx_lists(fModel)
 
 
