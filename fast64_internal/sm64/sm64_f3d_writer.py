@@ -857,10 +857,10 @@ class ExportTexRectDrawPanel(SM64_Panel):
 class SM64_DrawLayersPanel(bpy.types.Panel):
     bl_label = "SM64 Draw Layers"
     bl_idname = "WORLD_PT_SM64_Draw_Layers_Panel"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -881,38 +881,33 @@ class SM64_DrawLayersPanel(bpy.types.Panel):
 
 
 def drawLayerUI(layout, drawLayer, world):
-    box = layout.box()
-    box.label(text="Layer " + str(drawLayer))
-    row = box.row()
+    layout.label(text="Layer " + str(drawLayer))
+    row = layout.row()
     row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_1", text="")
     row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_2", text="")
 
 
-class SM64_MaterialPanel(bpy.types.Panel):
-    bl_label = "SM64 Material"
-    bl_idname = "MATERIAL_PT_SM64_Material_Inspector"
+class SM64_ScrollPanel(bpy.types.Panel):
+    bl_label = "Scrolling"
+    bl_idname = "MATERIAL_PT_SM64_Scroll"
+    bl_parent_id = "MATERIAL_PT_SM64_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
-        return context.material is not None and context.material.is_f3d and context.scene.gameEditorMode == "SM64"
+        use_dict = all_combiner_uses(context.material.f3d_mat)
+        return use_dict["Texture 0"] or use_dict["Texture 1"]
 
     def draw(self, context):
-        layout = self.layout
+        col = self.layout.column()
         material = context.material
-        col = layout.column()
-
-        if material.mat_ver > 3:
-            f3dMat = material.f3d_mat
-        else:
-            f3dMat = material
+        f3dMat = material.f3d_mat
         useDict = all_combiner_uses(f3dMat)
 
         if useDict["Texture"]:
-            ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], "SM64 UV Texture Scroll", False)
+            ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], False)
 
 
 sm64_dl_writer_classes = (
@@ -922,7 +917,7 @@ sm64_dl_writer_classes = (
 )
 
 sm64_dl_writer_panel_classes = (
-    SM64_MaterialPanel,
+    SM64_ScrollPanel,
     SM64_DrawLayersPanel,
     SM64_ExportDLPanel,
     ExportTexRectDrawPanel,

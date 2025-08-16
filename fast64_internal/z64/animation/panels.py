@@ -7,26 +7,16 @@ from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProp
 
 
 class OOT_LinkAnimPanel(Panel):
-    bl_idname = "OOT_PT_link_anim"
-    bl_label = "OOT Link Animation Properties"
+    bl_idname = "Z64_PT_link_anim"
+    bl_parent_id = "ARMATURE_PT_OOT_Inspector"
+    bl_label = "Link Animation Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return (
-            context.scene.gameEditorMode in {"OOT", "MM"}
-            and hasattr(context, "object")
-            and context.object is not None
-            and isinstance(context.object.data, Armature)
-        )
 
     # called every frame
     def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Link Animation Inspector")
+        col = self.layout.column()
         linkTextureAnim: OOTLinkTextureAnimProperty = context.object.ootLinkTextureAnim
         linkTextureAnim.draw_props(col)
         col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")

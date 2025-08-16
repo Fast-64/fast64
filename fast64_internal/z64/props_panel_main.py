@@ -108,12 +108,12 @@ class OOT_ManualUpgrade(bpy.types.Operator):
 
 
 class OOTObjectPanel(bpy.types.Panel):
-    bl_label = "Object Inspector"
+    bl_label = "OOT Empty Inspector"
     bl_idname = "OBJECT_PT_OOT_Object_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -122,12 +122,10 @@ class OOTObjectPanel(bpy.types.Panel):
         )
 
     def draw(self, context):
-        prop_split(self.layout, context.scene, "gameEditorMode", "Game")
-        box = self.layout.box()
-        box.box().label(text="OOT Object Inspector")
+        col = self.layout.column()
         obj = context.object
         objName = obj.name
-        prop_split(box, obj, "ootEmptyType", "Object Type")
+        prop_split(col, obj, "ootEmptyType", "Object Type")
 
         sceneObj = getSceneObj(obj)
         roomObj = getRoomObj(obj)
@@ -137,40 +135,40 @@ class OOTObjectPanel(bpy.types.Panel):
 
         if obj.ootEmptyType == "Actor":
             actorProp: OOTActorProperty = obj.ootActorProperty
-            actorProp.draw_props(box, altRoomProp, obj)
+            actorProp.draw_props(col, altRoomProp, obj)
 
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty
-            transActorProp.draw_props(box, altSceneProp, roomObj, objName)
+            transActorProp.draw_props(col, altSceneProp, roomObj, objName)
 
         elif obj.ootEmptyType == "Water Box":
             waterBoxProps: OOTWaterBoxProperty = obj.ootWaterBoxProperty
-            waterBoxProps.draw_props(box)
+            waterBoxProps.draw_props(col)
 
         elif obj.ootEmptyType == "Scene":
-            drawSceneHeader(box, obj)
+            drawSceneHeader(col, obj)
 
         elif obj.ootEmptyType == "Room":
             roomProp: OOTRoomHeaderProperty = obj.ootRoomHeader
-            roomProp.draw_props(box, None, None, objName)
+            roomProp.draw_props(col, None, None, objName)
             if obj.ootRoomHeader.menuTab == "Alternate":
                 roomAltProp: OOTAlternateRoomHeaderProperty = obj.ootAlternateRoomHeaders
-                roomAltProp.draw_props(box, objName)
+                roomAltProp.draw_props(col, objName)
 
         elif obj.ootEmptyType == "Entrance":
             entranceProp: OOTEntranceProperty = obj.ootEntranceProperty
-            entranceProp.draw_props(box, obj, altSceneProp, objName)
+            entranceProp.draw_props(col, obj, altSceneProp, objName)
 
         elif obj.ootEmptyType == "Cull Group":
             cullGroupProp: OOTCullGroupProperty = obj.ootCullGroupProperty
-            cullGroupProp.draw_props(box)
+            cullGroupProp.draw_props(col)
 
         elif obj.ootEmptyType == "LOD":
-            drawLODProperty(box, obj)
+            drawLODProperty(col, obj)
 
         elif obj.ootEmptyType == "Cutscene":
             csProp: OOTCutsceneProperty = obj.ootCutsceneProperty
-            csProp.draw_props(box, obj)
+            csProp.draw_props(col, obj)
 
         elif obj.ootEmptyType in [
             "CS Actor Cue List",
@@ -180,15 +178,15 @@ class OOTObjectPanel(bpy.types.Panel):
         ]:
             labelPrefix = "Player" if "Player" in obj.ootEmptyType else "Actor"
             actorCueListProp: CutsceneCmdActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
-            actorCueListProp.draw_props(box, obj.ootEmptyType == f"CS {labelPrefix} Cue Preview", labelPrefix, obj.name)
+            actorCueListProp.draw_props(col, obj.ootEmptyType == f"CS {labelPrefix} Cue Preview", labelPrefix, obj.name)
 
         elif obj.ootEmptyType in ["CS Actor Cue", "CS Player Cue", "CS Dummy Cue"]:
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
             actorCueProp: CutsceneCmdActorCueProperty = obj.ootCSMotionProperty.actorCueProp
-            actorCueProp.draw_props(box, labelPrefix, obj.ootEmptyType == "CS Dummy Cue", obj.name)
+            actorCueProp.draw_props(col, labelPrefix, obj.ootEmptyType == "CS Dummy Cue", obj.name)
 
         elif obj.ootEmptyType == "None":
-            box.label(text="Geometry can be parented to this.")
+            col.label(text="Geometry can be parented to this.")
 
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):

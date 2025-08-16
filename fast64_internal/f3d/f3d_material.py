@@ -768,11 +768,11 @@ def tmemUsageUI(layout, textureProp):
 # cycle type = 1 cycle
 class F3DPanel(Panel):
     bl_label = "F3D Material"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_idname = "MATERIAL_PT_F3D_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     def ui_prop(self, material, layout, name, setName, setProp, showCheckBox):
         nodes = material.node_tree.nodes
@@ -1418,9 +1418,6 @@ class F3DPanel(Panel):
         f3dMat = material.f3d_mat
         settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
-        layout = layout.box()
-        titleCol = layout.column()
-        titleCol.box().label(text="F3D Material Inspector")
 
         if material.mat_ver < 5:
             box = layout.box().column()
@@ -1465,11 +1462,11 @@ class F3DPanel(Panel):
 
 class F3DMeshPanel(Panel):
     bl_label = "F3D Mesh Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_idname = "F3D_PT_Mesh_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -1477,8 +1474,7 @@ class F3DMeshPanel(Panel):
 
     def draw(self, context):
         new_gbi = not get_F3D_GBI().F3D_OLD_GBI
-        col = self.layout.box().column()
-        col.box().label(text=self.bl_label, icon="MESH_DATA")
+        col = self.layout.column()
         row = col.row()
         row.enabled = new_gbi
         row.prop(context.object, "use_f3d_culling")
@@ -1494,14 +1490,7 @@ def ui_tileScroll(tex, name, layout):
     row.prop(tex.tile_scroll, "interval", text="Interval:")
 
 
-def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1):
-    layout = layout.box()
-    box = layout.column()
-    if useDropdown:
-        layout.prop(procAnimVec, "menu", text=name, icon="TRIA_DOWN" if procAnimVec.menu else "TRIA_RIGHT")
-    else:
-        layout.box().label(text=name)
-
+def ui_procAnimVecEnum(material, procAnimVec, layout, vecType, useDropdown, useTex0, useTex1):
     if not useDropdown or procAnimVec.menu:
         box = layout.column()
         combinedOption = None
@@ -1524,8 +1513,6 @@ def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown
                 pass
 
     if useTex0 or useTex1:
-        layout.box().label(text="SM64 SetTileSize Texture Scroll")
-
         if useTex0:
             ui_tileScroll(material.tex0, "Texture 0 Speed", layout)
 
@@ -1565,8 +1552,8 @@ def ui_procAnimField(procAnimField, layout, name):
         split2.prop(procAnimField, "noiseAmplitude")
 
 
-def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
-    ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, title, "UV", useDropdown, useTex0, useTex1)
+def ui_procAnim(material, layout, useTex0, useTex1, useDropdown):
+    ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, "UV", useDropdown, useTex0, useTex1)
 
 
 def update_node_values(self, context, update_preset):
@@ -3891,10 +3878,10 @@ def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
 
     def draw(self, context):
         draw_rdp_world_defaults(self.layout, context.scene)
@@ -4991,7 +4978,6 @@ def mat_register():
     World.menu_upper = bpy.props.BoolProperty()
     World.menu_lower = bpy.props.BoolProperty()
     World.menu_other = bpy.props.BoolProperty()
-    World.menu_layers = bpy.props.BoolProperty()
 
     Material.is_f3d = bpy.props.BoolProperty()
     Material.mat_ver = bpy.props.IntProperty(default=1)
