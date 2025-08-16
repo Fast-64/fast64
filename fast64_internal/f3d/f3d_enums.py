@@ -185,6 +185,11 @@ enumTextFilt = [
     ("G_TF_BILERP", "Bilinear", "Standard N64 filtering with 3 point sample"),
 ]
 
+enumTextAdjust = [
+    ("G_TA_N64", "N64", "Center origin"),
+    ("G_TA_DOLPHIN", "Dolphin", "Top left"),
+]
+
 enumTextLUT = [
     ("G_TT_NONE", "None", "None"),
     ("G_TT_RGBA16", "RGBA16", "RGBA16"),
@@ -390,7 +395,14 @@ enumF3D = [
         "Variant of F3DEX2 family using vertex rejection instead of clipping",
         5,
     ),
+    (
+        "F3DEX2_PL",
+        "F3DEX2 (Point Lit)",
+        "Variant of F3DEX2 family with support for point lighting used in a few games including MM",
+        11,
+    ),
     ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen", 6),
+    ("F3DZEX2 (Emu64)", "F3DZEX2 (Emu64)", "Microcode used in Animal Crossing (GC), extended version of F3DZEX", 12),
     ("", "Homebrew", "", 8),
     ("RDPQ", "RDPQ", "Base libdragon microcode", 9),
     ("T3D", "Tiny3D", "Custom libdragon microcode by HailToDodongo", 10),
@@ -454,4 +466,14 @@ enumCelTintType = [
     ("Fixed", "Fixed", "Fixed tint color and level stored directly in DL"),
     ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
     ("Light", "From Light", "Automatically load tint color from selectable light slot. Tint level stored in DL"),
+]
+
+enum_ac_tri_type = [
+    (
+        "Auto",
+        "Auto",
+        "Pick between 5 bit and 7 bit commands depending on triangle count, 7 bit can access more of the vertex buffer, 5 bit has smaller commands",
+    ),
+    ("5b", "5 Bit", "Always use 5 bit commands"),
+    ("7b", "7 Bit", "Always use 7 bit commands"),
 ]

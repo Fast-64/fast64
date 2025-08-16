@@ -937,7 +937,7 @@ class TriangleConverter:
 
         return limbVerts
 
-    def processGeometry(self):
+    def processGeometry(self, ac_use_7b=False):
         # Sort verts by limb index, then load current limb verts
         bufferStart = self.bufferStart
         bufferEnd = self.bufferStart
@@ -997,9 +997,7 @@ class TriangleConverter:
             bufferStart = bufferEnd
 
         # Load triangles
-        triCmds = createTriangleCommands(
-            self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
-        )
+        triCmds = createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, ac_use_7b, self.triConverterInfo)
         if not self.triConverterInfo.f3d.F3DEX_GBI_3 or not self.material.f3d_mat.use_cel_shading:
             self.triList.commands.extend(triCmds)
         else:
@@ -1126,6 +1124,16 @@ class TriangleConverter:
         # Disable alpha compare culling for future DLs
         self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
+    def get_best_load_size_and_tri_type(self, vertices_up_next: int):
+        if self.triConverterInfo.f3d.F3DZEX2_EMU64:
+            setting = bpy.context.scene.fast64.settings.ac_tri_type
+            if (setting == "Auto" and vertices_up_next > 2**5) or setting == "7b":
+                return True, 2**7
+            else:
+                return False, 2**5
+        else:
+            return False, self.triConverterInfo.f3d.vert_load_size
+
     def addFace(self, face, stOffset):
         triIndices = []
         addedVerts = []  # verts added to existing vertexBuffer
@@ -1149,10 +1157,11 @@ class TriangleConverter:
             if bufferVert not in self.vertBuffer[: self.bufferStart]:
                 allVerts.append(bufferVert)
 
+        ac_use_7b, vert_load_size = self.get_best_load_size_and_tri_type(len(self.vertBuffer) + len(addedVerts))
         # We care only about load size, since loading is what takes up time.
         # Even if vert_buffer is larger, its still another load to fill it.
-        if len(self.vertBuffer) + len(addedVerts) > self.triConverterInfo.f3d.vert_load_size:
-            self.processGeometry()
+        if len(self.vertBuffer) + len(addedVerts) > vert_load_size:
+            self.processGeometry(ac_use_7b)
             self.vertBuffer = self.vertBuffer[: self.bufferStart] + allVerts
             self.vertexBufferTriangles = [triIndices]
         else:
@@ -1161,7 +1170,8 @@ class TriangleConverter:
 
     def finish(self, terminateDL):
         if len(self.vertexBufferTriangles) > 0:
-            self.processGeometry()
+            ac_use_7b, _vert_load_size = self.get_best_load_size_and_tri_type(len(self.vertBuffer))
+            self.processGeometry(ac_use_7b)
 
         # if self.originalGroupIndex != self.currentGroupIndex:
         # 	self.triList.commands.append(SPMatrix(getMatrixAddrFromGroup(self.originalGroupIndex), "G_MTX_LOAD"))
@@ -1228,22 +1238,46 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
     return mathutils.Vector((normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA))
 
 
-def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
+def createTriangleCommands(triangles, vertexBuffer, ac_use_7b, triConverterInfo):
     triangles = copy.deepcopy(triangles)
     commands = []
 
-    def getIndices(tri):
-        return [vertexBuffer.index(v) for v in tri]
+    def getIndices(*tris):
+        return [vertexBuffer.index(v) for tri in tris for v in tri]
 
-    t = 0
-    while t < len(triangles):
-        firstTriIndices = getIndices(triangles[t])
-        t += 1
-        if useSP2Triangle and t < len(triangles):
-            commands.append(SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0))
-            t += 1
+    if triConverterInfo.f3d.F3DZEX2_EMU64:
+
+        def get_n_tris_indices(n: int, tri_index=0, triangles=triangles):  # Includes dummy data to fill out the command
+            if len(triangles) - tri_index >= n:
+                return getIndices(*triangles[tri_index : tri_index + n]), tri_index + n
+            indices = getIndices(*triangles[tri_index:])
+            while len(indices) < n * 3:
+                indices.extend((0, 0, 0))
+            return indices, tri_index + n
+
+        tris, tri_index = get_n_tris_indices(2 if ac_use_7b else 3)
+        if ac_use_7b:
+            commands.append(SPNTrianglesInit_7b(len(triangles), *tris))
         else:
-            commands.append(SP1Triangle(*firstTriIndices, 0))
+            commands.append(SPNTrianglesInit_5b(len(triangles), *tris))
+
+        n = 3 if ac_use_7b else 4
+        while tri_index < len(triangles):
+            tris, tri_index = get_n_tris_indices(n, tri_index)
+            commands.append(SPNTriangles_7b(*tris) if ac_use_7b else SPNTriangles_5b(*tris))
+
+        return commands
+
+    tri_index = 0
+    while tri_index < len(triangles):
+        if not triConverterInfo.f3d.F3D_OLD_GBI and tri_index + 1 < len(triangles):
+            commands.append(
+                SP2Triangles(*getIndices(triangles[tri_index]), 0, *getIndices(triangles[tri_index + 1]), 0)
+            )
+            tri_index += 2
+        else:
+            commands.append(SP1Triangle(*getIndices(triangles[tri_index]), 0))
+            tri_index += 1
 
     return commands
 
@@ -1593,7 +1627,8 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
     saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
-    if bpy.context.scene.f3d_type == "F3DEX3":
+    f3d = get_F3D_GBI()
+    if f3d.F3DEX_GBI_3:
         saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
         saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
         saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
@@ -1602,14 +1637,20 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
         saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
         saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
         saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
+    elif f3d.F3DZEX2_EMU64:
+        saveFunc(settings.g_decal_gequal, defaults.g_decal_gequal, "G_DECAL_GEQUAL", *args)
+        saveFunc(settings.g_decal_equal, defaults.g_decal_equal, "G_DECAL_EQUAL", *args)
+        saveFunc(settings.g_decal_special, defaults.g_decal_special, "G_DECAL_SPECIAL", *args)
     saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
     saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
     saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)
     saveFunc(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", *args)
     saveFunc(settings.g_lod, defaults.g_lod, "G_LOD", *args)
     saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
-    if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+    if f3d.F3DLP_GBI:
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
+    if f3d.POINT_LIT_GBI:
+        saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
 
 
 def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod, is_ex2: bool):
@@ -1786,6 +1827,11 @@ def saveOtherDefinition(fMaterial, material, defaults):
                 int(material.blend_color[3] * 255),
             )
         )
+    if bpy.context.scene.f3d_type == "F3DZEX2 (Emu64)":
+        if material.set_tex_edge_alpha:
+            fMaterial.mat_only_DL.commands.append(DPSetTexEdgeAlpha(int(material.tex_edge_alpha * 255)))
+        if material.set_bilerp_text_adjust:
+            fMaterial.mat_only_DL.commands.append(DPSetTextureAdjustMode(material.bilerp_text_adjust))
 
 
 enumMatWriteMethod = [

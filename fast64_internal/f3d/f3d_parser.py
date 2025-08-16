@@ -26,6 +26,7 @@ from .f3d_material import (
     F3DMaterialProperty,
     update_node_values_of_material,
     F3DMaterialHash,
+    texBitSizeInt,
 )
 
 if TYPE_CHECKING:
@@ -539,6 +540,10 @@ class F3DContext:
         self.numLights: int = 0
         self.lightData: dict[Light, bpy.types.Object] = {}  # Light : blender light object
 
+        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX2 (Emu64)
+        self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
+        self.tri_init_count = 0
+
     """
     Restarts context, but keeps cached materials/textures.
     Warning: calls initContext, make sure to save/restore preserved fields
@@ -570,6 +575,7 @@ class F3DContext:
         mat.set_lights = False
         mat.set_env = False
         mat.set_blend = False
+        mat.set_tex_edge_alpha = False
         mat.set_key = False
         mat.set_k0_5 = False
 
@@ -606,6 +612,10 @@ class F3DContext:
         ]
         self.lights.a = Ambient([0, 0, 0])
         self.numLights = 0
+
+        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX2 (Emu64)
+        self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
+        self.tri_init_count = 0
 
         mat.presetName = "Custom"
 
@@ -717,19 +727,11 @@ class F3DContext:
         if self.materialChanged:
             region = None
 
-            tileSettings = self.tileSettings[0]
-            tileSizeSettings = self.tileSizes[0]
-            if tileSettings.tmem in self.tmemDict:
-                textureName = self.tmemDict[tileSettings.tmem]
-                self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(0, tileSettings, tileSizeSettings, dlData)
-
-            tileSettings = self.tileSettings[1]
-            tileSizeSettings = self.tileSizes[1]
-            if tileSettings.tmem in self.tmemDict:
-                textureName = self.tmemDict[tileSettings.tmem]
-                self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(1, tileSettings, tileSizeSettings, dlData)
+            for tileSettings, tileSizeSettings in zip(self.tileSettings[:2], self.tileSizes[:2]):
+                if tileSettings.tmem in self.tmemDict:
+                    textureName = self.tmemDict[tileSettings.tmem]
+                    self.loadTexture(dlData, textureName, region, tileSettings, False)
+                    self.applyTileToMaterial(tileSettings.tile, tileSettings, tileSizeSettings, dlData)
 
             self.applyLights()
 
@@ -797,8 +799,11 @@ class F3DContext:
 
         if texProp.tex_format[:2] == "CI":
             # Only handles TLUT at 256
-            tlutName = self.tmemDict[256]
-            if 256 in self.tmemDict and tlutName is not None:
+            if self.f3d.F3DZEX2_EMU64:
+                tlutName = self.ac_pal_dict.get(self.getTileSettings(index).palette, None)
+            else:
+                tlutName = self.tmemDict.get(256, None)
+            if tlutName is not None:
                 tlut = self.textureData[tlutName]
                 # print(f"TLUT: {tlutName}, {isinstance(tlut, F3DTextureReference)}")
                 if isinstance(tlut, F3DTextureReference) or texProp.use_tex_reference:
@@ -915,6 +920,16 @@ class F3DContext:
                 rdp_settings.g_fresnel_color = value
             if bitFlags & self.f3d.G_FRESNEL_ALPHA:
                 rdp_settings.g_fresnel_alpha = value
+        elif self.f3d.F3DZEX2_EMU64:
+            if bitFlags & self.f3d.G_DECAL_GEQUAL:
+                rdp_settings.g_decal_gequal = value
+            if bitFlags & self.f3d.G_DECAL_EQUAL:
+                rdp_settings.g_decal_equal = value
+            if bitFlags & self.f3d.G_DECAL_SPECIAL:
+                rdp_settings.g_decal_special = value
+        if self.f3d.POINT_LIT_GBI:
+            if bitFlags & self.f3d.G_LIGHTING_POSITIONAL:
+                rdp_settings.g_lighting_positional = value
         if bitFlags & self.f3d.G_FOG:
             rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -959,6 +974,18 @@ class F3DContext:
             rdp_settings.g_lighting_specular = False
             rdp_settings.g_fresnel_color = False
             rdp_settings.g_fresnel_alpha = False
+        if self.f3d.F3DZEX2_EMU64:
+            rdp_settings.g_decal_gequal = bitFlags & self.f3d.G_DECAL_GEQUAL != 0
+            rdp_settings.g_decal_equal = bitFlags & self.f3d.G_DECAL_EQUAL != 0
+            rdp_settings.g_decal_special = bitFlags & self.f3d.G_DECAL_SPECIAL != 0
+        else:
+            rdp_settings.g_decal_gequal = False
+            rdp_settings.g_decal_equal = False
+            rdp_settings.g_decal_special = False
+        if self.f3d.POINT_LIT_GBI:
+            rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
+        else:
+            rdp_settings.g_lighting_positional = False
         rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
@@ -1558,6 +1585,63 @@ class F3DContext:
         if invalidIndicesDetected:
             print("Invalid LUT Indices detected.")
 
+    def load_dolphin_tlut(self, params):  # gsDPLoadTLUT_Dolphin
+        tlut_name = math_eval(params[0], self.f3d)
+        texture_name = params[3]
+        self.ac_pal_dict[tlut_name] = texture_name
+        self.materialChanged = True
+
+    def set_texture_image_dolphin(self, params):  # DPSetTextureImage_Dolphin
+        self.set_img.fmt = getTileFormat(params[0], self.f3d)
+        self.set_img.siz = getTileSize(params[1], self.f3d)
+        self.set_img.height = math_eval(params[2], self.f3d)
+        self.set_img.width = math_eval(params[3], self.f3d)
+        self.set_img.image = self.currentTextureName = params[4]
+        self.materialChanged = True
+
+    def set_tile_size_dolphin(self, params):  # DPSetTileSize_Dolphin
+        tile_size = self.getTileSizeSettings(params[0])
+
+        dimensions = [0, 0, 0, 0]
+        for i in range(1, 5):
+            dimensions[i - 1] = math_eval(params[i], self.f3d)
+
+        tile_size.uls = dimensions[0]
+        tile_size.ult = dimensions[1]
+        tile_size.lrs = dimensions[2]
+        tile_size.lrt = dimensions[3]
+
+    def load_dolphin_4b_texture_block(self, params):  # gsDPLoadTextureBlock_4b_Dolphin
+        self.set_texture_image_dolphin(params)
+        self.set_tile_size_dolphin(params)
+
+    def set_tile_dolphin(self, params, dlData):  # DPSetTile_Dolphin
+        tile = self.getTileIndex(params[1])
+        tile_settings: DPSetTile = self.tileSettings[tile]
+        self.tmemDict[tile] = self.set_img.image
+        tile_settings.fmt = self.set_img.fmt
+        tile_settings.siz = self.set_img.siz
+        tile_settings.palette = math_eval(params[2], self.f3d)
+
+        actual_fmt = tile_settings.fmt[8:].replace("_", "") + tile_settings.siz[8:-1].replace("_", "")
+        texelsPerWord = 64 // texBitSizeInt[actual_fmt]
+        assert self.set_img.width % texelsPerWord == 0
+        tile_settings.line = self.set_img.width // texelsPerWord
+
+        if tile_settings.palette in self.ac_pal_dict:
+            lut_tile_settings: DPSetTile = copy.copy(tile_settings)
+            lut_tile_settings.fmt = "G_IM_FMT_RGBA"
+            lut_tile_settings.siz = "G_IM_SIZ_16b"
+            tlut = self.loadTexture(
+                dlData, self.ac_pal_dict[tile_settings.palette], [0, 0, 16, 16], lut_tile_settings, True
+            )
+
+        tile_settings.masks = log2iRoundUp(self.set_img.width)
+        tile_settings.maskt = log2iRoundUp(self.set_img.height)
+        tile_size: DPSetTileSize = self.tileSizes[tile]
+        tile_size.uls = 0
+        tile_size.ult = 0
+
     def getVertexDataStart(self, vertexDataParam: str, f3d: F3D):
         matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
         if matchResult is None:
@@ -1595,6 +1679,20 @@ class F3DContext:
                 self.addTriangle(command.params[0:3], dlData)
             elif command.name == "gsSP2Triangles":
                 self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
+            elif command.name == "gsSPNTrianglesInit_5b":
+                self.tri_init_count = math_eval(command.params[0], self.f3d)
+                self.addTriangle(command.params[1 : max(10, self.tri_init_count)], dlData)
+                self.tri_init_count -= 3
+            elif command.name == "gsSPNTrianglesInit_7b":
+                self.tri_init_count = math_eval(command.params[0], self.f3d)
+                self.addTriangle(command.params[1 : max(7, self.tri_init_count)], dlData)
+                self.tri_init_count -= 2
+            elif command.name == "gsSPNTriangles_5b":
+                self.addTriangle(command.params[0 : max(12, self.tri_init_count * 3)], dlData)
+                self.tri_init_count -= 4
+            elif command.name == "gsSPNTriangles_7b":
+                self.addTriangle(command.params[0 : max(9, self.tri_init_count * 3)], dlData)
+                self.tri_init_count -= 3
             elif command.name == "gsSPDisplayList" or command.name.startswith("gsSPBranch"):
                 newDLName = self.processDLName(command.params[0])
                 if newDLName is not None:
@@ -1737,6 +1835,12 @@ class F3DContext:
                 elif command.name == "gsDPSetBlendColor":
                     mat.blend_color = self.gammaInverseParam(command.params)
                     mat.set_blend = True
+                elif command.name == "gsDPSetTexEdgeAlpha":  # F3DEX (AC)
+                    mat.tex_edge_alpha = math_eval(command.params[0], self.f3d) / 255
+                    mat.set_tex_edge_alpha = True
+                elif command.name == "gsDPSetTextureAdjustMode":
+                    mat.bilerp_text_adjust = command.params[0]
+                    mat.set_bilerp_text_adjust = True
                 elif command.name == "gsDPSetFogColor":
                     mat.fog_color = self.gammaInverseParam(command.params)
                     mat.set_fog = True
@@ -1779,6 +1883,16 @@ class F3DContext:
                     self.loadTile(command.params)
                 elif command.name == "gsDPLoadTLUTCmd":
                     self.loadTLUT(command.params, dlData)
+                elif command.name == "gsDPSetTile_Dolphin":
+                    self.set_tile_dolphin(command.params, dlData)
+                elif command.name == "gsDPLoadTLUT_Dolphin":
+                    self.load_dolphin_tlut(command.params)
+                elif command.name == "gsDPSetTextureImage_Dolphin":
+                    self.set_texture_image_dolphin(command.params)
+                elif command.name == "gsDPSetTileSize_Dolphin":
+                    self.set_tile_size_dolphin(command.params)
+                elif command.name == "gsDPLoadTextureBlock_4b_Dolphin":
+                    self.load_dolphin_4b_texture_block(command.params)
 
                 # This all ignores S/T high/low values
                 # This is pretty bad/confusing
@@ -2329,7 +2443,7 @@ def importMeshC(
 
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-    parseF3D(data, name, transformMatrix, name, name, drawLayer, f3dContext, True)
+    parseF3D(removeComments(data), name, transformMatrix, name, name, drawLayer, f3dContext, True)
     f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
     applyRotation([obj], math.radians(-90), "X")

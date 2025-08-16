@@ -36,6 +36,7 @@ from .fast64_internal.f3d.f3d_material import (
     mat_unregister,
     check_or_ask_color_management,
 )
+from .fast64_internal.f3d.f3d_enums import enum_ac_tri_type
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
@@ -93,6 +94,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "Microcode")
+        if context.scene.f3d_type == "F3DZEX2 (Emu64)":
+            prop_split(col, context.scene.fast64.settings, "ac_tri_type", "Triangle Export Type")
         if context.scene.f3d_type in {"F3DEX3", "T3D"}:
             prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
         col.prop(context.scene, "saveTextures")
@@ -104,6 +107,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
+        if context.scene.f3d_type == "F3DZEX2 (Emu64)":
+            col.box().label(text="Emu64 supports ignore texture restrictions!", icon="INFO")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
             col.box().label(text="Width/height must be < 1024. Must be png format.")
@@ -206,6 +211,8 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         name="Prefer RGBA Over CI",
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
+    ac_tri_type: bpy.props.EnumProperty(name="Triangle Export Type", items=enum_ac_tri_type)
+
     dont_ask_color_management: bpy.props.BoolProperty(name="Don't ask to set color management properties")
 
     repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
@@ -332,9 +339,9 @@ def upgrade_changed_props():
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
         settings: Fast64Settings_Properties = scene.fast64.settings
-        if settings.internal_game_update_ver != 1:
+        if settings.internal_game_update_ver < 2:
             set_game_defaults(scene, False)
-            settings.internal_game_update_ver = 1
+            settings.internal_game_update_ver = 2
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
