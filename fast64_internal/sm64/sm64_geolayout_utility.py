@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import Object, Armature, Bone, PoseBone
 
-from ..f3d.f3d_parser import math_eval
+from ..f3d.f3d_gbi import GfxList
 from ..utility import PluginError
 
 
@@ -140,14 +140,19 @@ class BaseDisplayListNode:
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
     override_layer = False
+    dlRef: str | GfxList | None
 
     def get_dl_address(self):
-        assert self.dlRef is None, "dlRef not implemented in binary"
+        assert not isinstance(self.dlRef, str), "dlRef string not supported in binary"
+        if isinstance(self.dlRef, GfxList):
+            return self.dlRef.startAddress
         if self.hasDL and self.DLmicrocode is not None:
             return self.DLmicrocode.startAddress
         return None
 
     def get_dl_name(self):
+        if isinstance(self.dlRef, GfxList):
+            return self.dlRef.name
         if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
             return self.dlRef or self.DLmicrocode.name
         return "NULL"
