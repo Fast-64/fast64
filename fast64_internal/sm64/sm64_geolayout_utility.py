@@ -1,5 +1,18 @@
 import bpy
+from bpy.types import Object, Armature, Bone, PoseBone
+
+from ..f3d.f3d_gbi import GfxList
 from ..utility import PluginError
+
+
+def is_bone_animatable(bone: Bone):
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+    geo_cmd: str = bone.geo_cmd
+    if geo_cmd == "DisplayListWithOffset":
+        return True
+    elif geo_cmd == "Custom" and bone_props.custom.is_animated:
+        return True
+    return False
 
 
 def getBoneGroupByName(armatureObj, name):
@@ -42,6 +55,8 @@ boneNodeProperties = {
     "StartRenderArea": BoneNodeProperties(True, "THEME13"),  # 0x20
     "Ignore": BoneNodeProperties(False, "THEME08"),  # Used for rigging
     "SwitchOption": BoneNodeProperties(False, "THEME11"),
+    "DisplayListWithOffset": BoneNodeProperties(True, "THEME00"),
+    "Custom": BoneNodeProperties(True, "THEME15"),
 }
 
 boneLayers = {"anim": 0, "other": 1, "meta": 2, "visual": 3}
@@ -66,51 +81,94 @@ def createBoneGroups(armatureObj):
                 boneGroup.color_set = properties.theme
 
 
-def addBoneToGroup(armatureObj, boneName, groupName):
-    armature = armatureObj.data
-    if groupName is None:
-        if bpy.context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        posebone = armatureObj.pose.bones[boneName]
-        bone = armature.bones[boneName]
-        bone.use_deform = True
+def addBoneToGroup(armature_obj: Object, name: str):
+    armature: Armature = armature_obj.data
+    pose_bone: PoseBone = armature_obj.pose.bones[name]
+    bone: Bone = armature.bones[name]
+    geo_cmd: str = bone.geo_cmd
+    if geo_cmd not in boneNodeProperties:
+        raise PluginError(f"Bone group {geo_cmd} doesn't exist.")
+
+    lock_location, lock_rotation, lock_scale = False, False, False
+
+    if is_bone_animatable(bone):
         if bpy.app.version >= (4, 0, 0):
             if not "anim" in armature.collections:
                 armature.collections.new(name="anim")
             armature.collections["anim"].assign(bone)
         else:
-            posebone.bone_group = None
+            pose_bone.bone_group = None
             bone.layers = createBoneLayerMask([boneLayers["anim"]])
 
-        posebone.lock_location = (False, False, False)
-        posebone.lock_rotation = (False, False, False)
-        posebone.lock_scale = (False, False, False)
-        return
-
-    elif groupName not in boneNodeProperties:
-        raise PluginError("Bone group " + groupName + " doesn't exist.")
-
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-
-    posebone = armatureObj.pose.bones[boneName]
-    bone = armatureObj.data.bones[boneName]
     if bpy.app.version >= (4, 0, 0):
-        armature.collections[groupName].assign(bone)
+        armature.collections[geo_cmd].assign(bone)
     else:
-        posebone.bone_group_index = getBoneGroupIndex(armatureObj, groupName)
+        pose_bone.bone_group_index = getBoneGroupIndex(armature_obj, geo_cmd)
 
-    if groupName != "Ignore":
-        bone.use_deform = boneNodeProperties[groupName].deform
-        if groupName != "DisplayList":
-            if bpy.app.version >= (4, 0, 0):
-                if not "other" in armature.collections:
-                    armature.collections.new(name="other")
-                armature.collections["other"].assign(bone)
-            else:
-                bone.layers = createBoneLayerMask([boneLayers["other"]])
+    if geo_cmd == "Custom":
+        custom = bone.fast64.sm64.custom
+        bone.use_deform = custom.dl_option != "NONE"
+        if not custom.is_animated:
+            lock_location = lock_rotation = lock_scale = True
+    elif geo_cmd != "Ignore":
+        bone.use_deform = boneNodeProperties[geo_cmd].deform
+        if geo_cmd != "SwitchOption":
+            lock_location = True
+        lock_rotation = lock_scale = True
+    if geo_cmd not in {"Ignore", "DisplayList"}:
+        if bpy.app.version >= (4, 0, 0):
+            if not "other" in armature.collections:
+                armature.collections.new(name="other")
+            armature.collections["other"].assign(bone)
+        else:
+            bone.layers = createBoneLayerMask([boneLayers["other"]])
 
-        if groupName != "SwitchOption":
-            posebone.lock_location = (True, True, True)
-        posebone.lock_rotation = (True, True, True)
-        posebone.lock_scale = (True, True, True)
+    pose_bone.lock_location = (lock_location, lock_location, lock_location)
+    pose_bone.lock_rotation = (lock_rotation, lock_rotation, lock_rotation)
+    pose_bone.lock_scale = (lock_scale, lock_scale, lock_scale)
+
+
+def updateBone(bone, context):
+    armatureObj = context.object
+
+    createBoneGroups(armatureObj)
+    addBoneToGroup(armatureObj, bone.name)
+
+
+class BaseDisplayListNode:
+    """Base displaylist node with common helper functions dealing with displaylists"""
+
+    dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    override_layer = False
+    dlRef: str | GfxList | None
+
+    def get_dl_address(self):
+        assert not isinstance(self.dlRef, str), "dlRef string not supported in binary"
+        if isinstance(self.dlRef, GfxList):
+            return self.dlRef.startAddress
+        if self.hasDL and self.DLmicrocode is not None:
+            return self.DLmicrocode.startAddress
+        return None
+
+    def get_dl_name(self):
+        if isinstance(self.dlRef, GfxList):
+            return self.dlRef.name
+        if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
+            return self.dlRef or self.DLmicrocode.name
+        return "NULL"
+
+    def get_c_func_macro(self, base_cmd: str):
+        return f"{base_cmd}_{self.dl_ext}" if self.hasDL else base_cmd
+
+    def c_func_macro(self, base_cmd: str, *args: str):
+        """
+        Supply base command and all arguments for command.
+        if self.hasDL:
+                this will add self.dl_ext to the command, and
+                adds the name of the displaylist to the end of the command
+        Example return: 'GEO_YOUR_COMMAND_WITH_DL(arg, arg2),'
+        """
+        all_args = list(args)
+        if self.hasDL:
+            all_args.append(self.get_dl_name())
+        return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)})'

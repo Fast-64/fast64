@@ -30,6 +30,28 @@ marioVanishOffsets = {
     "metal": 0x9EC,
 }
 
+NULL = 0x00000000
+
+MIN_U8 = 0
+MAX_U8 = (2**8) - 1
+
+MIN_S8 = -(2**7)
+MAX_S8 = (2**7) - 1
+
+MIN_S16 = -(2**15)
+MAX_S16 = (2**15) - 1
+
+MIN_U16 = 0
+MAX_U16 = 2**16 - 1
+
+MIN_S32 = -(2**31)
+MAX_S32 = 2**31 - 1
+
+MIN_U32 = 0
+MAX_U32 = 2**32 - 1
+
+SegmentData = dict[int, tuple[int, int]]
+
 commonGeolayoutPointers = {
     "Dorrie": [2039136, "HMC"],
     "Bowser": [1809204, "BFB"],

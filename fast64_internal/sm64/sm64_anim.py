@@ -4,7 +4,7 @@ from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_geolayout_bone import animatableBoneTypes
+from .sm64_geolayout_utility import is_bone_animatable
 
 from ..utility import (
     CData,
@@ -418,7 +418,7 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
         bonesToProcess = bonesToProcess[1:]
 
         # Only handle 0x13 bones for animation
-        if currentBone.geo_cmd in animatableBoneTypes:
+        if is_bone_animatable(currentBone):
             animBones.append(boneName)
 
         # Traverse children in alphabetical order.
@@ -474,7 +474,7 @@ def getNextBone(boneStack, armatureObj):
     boneStack = sorted([child.name for child in bone.children]) + boneStack
 
     # Only return 0x13 bone
-    while armatureObj.data.bones[bone.name].geo_cmd not in animatableBoneTypes:
+    while not is_bone_animatable(armatureObj.data.bones[bone.name]):
         if len(boneStack) == 0:
             raise PluginError("More bones in animation than on armature.")
         bone = armatureObj.data.bones[boneStack[0]]
@@ -487,7 +487,7 @@ def getNextBone(boneStack, armatureObj):
 def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, isDMA, animName):
     boneStack = findStartBones(armatureObj)
     startBoneName = boneStack[0]
-    if armatureObj.data.bones[startBoneName].geo_cmd not in animatableBoneTypes:
+    if not is_bone_animatable(armatureObj.data.bones[startBoneName]):
         startBone, boneStack = getNextBone(boneStack, armatureObj)
         startBoneName = startBone.name
         boneStack = [startBoneName] + boneStack
