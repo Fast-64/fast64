@@ -1,0 +1,160 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "c2b9a17e9dd192bfe54cdd1a0c00fc5f",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "V1"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "V2"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Fac"
+		}
+	],
+	"interface_hash": "dd6feb85eb9fc5dd71bb49ffc55c1a20",
+	"name": "SubLerpVal",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-244.181,
+				33.8004
+			],
+			"outputs": {
+				"0": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.002"
+						}
+					],
+					"name": "V1"
+				},
+				"1": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.002"
+						}
+					],
+					"name": "V2"
+				},
+				"2": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.003"
+						}
+					],
+					"name": "Fac"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Value"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				227.7747,
+				89.7458
+			],
+			"width_hidden": 42.0
+		},
+		"Math.002": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-85.5307,
+				112.8277
+			],
+			"operation": "SUBTRACT",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.003"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Math.003": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				68.059,
+				90.2504
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "Value"
+		}
+	]
+}

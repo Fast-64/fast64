@@ -1,0 +1,606 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "628ed817b127abc7b76567645cc5120e",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "X"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "S Shift"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "S Low"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "S High"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"max_value": 7,
+			"name": "S Mask"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "S TexSize"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"name": "S Clamp"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"name": "S Mirror"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "Y"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "T Shift"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "T Low"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "T High"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"max_value": 7,
+			"name": "T Mask"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "T TexSize"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"name": "T Clamp"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"name": "T Mirror"
+		}
+	],
+	"interface_hash": "660fd0c074381754b5b78a35eebb675f",
+	"name": "Advanced Texture Settings",
+	"nodes": {
+		"Combine XYZ": {
+			"bl_idname": "ShaderNodeCombineXYZ",
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": "Z"
+				}
+			},
+			"location": [
+				340.6651,
+				284.262
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Vector"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-764.3581,
+				406.4136
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group.006"
+						}
+					],
+					"name": "X"
+				},
+				"1": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Group.006"
+						}
+					],
+					"name": "S Shift"
+				},
+				"2": {
+					"links": [
+						{
+							"index": 2,
+							"node": "Group.006"
+						}
+					],
+					"name": "S Low"
+				},
+				"3": {
+					"links": [
+						{
+							"index": 3,
+							"node": "Group.006"
+						}
+					],
+					"name": "S High"
+				},
+				"4": {
+					"links": [
+						{
+							"index": 4,
+							"node": "Group.006"
+						}
+					],
+					"name": "S Mask"
+				},
+				"5": {
+					"links": [
+						{
+							"index": 5,
+							"node": "Group.006"
+						}
+					],
+					"name": "S TexSize"
+				},
+				"6": {
+					"links": [
+						{
+							"index": 6,
+							"node": "Group.006"
+						}
+					],
+					"name": "S Clamp"
+				},
+				"7": {
+					"links": [
+						{
+							"index": 7,
+							"node": "Group.006"
+						}
+					],
+					"name": "S Mirror"
+				},
+				"8": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.001"
+						}
+					],
+					"name": "Y"
+				},
+				"9": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Group.005"
+						}
+					],
+					"name": "T Shift"
+				},
+				"10": {
+					"links": [
+						{
+							"index": 2,
+							"node": "Group.005"
+						}
+					],
+					"name": "T Low"
+				},
+				"11": {
+					"links": [
+						{
+							"index": 3,
+							"node": "Group.005"
+						}
+					],
+					"name": "T High"
+				},
+				"12": {
+					"links": [
+						{
+							"index": 4,
+							"node": "Group.005"
+						}
+					],
+					"name": "T Mask"
+				},
+				"13": {
+					"links": [
+						{
+							"index": 5,
+							"node": "Group.005"
+						}
+					],
+					"name": "T TexSize"
+				},
+				"14": {
+					"links": [
+						{
+							"index": 6,
+							"node": "Group.005"
+						}
+					],
+					"name": "T Clamp"
+				},
+				"15": {
+					"links": [
+						{
+							"index": 7,
+							"node": "Group.005"
+						}
+					],
+					"name": "T Mirror"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "UV"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				497.1576,
+				284.2268
+			],
+			"width_hidden": 42.0
+		},
+		"Group.005": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"default_value": 0.5,
+					"name": "Tex Coordinate"
+				},
+				"1": {
+					"name": "Shift"
+				},
+				"2": {
+					"default_value": 0.5,
+					"name": "Low"
+				},
+				"3": {
+					"default_value": 0.5,
+					"name": "High"
+				},
+				"4": {
+					"name": "Mask"
+				},
+				"5": {
+					"default_value": 0.5,
+					"name": "Tex Size"
+				},
+				"6": {
+					"name": "Clamp"
+				},
+				"7": {
+					"name": "Mirror"
+				}
+			},
+			"location": [
+				-83.7871,
+				46.4641
+			],
+			"node_tree": {
+				"name": "TileSettings",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.001"
+						}
+					],
+					"name": "UV Coord"
+				}
+			},
+			"width": 199.55996704101562,
+			"width_hidden": 42.0
+		},
+		"Group.006": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"default_value": 0.5,
+					"name": "Tex Coordinate"
+				},
+				"1": {
+					"name": "Shift"
+				},
+				"2": {
+					"default_value": 0.5,
+					"name": "Low"
+				},
+				"3": {
+					"default_value": 0.5,
+					"name": "High"
+				},
+				"4": {
+					"name": "Mask"
+				},
+				"5": {
+					"default_value": 0.5,
+					"name": "Tex Size"
+				},
+				"6": {
+					"name": "Clamp"
+				},
+				"7": {
+					"name": "Mirror"
+				}
+			},
+			"location": [
+				-86.1416,
+				461.9084
+			],
+			"node_tree": {
+				"name": "TileSettings",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.027"
+						}
+					],
+					"name": "UV Coord"
+				}
+			},
+			"width": 202.857666015625,
+			"width_hidden": 42.0
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": -1.0
+				},
+				"1": {
+					"default_value": -1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				146.7432,
+				125.5951
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.003"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Math.004": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": -1.0
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"location": [
+				-279.6339,
+				189.7226
+			],
+			"operation": "MULTIPLY_ADD",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-108.6895,
+				156.6045
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.002"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-427.7146,
+				196.3708
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.004"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.002": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-108.6897,
+				-41.7827
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group.005"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.003": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				315.9452,
+				90.3626
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.026"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.026": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				315.9451,
+				202.6528
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Combine XYZ"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.027": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				315.9451,
+				225.0103
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Combine XYZ"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketVector",
+			"name": "UV"
+		}
+	]
+}

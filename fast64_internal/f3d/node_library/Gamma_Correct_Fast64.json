@@ -1,0 +1,254 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "3cfa9f3890b6496261fab2ef5e5423d5",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"default_value": [
+				0.800000011920929,
+				0.800000011920929,
+				0.800000011920929,
+				1.0
+			],
+			"name": "Color"
+		}
+	],
+	"interface_hash": "701370ae5b827eb5648e9d3eaa6bfd0a",
+	"name": "Gamma Correct Fast64",
+	"nodes": {
+		"Combine RGB": {
+			"bl_idname": "ShaderNodeCombineRGB",
+			"inputs": {
+				"0": {
+					"name": "R"
+				},
+				"1": {
+					"name": "G"
+				},
+				"2": {
+					"name": "B"
+				}
+			},
+			"location": [
+				312.6501,
+				61.278
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Image"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"name": "Non-Corrected Value"
+				}
+			},
+			"location": [
+				-70.8038,
+				164.7347
+			],
+			"node_tree": {
+				"name": "Gamma Correct Value",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Combine RGB"
+						}
+					],
+					"name": "Gamma Corrected Value"
+				}
+			},
+			"width": 213.19033813476562,
+			"width_hidden": 42.0
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-520.4017,
+				-7.3613
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Separate RGB"
+						}
+					],
+					"name": "Color"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"name": "Corrected Color"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				478.4247,
+				61.4522
+			],
+			"width_hidden": 42.0
+		},
+		"Group.001": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"name": "Non-Corrected Value"
+				}
+			},
+			"location": [
+				-70.8038,
+				44.7347
+			],
+			"node_tree": {
+				"name": "Gamma Correct Value",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Combine RGB"
+						}
+					],
+					"name": "Gamma Corrected Value"
+				}
+			},
+			"width": 213.19033813476562,
+			"width_hidden": 42.0
+		},
+		"Group.002": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"name": "Non-Corrected Value"
+				}
+			},
+			"location": [
+				-70.8038,
+				-75.2653
+			],
+			"node_tree": {
+				"name": "Gamma Correct Value",
+				"serialized_type": "NodeTree"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 2,
+							"node": "Combine RGB"
+						}
+					],
+					"name": "Gamma Corrected Value"
+				}
+			},
+			"width": 213.19033813476562,
+			"width_hidden": 42.0
+		},
+		"Separate RGB": {
+			"bl_idname": "ShaderNodeSeparateRGB",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					],
+					"name": "Image"
+				}
+			},
+			"location": [
+				-352.4275,
+				61.278
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group"
+						}
+					],
+					"name": "R"
+				},
+				"1": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group.001"
+						}
+					],
+					"name": "G"
+				},
+				"2": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group.002"
+						}
+					],
+					"name": "B"
+				}
+			},
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"name": "Corrected Color"
+		}
+	]
+}

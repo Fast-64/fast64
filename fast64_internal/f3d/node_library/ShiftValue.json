@@ -1,0 +1,139 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "b6a11278b9d5e8541c43ec90abaed028",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketInt",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"name": "Shift"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Value"
+		}
+	],
+	"interface_hash": "6426508139668983dca234de1f93c685",
+	"name": "ShiftValue",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-369.6805,
+				42.9698
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.025"
+						}
+					],
+					"name": "Shift"
+				},
+				"1": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"index": 1,
+							"node": "Math.032"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Value"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				158.184,
+				121.1253
+			],
+			"width_hidden": 42.0
+		},
+		"Math.025": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 2.0
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-188.5537,
+				143.354
+			],
+			"operation": "POWER",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math.032"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		},
+		"Math.032": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"location": [
+				-10.3302,
+				121.1825
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			}
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "Value"
+		}
+	]
+}
