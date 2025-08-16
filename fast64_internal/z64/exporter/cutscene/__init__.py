@@ -178,7 +178,7 @@ class SceneCutscene:
     @staticmethod
     def new(props: OOTSceneHeaderProperty, headerIndex: int, useMacros: bool):
         csObj: Object = props.csWriteObject
-        cutsceneObjects: list[Object] = [csObj for csObj in props.extraCutscenes]
+        cutsceneObjects: list[Object] = [extraCS.csObject for extraCS in props.extraCutscenes]
         entries: list[Cutscene] = []
 
         if headerIndex > 0 and len(cutsceneObjects) > 0:
