@@ -36,7 +36,6 @@ from .fast64_internal.f3d.f3d_material import (
     mat_unregister,
     check_or_ask_color_management,
 )
-from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
@@ -430,7 +429,6 @@ def register():
     initOOTActorProperties()
     utility_anim_register()
     mat_register()
-    render_engine_register()
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
@@ -485,7 +483,6 @@ def unregister():
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
-    render_engine_unregister()
     unregister_class(Matrix4x4Property)
 
     del bpy.types.Scene.fullTraceback
