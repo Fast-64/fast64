@@ -2,6 +2,8 @@ import dataclasses
 from typing import NamedTuple, Optional
 from pathlib import Path
 from io import StringIO
+import random
+import string
 import os
 import re
 
@@ -136,6 +138,18 @@ def convert_addr_to_func(addr: str):
         return refresh_func_map[addr.lower()]
     else:
         return addr
+
+
+def temp_file_path(path: Path):
+    """Generates a temporary file path that does not exist from the given path."""
+    result, size = path.with_suffix(".tmp"), 0
+    for size in range(5, 15):
+        if not result.exists():
+            return result
+        random_suffix = "".join(random.choice(string.ascii_letters) for _ in range(size))
+        result = path.with_suffix(f".{random_suffix}.tmp")
+        size += 1
+    raise PluginError("Cannot create unique temporary file. 10 tries exceeded.")
 
 
 class ModifyFoundDescriptor:
