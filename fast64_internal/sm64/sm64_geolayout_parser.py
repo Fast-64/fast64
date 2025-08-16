@@ -2,8 +2,8 @@ import bpy, mathutils, math, bmesh, copy
 from bpy.utils import register_class, unregister_class
 from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel
-from .sm64_level_parser import parseLevelAtPointer
-from .sm64_constants import level_pointers, level_enums
+from .sm64_level_parser import parse_level_binary
+from .sm64_constants import enumLevelNames
 from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
 from .sm64_utility import import_rom_checks
@@ -22,6 +22,8 @@ from ..utility import (
     prop_split,
     sm64BoneUp,
     geoNodeRotateOrder,
+    selectSingleObject,
+    deselectAllObjects,
 )
 
 from .sm64_geolayout_utility import (
@@ -131,8 +133,7 @@ def parseGeoLayout(
         if shadeSmooth:
             if bpy.context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.object.select_all(action="DESELECT")
-            listObj.select_set(True)
+            selectSingleObject(listObj)
             bpy.ops.object.shade_smooth()
 
     # Dont remove doubles here, as importing geolayout all at once results
@@ -150,7 +151,7 @@ def parseGeoLayout(
             # Apply mesh to armature.
             if bpy.context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             obj.select_set(True)
             switchArmatureObj.select_set(True)
             bpy.context.view_layer.objects.active = switchArmatureObj
@@ -703,8 +704,7 @@ def createConnectBone(armatureObj, childName, parentName):
 def createBone(armatureObj, parentBoneName, boneName, currentTransform, boneGroup, loadDL):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    bpy.context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.mode_set(mode="EDIT")
     bone = armatureObj.data.edit_bones.new(boneName)
     bone.use_connect = False
@@ -741,7 +741,7 @@ def createSwitchOption(
     armatureObj, switchBoneName, boneName, currentTransform, nextParentTransform, switchLevel, switchCount
 ):
     bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     # bpy.context.view_layer.objects.active = armatureObj
     # bpy.ops.object.mode_set(mode="EDIT")
     # bone = armatureObj.data.edit_bones.new(boneName)
@@ -1540,7 +1540,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
             armatureObj = None
 
             # Get segment data
-            levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[levelGeoImport])
+            levelParsed = parse_level_binary(romfileSrc, levelGeoImport)
             segmentData = levelParsed.segmentData
             geoStart = int(geoImportAddr, 16)
             if context.scene.geoIsSegPtr:
@@ -1559,21 +1559,19 @@ class SM64_ImportGeolayout(bpy.types.Operator):
             )
             romfileSrc.close()
 
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             if armatureObj is not None:
                 for armatureMeshGroup in armatureMeshGroups:
                     armatureMeshGroup[0].select_set(True)
                 doRotation(math.radians(-90), "X")
 
                 for armatureMeshGroup in armatureMeshGroups:
-                    bpy.ops.object.select_all(action="DESELECT")
-                    armatureMeshGroup[0].select_set(True)
-                    bpy.context.view_layer.objects.active = armatureMeshGroup[0]
+                    selectSingleObject(armatureMeshGroup[0])
                     bpy.ops.object.make_single_user(obdata=True)
                     bpy.ops.object.transform_apply(location=False, rotation=True, scale=False, properties=False)
             else:
                 doRotation(math.radians(-90), "X")
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             # objs[-1].select_set(True)
 
             self.report({"INFO"}, "Generic import succeeded.")
@@ -1636,7 +1634,7 @@ def sm64_geo_parser_register():
 
     bpy.types.Scene.geoImportAddr = bpy.props.StringProperty(name="Start Address", default="1F1D60")
     bpy.types.Scene.generateArmature = bpy.props.BoolProperty(name="Generate Armature?", default=True)
-    bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
+    bpy.types.Scene.levelGeoImport = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="hmc")
     bpy.types.Scene.ignoreSwitch = bpy.props.BoolProperty(name="Ignore Switch Nodes", default=True)
 
 

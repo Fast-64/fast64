@@ -1,7 +1,8 @@
+from pathlib import Path
 import bpy, os, copy, shutil, mathutils, math
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
 from .sm64_geolayout_bone import animatableBoneTypes
 
@@ -14,7 +15,6 @@ from ..utility import (
     decodeSegmentedAddr,
     getExportDir,
     toAlnum,
-    writeIfNotFound,
     get64bitAlignedAddr,
     writeInsertableFile,
     getFrameInterval,
@@ -33,20 +33,17 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     stashActionInArmature,
-    enumExportHeaderType,
 )
 
 from .sm64_constants import (
     bank0Segment,
     insertableBinaryTypes,
-    level_pointers,
     defaultExtendSegment4,
-    level_enums,
     enumLevelNames,
     marioAnimations,
 )
 
-from .sm64_utility import export_rom_checks, import_rom_checks
+from .sm64_utility import export_rom_checks, import_rom_checks, update_actor_includes, write_includes
 
 sm64_anim_types = {"ROTATE", "TRANSLATE"}
 
@@ -234,12 +231,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
     headerFile.write("extern const struct Animation *const " + animsName + "[];\n")
     headerFile.close()
 
-    # write to data.inc.c
-    dataFilePath = os.path.join(animDirPath, "data.inc.c")
-    if not os.path.exists(dataFilePath):
-        dataFile = open(dataFilePath, "w", newline="\n")
-        dataFile.close()
-    writeIfNotFound(dataFilePath, '#include "' + animFileName + '"\n', "")
+    write_includes(Path(animDirPath, "data.inc.c"), [Path(animFileName)])
 
     # write to table.inc.c
     tableFilePath = os.path.join(animDirPath, "table.inc.c")
@@ -275,23 +267,17 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
         with open(tableFilePath, "w") as f:
             f.write(stringData)
 
-    if not customExport:
-        if headerType == "Actor":
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/anims/data.inc.c"', "")
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/anims/table.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + dirName + '/anim_header.h"', "#endif")
-        elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/anims/data.inc.c"', "")
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/anims/table.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + dirName + '/anim_header.h"', "\n#endif"
-            )
+    if customExport:
+        headerType = "Custom"
+    update_actor_includes(
+        headerType,
+        groupName,
+        Path(dirPath),
+        dirName,
+        levelName,
+        [Path("anims", "data.inc.c"), Path("anims", "table.inc.c")],
+        [Path("anim_header.h")],
+    )
 
 
 def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses, segmentData, isDMA, loopAnim):
@@ -717,6 +703,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
     def execute(self, context):
         romfileOutput = None
         tempROM = None
+        props = context.scene.fast64.sm64.combined_export
         try:
             if len(context.selected_objects) == 0 or not isinstance(
                 context.selected_objects[0].data, bpy.types.Armature
@@ -737,21 +724,21 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 
             if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
-                    context.scene.animCustomExport,
-                    context.scene.animExportPath,
-                    context.scene.animLevelName,
-                    context.scene.animLevelOption,
+                    props.is_actor_custom_export,
+                    props.actor_custom_path,
+                    props.export_level_name,
+                    props.level_name,
                 )
-                if not context.scene.animCustomExport:
+                if not props.is_actor_custom_export:
                     applyBasicTweaks(exportPath)
                 exportAnimationC(
                     armatureObj,
                     context.scene.loopAnimation,
                     exportPath,
                     bpy.context.scene.animName,
-                    bpy.context.scene.animGroupName,
-                    context.scene.animCustomExport,
-                    context.scene.animExportHeaderType,
+                    props.actor_group_name,
+                    props.is_actor_custom_export,
+                    props.export_header_type,
                     levelName,
                 )
                 self.report({"INFO"}, "Success!")
@@ -772,7 +759,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 # Note actual level doesn't matter for Mario, since he is in all of 	them
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelAnimExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
                 if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
@@ -866,34 +853,36 @@ class SM64_ExportAnimPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
+        props = context.scene.fast64.sm64.combined_export
         propsAnimExport = col.operator(SM64_ExportAnimMario.bl_idname)
 
         col.prop(context.scene, "loopAnimation")
 
         if context.scene.fast64.sm64.export_type == "C":
-            col.prop(context.scene, "animCustomExport")
-            if context.scene.animCustomExport:
+            prop_split(col, props, "export_header_type", "Export Type")
+            if props.is_actor_custom_export:
                 col.prop(context.scene, "animExportPath")
                 prop_split(col, context.scene, "animName", "Name")
                 customExportWarning(col)
             else:
-                prop_split(col, context.scene, "animExportHeaderType", "Export Type")
                 prop_split(col, context.scene, "animName", "Name")
-                if context.scene.animExportHeaderType == "Actor":
-                    prop_split(col, context.scene, "animGroupName", "Group Name")
-                elif context.scene.animExportHeaderType == "Level":
-                    prop_split(col, context.scene, "animLevelOption", "Level")
-                    if context.scene.animLevelOption == "Custom":
-                        prop_split(col, context.scene, "animLevelName", "Level Name")
+                if props.export_header_type == "Actor":
+                    prop_split(col, props, "group_name", "Group")
+                    if props.group_name == "Custom":
+                        prop_split(col, props, "custom_group_name", "Group Name")
+                elif props.export_header_type == "Level":
+                    prop_split(col, props, "level_name", "Level")
+                    if props.level_name == "Custom":
+                        prop_split(col, props, "custom_level_name", "Level Name")
 
                 decompFolderMessage(col)
                 writeBox = makeWriteInfoBox(col)
                 writeBoxExportType(
                     writeBox,
-                    context.scene.animExportHeaderType,
+                    props.export_header_type,
                     context.scene.animName,
-                    context.scene.animLevelName,
-                    context.scene.animLevelOption,
+                    props.export_level_name,
+                    props.level_name,
                 )
 
         elif context.scene.fast64.sm64.export_type == "Insertable Binary":
@@ -914,7 +903,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
                     col.prop(context.scene, "overwrite_0x28")
                     if context.scene.overwrite_0x28:
                         prop_split(col, context.scene, "addr_0x28", "28 Command Address")
-                col.prop(context.scene, "levelAnimExport")
+                prop_split(col, props, "level_name", "Level")
             col.separator()
             prop_split(col, context.scene, "animExportStart", "Start Address")
             prop_split(col, context.scene, "animExportEnd", "End Address")
@@ -936,7 +925,7 @@ class SM64_ImportAnimMario(bpy.types.Operator):
             raisePluginError(self, e)
             return {"CANCELLED"}
         try:
-            levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[context.scene.levelAnimImport])
+            levelParsed = parse_level_binary(romfileSrc, context.scene.levelAnimImport)
             segmentData = levelParsed.segmentData
 
             animStart = int(context.scene.animStartImport, 16)
@@ -1060,8 +1049,9 @@ def sm64_anim_register():
     bpy.types.Scene.isDMAExport = bpy.props.BoolProperty(name="Is DMA Animation")
     bpy.types.Scene.DMAEntryAddress = bpy.props.StringProperty(name="DMA Entry Address", default="4EC008")
     bpy.types.Scene.DMAStartAddress = bpy.props.StringProperty(name="DMA Start Address", default="4EC000")
-    bpy.types.Scene.levelAnimImport = bpy.props.EnumProperty(items=level_enums, name="Level", default="IC")
-    bpy.types.Scene.levelAnimExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="IC")
+    bpy.types.Scene.levelAnimImport = bpy.props.EnumProperty(
+        items=enumLevelNames, name="Level", default="castle_inside"
+    )
     bpy.types.Scene.loopAnimation = bpy.props.BoolProperty(name="Loop Animation", default=True)
     bpy.types.Scene.setAnimListIndex = bpy.props.BoolProperty(name="Set Anim List Entry", default=True)
     bpy.types.Scene.overwrite_0x28 = bpy.props.BoolProperty(name="Overwrite 0x28 behaviour command", default=True)
@@ -1075,14 +1065,7 @@ def sm64_anim_register():
     bpy.types.Scene.animListIndexImport = bpy.props.IntProperty(name="Anim List Index", min=0, max=255)
     bpy.types.Scene.animListIndexExport = bpy.props.IntProperty(name="Anim List Index", min=0, max=255)
     bpy.types.Scene.animName = bpy.props.StringProperty(name="Name", default="mario")
-    bpy.types.Scene.animGroupName = bpy.props.StringProperty(name="Group Name", default="group0")
     bpy.types.Scene.animWriteHeaders = bpy.props.BoolProperty(name="Write Headers For Actor", default=True)
-    bpy.types.Scene.animCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.animExportHeaderType = bpy.props.EnumProperty(
-        items=enumExportHeaderType, name="Header Export", default="Actor"
-    )
-    bpy.types.Scene.animLevelName = bpy.props.StringProperty(name="Level", default="bob")
-    bpy.types.Scene.animLevelOption = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
 
 
 def sm64_anim_unregister():
@@ -1093,7 +1076,6 @@ def sm64_anim_unregister():
     del bpy.types.Scene.animExportStart
     del bpy.types.Scene.animExportEnd
     del bpy.types.Scene.levelAnimImport
-    del bpy.types.Scene.levelAnimExport
     del bpy.types.Scene.isDMAImport
     del bpy.types.Scene.isDMAExport
     del bpy.types.Scene.DMAStartAddress
@@ -1111,9 +1093,4 @@ def sm64_anim_unregister():
     del bpy.types.Scene.animListIndexImport
     del bpy.types.Scene.animListIndexExport
     del bpy.types.Scene.animName
-    del bpy.types.Scene.animGroupName
     del bpy.types.Scene.animWriteHeaders
-    del bpy.types.Scene.animCustomExport
-    del bpy.types.Scene.animExportHeaderType
-    del bpy.types.Scene.animLevelName
-    del bpy.types.Scene.animLevelOption

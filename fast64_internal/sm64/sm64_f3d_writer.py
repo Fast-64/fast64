@@ -15,16 +15,25 @@ from ..f3d.f3d_material import (
     update_world_default_rendermode,
 )
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import export_rom_checks, starSelectWarning
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_utility import (
+    END_IF_FOOTER,
+    ModifyFoundDescriptor,
+    export_rom_checks,
+    starSelectWarning,
+    update_actor_includes,
+    write_or_delete_if_found,
+    write_material_headers,
+)
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from typing import Tuple, Union, Iterable
+from typing import Tuple
 
 from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
     DPSetCombineMode,
     DPSetTextureLUT,
+    FMesh,
     get_F3D_GBI,
     GbiMacro,
     GfxTag,
@@ -34,7 +43,6 @@ from ..f3d.f3d_gbi import (
     GfxMatWriteMethod,
     ScrollMethod,
     DLFormat,
-    SPDisplayList,
     GfxList,
     GfxListTag,
     FTexRect,
@@ -48,11 +56,8 @@ from ..f3d.f3d_gbi import (
     SPTexture,
     SPEndDisplayList,
     TextureExportSettings,
-    FSetTileSizeScrollField,
-    FImageKey,
     vertexScrollTemplate,
     get_tile_scroll_code,
-    GFX_SIZE,
 )
 
 from ..utility import (
@@ -65,11 +70,9 @@ from ..utility import (
     applyRotation,
     toAlnum,
     checkIfPathExists,
-    writeIfNotFound,
     overwriteData,
     getExportDir,
     writeMaterialFiles,
-    writeMaterialHeaders,
     get64bitAlignedAddr,
     writeInsertableFile,
     getPathAndLevel,
@@ -81,18 +84,10 @@ from ..utility import (
     decompFolderMessage,
     makeWriteInfoBox,
     writeBoxExportType,
-    enumExportHeaderType,
     create_or_get_world,
 )
 
-from .sm64_constants import (
-    level_enums,
-    enumLevelNames,
-    level_pointers,
-    defaultExtendSegment4,
-    bank0Segment,
-    insertableBinaryTypes,
-)
+from .sm64_constants import defaultExtendSegment4, bank0Segment, insertableBinaryTypes
 
 
 enumHUDExportLocation = [
@@ -111,6 +106,8 @@ class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        self.layer_adapted_fmats = {}
+        self.draw_overrides: dict[FMesh, dict[tuple, tuple[GfxList, list["DisplayListNode"]]]] = {}
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -210,8 +207,10 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
                 post_regex=r"\s?\s?",  # tex to c includes 2 newlines
             )
 
-            # Append texture declaration to segment2.h
-            writeIfNotFound(seg2HPath, data.header, "#endif")
+        # Append texture declaration to segment2.h
+        write_or_delete_if_found(
+            Path(seg2HPath), ModifyFoundDescriptor(data.header), path_must_exist=True, footer=END_IF_FOOTER
+        )
 
         # Write/Overwrite function to hud.c
         overwriteData("void\s*", fTexRect.name, code, hudPath, projectExportData[1], True, post_regex=r"\s?")
@@ -428,24 +427,17 @@ def sm64ExportF3DtoC(
     cDefFile.write(staticData.header)
     cDefFile.close()
 
+    update_actor_includes(
+        headerType, groupName, Path(dirPath), name, levelName, [Path("model.inc.c")], [Path("header.h")]
+    )
     fileStatus = None
     if not customExport:
         if headerType == "Actor":
-            # Write to group files
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', "\n#endif")
-
             if DLFormat != DLFormat.Static:  # Change this
-                writeMaterialHeaders(
-                    basePath,
-                    '#include "actors/' + toAlnum(name) + '/material.inc.c"',
-                    '#include "actors/' + toAlnum(name) + '/material.inc.h"',
+                write_material_headers(
+                    Path(basePath),
+                    Path("actors", toAlnum(name), "material.inc.c"),
+                    Path("actors", toAlnum(name), "material.inc.h"),
                 )
 
             texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
@@ -454,19 +446,11 @@ def sm64ExportF3DtoC(
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + toAlnum(name) + '/model.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + toAlnum(name) + '/header.h"', "\n#endif"
-            )
-
             if DLFormat != DLFormat.Static:  # Change this
-                writeMaterialHeaders(
+                write_material_headers(
                     basePath,
-                    '#include "levels/' + levelName + "/" + toAlnum(name) + '/material.inc.c"',
-                    '#include "levels/' + levelName + "/" + toAlnum(name) + '/material.inc.h"',
+                    Path("actors", levelName, toAlnum(name), "material.inc.c"),
+                    Path("actors", levelName, toAlnum(name), "material.inc.h"),
                 )
 
             texscrollIncludeC = '#include "levels/' + levelName + "/" + name + '/texscroll.inc.c"'
@@ -593,6 +577,7 @@ class SM64_ExportDL(bpy.types.Operator):
     def execute(self, context):
         romfileOutput = None
         tempROM = None
+        props = context.scene.fast64.sm64.combined_export
         try:
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
@@ -614,27 +599,27 @@ class SM64_ExportDL(bpy.types.Operator):
             applyRotation([obj], radians(90), "X")
             if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
-                    context.scene.DLCustomExport,
-                    context.scene.DLExportPath,
-                    context.scene.DLLevelName,
-                    context.scene.DLLevelOption,
+                    props.is_actor_custom_export,
+                    props.actor_custom_path,
+                    props.export_level_name,
+                    props.level_name,
                 )
-                if not context.scene.DLCustomExport:
+                if not props.is_actor_custom_export:
                     applyBasicTweaks(exportPath)
                 fileStatus = sm64ExportF3DtoC(
                     exportPath,
                     obj,
                     DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic,
                     finalTransform,
-                    bpy.context.scene.DLTexDir,
+                    props.custom_include_directory,
                     bpy.context.scene.saveTextures,
                     bpy.context.scene.DLSeparateTextureDef,
                     bpy.context.scene.DLincludeChildren,
                     bpy.context.scene.DLName,
                     levelName,
-                    context.scene.DLGroupName,
-                    context.scene.DLCustomExport,
-                    context.scene.DLExportHeaderType,
+                    props.actor_group_name,
+                    props.is_actor_custom_export,
+                    props.export_header_type,
                 )
 
                 starSelectWarning(self, fileStatus)
@@ -656,7 +641,7 @@ class SM64_ExportDL(bpy.types.Operator):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelDLExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
                 if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
@@ -737,27 +722,28 @@ class SM64_ExportDLPanel(SM64_Panel):
     def draw(self, context):
         col = self.layout.column()
         propsDLE = col.operator(SM64_ExportDL.bl_idname)
+        props = context.scene.fast64.sm64.combined_export
 
         if context.scene.fast64.sm64.export_type == "C":
             col.prop(context.scene, "DLExportisStatic")
 
-            col.prop(context.scene, "DLCustomExport")
-            if context.scene.DLCustomExport:
-                col.prop(context.scene, "DLExportPath")
-                prop_split(col, context.scene, "DLName", "Name")
+            prop_split(col, props, "export_header_type", "Export Type")
+            prop_split(col, context.scene, "DLName", "Name")
+            if props.is_actor_custom_export:
+                prop_split(col, props, "custom_export_path", "Custom Path")
                 if context.scene.saveTextures:
-                    prop_split(col, context.scene, "DLTexDir", "Texture Include Path")
+                    prop_split(col, props, "custom_include_directory", "Texture Include Path")
                     col.prop(context.scene, "DLSeparateTextureDef")
                 customExportWarning(col)
             else:
-                prop_split(col, context.scene, "DLExportHeaderType", "Export Type")
-                prop_split(col, context.scene, "DLName", "Name")
-                if context.scene.DLExportHeaderType == "Actor":
-                    prop_split(col, context.scene, "DLGroupName", "Group Name")
-                elif context.scene.DLExportHeaderType == "Level":
-                    prop_split(col, context.scene, "DLLevelOption", "Level")
-                    if context.scene.DLLevelOption == "Custom":
-                        prop_split(col, context.scene, "DLLevelName", "Level Name")
+                if props.export_header_type == "Actor":
+                    prop_split(col, props, "group_name", "Group")
+                    if props.group_name == "Custom":
+                        prop_split(col, props, "custom_group_name", "Group Name")
+                elif props.export_header_type == "Level":
+                    prop_split(col, props, "level_name", "Level")
+                    if props.level_name == "Custom":
+                        prop_split(col, props, "custom_level_name", "Level Name")
                 if context.scene.saveTextures:
                     col.prop(context.scene, "DLSeparateTextureDef")
 
@@ -765,10 +751,10 @@ class SM64_ExportDLPanel(SM64_Panel):
                 writeBox = makeWriteInfoBox(col)
                 writeBoxExportType(
                     writeBox,
-                    context.scene.DLExportHeaderType,
+                    props.export_header_type,
                     context.scene.DLName,
-                    context.scene.DLLevelName,
-                    context.scene.DLLevelOption,
+                    props.export_level_name,
+                    props.level_name,
                 )
 
         elif context.scene.fast64.sm64.export_type == "Insertable Binary":
@@ -780,7 +766,7 @@ class SM64_ExportDLPanel(SM64_Panel):
             if context.scene.DLUseBank0:
                 prop_split(col, context.scene, "DLRAMAddr", "RAM Address")
             else:
-                col.prop(context.scene, "levelDLExport")
+                col.prop(props, "level_name")
             col.prop(context.scene, "overwriteGeoPtr")
             if context.scene.overwriteGeoPtr:
                 prop_split(col, context.scene, "DLExportGeoPtr", "Geolayout Pointer")
@@ -1003,26 +989,16 @@ def sm64_dl_writer_register():
 
     bpy.types.Scene.DLExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.DLExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
-    bpy.types.Scene.levelDLExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="WF")
     bpy.types.Scene.DLExportGeoPtr = bpy.props.StringProperty(name="Geolayout Pointer", default="132AA8")
     bpy.types.Scene.overwriteGeoPtr = bpy.props.BoolProperty(name="Overwrite geolayout pointer", default=False)
-    bpy.types.Scene.DLExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     bpy.types.Scene.DLExportisStatic = bpy.props.BoolProperty(name="Static DL", default=True)
     bpy.types.Scene.DLDefinePath = bpy.props.StringProperty(name="Definitions Filepath", subtype="FILE_PATH")
     bpy.types.Scene.DLUseBank0 = bpy.props.BoolProperty(name="Use Bank 0")
     bpy.types.Scene.DLRAMAddr = bpy.props.StringProperty(name="RAM Address", default="80000000")
-    bpy.types.Scene.DLTexDir = bpy.props.StringProperty(name="Include Path", default="levels/bob")
     bpy.types.Scene.DLSeparateTextureDef = bpy.props.BoolProperty(name="Save texture.inc.c separately")
     bpy.types.Scene.DLincludeChildren = bpy.props.BoolProperty(name="Include Children")
     bpy.types.Scene.DLInsertableBinaryPath = bpy.props.StringProperty(name="Filepath", subtype="FILE_PATH")
     bpy.types.Scene.DLName = bpy.props.StringProperty(name="Name", default="mario")
-    bpy.types.Scene.DLCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.DLExportHeaderType = bpy.props.EnumProperty(
-        items=enumExportHeaderType, name="Header Export", default="Actor"
-    )
-    bpy.types.Scene.DLGroupName = bpy.props.StringProperty(name="Group Name", default="group0")
-    bpy.types.Scene.DLLevelName = bpy.props.StringProperty(name="Level", default="bob")
-    bpy.types.Scene.DLLevelOption = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
 
     bpy.types.Scene.texrect = bpy.props.PointerProperty(type=TextureProperty)
     bpy.types.Scene.texrectImageTexture = bpy.props.PointerProperty(type=bpy.types.ImageTexture)
@@ -1037,26 +1013,18 @@ def sm64_dl_writer_unregister():
     for cls in reversed(sm64_dl_writer_classes):
         unregister_class(cls)
 
-    del bpy.types.Scene.levelDLExport
     del bpy.types.Scene.DLExportStart
     del bpy.types.Scene.DLExportEnd
     del bpy.types.Scene.DLExportGeoPtr
     del bpy.types.Scene.overwriteGeoPtr
-    del bpy.types.Scene.DLExportPath
     del bpy.types.Scene.DLExportisStatic
     del bpy.types.Scene.DLDefinePath
     del bpy.types.Scene.DLUseBank0
     del bpy.types.Scene.DLRAMAddr
-    del bpy.types.Scene.DLTexDir
     del bpy.types.Scene.DLSeparateTextureDef
     del bpy.types.Scene.DLincludeChildren
     del bpy.types.Scene.DLInsertableBinaryPath
     del bpy.types.Scene.DLName
-    del bpy.types.Scene.DLCustomExport
-    del bpy.types.Scene.DLExportHeaderType
-    del bpy.types.Scene.DLGroupName
-    del bpy.types.Scene.DLLevelName
-    del bpy.types.Scene.DLLevelOption
 
     del bpy.types.Scene.texrect
     del bpy.types.Scene.TexRectExportPath

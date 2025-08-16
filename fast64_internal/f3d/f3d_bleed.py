@@ -269,6 +269,10 @@ class BleedGraphics:
         start_cmds = cmd_list.commands  # commands that preceed any jump list
         for jump_list_cmd in fmesh_jump_cmds:
             # bleed mat and tex
+            if jump_list_cmd.displayList.tag & GfxListTag.MaterialRevert:
+                _, mat = find_material_from_jump_cmd(fmodel_materials, jump_list_cmd)
+                if mat is not None:
+                    last_mat = mat
             if jump_list_cmd.displayList.tag & GfxListTag.Material:
                 _, cur_fmat = find_material_from_jump_cmd(fmodel_materials, jump_list_cmd)
                 if not cur_fmat:
@@ -283,6 +287,7 @@ class BleedGraphics:
                     cur_fmat, last_mat, start_cmds, mat_write_method, default_render_mode, bleed_state
                 )
                 start_cmds = []
+                last_mat = cur_fmat
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             if jump_list_cmd.displayList.tag & GfxListTag.Geometry:
                 tri_list = jump_list_cmd.displayList
@@ -293,7 +298,6 @@ class BleedGraphics:
                 bleed_gfx_lists = BleedGfxLists()
             # set bleed state for cmd reverts
             bleed_state = self.bleed_in_progress
-            last_mat = cur_fmat
         cmd_list.commands.extend(fmesh_static_cmds)  # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
         self.optimize_syncs(cmd_list)  # some syncs may become redundant after bleeding
@@ -703,8 +707,8 @@ def find_material_from_jump_cmd(
     for mat in material_list:
         fmaterial = mat[1][0]
         bpy_material = mat[0][0]
-        if dl_jump.displayList.tag == GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
+        if dl_jump.displayList.tag & GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
             return bpy_material, fmaterial
-        elif fmaterial.material == dl_jump.displayList:
+        elif dl_jump.displayList.tag & GfxListTag.Material and fmaterial.material == dl_jump.displayList:
             return bpy_material, fmaterial
     return None, None
