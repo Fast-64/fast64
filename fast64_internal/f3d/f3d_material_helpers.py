@@ -35,3 +35,4 @@ class F3DMaterial_UpdateLock:
     def unlock_material(self):
         if hasattr(self.material, "f3d_update_flag"):
             self.material.f3d_update_flag = False
+
