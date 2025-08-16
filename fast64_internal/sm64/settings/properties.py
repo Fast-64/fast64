@@ -19,6 +19,7 @@ from ..sm64_constants import defaultExtendSegment4, OLD_BINARY_LEVEL_ENUMS
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
+from ..sm64_f3d_writer import SM64_DrawLayersProperties
 
 from .constants import (
     enum_refresh_versions,
@@ -47,6 +48,7 @@ class SM64_Properties(PropertyGroup):
     export_type: EnumProperty(items=enum_export_type, name="Export Type", default="C")
     goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
     combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
+    draw_layers: bpy.props.PointerProperty(type=SM64_DrawLayersProperties)
 
     blender_to_sm64_scale: FloatProperty(
         name="Blender To SM64 Scale",
@@ -141,6 +143,7 @@ class SM64_Properties(PropertyGroup):
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
             sm64_props.address_converter.upgrade_changed_props(scene)
+            sm64_props.draw_layers.upgrade_changed_props(scene)
             if sm64_props.version == SM64_Properties.cur_version:
                 continue
             upgrade_old_prop(

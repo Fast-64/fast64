@@ -3946,3 +3946,46 @@ sm64_world_defaults = {
         "pipelineMode": "G_PM_1PRIMITIVE",
     },
 }
+
+DEFAULT_DRAW_LAYER_SETTINGS = {
+    "Background": {
+        "enum": "LAYER_FORCE",
+        "index": 0,
+        "preset": ["G_RM_ZB_OPA_SURF", "G_RM_ZB_OPA_SURF2"],
+    },
+    "Opaque": {
+        "enum": "LAYER_OPAQUE",
+        "index": 1,
+        "preset": ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"],
+    },
+    "Opaque Decal": {
+        "enum": "LAYER_OPAQUE_DECAL",
+        "index": 2,
+        "preset": ["G_RM_AA_ZB_OPA_DECAL", "G_RM_AA_ZB_OPA_DECAL2"],
+    },
+    "Opaque Intersecting": {
+        "enum": "LAYER_OPAQUE_INTER",
+        "index": 3,
+        "preset": ["G_RM_AA_ZB_OPA_INTER", "G_RM_AA_ZB_OPA_INTER2"],
+    },
+    "Cutout": {
+        "enum": "LAYER_ALPHA",
+        "index": 4,
+        "preset": ["G_RM_AA_ZB_TEX_EDGE", "G_RM_AA_ZB_TEX_EDGE2"],
+    },
+    "Transparent": {
+        "enum": "LAYER_TRANSPARENT",
+        "index": 5,
+        "preset": ["G_RM_AA_ZB_XLU_SURF", "G_RM_AA_ZB_XLU_SURF2"],
+    },
+    "Transparent Decal": {
+        "enum": "LAYER_TRANSPARENT_DECAL",
+        "index": 6,
+        "preset": ["G_RM_AA_ZB_XLU_DECAL", "G_RM_AA_ZB_XLU_DECAL2"],
+    },
+    "Transparent Intersecting": {
+        "enum": "LAYER_TRANSPARENT_INTER",
+        "index": 7,
+        "preset": ["G_RM_AA_ZB_XLU_INTER", "G_RM_AA_ZB_XLU_INTER2"],
+    },
+}

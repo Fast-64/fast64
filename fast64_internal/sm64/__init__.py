@@ -1,3 +1,7 @@
+from bpy.utils import register_class, unregister_class
+from bpy.types import PropertyGroup
+from bpy.props import PointerProperty
+
 from .settings import (
     settings_props_register,
     settings_props_unregister,

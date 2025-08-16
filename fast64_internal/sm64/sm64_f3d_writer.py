@@ -4,6 +4,9 @@ from io import BytesIO
 from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
+from bpy.types import PropertyGroup, UILayout, Scene
+from bpy.props import StringProperty, BoolProperty, CollectionProperty, IntProperty
+
 from ..panels import SM64_Panel
 from ..f3d.f3d_writer import exportF3DCommon, saveModeSetting
 from ..f3d.f3d_texture_writer import TexInfo
@@ -64,12 +67,16 @@ from ..utility import (
     CData,
     CScrollData,
     PluginError,
+    copyPropertyGroup,
+    multilineLabel,
     raisePluginError,
     prop_split,
+    draw_and_check_tab,
     encodeSegmentedAddr,
     applyRotation,
     toAlnum,
     checkIfPathExists,
+    upgrade_old_prop,
     overwriteData,
     getExportDir,
     writeMaterialFiles,
@@ -85,9 +92,11 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     create_or_get_world,
+    intToHex,
 )
+from ..operators import OperatorBase
 
-from .sm64_constants import defaultExtendSegment4, bank0Segment, insertableBinaryTypes
+from .sm64_constants import DEFAULT_DRAW_LAYER_SETTINGS, defaultExtendSegment4, bank0Segment, insertableBinaryTypes
 
 
 enumHUDExportLocation = [
@@ -105,7 +114,14 @@ enumHUDPaths = {
 class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
-        self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        sm64_props = bpy.context.scene.fast64.sm64
+        self.no_light_direction = sm64_props.matstack_fix
+        self.draw_layers = sm64_props.draw_layers
+        self.draw_layers.populate()
+        if self.draw_layers.repeated_indices:
+            raise PluginError(
+                "World draw layers have repeated indexes: " + {self.draw_layers.repeated_indices_str.replace("\n", " ")}
+            )
         self.layer_adapted_fmats = {}
         self.draw_overrides: dict[FMesh, dict[tuple, tuple[GfxList, list["DisplayListNode"]]]] = {}
 
@@ -113,10 +129,8 @@ class SM64Model(FModel):
         return int(obj.draw_layer_static)
 
     def getRenderMode(self, drawLayer):
-        world = create_or_get_world(bpy.context.scene)
-        cycle1 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_1")
-        cycle2 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_2")
-        return (cycle1, cycle2)
+        assert drawLayer in self.draw_layers.layers_by_index, f"{drawLayer} is not a valid draw layer"
+        return self.draw_layers.layers_by_index[drawLayer].preset
 
 
 class SM64GfxFormatter(GfxFormatter):
@@ -867,25 +881,10 @@ class SM64_DrawLayersPanel(bpy.types.Panel):
         return context.scene.gameEditorMode == "SM64"
 
     def draw(self, context):
-        world = context.scene.world
-        if not world:
-            return
-
-        inputGroup = self.layout.column()
-        inputGroup.prop(
-            world, "menu_layers", text="Draw Layers", icon="TRIA_DOWN" if world.menu_layers else "TRIA_RIGHT"
-        )
-        if world.menu_layers:
-            for i in range(8):
-                drawLayerUI(inputGroup, i, world)
-
-
-def drawLayerUI(layout, drawLayer, world):
-    box = layout.box()
-    box.label(text="Layer " + str(drawLayer))
-    row = box.row()
-    row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_1", text="")
-    row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_2", text="")
+        col = self.layout.column()
+        draw_layer_props = context.scene.fast64.sm64.draw_layers
+        if draw_and_check_tab(col, draw_layer_props, "tab"):
+            draw_layer_props.draw_props(col)
 
 
 class SM64_MaterialPanel(bpy.types.Panel):
@@ -915,7 +914,222 @@ class SM64_MaterialPanel(bpy.types.Panel):
             ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], "SM64 UV Texture Scroll", False)
 
 
+class SM64_DrawLayerOps(OperatorBase):
+    bl_idname = "scene.sm64_draw_layer_ops"
+    bl_label = ""
+    bl_description = "Remove or add draw layers to the world"
+    bl_options = {"UNDO"}
+
+    index: IntProperty()
+    op_name: StringProperty()
+
+    def execute_operator(self, context):
+        layer_props: SM64_DrawLayersProperties = context.scene.fast64.sm64.draw_layers
+        if self.op_name != "DEFAULTS":
+            layer_props.populate()
+        if layer_props.lock:
+            raise PluginError("Draw layer operators are locked by default, unlock them by disabling the lock icon")
+        layers = layer_props.layers
+        if self.op_name == "ADD":
+            layers.add()
+            added_layer = layers[-1]
+            base_layer = layers[self.index]
+            copyPropertyGroup(base_layer, added_layer)
+            added_layer.name = f"{base_layer.name} (Copy)"
+            added_layer.enum = f"{base_layer.enum}_COPY"
+            added_layer.index = layers[self.index].index + 1
+            layers.move(len(layers) - 1, self.index + 1)
+        elif self.op_name == "REMOVE":
+            layer_props.layers.remove(self.index)
+            layer_props.update_all_materials(self.index)
+        elif self.op_name == "DEFAULTS":
+            layer_props.populate(force_default=True)
+        else:
+            raise NotImplementedError(f'Unimplemented internal draw layer op "{self.op_name}"')
+
+
+class SM64_DrawLayerProperties(PropertyGroup):
+    name: StringProperty(name="Name", default="Custom")
+    enum: StringProperty(name="Enum", default="LAYER_CUSTOM")
+    index: IntProperty(name="Index", default=8, update=update_world_default_rendermode)
+    cycle_1: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode)
+    cycle_2: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode)
+
+    @property
+    def preset(self):
+        return [self.cycle_1, self.cycle_2]
+
+    def to_dict(self):
+        return {"enum": self.enum, "index": self.index, "preset": self.preset}
+
+    def from_dict(self, data: dict):
+        self.enum = data.get("enum", "LAYER_CUSTOM")
+        self.index = data.get("index", 8)
+        self.cycle_1, self.cycle_2 = data.get("preset", ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"])
+
+    def draw_props(self, layout: UILayout):
+        col = layout.column()
+        prop_split(col, self, "name", "Name")
+
+        index_split = col.split(factor=0.34)
+        index_split.prop(self, "index")
+        index_split.prop(self, "enum")
+
+        f3d = get_F3D_GBI()
+        rendermode_split = col.split(factor=0.18)
+        rendermode_split.label(text="Render Mode:")
+        cycles_row = rendermode_split.row()
+        for i in range(1, 3):
+            cycle_layout = cycles_row.column()
+            if not hasattr(f3d, getattr(self, f"cycle_{i}")):
+                col.label(text=f"Cycle {i} rendermode is not valid", icon="ERROR")
+                cycle_layout.alert = True
+            cycle_layout.prop(self, f"cycle_{i}", text="")
+
+
+class SM64_DrawLayersProperties(PropertyGroup):
+    internal_defaults_set: BoolProperty()
+    tab: BoolProperty(name="SM64 Draw Layers")
+    lock: BoolProperty(
+        name="",
+        default=True,
+        description="(This feature is for advanced users, use at your own risk)\n"
+        "Disable the lock to remove or add new draw layers.",
+    )
+    layers: CollectionProperty(type=SM64_DrawLayerProperties)
+
+    @property
+    def repeated_indices(self) -> dict:
+        indices, repeated_indices = {}, {}
+        for layer in self.layers:
+            if layer.index in indices:
+                repeated_indices[layer.index] = indices[layer.index]
+                indices[layer.index].append(layer)
+            else:
+                indices[layer.index] = [layer]
+        return repeated_indices
+
+    @property
+    def repeated_indices_str(self) -> str:
+        return "\n".join(
+            f"{index}: [{', '.join([layer.name for layer in layers])}]"
+            for index, layers in self.repeated_indices.items()
+        )
+
+    @property
+    def layers_by_enum(self):
+        return {layer.enum: layer for layer in self.layers}
+
+    @property
+    def layers_by_prop(self):
+        return {str(layer.index): layer for layer in self.layers}
+
+    @property
+    def layers_by_index(self):
+        return {layer.index: layer for layer in self.layers}
+
+    def from_dict(self, data: dict):
+        self.layers.clear()
+        for name, layer in data.items():
+            self.layers.add()
+            self.layers[-1].from_dict(layer)
+            self.layers[-1].name = name
+
+    def to_dict(self):
+        layers = {}
+        layer: SM64_DrawLayerProperties
+        for layer in self.layers:
+            layers[layer.name] = layer.to_dict()
+        return layers
+
+    def to_enum(self):
+        return [
+            (
+                str(layer.index),
+                f"{name} ({hex(layer.index)})",
+                f"{layer.enum} ({layer.index})\n{layer.cycle_1}, {layer.cycle_2}",
+                layer.index,
+            )
+            for name, layer in self.layers.items()
+        ]
+
+    def update_all_materials(self, layer_index=-1):
+        """Update draw layers in materials to ensure any removed draw layer is not being used"""
+        fallback = list(self.layers_by_prop.values())[0]
+        for material in bpy.data.materials:
+            if not material.is_f3d:
+                continue
+            material.f3d_mat.draw_layer.sm64 = str(self.layers_by_index.get(layer_index - 1, fallback).index)
+
+    def populate(self, force_default=False):
+        if self.internal_defaults_set and not force_default:
+            return
+        self.from_dict(DEFAULT_DRAW_LAYER_SETTINGS)
+        self.internal_defaults_set = True
+
+    def upgrade_changed_props(self, scene: Scene):
+        self.populate()
+        if scene.world is not None:
+            for i, layer in self.layers_by_index.items():
+                upgrade_old_prop(layer, "cycle_1", scene.world, f"draw_layer_{i}_cycle_1")
+                upgrade_old_prop(layer, "cycle_2", scene.world, f"draw_layer_{i}_cycle_2")
+
+    def draw_props(self, layout: UILayout):
+        col = layout.column()
+        multilineLabel(
+            col,
+            "(This feature is for advanced users, use\nat your own risk)\n"
+            "Disable the lock 🔒 to remove or add new\ndraw layers.",
+            icon="ERROR",
+        )
+        col.row().prop(self, "lock", icon="LOCKED" if self.lock else "UNLOCKED")
+        if not self.lock:
+            col.separator()
+            multilineLabel(
+                col,
+                "These won´t modify your repo's draw\nlayers automatically!\n"
+                "Tip: Use repo settings and custom presets to\nstreamline your custom draw layer.",
+                icon="INFO",
+            )
+        layers_col = col.column()
+        layers_col.enabled = not self.lock
+
+        SM64_DrawLayerOps.draw_props(
+            layers_col.row(), "MODIFIER_OFF", text="Reset to vanilla SM64 defaults", op_name="DEFAULTS"
+        )
+
+        if self.repeated_indices:
+            col.separator()
+            error_box = layers_col.box()
+            error_box.alert = True
+            multilineLabel(error_box, text=f"Repeated indices:\n{self.repeated_indices_str}", icon="ERROR")
+            col.separator()
+
+        draw_layer: SM64_DrawLayerProperties
+        # Enumerate, then sort by index
+        for i, draw_layer in sorted(enumerate(self.layers), key=lambda layer: layer[1].index):
+            layer_box = layers_col.box().column()
+            if draw_layer.index in self.repeated_indices:
+                bad_layers = self.repeated_indices[draw_layer.index]
+                bad_layers.remove(draw_layer)
+                layer_box.alert = True
+                layer_box.box().label(
+                    text=f"Duplicate index at {', '.join(layer.name for layer in bad_layers)}", icon="ERROR"
+                )
+            row = layer_box.row()
+            SM64_DrawLayerOps.draw_props(row, "ADD", op_name="ADD", index=i)
+            SM64_DrawLayerOps.draw_props(row, "REMOVE", enabled=len(self.layers) > 1, op_name="REMOVE", index=i)
+            draw_layer.draw_props(layer_box)
+
+
+def populate_draw_layers(scene: Scene):  # populate draw layers when a new scene is created
+    scene.fast64.sm64.draw_layers.populate()
+
+
 sm64_dl_writer_classes = (
+    SM64_DrawLayerOps,
+    SM64_DrawLayerProperties,
+    SM64_DrawLayersProperties,
     SM64_ExportDL,
     ExportTexRectDraw,
     UnlinkTexRect,
@@ -943,55 +1157,6 @@ def sm64_dl_writer_register():
     for cls in sm64_dl_writer_classes:
         register_class(cls)
 
-    bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_ZB_OPA_SURF", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_ZB_OPA_SURF2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_OPA_DECAL", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_OPA_DECAL2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_OPA_INTER", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_OPA_INTER2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_TEX_EDGE", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_TEX_EDGE2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_XLU_SURF", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_XLU_SURF2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_XLU_DECAL", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_XLU_DECAL2", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_XLU_INTER", update=update_world_default_rendermode
-    )
-    bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(
-        default="G_RM_AA_ZB_XLU_INTER2", update=update_world_default_rendermode
-    )
-
     bpy.types.Scene.DLExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.DLExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
     bpy.types.Scene.DLExportGeoPtr = bpy.props.StringProperty(name="Geolayout Pointer", default="132AA8")
@@ -1012,6 +1177,8 @@ def sm64_dl_writer_register():
     bpy.types.Scene.TexRectName = bpy.props.StringProperty(name="Name", default="render_hud_image")
     bpy.types.Scene.TexRectCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
     bpy.types.Scene.TexRectExportType = bpy.props.EnumProperty(name="Export Type", items=enumHUDExportLocation)
+
+    bpy.app.handlers.depsgraph_update_post.append(populate_draw_layers)
 
 
 def sm64_dl_writer_unregister():
@@ -1038,3 +1205,6 @@ def sm64_dl_writer_unregister():
     del bpy.types.Scene.texrectImageTexture
     del bpy.types.Scene.TexRectCustomExport
     del bpy.types.Scene.TexRectExportType
+
+    if populate_draw_layers in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(populate_draw_layers)

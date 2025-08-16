@@ -92,16 +92,9 @@ texFormatOf = {
 }
 
 
-sm64EnumDrawLayers = [
-    ("0", "Background (0x00)", "Background"),
-    ("1", "Opaque (0x01)", "Opaque"),
-    ("2", "Opaque Decal (0x02)", "Opaque Decal"),
-    ("3", "Opaque Intersecting (0x03)", "Opaque Intersecting"),
-    ("4", "Cutout (0x04)", "Cutout"),
-    ("5", "Transparent (0x05)", "Transparent"),
-    ("6", "Transparent Decal (0x06)", "Transparent Decal"),
-    ("7", "Transparent Intersecting (0x07)", "Transparent Intersecting"),
-]
+def get_sm64_draw_layers(_self, context):
+    return context.scene.fast64.sm64.draw_layers.to_enum()
+
 
 ootEnumDrawLayers = [
     ("Opaque", "Opaque", "Opaque"),
@@ -109,22 +102,15 @@ ootEnumDrawLayers = [
     ("Overlay", "Overlay", "Overlay"),
 ]
 
-
-drawLayerSM64toOOT = {
-    "0": "Opaque",
-    "1": "Opaque",
-    "2": "Opaque",
-    "3": "Opaque",
-    "4": "Opaque",
-    "5": "Transparent",
-    "6": "Transparent",
-    "7": "Transparent",
-}
-
-drawLayerOOTtoSM64 = {
-    "Opaque": "1",
-    "Transparent": "5",
-    "Overlay": "1",
+drawLayerSM64Alpha = {
+    "0": "OPA",
+    "1": "OPA",
+    "2": "OPA",
+    "3": "OPA",
+    "4": "CLIP",
+    "5": "XLU",
+    "6": "XLU",
+    "7": "XLU",
 }
 
 
@@ -229,34 +215,32 @@ def update_draw_layer(self, context):
         if not material:
             return
 
-        drawLayer = material.f3d_mat.draw_layer
-        if context.scene.gameEditorMode == "SM64":
-            drawLayer.oot = drawLayerSM64toOOT[drawLayer.sm64]
-        elif context.scene.gameEditorMode in {"OOT", "MM"}:
-            if material.f3d_mat.draw_layer.oot == "Opaque":
-                if int(material.f3d_mat.draw_layer.sm64) > 4:
-                    material.f3d_mat.draw_layer.sm64 = "1"
-            elif material.f3d_mat.draw_layer.oot == "Transparent":
-                if int(material.f3d_mat.draw_layer.sm64) < 5:
-                    material.f3d_mat.draw_layer.sm64 = "5"
         material.f3d_mat.presetName = "Custom"
         update_blend_method(material, context)
+        update_fog_nodes(material, context)
         set_output_node_groups(material)
+
+        drawLayer = material.f3d_mat.draw_layer
+        output_method = get_output_method(material)
+        if context.scene.gameEditorMode == "SM64":
+            drawLayer.oot = {"OPA": "Opaque", "XLU": "Transparent"}.get(output_method, "Opaque")
+        elif context.scene.gameEditorMode == "OOT":
+            drawLayer.sm64 = {"OPA": "1", "XLU": "5"}.get(output_method, "1")  # expects vanilla draw layers
 
 
 def get_world_layer_defaults(scene, game_mode: str, layer: str):
-    world = scene.world
-    if world is None:
-        return default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
+    default = default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
     if game_mode == "SM64":
-        return (
-            getattr(world, f"draw_layer_{layer}_cycle_1", ""),
-            getattr(world, f"draw_layer_{layer}_cycle_2", ""),
-        )
+        layers = scene.fast64.sm64.draw_layers.layers_by_prop
+        if layer not in layers:
+            return default
+        return layers[layer].preset
     elif game_mode == "OOT":
+        if scene.world is None:
+            return default
         return (
-            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
-            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
+            getattr(scene.world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
+            getattr(scene.world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
         )
     else:
         assert (
@@ -404,7 +388,7 @@ def update_blend_method(material: Material, context):
 
 
 class DrawLayerProperty(PropertyGroup):
-    sm64: bpy.props.EnumProperty(items=sm64EnumDrawLayers, default="1", update=update_draw_layer)
+    sm64: bpy.props.EnumProperty(items=get_sm64_draw_layers, update=update_draw_layer)
     oot: bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque", update=update_draw_layer)
 
     def key(self):
@@ -4991,7 +4975,6 @@ def mat_register():
     World.menu_upper = bpy.props.BoolProperty()
     World.menu_lower = bpy.props.BoolProperty()
     World.menu_other = bpy.props.BoolProperty()
-    World.menu_layers = bpy.props.BoolProperty()
 
     Material.is_f3d = bpy.props.BoolProperty()
     Material.mat_ver = bpy.props.IntProperty(default=1)
