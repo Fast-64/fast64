@@ -373,7 +373,7 @@ def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
         draw_layer_dict = walk(node, draw_layer_dict.copy())
 
     def create_revert_node(draw_layer, node: DisplayListNode | None = None):
-        f_mesh = f_model.addMesh("final_revert", f_model.name, draw_layer, False, None)
+        f_mesh = f_model.addMesh("final_revert", f_model.name, draw_layer, False, None, dedup=True)
         f_mesh.draw = gfx_list = GfxList(f_mesh.name, GfxListTag.Draw, f_model.DLFormat)
         gfx_list.commands.extend(material_revert.commands)
         revert_node = DisplayListNode(draw_layer)
