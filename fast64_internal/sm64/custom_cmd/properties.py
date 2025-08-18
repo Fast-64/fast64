@@ -494,6 +494,9 @@ class SM64_CustomArgProperties(PropertyGroup):
         return data
 
     def from_dict(self, data: dict, index=0, set_defaults=False):
+        defaults = data.get("defaults")
+        if not defaults:
+            defaults = data
         self.name = data.get("name", f"Arg {index}")
         self.show_as_preset = data.get("show_as_preset", True)
         self.arg_type = data.get("arg_type", "PARAMETER")
@@ -512,12 +515,9 @@ class SM64_CustomArgProperties(PropertyGroup):
             self.enum_options.add()
             self.enum_options[-1].from_dict(option)
         self.color_bits = data.get("color_bits", (8, 8, 8, 8))
+        self.number.from_dict(data, defaults, set_defaults)
         if not set_defaults:
             return
-        defaults = data.get("defaults")
-        if not defaults:
-            defaults = data
-        self.number.from_dict(data, defaults, set_defaults)
         self.enum_option = str(defaults.get("enum", 0))
         if "scale" in defaults and self.round_to_sm64:
             self.translation_scale = [defaults.get("scale", 0)] * 3
