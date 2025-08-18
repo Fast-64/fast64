@@ -829,7 +829,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
         return self.skip_eval
 
     def can_animate(self, owner: Optional[AvailableOwners] = None):
-        return self.get_cmd_type(owner) == "Geo" and isinstance(owner, Bone)
+        return self.get_cmd_type(owner) == "Geo" and isinstance(owner, Bone) or owner is None
 
     def can_have_mesh(self, owner: Optional[AvailableOwners] = None):
         return self.get_cmd_type(owner) == "Geo" and can_have_mesh(owner)
