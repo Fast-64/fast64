@@ -899,8 +899,13 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
 
     for child in obj.children:
         if child.type == "EMPTY" and child.sm64_obj_type == "Custom":
+            custom_props = child.fast64.sm64.custom
+            if custom_props.preset != "NONE" and custom_props.section == "AREA":
+                raise PluginError(
+                    f"Object {obj.name} is parented to the level root but should be parented to an area root."
+                )
             prev_level_script.custom_cmds.append(
-                child.fast64.sm64.custom.get_final_cmd(
+                custom_props.get_final_cmd(
                     obj,
                     bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
                     child.matrix_world @ yUpToZUp,

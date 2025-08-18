@@ -772,8 +772,19 @@ class SM64_CustomCmdProperties(PropertyGroup):
     is_animated: BoolProperty(name="Is Animated", update=custom_cmd_preset_update)
 
     # Level
-    top_level: BoolProperty(
-        name="Top Level", description="Command runs before areas, like mario start", update=custom_cmd_preset_update
+    section: EnumProperty(
+        name="Section",
+        items=[
+            (
+                "HIEARCHY",
+                "Hierarchy",
+                "If parented to level, add it before the areas, otherwise in the respective area",
+            ),
+            ("AREA", "Area", "Add it to an area, errors if parentetd to the level"),
+            ("LEVEL", "Level", "Add it to the level, errors if parented to an area"),
+            ("FORCE_LEVEL", "Force to Level", "Add it to the level, even if parented to an area"),
+        ],
+        update=custom_cmd_preset_update,
     )
 
     args_tab: BoolProperty(default=True)
@@ -829,7 +840,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
         return self.skip_eval
 
     def can_animate(self, owner: Optional[AvailableOwners] = None):
-        return self.get_cmd_type(owner) == "Geo" and isinstance(owner, Bone) or owner is None
+        return self.get_cmd_type(owner) == "Geo" and (isinstance(owner, Bone) or owner is None)
 
     def can_have_mesh(self, owner: Optional[AvailableOwners] = None):
         return self.get_cmd_type(owner) == "Geo" and can_have_mesh(owner)
@@ -871,7 +882,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             if self.can_animate(owner):
                 data["is_animated"] = self.is_animated
             if self.get_cmd_type(owner) == "Level":
-                data["top_level"] = self.top_level
+                data["section"] = self.section
         self.args: list[SM64_CustomArgProperties]
         data["args"] = [
             arg.to_dict(conf_type, owner, world_matrix, local_matrix, blender_scale, include_defaults, is_export)
@@ -893,7 +904,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.is_animated = data.get("is_animated", False)
             self.use_dl_cmd = "dl_command" in data
             self.dl_command = data.get("dl_command", "GEO_CUSTOM_CMD_WITH_DL")
-            self.top_level = data.get("top_level", False)
+            self.section = data.get("section", "HIEARCHY")
             self.args.clear()
             for i, arg in enumerate(data.get("args", [])):
                 self.args.add()
@@ -1031,7 +1042,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             if self.can_animate(owner):
                 col.prop(self, "is_animated")
             if conf_type == "PRESET_EDIT" and cmd_type == "Level":
-                col.prop(self, "top_level")
+                col.prop(self, "section")
 
         if conf_type != "PRESET" and draw_and_check_tab(col, self, "args_tab", text=f"Arguments ({len(self.args)})"):
             SM64_CustomArgsOps.draw_row(col.row(), -1, command_index=command_index)

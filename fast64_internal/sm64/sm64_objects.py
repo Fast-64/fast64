@@ -827,10 +827,15 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
             if specialsOnly:
                 area.specials.append(cmd)
             else:
-                if obj_props.custom.top_level and obj_props.custom.preset != "NONE":
-                    area.custom_cmds.append(cmd)
-                else:
-                    area.objects.append(cmd)
+                if obj_props.custom.preset != "NONE":
+                    if obj_props.custom.section == "FORCE_LEVEL":
+                        area.custom_cmds.append(cmd)
+                        return
+                    elif obj_props.custom.section == "LEVEL":
+                        raise PluginError(
+                            f"Object {obj.name} is parented to an area but should be parented to the level root instead."
+                        )
+                area.objects.append(cmd)
         elif specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
