@@ -79,6 +79,7 @@ def check_preset_hashes(owner: AvailableOwners, context: Context):
         custom_cmd.from_dict(
             preset_cmd.to_dict("PRESET_EDIT", owner, *get_transforms(owner), include_defaults=False), set_defaults=False
         )
+        custom_cmd.saved_hash = preset_cmd.preset_hash
 
 
 def custom_cmd_preset_update(_self, context: Context):
