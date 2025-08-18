@@ -129,6 +129,17 @@ if typing.TYPE_CHECKING:
     from .sm64_geolayout_bone import SM64_BoneProperties
 
 
+def get_custom_cmd_with_transform(node: "CustomNode", parentTransformNode, translate, rotate):
+    types = {a["arg_type"] for a in node.data["args"]}
+    has_translation, has_rotation, has_scale = "TRANSLATION" in types, "ROTATION" in types, "SCALE" in types
+    if (not has_translation and not isZeroTranslation(translate)) or (not has_rotation and not isZeroRotation(rotate)):
+        field = 0 if not (has_translation or has_rotation) else (1 if has_rotation else 2)
+        parentTransformNode = addParentNode(
+            parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
+        )
+    return node, parentTransformNode
+
+
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode=""):
     geoPath = os.path.join(geoDirPath, "geo.inc.c")
     geoFile = open(geoPath, "a", newline="\n")
@@ -1256,6 +1267,7 @@ def processInlineGeoNode(
             obj.useDLReference,
             obj.dlReference,
         )
+        node, parentTransformNode = get_custom_cmd_with_transform(node, parentTransformNode, translate, rotate)
     else:
         raise PluginError(f"Ooops! Didnt implement inline geo exporting for {inlineGeoConfig.name}")
 
@@ -1722,13 +1734,7 @@ def processBone(
             node = bone_props.custom.get_final_cmd(
                 bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, world_matrix, local_matrix, None, hasDL
             )
-            types = {a["arg_type"] for a in node.data["args"]}
-            has_translation, has_rotation, has_scale = "TRANSLATION" in types, "ROTATION" in types, "SCALE" in types
-            if (not has_translation and not zeroTranslation) or (not has_rotation and not zeroRotation):
-                field = 0 if not (has_translation or has_rotation) else (1 if has_translation else 2)
-                parentTransformNode = addParentNode(
-                    parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
-                )
+            node, parentTransformNode = get_custom_cmd_with_transform(node, parentTransformNode, translate, rotate)
             if not has_scale and not zero_scale:
                 parentTransformNode = addParentNode(parentTransformNode, ScaleNode(node.drawLayer, scale[0], False))
             if has_translation:
