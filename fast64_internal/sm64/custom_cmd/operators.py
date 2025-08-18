@@ -101,6 +101,11 @@ class SM64_CustomArgsOps(CollectionOperatorBase):
         existing_names = {arg.name for arg in collection if arg != new}
         new.name = duplicate_name(new.name, existing_names, old_name)
 
+    def copy_example(self, context: Context, collection: Iterable["SM64_CustomArgProperties"]):
+        """Copy example of enum list to clipboard"""
+        arg: "SM64_CustomArgProperties" = collection[self.index]
+        context.window_manager.clipboard = arg.get_enum_list_example()
+
     def execute_operator(self, context: Context):
         super().execute_operator(context)
         custom_cmd_preset_update(self, context)

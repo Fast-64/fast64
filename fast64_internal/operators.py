@@ -147,7 +147,8 @@ class CollectionOperatorBase(OperatorBase):
                 lower = self.op_name.lower()
                 if hasattr(self, lower):
                     getattr(self, lower)(context, collection)
-                raise NotImplementedError(f'Unimplemented internal op "{self.op_name}"')
+                else:
+                    raise NotImplementedError(f'Unimplemented internal op "{self.op_name}"')
 
 
 class SearchEnumOperatorBase(OperatorBase):

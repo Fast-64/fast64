@@ -596,6 +596,23 @@ class SM64_CustomArgProperties(PropertyGroup):
             elif self.arg_type == "MATRIX":
                 self.matrix.draw_props(col)
 
+    def get_enum_list_example(self):
+        macro_define = StringIO()
+        fixed_name = toAlnum(self.name)
+        if self.name:
+            macro_define.write(f"// {self.name}'s enums\n")
+            macro_define.write(f"enum {fixed_name.replace('_', '')} {{\n")
+        else:
+            macro_define.write("enum {{\n")
+        for option in self.enum_options:
+            macro_define.write(f"\t{option.str_value} = {option.int_value},\n")
+        if self.name:
+            macro_define.write(f"\t{fixed_name.upper()}_COUNT\n")
+        else:
+            macro_define.write("\tCOUNT\n")
+        macro_define.write("};")
+        return macro_define.getvalue()
+
     def draw_enum(
         self,
         name_split: UILayout,
@@ -618,6 +635,17 @@ class SM64_CustomArgProperties(PropertyGroup):
             op_row = options_box.row()
             option.draw_props(options_box, op_row, is_binary)
             SM64_CustomEnumOps.draw_row(op_row, i, command_index=command_index, arg_index=arg_index)
+
+        col.separator()
+        box = col.box().column()
+        multilineLabel(box, self.get_enum_list_example().replace("\t", " " * 5))
+        SM64_CustomArgsOps.draw_props(
+            box,
+            "COPYDOWN",
+            "Copy Enum List Example",
+            op_name="COPY_EXAMPLE",
+            command_index=command_index,
+        )
 
     def draw_props(
         self,
