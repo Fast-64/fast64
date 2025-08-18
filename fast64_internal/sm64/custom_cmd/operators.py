@@ -18,15 +18,26 @@ def get_conf_type(context: Context):
     return "PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET"
 
 
-class SM64_CustomCmdOps(OperatorBase):
+class SM64_CustomCmdOps(CollectionOperatorBase):
     bl_idname = "scene.sm64_custom_cmd_ops"
     bl_label = ""
-    bl_description = "Remove or add custom command presets"
     bl_options = {"UNDO"}
+    object_name = "custom command preset"
 
     index: IntProperty(default=-1)
     op_name: StringProperty()
     example_name: StringProperty(default="")
+
+    @classmethod
+    def description(cls, context: Context, properties: dict) -> str:
+        op_name: str = properties.get("op_name", "")
+        if op_name == "COPY_EXAMPLE":
+            return "Copy example defines"
+        return super().description(context, properties)
+
+    @classmethod
+    def collection(cls, context: Context, op_values: dict) -> Iterable["SM64_CustomCmdProperties"]:
+        return context.scene.fast64.sm64.custom_cmds
 
     def execute_operator(self, context):
         presets = context.scene.fast64.sm64.custom_cmds
@@ -79,15 +90,22 @@ def get_args(context: Context, command_index: int) -> Iterable["SM64_CustomArgPr
 
 class SM64_CustomArgsOps(CollectionOperatorBase):
     bl_idname = "scene.sm64_custom_args_ops"
-    bl_description = "Remove or add args to a custom command"
     bl_label = ""
     bl_options = {"UNDO"}
+    object_name = "arg"
 
     command_index: IntProperty(default=0)  # for scene command presets
 
     @classmethod
     def collection(cls, context: Context, op_values: dict):
         return get_args(context, op_values.get("command_index", 0))
+
+    @classmethod
+    def description(cls, context: Context, properties: dict) -> str:
+        op_name: str = properties.get("op_name", "")
+        if op_name == "COPY_EXAMPLE":
+            return "Copy example enum list"
+        return super().description(context, properties)
 
     def add(self, context: Context, collection: Iterable["SM64_CustomArgProperties"]):
         old, new = super().add(context, collection)
@@ -113,9 +131,9 @@ class SM64_CustomArgsOps(CollectionOperatorBase):
 
 class SM64_CustomEnumOps(CollectionOperatorBase):
     bl_idname = "scene.sm64_custom_enum_ops"
-    bl_description = "Remove or add enum options to a custom arg"
     bl_label = ""
     bl_options = {"UNDO"}
+    object_name = "enum option"
 
     command_index: IntProperty(default=0)  # for scene command presets
     arg_index: IntProperty(default=0)

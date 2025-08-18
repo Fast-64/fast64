@@ -71,11 +71,25 @@ class CollectionOperatorBase(OperatorBase):
     See some examples in sm64/custom_cmd/operators.py
     """
 
-    index: IntProperty(
-        default=-1
-    )  # index -1 means no index, so on an add that would mean adding at the end with no copy of the previous element
+    # index -1 means no index, so on an add that would mean adding at the end with no copy of the previous element
+    index: IntProperty(default=-1)
     op_name: StringProperty()
     copy_on_add: bool = False
+    object_name: str = "item"  # simple name to be used in descriptions
+
+    @classmethod
+    def description(cls, context: Context, properties: dict) -> str:
+        op_name: str = properties.get("op_name", "")
+        description = op_name.capitalize()
+        index = properties.get("index", -1)
+        if index != -1:
+            description += f" (copy of {index})"
+
+        object_name = cls.object_name
+        if op_name == "CLEAR":
+            object_name += "s"
+        description += f" {object_name}"
+        return description
 
     @classmethod
     def collection(cls, context: Context, op_values: dict) -> Iterable[CollectionMember]:
