@@ -106,7 +106,7 @@ def get_dma_anim_name(header_indices: list[int]):
 
 
 @functools.cache
-def action_name_to_enum_name(action_name: str) -> str:
+def action_name_to_anim_name(action_name: str) -> str:
     return re.sub(r"^_(\d+_)+(?=\w)", "", toAlnum(action_name), flags=re.MULTILINE)
 
 

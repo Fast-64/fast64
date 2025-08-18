@@ -133,7 +133,7 @@ class RotationFramesHolder(FramesHolder):
             result.append([x[1]] + list(x[0]))
         return result
 
-    def populate_action(self, action: Action, pose_bone: PoseBone):
+    def populate_action(self, action: Action, pose_bone: PoseBone, path: str = ""):
         rotation_mode = pose_bone.rotation_mode
         rotation_mode_name = {
             "QUATERNION": "rotation_quaternion",
@@ -203,7 +203,7 @@ class IntermidiateAnimationBone:
 
     def populate_action(self, action: Action, pose_bone: PoseBone):
         self.translation.populate_action(action, pose_bone, "location")
-        self.rotation.populate_action(action, pose_bone)
+        self.rotation.populate_action(action, pose_bone, "")
 
 
 def from_header_class(

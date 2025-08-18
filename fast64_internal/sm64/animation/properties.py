@@ -50,7 +50,7 @@ from .utility import (
     get_dma_header_name,
     is_obj_animatable,
     anim_name_to_enum_name,
-    action_name_to_enum_name,
+    action_name_to_anim_name,
     duplicate_name,
     table_name_to_enum,
 )
@@ -241,8 +241,8 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         elif self.use_custom_name:
             return anim_name_to_enum_name(self.get_name(actor_name, action))
         elif self.header_variant == 0:
-            clean_name = action_name_to_enum_name(action.name)
-            return anim_name_to_enum_name(f"{actor_name}_anim_{clean_name}")
+            anim_name = action_name_to_anim_name(action.name)
+            return anim_name_to_enum_name(f"{actor_name}_anim_{anim_name}")
         else:
             main_enum = get_action_props(action).headers[0].get_enum(actor_name, action)
             return f"{main_enum}_{self.header_variant}"
