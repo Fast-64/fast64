@@ -808,7 +808,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 "Hierarchy",
                 "If parented to level, add it before the areas, otherwise in the respective area",
             ),
-            ("AREA", "Area", "Add it to an area, errors if parentetd to the level"),
+            ("AREA", "Area", "Add it to an area, errors if parented to the level"),
             ("LEVEL", "Level", "Add it to the level, errors if parented to an area"),
             ("FORCE_LEVEL", "Force to Level", "Add it to the level, even if parented to an area"),
         ],
