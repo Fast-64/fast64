@@ -330,7 +330,7 @@ class CustomCmd(BaseDisplayListNode):
                         value = str(value).upper()
                     group.append(str(value))
                 group_str = ", ".join(group)
-                if "name" in arg_data:
+                if "name" in arg_data and arg_data["name"]:
                     group_str = f"/*{arg_data['name']}*/ {group_str}"
                 groups.append(group_str)
             except Exception as exc:
