@@ -257,7 +257,7 @@ class CustomCmd(BaseDisplayListNode):
                     yield from run_eval(get_clean_color(data["color"], True, True, True), 32, False)
             case "PARAMETER":
                 if binary:
-                    value = math_eval(data["parameter"], object())
+                    value = math_eval(data["parameter"], {})
                     if isinstance(value, str):
                         raise PluginError("Strings not supported in binary")
                     yield from run_eval(value)
@@ -399,5 +399,8 @@ class CustomCmd(BaseDisplayListNode):
             data.write("\nNo segment range provided, won't encode to a respective segment")
         for name, bytes in self.to_binary_groups(segment_data):
             bytes_str = ", ".join(f"0x{byte:02x}" for byte in bytes)
-            data.write(f'\n\t"{name}": {bytes_str}')
+            if name:
+                data.write(f'\n\t"{name}": {bytes_str}')
+            else:
+                data.write(f"\n\t{bytes_str}")
         return data.getvalue()
