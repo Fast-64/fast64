@@ -55,7 +55,9 @@ def get_custom_prop(context: Context):
     return CustomContext(None, None)
 
 
-def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
+def get_custom_cmd_preset(
+    custom_cmd: "SM64_CustomCmdProperties", context: Context
+) -> Optional["SM64_CustomCmdProperties"]:
     if custom_cmd.preset == "":
         return None
     presets: dict["SM64_CustomCmdProperties"] = {
@@ -71,8 +73,12 @@ def check_preset_hashes(owner: AvailableOwners, context: Context):
     if custom_cmd.preset == "NONE":
         return
     preset_cmd = get_custom_cmd_preset(custom_cmd, context)
-    if preset_cmd is None or (custom_cmd.saved_hash != preset_cmd.preset_hash):
-        custom_cmd.preset, custom_cmd.saved_hash = "NONE", custom_cmd.preset_hash
+    if preset_cmd is None:
+        custom_cmd.preset = "NONE"
+    elif custom_cmd.saved_hash != preset_cmd.preset_hash:
+        custom_cmd.from_dict(
+            preset_cmd.to_dict("PRESET_EDIT", owner, *get_transforms(owner), include_defaults=False), set_defaults=False
+        )
 
 
 def custom_cmd_preset_update(_self, context: Context):

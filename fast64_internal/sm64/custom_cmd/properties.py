@@ -933,10 +933,16 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.use_dl_cmd = "dl_command" in data
             self.dl_command = data.get("dl_command", "GEO_CUSTOM_CMD_WITH_DL")
             self.section = data.get("section", "HIEARCHY")
-            self.args.clear()
-            for i, arg in enumerate(data.get("args", [])):
-                self.args.add()
-                self.args[-1].from_dict(arg, i, set_defaults)
+            args = data.get("args", [])
+            if set_defaults:
+                self.args.clear()
+            else:
+                for i in range(len(args), len(self.args)):
+                    self.args.remove(i)
+            for i, arg in enumerate(args):
+                if i >= len(self.args):
+                    self.args.add()
+                self.args[i].from_dict(arg, i, set_defaults)
         finally:
             self.locked = False
 
