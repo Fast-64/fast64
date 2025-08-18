@@ -195,6 +195,9 @@ def can_have_mesh(owner: Optional[AvailableOwners]):
 
 class SM64_CustomArgProperties(PropertyGroup):
     name: StringProperty(name="Name", default="Argument Name", update=custom_cmd_preset_update)
+    show_as_preset: BoolProperty(
+        default=True, description="Show argument when used as a preset", update=custom_cmd_preset_update
+    )
     arg_type: EnumProperty(
         name="Type",
         items=[
@@ -279,6 +282,7 @@ class SM64_CustomArgProperties(PropertyGroup):
             ("ZXY", "ZXY", "ZXY"),
             ("ZYX", "ZYX", "ZYX"),
         ],
+        update=custom_cmd_preset_update,
     )
     quaternion: FloatVectorProperty(name="Quaternion", size=4, default=(1.0, 0.0, 0.0, 0.0), subtype="QUATERNION")
     axis_angle: FloatVectorProperty(name="Axis Angle", size=4, default=((1.0), 0.0, 0.0, 0.0), subtype="AXISANGLE")
@@ -366,7 +370,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         return not self.inherits_without_default(owner) or self.show_inherit_toggle(owner, "PRESET")
 
     def will_draw(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
-        return self.shows_name(owner) or conf_type != "PRESET"
+        return (self.shows_name(owner) and self.show_as_preset) or conf_type != "PRESET"
 
     def get_transform(
         self,
@@ -440,6 +444,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         if conf_type != "PRESET" or is_export:
             if conf_type != "NO_PRESET":
                 data["name"] = self.name
+                data["show_as_preset"] = self.show_as_preset
             data["arg_type"] = self.arg_type
             if self.modifable_inherit(owner):
                 defaults["inherit"] = self.inherit
@@ -490,6 +495,7 @@ class SM64_CustomArgProperties(PropertyGroup):
 
     def from_dict(self, data: dict, index=0, set_defaults=False):
         self.name = data.get("name", f"Arg {index}")
+        self.show_as_preset = data.get("show_as_preset", True)
         self.arg_type = data.get("arg_type", "PARAMETER")
         self.inherit = data.get("inherit", True)
         self.eval_expression = data.get("eval_expression", "")
@@ -632,7 +638,9 @@ class SM64_CustomArgProperties(PropertyGroup):
             if conf_type == "PRESET" and self.shows_name(owner) and self.name != "":
                 name_split.label(text=self.name)
             elif conf_type == "PRESET_EDIT":
-                name_split.prop(self, "name", text="")
+                name_row = name_split.row()
+                name_row.prop(self, "show_as_preset", text="")
+                name_row.prop(self, "name", text="")
         else:
             name_split = col
 
