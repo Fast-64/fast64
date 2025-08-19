@@ -20,7 +20,6 @@ from ..collection_utility import drawCollectionOps, drawAddButton
 from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
 
 from ..constants import (
-    ootEnumMusicSeq,
     ootEnumSceneID,
     ootEnumGlobalObject,
     ootEnumNaviHints,
@@ -280,7 +279,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
     cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
     cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
 
-    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    musicSeq: EnumProperty(
+        name="Music Sequence", items=lambda self, context: game_data.z64.get_enum("seq_id"), default=1
+    )
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
     nightSeq: EnumProperty(
         name="Nighttime SFX", items=lambda self, context: game_data.z64.get_enum("nature_id"), default=1

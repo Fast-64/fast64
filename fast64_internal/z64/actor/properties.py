@@ -3,7 +3,8 @@ import bpy
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import PluginError, prop_split, label_split
+
+from ...utility import get_prop_annotations, prop_split, label_split
 from ...game_data import game_data
 from ..constants import ootEnumCamTransition
 from ..upgrade import upgradeActors
@@ -33,7 +34,9 @@ ootEnumSceneSetupPreset = [
 ]
 
 
-def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int):
+def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int, update: bool = True):
+    if update:
+        game_data.z64.update(bpy.context, None)
     flag_to_prop_suffix = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
     param_to_prop_suffix = {
         "Type": "type",
@@ -45,16 +48,14 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
         "Message": "naviMsg",
     }
     suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
-    return f"{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
+    return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
 
 
-def initOOTActorProperties():
+def create_game_props(game: str):
     """This function is used to edit the OOTActorProperty class"""
 
-    prop_annotations = getattr(OOTActorProperty, "__annotations__", None)
-
-    if prop_annotations is None:
-        OOTActorProperty.__annotations__ = prop_annotations = {}
+    game_data.z64.update(None, game, True)
+    prop_ats = get_prop_annotations(OOTActorProperty)
 
     param_type_to_enum_items = {
         "ChestContent": game_data.z64.actors.ootEnumChestContent,
@@ -64,7 +65,7 @@ def initOOTActorProperties():
 
     for actor in game_data.z64.actors.actorList:
         for param in actor.params:
-            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
+            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index, update=False)
             enum_items = None
 
             if len(param.items) > 0:
@@ -74,14 +75,14 @@ def initOOTActorProperties():
                 enum_items = param_type_to_enum_items[param.type]
 
             if param.type in {"Property", "Flag"}:
-                prop_annotations[prop_name] = StringProperty(name="", default="0x0")
+                prop_ats[prop_name] = StringProperty(name="", default="0x0")
             elif param.type == "Bool":
-                prop_annotations[prop_name] = BoolProperty(name="", default=False)
+                prop_ats[prop_name] = BoolProperty(name="", default=False)
             elif param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"} and enum_items is not None:
-                prop_annotations[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
+                prop_ats[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
 
             if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
-                prop_annotations[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
+                prop_ats[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -169,7 +170,7 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actor_id: EnumProperty(name="Actor", items=game_data.z64.actors.ootEnumActorID, default="ACTOR_PLAYER")
+    actor_id: EnumProperty(name="Actor", items=lambda self, context: game_data.z64.get_enum("actor_id"), default=1)
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     # only used for actors with the id "Custom"
@@ -599,6 +600,12 @@ classes = (
 
 
 def actor_props_register():
+    # generate props for OoT
+    create_game_props("OOT")
+
+    # generate props for MM
+    create_game_props("MM")
+
     for cls in classes:
         register_class(cls)
 
