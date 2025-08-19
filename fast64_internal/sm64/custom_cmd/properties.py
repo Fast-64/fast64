@@ -629,7 +629,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         options_box = col.box().column()
         if not draw_and_check_tab(options_box, self, "enum_tab"):
             return
-        SM64_CustomEnumOps.draw_row(options_box.row(), -1, command_index=command_index, arg_index=-arg_index)
+        SM64_CustomEnumOps.draw_row(options_box.row(), -1, command_index=command_index, arg_index=arg_index)
         option: SM64_CustomEnumProperties
         for i, option in enumerate(self.enum_options):
             op_row = options_box.row()
