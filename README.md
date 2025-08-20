@@ -61,6 +61,8 @@ Selecting F3DEX3 as your microcode unlocks a large number of additional presets 
 
 For cel shading, it is recommended to start with one of the cel shading presets, then modify the settings under the `Use Cel Shading` panel. Hover over each UI control for additional information about how that setting works.
 
+### [Repo Settings](https://fast64.readthedocs.io/en/latest/common/repo_settings/repo_settings.html)
+
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
 https://b3d.interplanety.org/en/using-microsoft-visual-studio-code-as-external-ide-for-writing-blender-scripts-add-ons/
