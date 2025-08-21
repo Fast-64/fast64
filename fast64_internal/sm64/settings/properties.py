@@ -19,6 +19,7 @@ from ..sm64_constants import defaultExtendSegment4, OLD_BINARY_LEVEL_ENUMS
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
+from ..animation.properties import SM64_AnimProperties
 
 from .constants import (
     enum_refresh_versions,
@@ -40,13 +41,15 @@ class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 5  # version after property migration
+    cur_version = 6  # version after property migration
 
     # UI Selection
     show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
     export_type: EnumProperty(items=enum_export_type, name="Export Type", default="C")
     goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
     combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
+    animation: PointerProperty(type=SM64_AnimProperties)
+    address_converter: PointerProperty(type=SM64_AddrConvProperties)
 
     blender_to_sm64_scale: FloatProperty(
         name="Blender To SM64 Scale",
@@ -55,6 +58,7 @@ class SM64_Properties(PropertyGroup):
     )
     import_rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
 
+    # binary
     export_rom: StringProperty(name="Export ROM", subtype="FILE_PATH")
     output_rom: StringProperty(name="Output ROM", subtype="FILE_PATH")
     extend_bank_4: BoolProperty(
@@ -64,7 +68,6 @@ class SM64_Properties(PropertyGroup):
         f"{hex(defaultExtendSegment4[1])}) and copies data from old bank",
     )
 
-    address_converter: PointerProperty(type=SM64_AddrConvProperties)
     # C
     decomp_path: StringProperty(
         name="Decomp Folder",
@@ -93,6 +96,11 @@ class SM64_Properties(PropertyGroup):
         name="Write All",
         description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
     )
+    # could be used for other properties outside animation
+    designated_prop: BoolProperty(
+        name="Designated Initialization for Animation Tables",
+        description="Extremely recommended but must be off when compiling with IDO. Included in Repo Setting file",
+    )
 
     @property
     def binary_export(self):
@@ -101,6 +109,14 @@ class SM64_Properties(PropertyGroup):
     @property
     def abs_decomp_path(self) -> Path:
         return Path(abspath(self.decomp_path))
+
+    @property
+    def hackersm64(self) -> bool:
+        return self.refresh_version.startswith("HackerSM64")
+
+    @property
+    def designated(self) -> bool:
+        return self.designated_prop or self.hackersm64
 
     @property
     def gfx_write_method(self):
@@ -128,19 +144,17 @@ class SM64_Properties(PropertyGroup):
             "group_name": {"geoGroupName", "colGroupName", "animGroupName", "DLGroupName"},
             "level_name": {"levelOption", "geoLevelOption", "colLevelOption", "animLevelOption", "DLLevelOption"},
             "non_decomp_level": {"levelCustomExport"},
-            "export_header_type": {
-                "geoExportHeaderType",
-                "colExportHeaderType",
-                "animExportHeaderType",
-                "DLExportHeaderType",
-            },
-            "custom_include_directory": {"geoTexDir", "DLTexDir"},
+            "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
+            "custom_include_directory": {"geoTexDir"},
+            "binary_level": {"levelAnimExport"},
+            # as the others binary props get carried over to here we need to update the cur_version again
         }
         binary_level_names = {"levelAnimExport", "colExportLevel", "levelDLExport", "levelGeoExport"}
         old_custom_props = {"animCustomExport", "colCustomExport", "geoCustomExport", "DLCustomExport"}
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
             sm64_props.address_converter.upgrade_changed_props(scene)
+            sm64_props.animation.upgrade_changed_props(scene)
             if sm64_props.version == SM64_Properties.cur_version:
                 continue
             upgrade_old_prop(
@@ -161,6 +175,11 @@ class SM64_Properties(PropertyGroup):
             combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
             for new, old in old_export_props_to_new.items():
                 upgrade_old_prop(combined_props, new, scene, old)
+
+            insertable_directory = get_first_set_prop(scene, "animInsertableBinaryPath")
+            if insertable_directory is not None:  # Ignores file name
+                combined_props.insertable_directory = os.path.split(insertable_directory)[1]
+
             if get_first_set_prop(combined_props, old_custom_props):
                 combined_props.export_header_type = "Custom"
             upgrade_old_prop(combined_props, "level_name", scene, binary_level_names, old_enum=OLD_BINARY_LEVEL_ENUMS)
@@ -175,6 +194,8 @@ class SM64_Properties(PropertyGroup):
         if self.matstack_fix:
             data["lighting_engine_presets"] = self.lighting_engine_presets
         data["write_all"] = self.write_all
+        if not self.hackersm64:
+            data["designated"] = self.designated_prop
         return data
 
     def from_repo_settings(self, data: dict):
@@ -184,6 +205,7 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
         set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "write_all", data, "write_all")
+        set_prop_if_in_data(self, "designated_prop", data, "designated")
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()

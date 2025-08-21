@@ -1,8 +1,20 @@
-import bpy, mathutils, math
-from bpy.types import Operator, Context, UILayout
+from cProfile import Profile
+from pstats import SortKey, Stats
+from typing import Optional
+
+import bpy, mathutils
+from bpy.types import Operator, Context, UILayout, EnumProperty
 from bpy.utils import register_class, unregister_class
-from .utility import *
-from .f3d.f3d_material import *
+
+from .utility import (
+    cleanupTempMeshes,
+    get_mode_set_from_context_mode,
+    raisePluginError,
+    parentObject,
+    store_original_meshes,
+    store_original_mtx,
+)
+from .f3d.f3d_material import createF3DMat
 
 
 def addMaterialByName(obj, matName, preset):
@@ -14,6 +26,9 @@ def addMaterialByName(obj, matName, preset):
         material.name = matName
 
 
+PROFILE_ENABLED = False
+
+
 class OperatorBase(Operator):
     """Base class for operators, keeps track of context mode and sets it back after running
     execute_operator() and catches exceptions for raisePluginError()"""
@@ -22,12 +37,18 @@ class OperatorBase(Operator):
     icon = "NONE"
 
     @classmethod
+    def is_enabled(cls, context: Context, **op_values):
+        return True
+
+    @classmethod
     def draw_props(cls, layout: UILayout, icon="", text: Optional[str] = None, **op_values):
         """Op args are passed to the operator via setattr()"""
         icon = icon if icon else cls.icon
+        layout = layout.column()
         op = layout.operator(cls.bl_idname, icon=icon, text=text)
         for key, value in op_values.items():
             setattr(op, key, value)
+        layout.enabled = cls.is_enabled(bpy.context, **op_values)
         return op
 
     def execute_operator(self, context: Context):
@@ -40,7 +61,12 @@ class OperatorBase(Operator):
         try:
             if self.context_mode and self.context_mode != starting_mode_set:
                 bpy.ops.object.mode_set(mode=self.context_mode)
-            self.execute_operator(context)
+            if PROFILE_ENABLED:
+                with Profile() as profile:
+                    self.execute_operator(context)
+                    print(Stats(profile).strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats())
+            else:
+                self.execute_operator(context)
             return {"FINISHED"}
         except Exception as exc:
             raisePluginError(self, exc)
@@ -51,6 +77,34 @@ class OperatorBase(Operator):
                     context.view_layer.objects.active = starting_object
                     starting_object.select_set(True)
                 bpy.ops.object.mode_set(mode=starting_mode_set)
+
+
+class SearchEnumOperatorBase(OperatorBase):
+    bl_description = "Search Enum"
+    bl_label = "Search"
+    bl_property = None
+    bl_options = {"UNDO"}
+
+    @classmethod
+    def draw_props(cls, layout: UILayout, data, prop: str, name: str):
+        row = layout.row()
+        if name:
+            row.label(text=name)
+        row.prop(data, prop, text="")
+        row.operator(cls.bl_idname, icon="VIEWZOOM", text="")
+
+    def update_enum(self, context: Context):
+        raise NotImplementedError()
+
+    def execute_operator(self, context: Context):
+        assert self.bl_property
+        self.report({"INFO"}, f"Selected: {getattr(self, self.bl_property)}")
+        self.update_enum(context)
+        context.region.tag_redraw()
+
+    def invoke(self, context: Context, _):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
 
 
 class AddWaterBox(OperatorBase):
