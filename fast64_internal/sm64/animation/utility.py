@@ -5,14 +5,14 @@ import re
 from bpy.types import Context, Object, Action, PoseBone
 
 from ...utility import findStartBones, PluginError, toAlnum
-from ..sm64_geolayout_bone import animatableBoneTypes
+from ..sm64_geolayout_utility import is_bone_animatable
 
 if TYPE_CHECKING:
     from .properties import SM64_ActionAnimProperty, SM64_AnimProperties, SM64_ArmatureAnimProperties
 
 
 def is_obj_animatable(obj: Object) -> bool:
-    if obj.type == "ARMATURE" or (obj.type == "MESH" and obj.geo_cmd_static in animatableBoneTypes):
+    if obj.type == "ARMATURE" or (obj.type == "MESH" and obj.geo_cmd_static == "DisplayListWithOffset"):
         return True
     return False
 
@@ -56,12 +56,12 @@ def get_anim_owners(obj: Object):
         if children is None:
             return
         for child in children:
-            if child.geo_cmd_static in animatableBoneTypes:
+            if child.geo_cmd_static == "DisplayListWithOffset":
                 raise PluginError("Cannot have child mesh with animation, use an armature")
             check_children(child.children)
 
     if obj.type == "MESH":  # Object will be treated as a bone
-        if obj.geo_cmd_static in animatableBoneTypes:
+        if obj.geo_cmd_static == "DisplayListWithOffset":
             check_children(obj.children)
             return [obj]
         else:
@@ -81,7 +81,7 @@ def get_anim_owners(obj: Object):
         bones_to_process = bones_to_process[1:]
 
         # Only handle 0x13 bones for animation
-        if current_bone.geo_cmd in animatableBoneTypes:
+        if is_bone_animatable(current_bone):
             anim_bones.append(current_pose_bone)
 
         # Traverse children in alphabetical order.
