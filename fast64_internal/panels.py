@@ -58,3 +58,11 @@ class MK64_Panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "MK64"
+
+    @classmethod
+    def game_check(context):
+        """
+        Provides shorthand method to check context for
+        panels with more complex conditions
+        """
+        return context.scene.gameEditorMode == "MK64"
