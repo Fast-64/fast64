@@ -90,6 +90,7 @@ class SM64_PreviewAnim(OperatorBase):
         anim_props.played_action = played_action
 
 
+# TODO: update these to use CollectionOperatorBase
 class SM64_AnimTableOps(OperatorBase):
     bl_idname = "scene.sm64_table_operations"
     bl_label = "Table Operations"

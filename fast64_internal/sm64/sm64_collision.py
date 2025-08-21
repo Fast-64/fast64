@@ -135,11 +135,11 @@ class Collision:
         if len(self.specials) > 0:
             data.source += "\tCOL_SPECIAL_INIT(" + str(len(self.specials)) + "),\n"
             for special in self.specials:
-                data.source += "\t" + special.to_c()
+                data.source += "\t" + special.to_c(1) + ",\n"
         if len(self.water_boxes) > 0:
             data.source += "\tCOL_WATER_BOX_INIT(" + str(len(self.water_boxes)) + "),\n"
             for waterBox in self.water_boxes:
-                data.source += "\t" + waterBox.to_c()
+                data.source += "\t" + waterBox.to_c(1) + ",\n"
         data.source += "\tCOL_END()\n" + "};\n"
         return data
 

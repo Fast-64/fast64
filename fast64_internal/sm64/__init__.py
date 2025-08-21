@@ -95,6 +95,8 @@ from .animation import (
     SM64_ActionAnimProperty,
 )
 
+from .custom_cmd import custom_cmd_register, custom_cmd_unregister
+
 
 class SM64_ActionProperty(PropertyGroup):
     """
@@ -135,6 +137,7 @@ def sm64_panel_unregister():
 
 
 def sm64_register(register_panels: bool):
+    custom_cmd_register()
     tools_operators_register()
     tools_props_register()
     anim_register()
@@ -156,6 +159,7 @@ def sm64_register(register_panels: bool):
 
 
 def sm64_unregister(unregister_panels: bool):
+    custom_cmd_unregister()
     tools_operators_unregister()
     tools_props_unregister()
     anim_unregister()

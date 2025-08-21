@@ -57,9 +57,6 @@ Then after applying the rest pose and skinning, you would apply those operations
 ## Decomp
 To start, set your base decomp folder in SM64 General Settings. This allows the plugin to automatically add headers/includes to the correct locations. You can always choose to export to a custom location, although headers/includes won't be written.
 
-## Repo settings
-Fast64 can save and load repo settings files. By default, they're named fast64.json. These files have RDP defaults, microcode, and more. They also have game-specific settings (OOT will support these in the future). Fast64 will set the path for the settings and auto-load them if auto-load is enabled as soon as the user picks an sm64 decomp path.
-
 ### Decomp Export Types
 Most exports will let you choose an export type. 
 
@@ -153,6 +150,8 @@ To resolve pointer addresses, for each pointer address,
 
     # Convert offset to segmented address
     data[pointer_address] = encode_segmented_address(export_address + current_offset)
+
+### [Custom Commands](https://fast64.readthedocs.io/en/latest/sm64/custom_commands/custom_commands.html)
 
 ### Common Issues
 Game crashes: Invalid function address for switch/function/held object bones.

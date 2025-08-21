@@ -6,7 +6,7 @@ from bpy.path import abspath
 from . import addon_updater_ops
 
 from .fast64_internal.game_data import game_data
-from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data
+from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data, Matrix4x4Property
 
 from .fast64_internal.repo_settings import (
     draw_repo_settings,
@@ -338,6 +338,7 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
+    SM64_BoneProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
         settings: Fast64Settings_Properties = scene.fast64.settings
@@ -433,6 +434,7 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
+    register_class(Matrix4x4Property)
     initOOTActorProperties()
     utility_anim_register()
     mat_register()
@@ -490,6 +492,7 @@ def unregister():
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
+    unregister_class(Matrix4x4Property)
 
     del bpy.types.Scene.fullTraceback
     del bpy.types.Scene.ignoreTextureRestrictions

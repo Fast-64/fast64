@@ -2,7 +2,7 @@ from pathlib import Path
 import bpy, os, math, re, shutil, mathutils
 from collections import defaultdict
 from typing import NamedTuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
@@ -22,6 +22,7 @@ from .sm64_utility import (
 )
 
 from ..utility import (
+    yUpToZUp,
     PluginError,
     getDataFromFile,
     saveDataToFile,
@@ -305,6 +306,7 @@ class LevelScript:
         self.marioStart = None
         self.persistentBlocks = PersistentBlocks.new()
         self.sub_scripts: LevelScript = []
+        self.custom_cmds: list["SM64_CustomCmdProperties"] = []
 
     # this is basically a smaller script jumped to from the main one
     def add_subscript(self, name: str):
@@ -357,6 +359,7 @@ class LevelScript:
                     macrosToString(self.segmentLoads),
                     f"\tALLOC_LEVEL_POOL(),",
                     f"\t{self.mario}",
+                    *[f"\t{cmd.to_c(1)}," for cmd in self.custom_cmds],
                     macrosToString(self.levelFunctions),
                     macrosToString(self.modelLoads),
                     f"{self.get_persistent_block(PersistentBlocks.levelCommands, nTabs=1)}\n",
@@ -794,6 +797,7 @@ def export_area_c(
         raise PluginError(f"Error while creating area {area_root.areaIndex}: {str(exc)}") from exc
     if area.mario_start is not None:
         prev_level_script.marioStart = area.mario_start
+    prev_level_script.custom_cmds += area.custom_cmds
     persistentBlockString = prev_level_script.get_persistent_block(
         PersistentBlocks.areaCommands, nTabs=2, areaIndex=str(area.index)
     )
@@ -892,6 +896,23 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     childAreas = [child for child in obj.children if child.type == "EMPTY" and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
+
+    for child in obj.children:
+        if child.type == "EMPTY" and child.sm64_obj_type == "Custom":
+            custom_props = child.fast64.sm64.custom
+            if custom_props.preset != "NONE" and custom_props.section == "AREA":
+                raise PluginError(
+                    f"Object {obj.name} is parented to the level root but should be parented to an area root."
+                )
+            prev_level_script.custom_cmds.append(
+                custom_props.get_final_cmd(
+                    obj,
+                    bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+                    child.matrix_world @ yUpToZUp,
+                    child.matrix_local,
+                    name=obj.name,
+                )
+            )
 
     uses_env_fx = False
     echoLevels = ["0x00", "0x00", "0x00"]

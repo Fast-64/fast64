@@ -2,7 +2,15 @@ import os
 from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
-from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
+from bpy.props import (
+    BoolProperty,
+    StringProperty,
+    EnumProperty,
+    IntProperty,
+    FloatProperty,
+    PointerProperty,
+    CollectionProperty,
+)
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
@@ -17,6 +25,7 @@ from ...utility import (
 )
 from ..sm64_constants import defaultExtendSegment4, OLD_BINARY_LEVEL_ENUMS
 from ..sm64_objects import SM64_CombinedObjectProperties
+from ..custom_cmd.properties import SM64_CustomCmdProperties, draw_custom_cmd_presets
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
 from ..animation.properties import SM64_AnimProperties
@@ -49,6 +58,8 @@ class SM64_Properties(PropertyGroup):
     goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
     combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
     animation: PointerProperty(type=SM64_AnimProperties)
+    custom_cmds: CollectionProperty(type=SM64_CustomCmdProperties)
+    custom_cmds_tab: BoolProperty(default=True, name="Custom Commands")
     address_converter: PointerProperty(type=SM64_AddrConvProperties)
 
     blender_to_sm64_scale: FloatProperty(
@@ -196,6 +207,8 @@ class SM64_Properties(PropertyGroup):
         data["write_all"] = self.write_all
         if not self.hackersm64:
             data["designated"] = self.designated_prop
+        if self.custom_cmds:
+            data["custom_cmds"] = [preset.to_dict("PRESET_EDIT") for preset in self.custom_cmds]
         return data
 
     def from_repo_settings(self, data: dict):
@@ -206,6 +219,11 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "write_all", data, "write_all")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
+        if "custom_cmds" in data:
+            self.custom_cmds.clear()
+            for preset_data in data.get("custom_cmds", []):
+                self.custom_cmds.add()
+                self.custom_cmds[-1].from_dict(preset_data)
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
@@ -218,6 +236,7 @@ class SM64_Properties(PropertyGroup):
         if self.matstack_fix:
             col.prop(self, "lighting_engine_presets")
         col.prop(self, "write_all")
+        draw_custom_cmd_presets(self, col.box())
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
