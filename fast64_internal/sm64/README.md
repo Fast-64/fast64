@@ -52,7 +52,7 @@ For example, for Mario you would rotate the four limb joints around the Y-axis 1
 
 Then after applying the rest pose and skinning, you would apply those operations in reverse order then apply rest pose again.
 
-### TODO: Link to animations docs
+### [Animations](https://fast64.readthedocs.io/en/latest/sm64/animations/index.html)
 
 ## Decomp
 To start, set your base decomp folder in SM64 General Settings. This allows the plugin to automatically add headers/includes to the correct locations. You can always choose to export to a custom location, although headers/includes won't be written.
