@@ -2,7 +2,7 @@ from pathlib import Path
 import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator, inspect
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
-from .utility_anim import *
+
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
 from bpy.types import UILayout, Scene, World
 from bpy.props import FloatVectorProperty
@@ -530,6 +530,7 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
+    directory_path_checks(baseDir, "Empty directory path.")
     if bpy.context.scene.fast64.sm64.force_extended_ram:
         enableExtendedRAM(baseDir)
 
@@ -738,11 +739,17 @@ def makeWriteInfoBox(layout):
 
 
 def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
+    if not name:
+        writeBox.label(text="Empty actor name", icon="ERROR")
+        return
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
         if levelOption != "Custom":
             levelName = levelOption
+        if not name:
+            writeBox.label(text="Empty level name", icon="ERROR")
+            return
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
 
@@ -827,6 +834,13 @@ def translation_rotation_from_mtx(mtx: mathutils.Matrix):
 
 def scale_mtx_from_vector(scale: mathutils.Vector):
     return mathutils.Matrix.Diagonal(scale[0:3]).to_4x4()
+
+
+def attemptModifierApply(modifier):
+    try:
+        bpy.ops.object.modifier_apply(modifier=modifier.name)
+    except Exception as e:
+        print("Skipping modifier " + str(modifier.name))
 
 
 def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifiers=False):
@@ -1391,15 +1405,15 @@ def bytesToInt(value):
 
 
 def bytesToHex(value, byteSize=4):
-    return format(bytesToInt(value), "#0" + str(byteSize * 2 + 2) + "x")
+    return format(bytesToInt(value), f"#0{(byteSize * 2 + 2)}x")
 
 
 def bytesToHexClean(value, byteSize=4):
-    return format(bytesToInt(value), "0" + str(byteSize * 2) + "x")
+    return format(bytesToInt(value), f"#0{(byteSize * 2)}x")
 
 
-def intToHex(value, byteSize=4):
-    return format(value, "#0" + str(byteSize * 2 + 2) + "x")
+def intToHex(value, byte_size=4, signed=True):
+    return format(value if signed else cast_integer(value, byte_size * 8, False), f"#0{(byte_size * 2 + 2)}x")
 
 
 def intToBytes(value, byteSize):
@@ -1657,6 +1671,10 @@ def byteMask(data, offset, amount):
 
 def bitMask(data, offset, amount):
     return (~(-1 << amount) << offset & data) >> offset
+
+
+def is_bit_active(x: int, index: int):
+    return ((x >> index) & 1) == 1
 
 
 def read16bitRGBA(data):
