@@ -722,6 +722,10 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
         active_object=obj,
     ):
         obj.data.transform(mathutils.Matrix.Translation(-offset))
+        # Applying location puts the object origin at world origin
+        # (It is only needed to apply location to set the origin,
+        #  but historically this function has applied all transforms
+        #  so just keep doing that to not break anything)
         bpy.ops.object.transform_apply()
         obj.location = target_loc
 
