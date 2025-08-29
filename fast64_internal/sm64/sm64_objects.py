@@ -601,7 +601,8 @@ class SM64_Area:
         if self.startDialog is not None:
             data += "\t\tSHOW_DIALOG(0x00, " + self.startDialog + "),\n"
         data += "\t\tTERRAIN_TYPE(" + self.terrain_type + "),\n"
-        data += f"\t\tSETUP_OCCLUSION_PLANES({self.occlusion_planes.name}),\n"
+        if bpy.context.scene.f3d_type == "F3DEX3" and len(self.occlusion_planes.planes) > 0:
+            data += f"\t\tSETUP_OCCLUSION_PLANES({self.occlusion_planes.name}),\n"
         data += f"{persistentBlockString}\n"
         data += "\tEND_AREA(),\n"
         return data
