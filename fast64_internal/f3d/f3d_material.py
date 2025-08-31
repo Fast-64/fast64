@@ -32,6 +32,7 @@ from mathutils import Color
 
 from .f3d_enums import *
 from .f3d_gbi import (
+    F3D,
     get_F3D_GBI,
     enumTexScroll,
     isUcodeF3DEX1,
@@ -58,75 +59,6 @@ F3DMaterialHash = Any  # giant tuple
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 logger = logging.getLogger(__name__)
 
-bitSizeDict = {
-    "G_IM_SIZ_4b": 4,
-    "G_IM_SIZ_8b": 8,
-    "G_IM_SIZ_16b": 16,
-    "G_IM_SIZ_32b": 32,
-}
-
-texBitSizeF3D = {
-    "I4": "G_IM_SIZ_4b",
-    "IA4": "G_IM_SIZ_4b",
-    "CI4": "G_IM_SIZ_4b",
-    "I8": "G_IM_SIZ_8b",
-    "IA8": "G_IM_SIZ_8b",
-    "CI8": "G_IM_SIZ_8b",
-    "RGBA16": "G_IM_SIZ_16b",
-    "IA16": "G_IM_SIZ_16b",
-    "YUV16": "G_IM_SIZ_16b",
-    "RGBA32": "G_IM_SIZ_32b",
-}
-
-texFormatOf = {
-    "I4": "G_IM_FMT_I",
-    "IA4": "G_IM_FMT_IA",
-    "CI4": "G_IM_FMT_CI",
-    "I8": "G_IM_FMT_I",
-    "IA8": "G_IM_FMT_IA",
-    "CI8": "G_IM_FMT_CI",
-    "RGBA16": "G_IM_FMT_RGBA",
-    "IA16": "G_IM_FMT_IA",
-    "YUV16": "G_IM_FMT_YUV",
-    "RGBA32": "G_IM_FMT_RGBA",
-}
-
-
-sm64EnumDrawLayers = [
-    ("0", "Background (0x00)", "Background"),
-    ("1", "Opaque (0x01)", "Opaque"),
-    ("2", "Opaque Decal (0x02)", "Opaque Decal"),
-    ("3", "Opaque Intersecting (0x03)", "Opaque Intersecting"),
-    ("4", "Cutout (0x04)", "Cutout"),
-    ("5", "Transparent (0x05)", "Transparent"),
-    ("6", "Transparent Decal (0x06)", "Transparent Decal"),
-    ("7", "Transparent Intersecting (0x07)", "Transparent Intersecting"),
-]
-
-ootEnumDrawLayers = [
-    ("Opaque", "Opaque", "Opaque"),
-    ("Transparent", "Transparent", "Transparent"),
-    ("Overlay", "Overlay", "Overlay"),
-]
-
-
-drawLayerSM64toOOT = {
-    "0": "Opaque",
-    "1": "Opaque",
-    "2": "Opaque",
-    "3": "Opaque",
-    "4": "Opaque",
-    "5": "Transparent",
-    "6": "Transparent",
-    "7": "Transparent",
-}
-
-drawLayerOOTtoSM64 = {
-    "Opaque": "1",
-    "Transparent": "5",
-    "Overlay": "1",
-}
-
 
 def menu_items_enum(_self, context):
     items = ["Combiner", "Sources"]
@@ -134,60 +66,6 @@ def menu_items_enum(_self, context):
         items.append("Geo")
     items.extend(["Upper", "Lower"])
     return [(item, item, item) for item in items]
-
-
-enumF3DSource = [
-    ("None", "None", "None"),
-    ("Texture", "Texture", "Texture"),
-    ("Tile Size", "Tile Size", "Tile Size"),
-    ("Primitive", "Primitive", "Primitive"),
-    ("Environment", "Environment", "Environment"),
-    ("Shade", "Shade", "Shade"),
-    ("Key", "Key", "Key"),
-    ("LOD Fraction", "LOD Fraction", "LOD Fraction"),
-    ("Convert", "Convert", "Convert"),
-]
-
-defaultMaterialPresets = {
-    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid"},
-    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
-}
-
-F3D_GEO_MODES = {
-    "zBuffer": "g_zbuffer",
-    "shade": "g_shade",
-    "cullFront": "g_cull_front",
-    "cullBack": "g_cull_back",
-    "fog": "g_fog",
-    "lighting": "g_lighting",
-    "texGen": "g_tex_gen",
-    "texGenLinear": "g_tex_gen_linear",
-    "lod": "g_lod",
-    "shadeSmooth": "g_shade_smooth",
-}
-
-F3DLX_GEO_MODES = {
-    "clipping": "g_clipping",
-}
-
-F3DEX3_GEO_MODES = {
-    "ambientOcclusion": "g_ambocclusion",
-    "attroffsetZ": "g_attroffset_z_enable",
-    "attroffsetST": "g_attroffset_st_enable",
-    "packedNormals": "g_packed_normals",
-    "lightToAlpha": "g_lighttoalpha",
-    "specularLighting": "g_lighting_specular",
-    "fresnelToColor": "g_fresnel_color",
-    "fresnelToAlpha": "g_fresnel_alpha",
-}
-
-
-T3D_GEO_MODES = {
-    "cullFront": "g_cull_front",
-    "cullBack": "g_cull_back",
-    "fog": "g_fog",
-    "texGen": "g_tex_gen",
-}
 
 
 def geo_modes_in_ucode(UCODE_VER: str):
@@ -269,7 +147,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     Set all individual controls for the rendermode from the preset rendermode.
     """
     scene = bpy.context.scene
-    f3d_mat = material.f3d_mat
+    f3d_mat: "F3DMaterialProperty" = material.f3d_mat
     settings = f3d_mat.rdp_settings
     f3d = get_F3D_GBI()
 
@@ -304,7 +182,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         # want, then disable it, and have it still previewed that way.
         return getattr(f3d, preset, default)
 
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    is_two_cycle = f3d_mat.cycletype == "G_CYC_2CYCLE"
     if is_two_cycle:
         r1 = get_with_default(cycle_1, f3d.G_RM_FOG_SHADE_A)
         r2 = get_with_default(cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
@@ -340,17 +218,11 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.blend_b2 = f3d.blendMixDict[(r2 >> 16) & 3]
 
 
-def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rendermode: bool = False) -> bool:
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    return settings.blend_b1 == mix or (is_two_cycle and settings.blend_b2 == mix)
-
-
-def is_blender_equation_equal(settings: "RDPSettings", cycle: int, p: str, a: str, m: str, b: str) -> bool:
+def is_blender_equation_equal(f3d_mat: "F3DMaterialProperty", cycle: int, p: str, a: str, m: str, b: str) -> bool:
+    settings = f3d_mat.rdp_settings
     assert cycle in {1, 2, -1}  # -1 = last cycle
     if cycle == -1:
-        cycle = 2 if settings.g_mdsft_cycletype == "G_CYC_2CYCLE" else 1
+        cycle = 2 if f3d_mat.cycletype else 1
     return (
         getattr(settings, f"blend_p{cycle}") == p
         and getattr(settings, f"blend_a{cycle}") == a
@@ -359,9 +231,9 @@ def is_blender_equation_equal(settings: "RDPSettings", cycle: int, p: str, a: st
     )
 
 
-def is_blender_doing_fog(settings: "RDPSettings") -> bool:
+def is_blender_doing_fog(f3d_mat: "F3DMaterialProperty") -> bool:
     return is_blender_equation_equal(
-        settings,
+        f3d_mat,
         # If 2 cycle, fog must be in first cycle.
         1,
         "G_BL_CLR_FOG",
@@ -380,7 +252,7 @@ def get_output_method(material: bpy.types.Material) -> str:
     if settings.cvg_x_alpha:
         return "CLIP"
     if settings.force_bl and is_blender_equation_equal(
-        settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
+        material.f3d_mat, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
     ):
         return "XLU"
     return "OPA"
@@ -423,7 +295,7 @@ def getTmemMax(texFormat):
 # Necessary for UV half pixel offset (see 13.7.5.3)
 def isTexturePointSampled(material):
     f3dMat = material.f3d_mat
-    return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
+    return f3dMat.get_rdp_othermode("g_mdsft_text_filt") == "G_TF_POINT"
 
 
 def F3DOrganizeLights(self, context):
@@ -464,8 +336,11 @@ def combiner_uses(
     checkColor=True,
     checkAlpha=True,
     swapTexelsCycle2=True,
+    cycle_type: str = None,
 ):
-    is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    if cycle_type is None:
+        cycle_type = f3dMat.cycletype
+    is_two_cycle = cycle_type == "G_CYC_2CYCLE"
     for i in range(1, 3):
         if i == 1 and not checkCycle1 or i == 2 and (not checkCycle2 or not is_two_cycle):
             continue
@@ -482,34 +357,35 @@ def combiner_uses(
     return False
 
 
-def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"])
+def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty", cycle_type: str = None):
+    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], cycle_type=cycle_type)
 
 
-def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"])
+def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty", cycle_type: str = None):
+    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], cycle_type=cycle_type)
 
 
-def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
-    use_tex0 = combiner_uses_tex0(f3d_mat)
-    use_tex1 = combiner_uses_tex1(f3d_mat)
+def all_combiner_uses(f3d_mat: "F3DMaterialProperty", cycle_type: str = None) -> dict[str, bool]:
+    use_tex0 = combiner_uses_tex0(f3d_mat, cycle_type)
+    use_tex1 = combiner_uses_tex1(f3d_mat, cycle_type)
 
     useDict = {
         "Texture": use_tex0 or use_tex1,
         "Texture 0": use_tex0,
         "Texture 1": use_tex1,
-        "Primitive": combiner_uses(
-            f3d_mat,
-            ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
-        ),
-        "Environment": combiner_uses(f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]),
-        "Shade": combiner_uses(f3d_mat, ["SHADE"], checkAlpha=False),
-        "Shade Alpha": combiner_uses(f3d_mat, ["SHADE"], checkColor=False)
-        or combiner_uses(f3d_mat, ["SHADE_ALPHA"], checkAlpha=False),
-        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"]),
-        "LOD Fraction": combiner_uses(f3d_mat, ["LOD_FRACTION"]),
-        "Convert": combiner_uses(f3d_mat, ["K4", "K5"]),
+        "Primitive": combiner_uses(f3d_mat, ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"], cycle_type=cycle_type)
+        or f3d_mat.uses_mipmap,
+        "Environment": combiner_uses(f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"], cycle_type=cycle_type),
+        "Shade": combiner_uses(f3d_mat, ["SHADE"], checkAlpha=False, cycle_type=cycle_type),
+        "Shade Alpha": combiner_uses(f3d_mat, ["SHADE"], checkColor=False, cycle_type=cycle_type)
+        or combiner_uses(f3d_mat, ["SHADE_ALPHA"], checkAlpha=False, cycle_type=cycle_type),
+        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"], cycle_type=cycle_type),
+        "LOD Fraction": combiner_uses(f3d_mat, ["LOD_FRACTION"], cycle_type=cycle_type),
     }
+    useDict["Convert"] = (
+        combiner_uses(f3d_mat, ["K4", "K5"], cycle_type=cycle_type)
+        or f3d_mat.get_tex_convert(dont_raise=True, tex_use={0: use_tex0, 1: use_tex1}) != "G_TC_FILT"
+    )
     return useDict
 
 
@@ -678,36 +554,17 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_upper else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_upper:
-        prop_split(inputGroup, settings, "g_mdsft_alpha_dither", "Alpha Dither")
-        prop_split(inputGroup, settings, "g_mdsft_rgb_dither", "RGB Dither")
-        prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
-        prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
-        prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
-        textlut_col = inputGroup.column()
-        tlut_mode = get_textlut_mode(dataHolder, True) if isinstance(dataHolder, F3DMaterialProperty) else None
-        if tlut_mode:
-            textlut_col.enabled = False
-            split = textlut_col.split(factor=0.5)
-            split.label(text="Texture LUT (Auto)")
-            box = split.box()
-            box.label(text={"G_TT_NONE": "None"}.get(tlut_mode, tlut_mode.lstrip("G_TT_")))
-            box.scale_y = 0.5
-        else:
-            prop_split(textlut_col, settings, "g_mdsft_textlut", "Texture LUT")
-        prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
-        if settings.g_mdsft_textlod == "G_TL_LOD":
-            inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
-            if settings.num_textures_mipmapped > 2:
-                box = inputGroup.box()
-                box.alert = True
-                box.label(
-                    text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN"
-                )
-                box.label(text="Additional texture tiles will need to be set up manually.")
-        prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
-        prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
-        prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
-        prop_split(inputGroup, settings, "g_mdsft_pipeline", "Pipeline Span Buffer Coherency")
+        auto_modes, use_lod = {}, settings.num_textures_mipmapped
+        if isinstance(dataHolder, F3DMaterialProperty):
+            auto_modes = dataHolder.get_auto_othermode_h(True)
+            use_lod = dataHolder.uses_mipmap
+
+        for attr, mode in OTHERMODE_H_ATTRS.items():
+            auto = auto_modes.get(attr)
+            draw_forced(inputGroup, settings, attr, auto is not None, mode.name, auto)
+        if use_lod:
+            auto = auto_modes.get("num_textures_mipmapped")
+            draw_forced(inputGroup, settings, "num_textures_mipmapped", auto is not None, "Number of Mipmaps", auto)
 
 
 def ui_lower_mode(settings, dataHolder, layout: UILayout, useDropdown):
@@ -750,16 +607,17 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input.enabled = dataHolder.set_blend
 
 
-def tmemUsageUI(layout, textureProp):
-    tex = textureProp.tex
-    if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-        tmemUsage = getTmemWordUsage(textureProp.tex_format, tex.size[0], tex.size[1]) * 8
-        tmemMax = getTmemMax(textureProp.tex_format)
-        layout.label(text="TMEM Usage: " + str(tmemUsage) + " / " + str(tmemMax) + " bytes")
-        if tmemUsage > tmemMax:
-            tmemSizeWarning = layout.box()
-            tmemSizeWarning.label(text="WARNING: Texture size is too large.")
-            tmemSizeWarning.label(text="Note that width will be internally padded to 64 bit boundaries.")
+def tmemUsageUI(layout, tex_prop: "TextureProperty"):
+    tex_size = tex_prop.size
+    tmemUsage = getTmemWordUsage(tex_prop.tex_format, tex_size[0], tex_size[1]) * 8
+    tmemMax = getTmemMax(tex_prop.tex_format)
+    layout.label(text="TMEM Usage: " + str(tmemUsage) + " / " + str(tmemMax) + " bytes")
+    if tmemUsage > tmemMax:
+        multilineLabel(
+            layout.box(),
+            "WARNING: Texture size is too large.\nNote that width will be internally padded to 64 bit boundaries.",
+            icon="ERROR",
+        )
 
 
 # UI Assumptions:
@@ -797,11 +655,10 @@ class F3DPanel(Panel):
         return inputGroup
 
     def ui_large(self, material, layout):
-        layout.prop(material, "use_large_textures")
+        split = layout.row().split(factor=0.5) if material.use_large_textures else layout
+        split.prop(material, "use_large_textures")
         if material.use_large_textures:
-            inputGroup = layout.row().split(factor=0.5)
-            inputGroup.label(text="Large texture edges:")
-            inputGroup.prop(material, "large_edges", text="")
+            split.prop(material, "large_edges", text="")
 
     def ui_scale(self, material, layout):
         inputGroup = layout.row().split(factor=0.5)
@@ -941,8 +798,8 @@ class F3DPanel(Panel):
         prop_input.enabled = material.set_k0_5
         return inputGroup
 
-    def ui_lower_render_mode(self, material, layout, useDropdown):
-        is_two_cycle = material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    def ui_lower_render_mode(self, material: "F3DMaterialProperty", layout, useDropdown):
+        is_two_cycle = material.cycletype == "G_CYC_2CYCLE"
         # cycle independent
         inputGroup = layout.column()
         if useDropdown:
@@ -1243,20 +1100,95 @@ class F3DPanel(Panel):
             noticeBox.label(text="Mesh must have two Color Attribute (vtx color) layers.", icon="IMAGE_RGB_ALPHA")
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
-    def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
-        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
-        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
-        if not useTex0 or not useTex1:
-            return
-        isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
-        isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
-        if isTex0CI != isTex1CI:
-            layout.box().column().label(text="Can't have one CI tex and one non-CI.", icon="ERROR")
-        if isTex0CI and isTex1CI and (f3dMat.tex0.ci_format != f3dMat.tex1.ci_format):
-            layout.box().column().label(text="Two CI textures must use the same CI format.", icon="ERROR")
+    def draw_ci_warnings(self, layout: UILayout, f3d_mat: "F3DMaterialProperty"):
+        errors, warnings = [], []
+        try:
+            _ = f3d_mat.get_tlut_mode()
+        except Exception as exc:
+            errors.append(str(exc))
+        try:
+            _ = f3d_mat.get_tex_convert()
+        except Exception as exc:
+            errors.append(str(exc))
+        if f3d_mat.uses_mipmap and not f3d_mat.is_multi_tex:
+            warnings.append(
+                "Without linear interpolation\nbetween the two texture samplers,\nmipmaps will switch between tiles per\npixel."
+            )
+        if not f3d_mat.pseudo_fmt_can_mip and f3d_mat.uses_mipmap:
+            warnings.append(
+                "WARNING: This pseudo-format does\nnot support mipmaps (see tooltip), yet\nLOD mode is enabled?"
+            )
+        tex_convert = f3d_mat.tex_convert
+        if tex_convert != "G_TC_FILT":
+            if not (combiner_uses(f3d_mat, ["K4"]) or combiner_uses(f3d_mat, ["K5"])):
+                warnings.append("No K4/K5 inputs used, but YUV\nconversion is enabled.")
+            if tex_convert == "G_TC_FILTCONV" and not combiner_uses_tex1(f3d_mat) and combiner_uses_tex0(f3d_mat):
+                warnings.append("Using filter and convert, but only using\nTexture 0 which does not get converted.")
+        if len(errors) > 0:
+            multilineLabel(layout.box(), "\n".join(errors), "ERROR")
+        if len(warnings) > 0:
+            multilineLabel(layout.box(), "\n".join(warnings), "INFO")
 
-    def draw_simple(self, f3dMat, material, layout, context):
+    def draw_textures(
+        self, f3d_mat: "F3DMaterialProperty", material: bpy.types.Material, layout: UILayout, is_simple: bool
+    ):
         f3d = get_F3D_GBI()
+        textures = f3d_mat.set_textures if is_simple else f3d_mat.used_textures
+        col = layout.column()
+        if len(textures) > 0:
+            draw_and_check_tab(col, f3d_mat, "texture_tab", "Textures", "IMAGE_DATA")
+            if not f3d_mat.texture_tab:
+                return
+        else:
+            return
+        pseudo_split = col.split(factor=0.5) if f3d_mat.gen_pseudo_format else col
+        pseudo_split.prop(f3d_mat, "gen_pseudo_format")
+        if f3d_mat.gen_pseudo_format:
+            pseudo_split.prop(f3d_mat, "pseudo_format_internal", text="")
+        if f3d_mat.pseudo_fmt_can_mip:
+            mipmaps_split = col.split(factor=0.5) if f3d_mat.gen_auto_mips else col
+            draw_forced(mipmaps_split, f3d_mat, "gen_auto_mips_internal", f3d_mat.forced_mipmap, name=None, split=False)
+            if f3d_mat.gen_auto_mips:
+                mipmaps_split.prop(f3d_mat, "auto_mipmaps", text="")
+
+        self.ui_large(f3d_mat, col)
+        self.ui_scale(f3d_mat, col)
+        if len(textures) > 1:
+            col.prop(f3d_mat, "uv_basis", text="UV Basis")
+        # TODO: in the future we should make a multitex manager for UI and preview (and cache it) and use the errors from that
+        self.draw_ci_warnings(col, f3d_mat)
+        col.separator(factor=1.0)
+        if f3d_mat.gen_auto_mips or f3d_mat.gen_pseudo_format:
+            ui_image(
+                f3d_mat.use_large_textures,
+                f3d_mat.is_multi_tex,
+                col.box(),
+                f3d_mat.all_textures[0],
+                "Base Texture",
+                False,
+                f3d,
+                always_load=True,
+                forced_fmt=f3d_mat.gen_pseudo_format,
+            )
+            col.separator(factor=1.0)
+            return
+
+        for i, (tex_index, tex) in enumerate(textures.items()):
+            if tex.menu and i > 0:
+                col.separator(factor=1.0)
+            ui_image(
+                f3d_mat.use_large_textures,
+                f3d_mat.is_multi_tex,
+                col.box(),
+                tex,
+                f"Texture {tex_index}",
+                not is_simple,
+                f3d,
+            )
+            if tex.menu or i == len(textures) - 1:
+                col.separator(factor=1.0)
+
+    def draw_simple(self, f3dMat: "F3DMaterialProperty", material, layout: UILayout, context):
         self.ui_uvCheck(layout, context)
 
         inputCol = layout.column()
@@ -1264,22 +1196,7 @@ class F3DPanel(Panel):
 
         self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
-        useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
-
-        self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
-        canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
-        if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", False)
-
-        if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
-
-        if useMultitexture:
-            inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
-
-        if useDict["Texture"]:
-            self.ui_large(f3dMat, inputCol)
-            self.ui_scale(f3dMat, inputCol)
+        self.draw_textures(f3dMat, material, inputCol, True)
 
         if useDict["Primitive"] and f3dMat.set_prim:
             self.ui_prim(material, inputCol, "set_prim", f3dMat.set_prim, False)
@@ -1304,7 +1221,7 @@ class F3DPanel(Panel):
 
         self.ui_misc(f3dMat, inputCol, False)
 
-    def draw_full(self, f3dMat, material, layout: UILayout, context):
+    def draw_full(self, f3dMat: "F3DMaterialProperty", material, layout: UILayout, context):
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
         useDict = all_combiner_uses(f3dMat)
@@ -1323,7 +1240,7 @@ class F3DPanel(Panel):
                     r.label(text=f"{letter}{' Alpha' if isAlpha else ''}:")
                     r.prop(combiner, f"{letter}{'_alpha' if isAlpha else ''}", text="")
 
-            is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            is_two_cycle = f3dMat.cycletype == "G_CYC_2CYCLE"
 
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
@@ -1359,22 +1276,7 @@ class F3DPanel(Panel):
 
             inputCol = layout.column()
 
-            useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
-
-            self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
-            canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
-            if useDict["Texture 0"]:
-                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", True)
-
-            if useDict["Texture 1"]:
-                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
-
-            if useMultitexture:
-                inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
-
-            if useDict["Texture"]:
-                self.ui_large(f3dMat, inputCol)
-                self.ui_scale(f3dMat, inputCol)
+            self.draw_textures(f3dMat, material, inputCol, False)
 
             if useDict["Primitive"]:
                 self.ui_prim(material, inputCol, "set_prim", f3dMat.set_prim, True)
@@ -1415,7 +1317,7 @@ class F3DPanel(Panel):
             layout.label(text="This is not a Fast3D material.")
             return
 
-        f3dMat = material.f3d_mat
+        f3dMat: "F3DMaterialProperty" = material.f3d_mat
         settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
         layout = layout.box()
@@ -1439,7 +1341,7 @@ class F3DPanel(Panel):
         row.operator(AddPresetF3D.bl_idname, text="", icon="ADD")
         row.operator(AddPresetF3D.bl_idname, text="", icon="REMOVE").remove_active = True
 
-        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+        if f3dMat.get_rdp_othermode("g_mdsft_alpha_compare") == "G_AC_THRESHOLD" and f3dMat.cycletype == "G_CYC_2CYCLE":
             multilineLabel(
                 layout.box(),
                 "RDP silicon bug: Alpha compare in 2-cycle mode is broken.\n"
@@ -1494,7 +1396,9 @@ def ui_tileScroll(tex, name, layout):
     row.prop(tex.tile_scroll, "interval", text="Interval:")
 
 
-def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1):
+def ui_procAnimVecEnum(
+    f3d_mat: "F3DMaterialProperty", procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1
+):
     layout = layout.box()
     box = layout.column()
     if useDropdown:
@@ -1525,12 +1429,8 @@ def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown
 
     if useTex0 or useTex1:
         layout.box().label(text="SM64 SetTileSize Texture Scroll")
-
-        if useTex0:
-            ui_tileScroll(material.tex0, "Texture 0 Speed", layout)
-
-        if useTex1:
-            ui_tileScroll(material.tex1, "Texture 1 Speed", layout)
+        for i, tex in f3d_mat.set_textures.items():
+            ui_tileScroll(tex, f"Texture {i} Speed", layout)
 
 
 def ui_procAnimFieldEnum(procAnimField, layout, name, overrideName):
@@ -1765,7 +1665,7 @@ def update_fog_nodes(material: Material, context: Context):
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
-        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings) else "FogBlender_Off")
+        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat) else "FogBlender_Off")
     ]
 
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
@@ -1839,14 +1739,16 @@ def set_output_node_groups(material: Material):
     nodes = material.node_tree.nodes
     output_node = nodes["OUTPUT"]
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    cycle = f3dMat.rdp_settings.g_mdsft_cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
+    cycle = f3dMat.cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
+    if cycle not in {"1", "2"}:  # TODO: fill and copy?
+        cycle = "1"
     output_method = get_output_method(material)
     if bpy.app.version < (4, 2, 0) and output_method == "CLIP":
         output_method = "XLU"
         material.alpha_threshold = 0.125
 
     output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
-    output_group = bpy.data.node_groups[output_group_name]
+    output_group = bpy.data.node_groups.get(output_group_name)
     output_node.node_tree = output_group
 
     for inp in output_node.inputs:
@@ -1998,23 +1900,19 @@ def set_texture_settings_node(material: Material):
     nodes = material.node_tree.nodes
     textureSettings: ShaderNodeGroup = nodes["TextureSettings"]
 
-    desired_group = bpy.data.node_groups["TextureSettings_Lite"]
-    if (material.f3d_mat.tex0.tex and not material.f3d_mat.tex0.autoprop) or (
-        material.f3d_mat.tex1.tex and not material.f3d_mat.tex1.autoprop
-    ):
-        desired_group = bpy.data.node_groups["TextureSettings_Advanced"]
+    desired_group = bpy.data.node_groups["TextureSettings_Advanced"]
     if textureSettings.node_tree is not desired_group:
         textureSettings.node_tree = desired_group
 
 
-def setAutoProp(fieldProperty, pixelLength):
-    fieldProperty.mask = log2iRoundUp(pixelLength)
-    fieldProperty.shift = 0
-    fieldProperty.low = 0
-    fieldProperty.high = pixelLength
-    if fieldProperty.clamp and fieldProperty.mirror:
-        fieldProperty.high *= 2
-    fieldProperty.high -= 1
+def setAutoProp(field: "TextureFieldProperty", pixel_length: int):
+    field.mask = log2iRoundUp(pixel_length)
+    high = pixel_length
+    if field.clamp:
+        high *= field.repeats
+    high += field.low
+    high -= 1
+    field.high = high
 
 
 def set_texture_size(self, tex_size, tex_index):
@@ -2031,13 +1929,14 @@ def trunc_10_2(val: float):
 
 
 def update_tex_values_field(self: Material, texProperty: "TextureProperty", tex_size: list[int], tex_index: int):
+    f3d = get_F3D_GBI()
     nodes = self.node_tree.nodes
     textureSettings: ShaderNodeGroup = nodes["TextureSettings"]
     inputs = textureSettings.inputs
 
     set_texture_size(self, tex_size, tex_index)
 
-    if texProperty.autoprop:
+    if texProperty.autoprop or f3d.RDPQ:
         setAutoProp(texProperty.S, tex_size[0])
         setAutoProp(texProperty.T, tex_size[1])
 
@@ -2098,7 +1997,7 @@ def toggle_texture_node_muting(material: Material, texIndex: int, isUsed: bool):
     if node_tex_color_conv and node_tex_color_conv.mute != shouldMute:
         node_tex_color_conv.mute = shouldMute
 
-    mute_3point = shouldMute or f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_BILERP"
+    mute_3point = shouldMute or f3dMat.get_rdp_othermode("g_mdsft_text_filt") != "G_TF_BILERP"
     if node_3point and node_3point.mute != mute_3point:
         node_3point.mute = mute_3point
 
@@ -2122,7 +2021,9 @@ def set_texture_nodes_settings(
     for texNode in iter_tex_nodes(node_tree, texIndex):
         if texNode.image is not texProperty.tex:
             texNode.image = texProperty.tex
-        texNode.interpolation = "Linear" if f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_AVERAGE" else "Closest"
+        texNode.interpolation = (
+            "Linear" if f3dMat.get_rdp_othermode("g_mdsft_text_filt") == "G_TF_AVERAGE" else "Closest"
+        )
 
         if texSize:
             continue
@@ -2272,27 +2173,16 @@ def get_tex_gen_size(tex_size: list[int | float]):
     return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
 
 
-def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):
-    use_dict = all_combiner_uses(f3d_mat)
-    textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
-    textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
-    tlut_modes = [tex.tlut_mode for tex in textures]
-    if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
-        return tlut_modes[0]
-    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
-
-
 def update_tex_values_manual(material: Material, context, prop_path=None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     nodes = material.node_tree.nodes
     texture_settings = nodes["TextureSettings"]
     texture_inputs: NodeInputs = texture_settings.inputs
-    useDict = all_combiner_uses(f3dMat)
 
-    f3dMat.rdp_settings.g_mdsft_textlut = get_textlut_mode(f3dMat)
+    if f3dMat.uv_basis == "":
+        f3dMat.uv_basis = str(max(f3dMat.set_textures.keys()) if f3dMat.set_textures else -1)
 
-    tex0_used = useDict["Texture 0"] and f3dMat.tex0.tex is not None
-    tex1_used = useDict["Texture 1"] and f3dMat.tex1.tex is not None
+    tex0_used, tex1_used = f3dMat.get_tex_combiner_use().values()
 
     if not tex0_used and not tex1_used:
         texture_settings.mute = True
@@ -2322,10 +2212,10 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
             texture_inputs["1 S TexSize"].default_value = f3dMat.tex1.tex.size[0]
             texture_inputs["1 T TexSize"].default_value = f3dMat.tex1.tex.size[0]
 
-    uv_basis: ShaderNodeGroup = nodes["UV Basis"]
+    uv_basis: ShaderNodeGroup = nodes["UV Basis"]  # TODO
     if f3dMat.uv_basis == "TEXEL0":
         uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
-    else:
+    elif f3dMat.uv_basis == "TEXEL1":
         uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
 
     if not isTexGen:
@@ -2347,8 +2237,8 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     if not prop_path or "tex1" in prop_path:
         update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1, isUsed=tex1_used)
 
-    texture_inputs["3 Point"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
-    uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
+    texture_inputs["3 Point"].default_value = int(f3dMat.get_rdp_othermode("g_mdsft_text_filt") == "G_TF_BILERP")
+    uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.get_rdp_othermode("g_mdsft_text_filt") != "G_TF_POINT")
     set_texture_settings_node(material)
 
 
@@ -2859,7 +2749,7 @@ def update_tex_field_prop(self: Property, context: Context):
 
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
-        tex_size = tex_property.get_tex_size()
+        tex_size = tex_property.size
 
         if tex_size[0] > 0 and tex_size[1] > 0:
             update_tex_values_field(material, tex_property, tex_size, tex_index)
@@ -2874,7 +2764,7 @@ def toggle_auto_prop(self, context: Context):
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         if tex_property.autoprop:
-            tex_size = tuple([s for s in tex_property.get_tex_size()])
+            tex_size = tuple([s for s in tex_property.size])
             if tex_size[0] > 0 and tex_size[1] > 0:
                 update_tex_values_field(material, tex_property, tex_size, tex_index)
 
@@ -2891,7 +2781,8 @@ class TextureFieldProperty(PropertyGroup):
         update=update_tex_field_prop,
     )
     low: bpy.props.FloatProperty(
-        name="Low",
+        name="Translate",
+        description="Low",
         min=0,
         max=1023.75,
         update=update_tex_field_prop,
@@ -2911,13 +2802,22 @@ class TextureFieldProperty(PropertyGroup):
     )
     shift: bpy.props.IntProperty(
         name="Shift",
+        description="Shift",
         min=-5,
         max=10,
         update=update_tex_field_prop,
     )
+    repeats: bpy.props.IntProperty(
+        name="Repeats",
+        description="Repeats",
+        default=1,
+        min=0,
+        max=2047,
+        update=update_tex_field_prop,
+    )
 
     def key(self):
-        return (self.clamp, self.mirror, round(self.low * 4), round(self.high * 4), self.mask, self.shift)
+        return (self.clamp, self.mirror, round(self.low * 4), round(self.high * 4), self.mask, self.shift, self.repeats)
 
 
 class SetTileSizeScrollProperty(PropertyGroup):
@@ -2935,36 +2835,98 @@ class TextureProperty(PropertyGroup):
         name="Texture",
         update=update_tex_values_and_formats,
     )
-
+    auto_fmt: bpy.props.BoolProperty(
+        name="Auto Format",
+        default=True,
+        update=update_tex_values_and_formats,
+    )
     tex_format: bpy.props.EnumProperty(
         name="Format",
         items=enumTexFormat,
         default="RGBA16",
         update=update_tex_values,
     )
-    ci_format: bpy.props.EnumProperty(
-        name="CI Format",
-        items=enumCIFormat,
-        default="RGBA16",
+    use_tex_reference: bpy.props.BoolProperty(
+        name="Reference",
+        default=False,
         update=update_tex_values,
     )
-    S: bpy.props.PointerProperty(type=TextureFieldProperty)
-    T: bpy.props.PointerProperty(type=TextureFieldProperty)
-
-    use_tex_reference: bpy.props.BoolProperty(
-        name="Use Texture Reference",
-        default=False,
+    load_tex: bpy.props.BoolProperty(
+        name="Load Texture",
+        default=True,
+        update=update_tex_values,
+    )
+    dithering_method: bpy.props.EnumProperty(
+        name="Dithering (Conversion)",
+        items=[
+            ("NONE", "None", ""),
+            ("RANDOM", "Random", ""),
+            ("DITHERED", "Dithered", ""),
+            ("FLOYD", "Floyd-Steinberg", "TODO in mksprite, but by far the best dithering method on n64"),
+        ],
+        description="How the texture will be dithered when quantizing (reducing colors) on export, this helps with color banding",
+    )
+    tex_index: bpy.props.IntProperty(
+        name="Texture Index",
+        default=0,
+        min=0,
+        max=7,
         update=update_tex_values,
     )
     tex_reference: bpy.props.StringProperty(
         name="Texture Reference",
         default="0x08000000",
     )
+    tex_placeholder_slot: bpy.props.IntProperty(
+        name="Placeholder Slot",
+        default=1,
+        min=1,
+        max=15,
+        description="Texture placeholder to load, equivalent to using a texture reference in F3D",
+    )
     tex_reference_size: bpy.props.IntVectorProperty(
         name="Texture Reference Size",
         min=1,
         size=2,
         default=(32, 32),
+        update=update_tex_values,
+    )
+
+    ci_format: bpy.props.EnumProperty(
+        name="CI Format",
+        items=enumCIFormat,
+        default="RGBA16",
+        update=update_tex_values,
+    )
+    use_pal_reference: bpy.props.BoolProperty(
+        name="Reference",
+        default=False,
+        update=update_tex_values,
+    )
+    pal_placeholder_slot: bpy.props.IntProperty(
+        name="Placeholder Slot",
+        default=2,
+        min=1,
+        max=15,
+        description="Texture placeholder to load, equivalent to using a palette reference in F3D",
+    )
+    load_pal: bpy.props.BoolProperty(
+        name="Load Palette",
+        default=True,
+        update=update_tex_values,
+    )
+    pal_index: bpy.props.IntProperty(
+        name="Palette Index",
+        default=0,
+        min=0,
+        max=7,
+        update=update_tex_values,
+    )
+    pal: bpy.props.PointerProperty(
+        type=Image,
+        name="Palette",
+        description="Reference pallete, the texture will be quantized and indexed against this palette if its set,\n"
+        "otherwise a greyscale version of the texture will be used as indices to the pallete",
         update=update_tex_values,
     )
     pal_reference: bpy.props.StringProperty(
@@ -2976,6 +2938,9 @@ class TextureProperty(PropertyGroup):
         min=1,
         default=16,
     )
+
+    S: bpy.props.PointerProperty(type=TextureFieldProperty)
+    T: bpy.props.PointerProperty(type=TextureFieldProperty)
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
@@ -2990,40 +2955,56 @@ class TextureProperty(PropertyGroup):
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
     @property
-    def is_ci(self):
-        self.tex_format: str
+    def is_ci(self) -> bool:
         return self.tex_format.startswith("CI")
 
     @property
-    def tlut_mode(self):
+    def is_yuv(self) -> bool:
+        return self.tex_format in {"YUV16"}
+
+    @property
+    def textlut(self):
         return f"G_TT_{self.ci_format if self.is_ci else 'NONE'}"
 
-    def get_tex_size(self) -> list[int]:
-        if self.tex or self.use_tex_reference:
+    @property
+    def has_texture(self) -> bool:
+        return self.load_tex and not self.use_tex_reference
+
+    @property
+    def has_palette(self) -> bool:
+        return self.load_pal and self.has_texture and not self.use_pal_reference
+
+    @property
+    def size(self) -> tuple[int, int]:
+        if self.has_texture:
             if self.tex is not None:
-                return self.tex.size
-            else:
-                return self.tex_reference_size
-        return [0, 0]
+                return tuple(self.tex.size)
+        return tuple(self.tex_reference_size)
 
     def key(self):
         texSet = self.tex_set
-        isCI = self.tex_format == "CI8" or self.tex_format == "CI4"
+        isCI = self.is_ci
         useRef = self.use_tex_reference
         return (
             self.tex_set,
             self.tex if texSet else None,
             self.tex_format if texSet else None,
             self.ci_format if texSet and isCI else None,
+            self.size if texSet else None,
             self.S.key() if texSet else None,
             self.T.key() if texSet else None,
             self.autoprop if texSet else None,
             self.tile_scroll.key() if texSet else None,
             self.use_tex_reference if texSet else None,
+            self.use_pal_reference if texSet and isCI else None,
             self.tex_reference if texSet and useRef else None,
-            self.tex_reference_size if texSet and useRef else None,
+            self.tex_placeholder_slot if texSet and useRef else None,
             self.pal_reference if texSet and useRef and isCI else None,
+            self.pal_placeholder_slot if texSet and self.pal_reference else None,
             self.pal_reference_size if texSet and useRef and isCI else None,
+            self.load_tex if texSet else None,
+            self.load_pal if texSet and isCI else None,
+            self.dithering_method if texSet else None,
         )
 
 
@@ -3054,127 +3035,181 @@ def update_combiner_connections_and_preset(self, context: Context):
 
 def ui_image(
     canUseLargeTextures: bool,
+    is_multi_tex: Material,
     layout: UILayout,
-    material: Material,
-    textureProp: TextureProperty,
+    tex_prop: TextureProperty,
     name: str,
-    showCheckBox: bool,
+    show_toggle: bool,
+    f3d: F3D,
     hide_lowhigh=False,
+    always_load=False,
+    forced_fmt=False,
 ):
-    inputGroup = layout.box().column()
+    is_rdpq = f3d.RDPQ
+    inputGroup = layout.column()
 
-    inputGroup.prop(
-        textureProp, "menu", text=name + " Properties", icon="TRIA_DOWN" if textureProp.menu else "TRIA_RIGHT"
-    )
-    if textureProp.menu:
-        tex = textureProp.tex
-        prop_input_name = inputGroup.column()
+    row = inputGroup.row()
+    row.prop(tex_prop, "menu", text="", icon="TRIA_DOWN" if tex_prop.menu else "TRIA_RIGHT", emboss=False)
+    if show_toggle:
+        row.prop(tex_prop, "tex_set", text=f"Set {name}")
+    else:
+        row.label(text=name)
+    if tex_prop.menu:
+        width, height = tex_prop.size
         prop_input = inputGroup.column()
 
-        if showCheckBox:
-            prop_input_name.prop(textureProp, "tex_set", text="Set Texture")
-        else:
-            prop_input_name.label(text=name)
-        texIndex = name[-1]
+        flipbook = tex_prop.flipbook is not None and tex_prop.flipbook.enable
+        has_texture = tex_prop.has_texture or always_load
 
-        prop_input.prop(textureProp, "use_tex_reference")
-        if textureProp.use_tex_reference:
-            prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
-            prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-            if textureProp.tex_format[:2] == "CI":
-                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
-                if flipbook is None or not flipbook.enable:
-                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
-
-        else:
+        if not always_load:
+            row = prop_input.row()
+            row.prop(tex_prop, "load_tex")
+            if tex_prop.load_tex:
+                if is_rdpq:
+                    row = prop_input.row() if tex_prop.use_tex_reference else row
+                    row.prop(tex_prop, "use_tex_reference", text="Placeholder")
+                    if tex_prop.use_tex_reference:
+                        row.prop(tex_prop, "tex_placeholder_slot", text="")
+                else:
+                    row.prop(tex_prop, "use_tex_reference", text="Reference")
+                    if tex_prop.use_tex_reference:
+                        prop_split(prop_input, tex_prop, "tex_reference", "Texture Reference")
+            else:
+                prop_split(prop_input, tex_prop, "tex_index", "Texture Index")
+        if not flipbook or has_texture or always_load:
             prop_input.template_ID(
-                textureProp, "tex", new="image.new", open="image.open", unlink="image.tex" + texIndex + "_unlink"
+                tex_prop,
+                "tex",
+                new="image.new",
+                open="image.open",
+                text=None if has_texture else "Preview Only",
             )
-            prop_input.enabled = textureProp.tex_set
-
-            if tex is not None:
-                prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
-
-        if textureProp.use_tex_reference:
-            width, height = textureProp.tex_reference_size[0], textureProp.tex_reference_size[1]
-        elif tex is not None:
-            width, height = tex.size[0], tex.size[1]
+            if has_texture:
+                size = tex_prop.size
+                prop_input.label(text=f"Size: {size[0]}x{size[1]}")
+        if has_texture:
+            prop_split(prop_input, tex_prop, "dithering_method", "Dithering (Conversion)")
         else:
-            width = height = 0
+            prop_split(prop_input, tex_prop, "tex_reference_size", "Texture Size")
 
-        if canUseLargeTextures:
+        if not forced_fmt:
+            fmt_row = prop_input.row()
+            fmt_row.prop(tex_prop, "auto_fmt", text="Auto Format")
+            draw_forced(fmt_row, tex_prop, "tex_format", tex_prop.auto_fmt, "", "TODO", split=False)
+
+        # TODO: auto fmt/pseudo fmt proper word usage
+        if canUseLargeTextures:  # TODO: rework how this works, we want multi texture large textures to be a thing
             availTmem = 512
-            if textureProp.tex_format[:2] == "CI":
+            if tex_prop.tex_format[:2] == "CI":
                 availTmem /= 2
-            useDict = all_combiner_uses(material.f3d_mat)
-            if useDict["Texture 0"] and useDict["Texture 1"]:
+            if is_multi_tex:
                 availTmem /= 2
-            isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
+            isLarge = getTmemWordUsage(tex_prop.tex_format, width, height) > availTmem
         else:
             isLarge = False
-
         if isLarge:
             msg = prop_input.box().column()
             msg.label(text="This is a large texture.", icon="INFO")
             msg.label(text="Recommend using Create Large Texture Mesh tool.")
         else:
-            tmemUsageUI(prop_input, textureProp)
+            tmemUsageUI(prop_input, tex_prop)
+        prop_input.separator(factor=0.5)
 
-        prop_split(prop_input, textureProp, "tex_format", name="Format")
-        if textureProp.tex_format[:2] == "CI":
-            prop_split(prop_input, textureProp, "ci_format", name="CI Format")
+        if tex_prop.is_ci:
+            if not always_load:
+                row = prop_input.row()
+                row.prop(tex_prop, "load_pal")
+                if tex_prop.load_pal:
+                    if is_rdpq:
+                        row = prop_input.row() if tex_prop.use_pal_reference else row
+                        row.prop(tex_prop, "use_pal_reference", text="Placeholder")
+                        if tex_prop.use_pal_reference:
+                            row.prop(tex_prop, "pal_placeholder_slot", text="")
+                    else:
+                        row.prop(tex_prop, "use_pal_reference")
+                        if tex_prop.use_pal_reference and tex_prop.load_pal:
+                            prop_split(prop_input, tex_prop, "pal_reference", "Palette Reference")
+                            if tex_prop.pal is None:
+                                prop_split(prop_input, tex_prop, "pal_reference_size", "Palette Size")
+                else:
+                    prop_split(prop_input, tex_prop, "pal_index", "Palette Index")
+                if not tex_prop.has_palette:
+                    prop_input.template_ID(tex_prop, "pal", new="image.new", open="image.open")
+                    if has_texture:
+                        if tex_prop.pal:
+                            multilineLabel(
+                                prop_input,
+                                text="Reference pallete, the texture will be quantized and indexed\n"
+                                "against this palette.",
+                                icon="INFO",
+                            )
+                        else:
+                            multilineLabel(
+                                prop_input,
+                                text="No reference pallete set, a greyscale version of the\n"
+                                "texture will be used as indices to the pallete",
+                                icon="INFO",
+                            )
+            if not forced_fmt:
+                prop_split(prop_input, tex_prop, "ci_format", name="CI Format")
+            prop_input.separator(factor=0.5)
 
         if not isLarge:
             if width > 0 and height > 0:
-                texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
+                texelsPerWord = 64 // texBitSizeInt[tex_prop.tex_format]
                 if width % texelsPerWord != 0:
-                    msg = prop_input.box().column()
-                    msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
-                    msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
+                    multilineLabel(
+                        prop_input.box(),
+                        f"Suggest {tex_prop.tex_format} tex be multiple\nof {texelsPerWord} pixels wide for fast loading.",
+                        icon="INFO",
+                    )
                 warnClampS = (
-                    not isPowerOf2(width)
-                    and not textureProp.S.clamp
-                    and (not textureProp.autoprop or textureProp.S.mask != 0)
+                    not isPowerOf2(width) and not tex_prop.S.clamp and (not tex_prop.autoprop or tex_prop.S.mask != 0)
                 )
                 warnClampT = (
-                    not isPowerOf2(height)
-                    and not textureProp.T.clamp
-                    and (not textureProp.autoprop or textureProp.T.mask != 0)
+                    not isPowerOf2(height) and not tex_prop.T.clamp and (not tex_prop.autoprop or tex_prop.T.mask != 0)
                 )
                 if warnClampS or warnClampT:
-                    msg = prop_input.box().column()
-                    msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
-                    msg.label(text=f"dimensions. Enable clamp or set mask to 0.")
+                    multilineLabel(
+                        prop_input.box(),
+                        "Clamping required for non-power-of-2 image\ndimensions. Enable clamp or set mask to 0.",
+                        icon="ERROR",
+                    )
 
-            texFieldSettings = prop_input.column()
-            clampSettings = texFieldSettings.row()
-            clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
-            clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
+            def draw_s_t_field(layout: UILayout, text: str, prop: str, field_text=False):
+                split = layout.split(factor=0.2)
+                split.label(text=text)
+                row = split.row(align=True)
+                row.prop(tex_prop.S, prop, text="S" if field_text else "", toggle=1)
+                row.prop(tex_prop.T, prop, text="T" if field_text else "", toggle=1)
 
-            mirrorSettings = texFieldSettings.row()
-            mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
-            mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
+            autoprop = tex_prop.autoprop or is_rdpq
+            draw_s_t_field(prop_input, "Mirror", "mirror", True)
+            draw_s_t_field(prop_input, "Clamp", "clamp", True)
+            repeat_split = prop_input.split(factor=0.2)
+            repeat_split.label(text="Repeats")
+            repeat_split_right = repeat_split.split(factor=0.5, align=True)
+            for f in [tex_prop.S, tex_prop.T]:
+                draw_forced(
+                    repeat_split_right,
+                    f,
+                    "repeats",
+                    not autoprop or not f.clamp,
+                    "",
+                    "Infinite" if autoprop else "Ignored",
+                    False,
+                )
 
-            prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
+            if not hide_lowhigh:
+                draw_s_t_field(prop_input, "Translate", "low")
+            draw_s_t_field(prop_input, "Scale", "shift")
 
-            if not textureProp.autoprop:
-                mask = prop_input.row()
-                mask.prop(textureProp.S, "mask", text="Mask S")
-                mask.prop(textureProp.T, "mask", text="Mask T")
-
-                shift = prop_input.row()
-                shift.prop(textureProp.S, "shift", text="Shift S")
-                shift.prop(textureProp.T, "shift", text="Shift T")
-                if hide_lowhigh:
-                    return
-                low = prop_input.row()
-                low.prop(textureProp.S, "low", text="S Low")
-                low.prop(textureProp.T, "low", text="T Low")
-
-                high = prop_input.row()
-                high.prop(textureProp.S, "high", text="S High")
-                high.prop(textureProp.T, "high", text="T High")
+            if not is_rdpq:
+                prop_input.prop(tex_prop, "autoprop", text="Auto Set Other Properties")
+                if not tex_prop.autoprop:
+                    draw_s_t_field(prop_input, "Mask", "mask")
+                    if not hide_lowhigh:
+                        draw_s_t_field(prop_input, "High", "high")
 
 
 class CombinerProperty(PropertyGroup):
@@ -3457,50 +3492,43 @@ class RDPSettings(PropertyGroup):
     # v2 only
     g_mdsft_alpha_dither: bpy.props.EnumProperty(
         name="Alpha Dither",
-        items=enumAlphaDither,
-        default="G_AD_DISABLE",
+        items=add_do_not_set(enumAlphaDither),
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
         name="RGB Dither",
-        items=enumRGBDither,
-        default="G_CD_MAGICSQ",
+        items=add_do_not_set(enumRGBDither),
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
         name="Chroma Key",
-        items=enumCombKey,
-        default="G_CK_NONE",
+        items=add_do_not_set(enumCombKey),
         update=update_node_values_with_preset,
         description="Turns on/off the chroma key. Chroma key requires a special setup to work properly",
     )
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
-        items=enumTextConv,
-        default="G_TC_CONV",
+        items=add_do_not_set(enumTextConv),
         update=update_node_values_with_preset,
         description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
-        items=enumTextFilt,
-        default="G_TF_POINT",
+        items=add_do_not_set(enumTextFilt),
         update=update_node_values_without_preset,
         description="Applies your choice of filtering to texels",
     )
     g_mdsft_textlut: bpy.props.EnumProperty(
         name="Texture LUT",
-        items=enumTextLUT,
-        default="G_TT_NONE",
+        items=add_do_not_set(enumTextLUT),
         description="Changes texture look up table (LUT) behavior. This property is auto set if you choose a CI texture",
     )
     g_mdsft_textlod: bpy.props.EnumProperty(
         name="Texture LOD",
-        items=enumTextLOD,
-        default="G_TL_TILE",
+        items=add_do_not_set(enumTextLOD),
         update=update_node_values_with_preset,
         description="Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio",
     )
@@ -3513,37 +3541,32 @@ class RDPSettings(PropertyGroup):
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",
-        items=enumTextDetail,
-        default="G_TD_CLAMP",
+        items=add_do_not_set(enumTextDetail),
         update=update_node_values_with_preset,
         description="Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected",
     )
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
-        items=enumTextPersp,
-        default="G_TP_NONE",
+        items=add_do_not_set(enumTextPersp),
         update=update_node_values_with_preset,
         description="Turns on/off texture perspective correction",
     )
     g_mdsft_cycletype: bpy.props.EnumProperty(
         name="Cycle Type",
-        items=enumCycleType,
-        default="G_CYC_1CYCLE",
+        items=add_do_not_set(enumCycleType),
         update=update_node_values_with_preset,
         description="Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode",
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
         name="Color Dither",
-        items=enumColorDither,
-        default="G_CD_ENABLE",
+        items=add_do_not_set(enumColorDither),
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output frambuffer",
     )
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
-        items=enumPipelineMode,
-        default="G_PM_NPRIMITIVE",
+        items=add_do_not_set(enumPipelineMode),
         update=update_node_values_with_preset,
         description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used",
     )
@@ -3551,15 +3574,13 @@ class RDPSettings(PropertyGroup):
     # lower half mode
     g_mdsft_alpha_compare: bpy.props.EnumProperty(
         name="Alpha Compare",
-        items=enumAlphaCompare,
-        default="G_AC_NONE",
+        items=add_do_not_set(enumAlphaCompare),
         update=update_node_values_with_preset,
         description="Uses alpha comparisons to decide if a pixel should be written. Applies before blending",
     )
     g_mdsft_zsrcsel: bpy.props.EnumProperty(
         name="Z Source Selection",
-        items=enumDepthSource,
-        default="G_ZS_PIXEL",
+        items=add_do_not_set(enumDepthSource),
         update=update_node_values_with_preset,
         description="Changes screen-space Z value source used for Z-Buffer calculations",
     )
@@ -3700,6 +3721,14 @@ class RDPSettings(PropertyGroup):
         yield from self.blend_color_inputs
         yield from self.blend_alpha_inputs
 
+    def get_rdp_othermode(self, prop: str, rdp_defaults: "RDPSettings" = None):
+        value = getattr(self, prop, "NONE")
+        if value == "NONE" or value == "":
+            if rdp_defaults is None:
+                rdp_defaults: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
+            value = getattr(rdp_defaults, prop)
+        return value
+
     def has_prop_in_ucode(self, prop: str) -> bool:
         return prop in geo_modes_in_ucode(bpy.context.scene.f3d_type).values()
 
@@ -3709,17 +3738,17 @@ class RDPSettings(PropertyGroup):
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
 
-    def attributes_to_dict(self, info: dict):
+    def attributes_to_dict(self, info: dict[str, PropWithDefault]):
         data = {}
-        for key, attr, default in info:
+        for attr, mode in info.items():
             value = getattr(self, attr)
-            if value != default:
-                data[key] = value
+            if value != mode.default:
+                data[mode.dict_name] = value
         return data
 
-    def attributes_from_dict(self, data: dict, info: dict):
-        for key, attr, default in info:
-            setattr(self, attr, data.get(key, default))
+    def attributes_from_dict(self, data: dict, info: dict[str, PropWithDefault]):
+        for attr, mode in info.items():
+            setattr(self, attr, data.get(mode.dict_name, mode.default))
 
     geo_mode_attributes = {**F3D_GEO_MODES, **F3DLX_GEO_MODES, **F3DEX3_GEO_MODES}
 
@@ -3734,49 +3763,17 @@ class RDPSettings(PropertyGroup):
         for key, attr in self.geo_mode_attributes.items():
             setattr(self, attr, data.get(key, False))
 
-    other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
-        ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
-        ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
-        ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
-        ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        ("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
-        ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
-        ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
-        ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
-        ("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
-        ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
-    ]
-
     def other_mode_h_to_dict(self, lut_format=None):
-        data = self.attributes_to_dict(self.other_mode_h_attributes)
+        data = self.attributes_to_dict(OTHERMODE_H_ATTRS)
         if lut_format:
             data["lutFormat"] = lut_format
         return data
 
     def other_mode_h_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.other_mode_h_attributes)
-
-    other_mode_l_attributes = [
-        ("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
-        ("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
-    ]
-
-    rendermode_flag_attributes = [
-        ("aa", "aa_en", False),
-        ("zTest", "z_cmp", False),
-        ("zWrite", "z_upd", False),
-        ("colorOnCvg", "clr_on_cvg", False),
-        ("alphaOnCvg", "alpha_cvg_sel", False),
-        ("mulCvgXAlpha", "cvg_x_alpha", False),
-        ("forceBlend", "force_bl", False),
-        ("readFB", "im_rd", False),
-        ("cvgDst", "cvg_dst", "CVG_DST_CLAMP"),
-        ("zMode", "zmode", "ZMODE_OPA"),
-    ]
+        self.attributes_from_dict(data, OTHERMODE_H_ATTRS)
 
     def other_mode_l_to_dict(self):
-        data = self.attributes_to_dict(self.other_mode_l_attributes)
+        data = self.attributes_to_dict(OTHERMODE_L_ATTRS)
         if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
             data["primDepth"] = self.prim_depth.to_dict()
         if self.set_rendermode:
@@ -3793,7 +3790,7 @@ class RDPSettings(PropertyGroup):
                         }
                     )
                 data["renderMode"] = {
-                    "flags": self.attributes_to_dict(self.rendermode_flag_attributes),
+                    "flags": self.attributes_to_dict(RENDERMODE_FLAG_ATTRS),
                     "blender": blender_data,
                 }
             else:
@@ -3805,7 +3802,7 @@ class RDPSettings(PropertyGroup):
         return data
 
     def other_mode_l_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.other_mode_l_attributes)
+        self.attributes_from_dict(data, OTHERMODE_L_ATTRS)
         self.prim_depth.from_dict(data.get("primDepth", {}))
 
         render_mode = data.get("renderMode", {})
@@ -3820,7 +3817,7 @@ class RDPSettings(PropertyGroup):
             "presets", [self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2]
         )
 
-        self.attributes_from_dict(flags, self.rendermode_flag_attributes)
+        self.attributes_from_dict(flags, RENDERMODE_FLAG_ATTRS)
         color_attrs = ("blend_p", "blend_m")
         alpha_attrs = ("blend_a", "blend_b")
         for i, cycle in enumerate(blender * 2 if len(blender) == 1 else blender):
@@ -3837,7 +3834,7 @@ class RDPSettings(PropertyGroup):
         data = {}
         if self.clip_ratio != 1.0:
             data["clipRatio"] = self.clip_ratio
-        if self.g_mdsft_textlod == "G_TL_LOD" and self.num_textures_mipmapped != 1:
+        if self.get_rdp_othermode("g_mdsft_textlod") == "G_TL_LOD" and self.num_textures_mipmapped != 1:
             data["mipmapCount"] = self.num_textures_mipmapped
         return data
 
@@ -4068,42 +4065,27 @@ class AddPresetF3D(AddPresetBase, Operator):
         "Custom",
         # "Shaded Texture",
     ]
-
+    tex_ignore_props = [
+        "tex",
+        "tex_format",
+        "ci_format",
+        "use_tex_reference",
+        "tex_reference",
+        "tex_reference_size",
+        "pal_reference",
+        "pal_reference_size",
+        "S",
+        "T",
+        "menu",
+        "autoprop",
+        "save_large_texture",
+        "tile_scroll",
+        "tile_scroll.s",
+        "tile_scroll.t",
+        "tile_scroll.interval",
+    ]
     ignore_props = {
-        "f3d_mat.tex0.tex",
-        "f3d_mat.tex0.tex_format",
-        "f3d_mat.tex0.ci_format",
-        "f3d_mat.tex0.use_tex_reference",
-        "f3d_mat.tex0.tex_reference",
-        "f3d_mat.tex0.tex_reference_size",
-        "f3d_mat.tex0.pal_reference",
-        "f3d_mat.tex0.pal_reference_size",
-        "f3d_mat.tex0.S",
-        "f3d_mat.tex0.T",
-        "f3d_mat.tex0.menu",
-        "f3d_mat.tex0.autoprop",
-        "f3d_mat.tex0.save_large_texture",
-        "f3d_mat.tex0.tile_scroll",
-        "f3d_mat.tex0.tile_scroll.s",
-        "f3d_mat.tex0.tile_scroll.t",
-        "f3d_mat.tex0.tile_scroll.interval",
-        "f3d_mat.tex1.tex",
-        "f3d_mat.tex1.tex_format",
-        "f3d_mat.tex1.ci_format",
-        "f3d_mat.tex1.use_tex_reference",
-        "f3d_mat.tex1.tex_reference",
-        "f3d_mat.tex1.tex_reference_size",
-        "f3d_mat.tex1.pal_reference",
-        "f3d_mat.tex1.pal_reference_size",
-        "f3d_mat.tex1.S",
-        "f3d_mat.tex1.T",
-        "f3d_mat.tex1.menu",
-        "f3d_mat.tex1.autoprop",
-        "f3d_mat.tex1.save_large_texture",
-        "f3d_mat.tex1.tile_scroll",
-        "f3d_mat.tex1.tile_scroll.s",
-        "f3d_mat.tex1.tile_scroll.t",
-        "f3d_mat.tex1.tile_scroll.interval",
+        *[f"f3d_mat.tex{i}.{prop}" for prop in tex_ignore_props for i in range(8)],
         "f3d_mat.tex_scale",
         "f3d_mat.scale_autoprop",
         "f3d_mat.uv_basis",
@@ -4361,8 +4343,10 @@ class F3DMaterialProperty(PropertyGroup):
     )
     uv_basis: bpy.props.EnumProperty(
         name="UV Basis",
-        default="TEXEL0",
-        items=enumTexUV,
+        items=lambda self, context: [
+            (str(i), f"Texture {i}", f"Use the size of texture {i} for UVs") for i in self.set_textures.keys()
+        ]
+        or [(str(-1), "", "")],
         update=update_tex_values,
     )
 
@@ -4370,22 +4354,45 @@ class F3DMaterialProperty(PropertyGroup):
     combiner1: bpy.props.PointerProperty(type=CombinerProperty)
     combiner2: bpy.props.PointerProperty(type=CombinerProperty)
 
-    # Texture animation
+    # Texture animation TODO: move this OUT
     menu_procAnim: bpy.props.BoolProperty()
     UVanim0: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
-    UVanim1: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
 
     # material textures
-    tex_scale: bpy.props.FloatVectorProperty(
-        min=0,
-        max=1,
-        size=2,
-        default=(1, 1),
-        step=1,
+    texture_tab: bpy.props.BoolProperty(name="Textures", default=True)
+    gen_pseudo_format: bpy.props.BoolProperty(name="Pseudo Formats", update=update_tex_values)
+    pseudo_format_internal: bpy.props.EnumProperty(
+        name="Pseudo Formats",
+        items=[
+            (
+                "IHQ",
+                "IHQ",
+                "A pseudo format derived from RGBA16 and I4 interpolation.\n"
+                "By utilizing DETAIL LoD mode, we can achieve a LOD_FRAC that never goes past 0.5,\n"
+                "meaning even up close tex0 (the detail i4) will still be blended half way with the color.\n"
+                "This pseudo format fully supports (and requires) mipmaps.",
+            ),
+            (
+                "SHQ",
+                "SHQ",
+                "A pseudo format derived from RGBA16 and I4 subtraction.\n"
+                "Subtraction can lead to much more accurate colors, but since\n"
+                "we need both tex0 and tex1 to be consistent this cannot be used with mipmaps.",
+            ),
+        ],
         update=update_tex_values,
     )
+    gen_auto_mips_internal: bpy.props.BoolProperty(name="Auto Mipmaps", update=update_tex_values)
+    auto_mipmaps: bpy.props.EnumProperty(name="Auto Mipmaps", items=[("BOX", "Box", "Box")], update=update_tex_values)
+    tex_scale: bpy.props.FloatVectorProperty(min=0, max=1, size=2, default=(1, 1), step=1, update=update_tex_values)
     tex0: bpy.props.PointerProperty(type=TextureProperty, name="tex0")
     tex1: bpy.props.PointerProperty(type=TextureProperty, name="tex1")
+    tex2: bpy.props.PointerProperty(type=TextureProperty, name="tex2")
+    tex3: bpy.props.PointerProperty(type=TextureProperty, name="tex3")
+    tex4: bpy.props.PointerProperty(type=TextureProperty, name="tex4")
+    tex5: bpy.props.PointerProperty(type=TextureProperty, name="tex5")
+    tex6: bpy.props.PointerProperty(type=TextureProperty, name="tex6")
+    tex7: bpy.props.PointerProperty(type=TextureProperty, name="tex7")
 
     # Should Set?
 
@@ -4545,7 +4552,7 @@ class F3DMaterialProperty(PropertyGroup):
         update=update_light_properties,
     )
     set_ambient_from_light: bpy.props.BoolProperty(
-        "Automatic Ambient Color", default=True, update=update_light_properties
+        name="Automatic Ambient Color", default=True, update=update_light_properties
     )
     ambient_light_color: bpy.props.FloatVectorProperty(
         name="Ambient Light Color",
@@ -4669,16 +4676,199 @@ class F3DMaterialProperty(PropertyGroup):
     use_cel_shading: bpy.props.BoolProperty(name="Use Cel Shading", update=update_cel_cutout_source)
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
+    def get_rdp_othermode(self, prop: str, rdp_defaults: RDPSettings = None) -> str:
+        return self.rdp_settings.get_rdp_othermode(prop, rdp_defaults)
+
+    def get_tex_combiner_use(self, cycle_type: str = None) -> dict[int, bool]:
+        if cycle_type is None:
+            cycle_type = self.cycletype
+        return {
+            0: combiner_uses_tex0(self, cycle_type),
+            1: combiner_uses_tex1(self, cycle_type),
+        }
+
+    @property
+    def all_textures(self) -> list[TextureProperty]:
+        return tuple(getattr(self, f"tex{i}") for i in range(8))
+
+    def get_used_textures(self, tex_use: dict = None) -> dict[int, TextureProperty]:
+        self.rdp_settings: RDPSettings
+        if self.gen_pseudo_format or self.gen_auto_mips:
+            return {0: self.all_textures[0]}
+        if self.uses_mipmap:
+            return {i: t for i, t in enumerate(self.all_textures[: self.rdp_settings.num_textures_mipmapped])}
+        if tex_use is None:
+            tex_use = self.get_tex_combiner_use()
+        return {i: t for i, t in enumerate(self.all_textures[:2]) if tex_use[i]}
+
+    @property
+    def used_textures(self) -> dict[int, TextureProperty]:
+        return self.get_used_textures()
+
+    def get_set_textures(self, tex_use: dict = None):
+        return {i: tex for i, tex in self.get_used_textures(tex_use).items() if tex.tex_set}
+
+    @property
+    def set_textures(self):
+        return self.get_set_textures()
+
+    def check_multi_tex(self, tex_use: dict = None):
+        if tex_use is None:
+            tex_use = self.get_tex_combiner_use()
+        return tex_use[0] and tex_use[1]
+
+    @property
+    def is_multi_tex(self):
+        return self.check_multi_tex()
+
+    def get_tlut_mode(self, only_auto=False, dont_raise=False, rdp_defaults: RDPSettings = None):
+        if self.pseudo_format in {"IHQ", "SHQ"}:
+            return "G_TT_NONE"
+        tlut_modes = set(tex.textlut for tex in self.set_textures.values())
+        if len(tlut_modes) == 1:
+            return list(tlut_modes)[0]
+        elif len(tlut_modes) == 0 or dont_raise:
+            return None if only_auto else self.get_rdp_othermode("g_mdsft_textlut", rdp_defaults)
+        text = (
+            "Can't mix CI and non-CI textures."
+            if "G_TT_NONE" in tlut_modes
+            else "CI textures must use the same CI format."
+        )
+        for tlut in tlut_modes:
+            textures = [str(i) for i, tex in self.set_textures.items() if tex.textlut == tlut]
+            text += f"\n{tlut.lstrip('G_TT_')}: Texture{'s' if len(textures) > 1 else ''} {', '.join(textures)}"
+        raise PluginError(text)
+
+    @property
+    def textlut(self):
+        return self.get_tlut_mode(dont_raise=True)
+
+    @property
+    def is_ci(self):
+        return self.textlut in {"G_TT_RGBA16", "G_TT_IA16"}
+
+    @property
+    def pseudo_format(self):
+        return self.pseudo_format_internal if self.gen_pseudo_format else "NONE"
+
+    @property
+    def pseudo_fmt_can_mip(self):
+        return self.pseudo_format in {"IHQ", "NONE"}
+
+    @property
+    def forced_mipmap(self):
+        return self.pseudo_format in {"IHQ"}
+
+    @property
+    def gen_auto_mips(self) -> bool:
+        return self.pseudo_fmt_can_mip and (self.gen_auto_mips_internal or self.forced_mipmap)
+
+    def get_tex_lod(self, only_auto=False, rdp_defaults: RDPSettings = None) -> bool:
+        if self.gen_auto_mips:
+            return "G_TL_LOD"
+        return None if only_auto else self.get_rdp_othermode("g_mdsft_textlod", rdp_defaults)
+
+    @property
+    def textlod(self) -> bool:
+        return self.get_tex_lod(False)
+
+    def get_tex_detail(self, only_auto=False, rdp_defaults: RDPSettings = None) -> bool:
+        if self.pseudo_format in {"IHQ"}:
+            return "G_TD_DETAIL"
+        return None if only_auto else self.get_rdp_othermode("g_mdsft_textdetail", rdp_defaults)
+
+    @property
+    def textdetail(self) -> bool:
+        return self.get_tex_detail(False)
+
+    @property
+    def uses_mipmap(self) -> bool:
+        return self.textlod == "G_TL_LOD"
+
+    def get_tex_convert(
+        self, only_auto=False, dont_raise=False, tex_use: dict | None = None, rdp_defaults: RDPSettings = None
+    ):
+        textures = self.get_set_textures(tex_use)
+        fmts: set[str] = set(tex.tex_format for tex in textures.values())
+        has_yuv = "YUV16" in fmts
+        if self.pseudo_format in {"IHQ", "SHQ"} or (not has_yuv and fmts):
+            return "G_TC_FILT"
+        yuv_tex = next((i for i, tex in textures.items() if tex.tex_format == "YUV16"), -1)
+        if len(fmts) == 1:
+            if self.get_rdp_othermode("g_mdsft_text_filt", rdp_defaults) == "G_TF_POINT":
+                return "G_TC_CONV"
+            if yuv_tex == 0 and not dont_raise:
+                raise PluginError(
+                    "Texture 0 is YUV. But G_TC_FILTCONV\n"
+                    "does not apply conversion to texture 0.\n"
+                    "Only possible to convert with point filtering."
+                )
+            return "G_TC_FILTCONV"
+        elif len(fmts) == 2 and (not self.uses_mipmap or len(textures) == 2):
+            if yuv_tex == 1:  # in filtconv, tex0 is not converted, therefor can be non YUV
+                return "G_TC_FILTCONV"
+            if dont_raise:
+                return None
+            raise PluginError(
+                "Texture 0 is YUV and texture 1 is not YUV.\nCannot use G_TC_FILTCONV to bypass convert in texture 0."
+            )
+        elif not fmts:
+            return None if only_auto else self.get_rdp_othermode("g_mdsft_textconv", rdp_defaults)
+        else:
+            if dont_raise:
+                return None
+            text = "Can't mix more than 2 or mipmapped YUV and non-YUV textures."
+            for fmt in fmts:
+                fmt_textures = [str(i) for i, tex in textures.items() if tex.tex_format == fmt]
+                text += (
+                    f"\n{fmt.lstrip('G_TT_')}: Texture{'s' if len(fmt_textures) > 1 else ''} {', '.join(fmt_textures)}"
+                )
+            raise PluginError(text)
+
+    @property
+    def tex_convert(self):
+        return self.get_tex_convert(dont_raise=True)
+
+    def get_cycle_type(self, only_auto=False, dont_raise=False, rdp_defaults: RDPSettings = None):
+        cur_cycle_type = self.get_rdp_othermode("g_mdsft_cycletype", rdp_defaults)
+        tex_use = self.get_tex_combiner_use(cur_cycle_type)
+        if (
+            self.uses_mipmap
+            or (self.get_tex_convert(dont_raise=dont_raise, tex_use=tex_use) == "G_TC_FILTCONV")
+            or combiner_uses_tex1(self, cur_cycle_type)
+        ):
+            return "G_CYC_2CYCLE"
+        return None if only_auto else cur_cycle_type
+
+    @property
+    def cycletype(self):
+        return self.get_cycle_type(False, dont_raise=True)
+
+    def get_num_textures_mipmapped(self, only_auto=False):
+        if self.gen_auto_mips:
+            return 2  # TODO: figure out mipmap count here or in texture exports?
+        return None if only_auto else self.rdp_settings.num_textures_mipmapped
+
+    def get_auto_othermode_h(self, dont_raise=False, rdp_defaults: RDPSettings = None):
+        if rdp_defaults is None:
+            rdp_defaults: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
+        return {
+            "g_mdsft_textconv": self.get_tex_convert(True, dont_raise=dont_raise, rdp_defaults=rdp_defaults),
+            "g_mdsft_textlut": self.get_tlut_mode(True, dont_raise=dont_raise, rdp_defaults=rdp_defaults),
+            "g_mdsft_textlod": self.get_tex_lod(True, rdp_defaults),
+            "g_mdsft_textdetail": self.get_tex_detail(True, rdp_defaults),
+            "num_textures_mipmapped": self.get_num_textures_mipmapped(True),
+            "g_mdsft_cycletype": self.get_cycle_type(True, dont_raise=dont_raise, rdp_defaults=rdp_defaults),
+        }
+
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
         return (
             self.scale_autoprop,
             self.uv_basis,
             self.UVanim0.key(),
-            self.UVanim1.key(),
             tuple([round(value, 4) for value in self.tex_scale]),
-            self.tex0.key(),
-            self.tex1.key(),
+            tuple((i, tex.key()) for i, tex in self.set_textures.items()),
             self.rdp_settings.key(),
             self.draw_layer.key(),
             self.use_large_textures,
