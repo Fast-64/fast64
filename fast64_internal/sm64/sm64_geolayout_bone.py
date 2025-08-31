@@ -454,7 +454,6 @@ def getSwitchOptionBone(switchArmature):
 
 
 class SM64_BoneProperties(PropertyGroup):
-    version: IntProperty(name="SM64_BoneProperties Version", default=0)
     custom: PointerProperty(type=SM64_CustomCmdProperties)
     revert_previous_mat: BoolProperty(name="Revert Previous Material", default=False)
     revert_after_mat: BoolProperty(
@@ -467,12 +466,23 @@ class SM64_BoneProperties(PropertyGroup):
     def upgrade_bone(self, bone):
         self.custom.upgrade_bone(bone)
 
+    def set_to_newest_version(self):
+        self.custom.set_to_newest_version()
+
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
             if obj.type == "ARMATURE":
                 for bone in obj.data.bones:
                     bone.fast64.sm64.upgrade_bone(bone)
+
+
+def depsgraph_handler(_scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
+    for update in depsgraph.updates:
+        id = update.id
+        if isinstance(id, bpy.types.Armature):
+            for bone in id.bones:
+                bone.fast64.sm64.set_to_newest_version()
 
 
 sm64_bone_classes = (
@@ -570,6 +580,8 @@ def sm64_bone_register():
     # Used during object duplication on export
     Object.original_name = StringProperty()
 
+    bpy.app.handlers.depsgraph_update_post.append(depsgraph_handler)
+
 
 def sm64_bone_unregister():
     for cls in reversed(sm64_bone_classes):
@@ -602,3 +614,6 @@ def sm64_bone_unregister():
     del Object.render_range
 
     del Object.scaleFromGeolayout
+
+    while depsgraph_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(depsgraph_handler)
