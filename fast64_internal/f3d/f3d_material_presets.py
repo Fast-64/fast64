@@ -1809,13 +1809,13 @@ f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
 f3d_mat.presetName = 'Sm64 Decal'
 """
 
-sm64_environment_map = """
+sm64_unlit_environment_map = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
-f3d_mat.name = ''
+f3d_mat.name = 'Sm64 Unlit Environment Map'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -1918,8 +1918,26 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Sm64 Environment Map'
+f3d_mat.presetName = 'Sm64 Unlit Environment Map'
 """
+
+sm64_shaded_environment_map = (
+    sm64_unlit_environment_map
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.combiner1.A = 'TEXEL0'
+f3d_mat.combiner1.B = '0'
+f3d_mat.combiner1.C = 'SHADE'
+f3d_mat.combiner1.D = '0'
+f3d_mat.combiner1.A_alpha = '0'
+f3d_mat.combiner1.B_alpha = '0'
+f3d_mat.combiner1.C_alpha = '0'
+f3d_mat.combiner1.D_alpha = 'ENVIRONMENT'
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Shaded Environment Map'
+"""
+)
 
 sm64_fog_shaded_texture = """
 
@@ -2953,7 +2971,7 @@ f3d_mat.combiner2.D = 'TEXEL0'
 f3d_mat.combiner2.A_alpha = '0'
 f3d_mat.combiner2.B_alpha = '0'
 f3d_mat.combiner2.C_alpha = '0'
-f3d_mat.combiner2.D_alpha = 'ENVIRONMENT'
+f3d_mat.combiner2.D_alpha = 'TEXEL0'
 f3d_mat.tex0.tex_set = True
 f3d_mat.tex1.tex_set = True
 f3d_mat.set_prim = True
@@ -6380,6 +6398,125 @@ f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
 f3d_mat.presetName = 'Oot Water Mult Specular Fresnel'
 """
 
+# SM64 Lighting Engine specific
+
+lighting_engine_sm64_decal = (
+    sm64_decal
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.combiner1.A = 'TEXEL0'
+f3d_mat.combiner1.B = 'PRIMITIVE'
+f3d_mat.combiner1.C = 'TEXEL0_ALPHA'
+f3d_mat.combiner1.D = 'PRIMITIVE'
+f3d_mat.combiner1.A_alpha = '0'
+f3d_mat.combiner1.B_alpha = '0'
+f3d_mat.combiner1.C_alpha = '0'
+f3d_mat.combiner1.D_alpha = 'ENVIRONMENT'
+f3d_mat.combiner2.A = 'COMBINED'
+f3d_mat.combiner2.B = '0'
+f3d_mat.combiner2.C = 'SHADE'
+f3d_mat.combiner2.D = '0'
+f3d_mat.combiner2.A_alpha = '0'
+f3d_mat.combiner2.B_alpha = '0'
+f3d_mat.combiner2.C_alpha = '0'
+f3d_mat.combiner2.D_alpha = 'COMBINED'
+f3d_mat.set_prim = True
+f3d_mat.set_lights = False
+f3d_mat.rdp_settings.g_mdsft_cycletype = 'G_CYC_2CYCLE'
+f3d_mat.rdp_settings.set_rendermode = True
+f3d_mat.rdp_settings.rendermode_advanced_enabled = False
+f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_NOOP'
+f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_engine_sm64_fog_shaded_texture = (
+    sm64_fog_shaded_texture
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_engine_sm64_fog_shaded_texture_cutout = (
+    sm64_fog_shaded_texture_cutout
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_fog_shaded_texture_transparent = (
+    sm64_fog_shaded_texture_transparent
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_engine_sm64_shaded_noise = (
+    sm64_shaded_noise
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_engine_sm64_shaded_solid = (
+    sm64_shaded_solid
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.combiner1.A = 'PRIMITIVE'
+f3d_mat.combiner1.B = '0'
+f3d_mat.combiner1.C = 'SHADE'
+f3d_mat.combiner1.D = '0'
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_engine_sm64_shaded_texture_cutout = (
+    sm64_shaded_texture_cutout
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+
+lighting_engine_sm64_shaded_texture_transparent = (
+    sm64_shaded_texture_transparent
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
+lighting_engine_sm64_shaded_environment_map = (
+    sm64_shaded_environment_map
+    + """
+bpy.context.material.f3d_update_flag = True
+f3d_mat.set_lights = False
+bpy.context.material.f3d_update_flag = False
+f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+"""
+)
+
 homebrew_and_oot = {
     "shaded_environment_mapped": shaded_environment_mapped,
     "shaded_environment_mapped_transparent": shaded_environment_mapped_transparent,
@@ -6399,6 +6536,7 @@ homebrew_and_oot = {
     "vertex_colored_texture_cutout": vertex_colored_texture_cutout,
     "vertex_colored_texture_transparent": vertex_colored_texture_transparent,
 }
+
 material_presets = {
     "homebrew": homebrew_and_oot,
     "oot": {
@@ -6434,7 +6572,6 @@ material_presets = {
     },
     "sm64": {
         "sm64_decal": sm64_decal,
-        "sm64_environment_map": sm64_environment_map,
         "sm64_fog_shaded_texture": sm64_fog_shaded_texture,
         "sm64_fog_shaded_texture_cutout": sm64_fog_shaded_texture_cutout,
         "sm64_fog_shaded_texture_transparent": sm64_fog_shaded_texture_transparent,
@@ -6443,6 +6580,24 @@ material_presets = {
         "sm64_shaded_texture": sm64_shaded_texture,
         "sm64_shaded_texture_cutout": sm64_shaded_texture_cutout,
         "sm64_shaded_texture_transparent": sm64_shaded_texture_transparent,
+        "sm64_shaded_environment_map": sm64_shaded_environment_map,
+        "sm64_unlit_environment_map": sm64_unlit_environment_map,
+        "sm64_unlit_texture": sm64_unlit_texture,
+        "sm64_unlit_texture_cutout": sm64_unlit_texture_cutout,
+        "sm64_vertex_colored_texture": sm64_vertex_colored_texture,
+        "sm64_vertex_colored_texture_transparent": sm64_vertex_colored_texture_transparent,
+    },
+    "sm64_lighting_engine": {
+        "sm64_decal": lighting_engine_sm64_decal,
+        "sm64_fog_shaded_texture": lighting_engine_sm64_fog_shaded_texture,
+        "sm64_fog_shaded_texture_cutout": lighting_engine_sm64_fog_shaded_texture_cutout,
+        "sm64_fog_shaded_texture_transparent": lighting_fog_shaded_texture_transparent,
+        "sm64_shaded_noise": lighting_engine_sm64_shaded_noise,
+        "sm64_shaded_solid": lighting_engine_sm64_shaded_solid,
+        "sm64_shaded_texture_cutout": lighting_engine_sm64_shaded_texture_cutout,
+        "sm64_shaded_texture_transparent": lighting_engine_sm64_shaded_texture_transparent,
+        "sm64_shaded_environment_map": lighting_engine_sm64_shaded_environment_map,
+        "sm64_unlit_environment_map": sm64_unlit_environment_map,
         "sm64_unlit_texture": sm64_unlit_texture,
         "sm64_unlit_texture_cutout": sm64_unlit_texture_cutout,
         "sm64_vertex_colored_texture": sm64_vertex_colored_texture,

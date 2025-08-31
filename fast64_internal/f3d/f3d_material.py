@@ -110,7 +110,7 @@ def update_draw_layer(self, context):
         drawLayer = material.f3d_mat.draw_layer
         if context.scene.gameEditorMode == "SM64":
             drawLayer.oot = drawLayerSM64toOOT[drawLayer.sm64]
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             if material.f3d_mat.draw_layer.oot == "Opaque":
                 if int(material.f3d_mat.draw_layer.sm64) > 4:
                     material.f3d_mat.draw_layer.sm64 = "1"
@@ -910,7 +910,7 @@ class F3DPanel(Panel):
     def ui_draw_layer(self, material, layout, context):
         if context.scene.gameEditorMode == "SM64":
             prop_split(layout, material.f3d_mat.draw_layer, "sm64", "Draw Layer")
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
     def ui_misc(self, f3dMat: "F3DMaterialProperty", inputCol: UILayout, showCheckBox: bool) -> None:
@@ -2346,8 +2346,6 @@ def load_handler(dummy):
         if mat is not None and mat.use_nodes and mat.is_f3d:
             rendermode_preset_to_advanced(mat)
 
-
-bpy.app.handlers.load_post.append(load_handler)
 
 SCENE_PROPERTIES_VERSION = 2
 
@@ -3992,10 +3990,6 @@ class CelLevelRemove(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
-
-
 class ApplyMaterialPresetOperator(Operator):
     bl_idname = "material.f3d_preset_apply"
     bl_label = "Apply F3D Material Preset"
@@ -4005,10 +3999,6 @@ class ApplyMaterialPresetOperator(Operator):
     def execute(self, context: Context):
         material_apply_preset(context.material, self.filepath)
         return {"FINISHED"}
-
-
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
 
 
 # modules/bpy_types.py -> Menu
@@ -4030,13 +4020,19 @@ class MATERIAL_MT_f3d_presets(Menu):
         ext_valid = getattr(self, "preset_extensions", {".py", ".xml"})
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
-        presetDir = getCurrentPresetDir()
 
+        game = bpy.context.scene.gameEditorMode.lower()
         paths = bpy.utils.preset_paths("f3d/user")
         if not bpy.context.scene.f3dUserPresetsOnly:
-            paths += bpy.utils.preset_paths(presetDir)
-            if bpy.context.scene.f3d_type == "F3DEX3":
-                paths += bpy.utils.preset_paths(f"{presetDir}_f3dex3")
+            if game == "sm64":
+                if bpy.context.scene.fast64.sm64.lighting_engine_presets:
+                    paths += bpy.utils.preset_paths("f3d/sm64_lighting_engine")
+                else:
+                    paths += bpy.utils.preset_paths("f3d/sm64")
+            elif game == "oot":
+                paths += bpy.utils.preset_paths("f3d/oot")
+                if bpy.context.scene.f3d_type == "F3DEX3":
+                    paths += bpy.utils.preset_paths("f3d/oot_f3dex3")
         self.path_menu(
             paths,
             self.preset_operator,
@@ -5177,6 +5173,7 @@ def mat_register():
     Scene.f3d_type = bpy.props.EnumProperty(
         name="Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
+    Scene.packed_normals_algorithm = bpy.props.EnumProperty(name="Packed normals alg", items=enumPackedNormalsAlgorithm)
 
     # RDP Defaults
     World.rdp_defaults = bpy.props.PointerProperty(type=RDPSettings)
@@ -5213,10 +5210,13 @@ def mat_register():
     Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
+    bpy.app.handlers.load_post.append(load_handler)
 
 
 def mat_unregister():
     VIEW3D_HT_header.remove(draw_f3d_render_settings)
+    while load_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_handler)
 
     del Material.menu_tab
     del Material.f3d_mat
