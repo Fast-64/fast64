@@ -18,6 +18,7 @@ from ...render_settings import on_update_render_settings
 from ...utility import (
     directory_path_checks,
     directory_ui_warnings,
+    draw_directory,
     prop_split,
     set_prop_if_in_data,
     upgrade_old_prop,
@@ -113,6 +114,10 @@ class SM64_Properties(PropertyGroup):
         description="Extremely recommended but must be off when compiling with IDO. Included in Repo Setting file",
     )
 
+    actors_folder: StringProperty(name="Actors Folder", default="actors", subtype="FILE_PATH")
+    levels_folder: StringProperty(name="Levels Folder", default="levels", subtype="FILE_PATH")
+    dma_anims_folder: StringProperty(name="DMA Animations Folder", default="assets/anims", subtype="FILE_PATH")
+
     @property
     def binary_export(self):
         return self.export_type in {"Binary", "Insertable Binary"}
@@ -207,6 +212,9 @@ class SM64_Properties(PropertyGroup):
         data["write_all"] = self.write_all
         if not self.hackersm64:
             data["designated"] = self.designated_prop
+        data["actors_folder"] = self.actors_folder
+        data["levels_folder"] = self.levels_folder
+        data["dma_anims_folder"] = self.dma_anims_folder
         if self.custom_cmds:
             data["custom_cmds"] = [preset.to_dict("PRESET_EDIT") for preset in self.custom_cmds]
         return data
@@ -219,6 +227,9 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "write_all", data, "write_all")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
+        set_prop_if_in_data(self, "actors_folder", data, "actors_folder")
+        set_prop_if_in_data(self, "levels_folder", data, "levels_folder")
+        set_prop_if_in_data(self, "dma_anims_folder", data, "dma_anims_folder")
         if "custom_cmds" in data:
             self.custom_cmds.clear()
             for preset_data in data.get("custom_cmds", []):
@@ -236,6 +247,9 @@ class SM64_Properties(PropertyGroup):
         if self.matstack_fix:
             col.prop(self, "lighting_engine_presets")
         col.prop(self, "write_all")
+        draw_directory(col, self, "actors_folder", name="Actors", base_dir=self.abs_decomp_path)
+        draw_directory(col, self, "levels_folder", name="Levels", base_dir=self.abs_decomp_path)
+        draw_directory(col, self, "dma_anims_folder", name="DMA Anims", base_dir=self.abs_decomp_path)
         draw_custom_cmd_presets(self, col.box())
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
