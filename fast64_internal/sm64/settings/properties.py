@@ -135,8 +135,9 @@ class SM64_Properties(PropertyGroup):
 
         return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
-    @staticmethod
-    def upgrade_changed_props():
+    def upgrade_scene(self, scene: bpy.types.Scene):
+        if self.version >= self.cur_version:
+            return
         old_scene_props_to_new = {
             "importRom": "import_rom",
             "exportRom": "export_rom",
@@ -157,44 +158,51 @@ class SM64_Properties(PropertyGroup):
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
             "custom_include_directory": {"geoTexDir"},
-            "binary_level": {"levelAnimExport"},
             # as the others binary props get carried over to here we need to update the cur_version again
         }
         binary_level_names = {"levelAnimExport", "colExportLevel", "levelDLExport", "levelGeoExport"}
         old_custom_props = {"animCustomExport", "colCustomExport", "geoCustomExport", "DLCustomExport"}
+
+        self.address_converter.upgrade_scene(scene)
+        self.animation.upgrade_scene(scene)
+        upgrade_old_prop(
+            self,
+            "export_type",
+            scene,
+            {
+                "animExportType",
+                "colExportType",
+                "DLExportType",
+                "geoExportType",
+            },
+        )
+        for old, new in old_scene_props_to_new.items():
+            upgrade_old_prop(self, new, scene, old)
+        upgrade_old_prop(self, "show_importing_menus", self, "showImportingMenus")
+
+        combined_props: SM64_CombinedObjectProperties = self.combined_export
+        for new, old in old_export_props_to_new.items():
+            upgrade_old_prop(combined_props, new, scene, old)
+
+        insertable_directory = get_first_set_prop(scene, "animInsertableBinaryPath")
+        if insertable_directory is not None:  # Ignores file name
+            combined_props.insertable_directory = os.path.split(insertable_directory)[1]
+
+        if get_first_set_prop(combined_props, old_custom_props):
+            combined_props.export_header_type = "Custom"
+        upgrade_old_prop(combined_props, "level_name", scene, binary_level_names, old_enum=OLD_BINARY_LEVEL_ENUMS)
+        self.set_to_newest_version()
+
+    @staticmethod
+    def upgrade_changed_props():
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
-            sm64_props.address_converter.upgrade_changed_props(scene)
-            sm64_props.animation.upgrade_changed_props(scene)
-            if sm64_props.version == SM64_Properties.cur_version:
-                continue
-            upgrade_old_prop(
-                sm64_props,
-                "export_type",
-                scene,
-                {
-                    "animExportType",
-                    "colExportType",
-                    "DLExportType",
-                    "geoExportType",
-                },
-            )
-            for old, new in old_scene_props_to_new.items():
-                upgrade_old_prop(sm64_props, new, scene, old)
-            upgrade_old_prop(sm64_props, "show_importing_menus", sm64_props, "showImportingMenus")
+            sm64_props.upgrade_scene(scene)
 
-            combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
-            for new, old in old_export_props_to_new.items():
-                upgrade_old_prop(combined_props, new, scene, old)
-
-            insertable_directory = get_first_set_prop(scene, "animInsertableBinaryPath")
-            if insertable_directory is not None:  # Ignores file name
-                combined_props.insertable_directory = os.path.split(insertable_directory)[1]
-
-            if get_first_set_prop(combined_props, old_custom_props):
-                combined_props.export_header_type = "Custom"
-            upgrade_old_prop(combined_props, "level_name", scene, binary_level_names, old_enum=OLD_BINARY_LEVEL_ENUMS)
-            sm64_props.version = SM64_Properties.cur_version
+    def set_to_newest_version(self):
+        self.version = self.cur_version
+        self.address_converter.set_to_newest_version()
+        self.animation.set_to_newest_version()
 
     def to_repo_settings(self):
         data = {}
@@ -267,6 +275,13 @@ class SM64_Properties(PropertyGroup):
             import_rom_ui_warnings(col, self.import_rom)
 
 
+def depsgraph_handler(_scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
+    for update in depsgraph.updates:
+        id = update.id
+        if isinstance(id, bpy.types.Scene):
+            id.fast64.sm64.set_to_newest_version()
+
+
 classes = (SM64_Properties,)
 
 
@@ -274,7 +289,12 @@ def settings_props_register():
     for cls in classes:
         register_class(cls)
 
+    bpy.app.handlers.depsgraph_update_post.append(depsgraph_handler)
+
 
 def settings_props_unregister():
     for cls in reversed(classes):
         unregister_class(cls)
+
+    while depsgraph_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(depsgraph_handler)
