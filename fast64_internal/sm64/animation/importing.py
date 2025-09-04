@@ -784,9 +784,18 @@ def update_table_preset(import_props: "SM64_AnimImportProperties", context):
         # If the previously selected animation isn't in this preset, select animation 0
         import_props.preset_animation = "0"
 
+    sm64_props: SM64_Properties = context.scene.fast64.sm64
     # C
-    decomp_path = import_props.decomp_path if import_props.decomp_path else context.scene.fast64.sm64.decomp_path
-    directory = preset.animation.directory if preset.animation.directory else f"{preset.decomp_path}/anims"
+    decomp_path = import_props.decomp_path if import_props.decomp_path else sm64_props.decomp_path
+    if preset.animation.dma:
+        directory = Path(sm64_props.vanilla_dma_anims_folder)
+    else:
+        if preset.typ == "ACTOR":
+            directory = Path(sm64_props.vanilla_actors_folder, preset.folder)
+        elif preset.typ == "LEVEL":
+            directory = Path(sm64_props.vanilla_levels_folder, preset.folder)
+        else:
+            raise ValueError(f"Unknown preset type {preset.typ}")
     import_props.path = os.path.join(decomp_path, directory)
 
     # Binary
