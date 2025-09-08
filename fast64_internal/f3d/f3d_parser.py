@@ -790,7 +790,7 @@ class F3DContext:
     # however we always want to record the changing tlut for texture references.
     def applyTLUTToIndex(self, index):
         mat = self.mat()
-        texProp = getattr(mat, "tex" + str(index))
+        texProp = mat.all_textures[index]
         combinerUses = all_combiner_uses(mat)
 
         if texProp.tex_format[:2] == "CI":
@@ -1055,8 +1055,7 @@ class F3DContext:
         if not isinstance(flags, int):
             flags = math_eval(flags, self.f3d)
         tlut_mode = flags & (0b11 << self.f3d.G_MDSFT_TEXTLUT)
-        for index in range(2):
-            texProp = getattr(mat, "tex" + str(index))
+        for texProp in mat.all_textures:
             if tlut_mode == self.f3d.G_TT_IA16:
                 texProp.ci_format = "IA16"
             elif tlut_mode == self.f3d.G_TT_RGBA16:
@@ -1455,7 +1454,7 @@ class F3DContext:
         tileSettings: DPSetTile,
         data: str,
     ):
-        texProp = getattr(material.f3d_mat, "tex" + str(index))
+        texProp = material.f3d_mat.all_textures[index]
         texProp.tex = None
         texProp.use_tex_reference = True
         texProp.tex_reference = name
@@ -1463,7 +1462,7 @@ class F3DContext:
 
     # add to this by overriding in a parent context, to handle clearing settings related to previous texture references.
     def handleTextureValue(self, material: bpy.types.Material, image: bpy.types.Image, index: int):
-        texProp = getattr(material.f3d_mat, "tex" + str(index))
+        texProp = material.f3d_mat.all_textures[index]
         texProp.tex = image
         texProp.use_tex_reference = False
         size = texProp.tex.size
@@ -1471,7 +1470,7 @@ class F3DContext:
     def applyTileToMaterial(self, index, tileSettings, tileSizeSettings, dlData: str):
         mat = self.mat()
 
-        texProp = getattr(mat, "tex" + str(index))
+        texProp = mat.all_textures[index]
 
         name = self.tmemDict[tileSettings.tmem]
         image = self.textureData[name]

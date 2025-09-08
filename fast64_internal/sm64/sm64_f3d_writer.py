@@ -5,7 +5,7 @@ from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from ..f3d.f3d_writer import exportF3DCommon, saveModeSetting
+from ..f3d.f3d_writer import exportF3DCommon, save_othermode
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import (
     TextureProperty,
@@ -154,7 +154,7 @@ class SM64GfxFormatter(GfxFormatter):
             "segmented_to_virtual",
         )
 
-        scrollDataFields = fScrollData.fields[0]
+        scrollDataFields = fScrollData.fields
         if not ((scrollDataFields[0].animType == "None") and (scrollDataFields[1].animType == "None")):
             funcName = f"scroll_{vtxListName}"
             data.header = f"extern void {funcName}();\n"
@@ -299,7 +299,7 @@ def modifyDLForHUD(data):
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
-    use_copy_mode = texProp.tlut_mode == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
+    use_copy_mode = texProp.textlut == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
 
     defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
@@ -308,21 +308,21 @@ def exportTexRectCommon(texProp, name, convertTextureData):
 
     # use_copy_mode is based on dl_hud_img_begin and dl_hud_img_end
     if use_copy_mode:
-        saveModeSetting(fMaterial, "G_CYC_COPY", defaults.g_mdsft_cycletype, DPSetCycleType)
+        save_othermode(fMaterial, "G_CYC_COPY", defaults, "g_mdsft_cycletype")
     else:
-        saveModeSetting(fMaterial, "G_CYC_1CYCLE", defaults.g_mdsft_cycletype, DPSetCycleType)
+        save_othermode(fMaterial, "G_CYC_1CYCLE", defaults, "g_mdsft_cycletype")
         fMaterial.mat_only_DL.commands.append(
             DPSetCombineMode(*fTexRect.f3d.G_CC_DECALRGBA, *fTexRect.f3d.G_CC_DECALRGBA)
         )
         fMaterial.revert.commands.append(DPSetCombineMode(*fTexRect.f3d.G_CC_SHADE, *fTexRect.f3d.G_CC_SHADE))
-    saveModeSetting(fMaterial, "G_TP_NONE", defaults.g_mdsft_textpersp, DPSetTexturePersp)
-    saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
+    save_othermode(fMaterial, "G_TP_NONE", defaults, "g_mdsft_textpersp")
+    save_othermode(fMaterial, "G_AC_THRESHOLD", defaults, "g_mdsft_alpha_compare")
     fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
 
     fMaterial.mat_only_DL.commands.append(DPSetRenderMode(("G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"), None))
     fMaterial.revert.commands.append(DPSetRenderMode(("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"), None))
 
-    saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
+    save_othermode(fMaterial, texProp.textlut, defaults, "g_mdsft_textlut")
     ti = TexInfo()
     ti.fromProp(texProp, index=0, ignore_tex_set=True)
     ti.materialless_setup()
@@ -850,7 +850,9 @@ class ExportTexRectDrawPanel(SM64_Panel):
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][0] + ": ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][1] + ".")
         prop_split(col, context.scene, "TexRectName", "Name")
-        ui_image(False, col, None, context.scene.texrect, context.scene.TexRectName, False, hide_lowhigh=True)
+        ui_image(
+            False, False, col, context.scene.texrect, context.scene.TexRectName, False, get_F3D_GBI(), hide_lowhigh=True
+        )
         col.operator(ExportTexRectDraw.bl_idname)
 
 
@@ -905,11 +907,7 @@ class SM64_MaterialPanel(bpy.types.Panel):
         material = context.material
         col = layout.column()
 
-        if material.mat_ver > 3:
-            f3dMat = material.f3d_mat
-        else:
-            f3dMat = material
-        useDict = all_combiner_uses(f3dMat)
+        useDict = all_combiner_uses(material.f3d_mat)
 
         if useDict["Texture"]:
             ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], "SM64 UV Texture Scroll", False)
