@@ -167,9 +167,10 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
             camShotObj = bpy.context.view_layer.objects.active
 
         if camShotObj.type == "ARMATURE":
+            shot_frame = self.shotStartFrame if game_data.z64.is_oot() else self.shot_duration
             boneFrameList: list[int] = [bone.ootCamShotPointProp.shotPointFrame for bone in camShotObj.data.bones]
             # "fake" eye end frame
-            return self.shotStartFrame + max(2, sum(frame for frame in boneFrameList)) + 1
+            return shot_frame + max(2, sum(frame for frame in boneFrameList)) + 1
         return -1
 
     def draw_props(self, layout: UILayout, label: str):
@@ -193,6 +194,7 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
             prop_split(layout_shot, self, "shot_interp_type", "Camera Interpolation Type")
             if self.shot_interp_type == "Custom":
                 prop_split(layout_shot, self, "shot_interp_type_custom", "")
+            prop_split(layout_shot, self, "shotEndFrame", "End Frame")
         box.operator(CutsceneCmdAddBone.bl_idname)
 
 
