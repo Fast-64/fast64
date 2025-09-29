@@ -726,7 +726,7 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
     obj.matrix_world.identity()
     mesh.transform(mat)
 
-    mesh.transform(Matrix.Translation(-target_loc))
+    mesh.transform(Matrix.Translation(obj.location - target_loc))
     obj.location = target_loc
 
 
