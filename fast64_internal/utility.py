@@ -715,7 +715,7 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
     """
     Sets the object's origin to a new world-space location without moving the
     object's mesh in the world.
-    
+
     HACK: Historically this applies all transforms to the mesh data, this is kept to prevent breaking things
     """
     assert obj.type == "MESH", "Object is not a mesh"
