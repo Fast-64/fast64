@@ -717,13 +717,13 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
 
     if not target_loc.is_frozen:
         target_loc = target_loc.copy()
-    mat = obj.matrix_world.copy()
+    mat = obj.matrix_local.copy()
 
     # Applying location puts the object origin at world origin
     # (It is only needed to apply location to set the origin,
     #  but historically this function has applied all transforms
     #  so just keep doing that to not break anything)
-    obj.matrix_world.identity()
+    obj.matrix_local.identity()
     mesh.transform(mat)
 
     mesh.transform(Matrix.Translation(obj.location - target_loc))
