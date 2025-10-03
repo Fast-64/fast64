@@ -722,10 +722,11 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
     mesh: bpy.types.Mesh = obj.data
 
     original_mat = obj.matrix_world.copy()
-    target_mat = original_mat.copy()
+    mesh.transform(original_mat)
 
+    target_mat = original_mat.copy()
     target_mat.translation = target_loc
-    mesh.transform(target_mat.inverted() @ original_mat)
+    mesh.transform(target_mat.inverted())
     obj.matrix_world = target_mat
 
 
