@@ -906,7 +906,7 @@ class SM64_AnimTable:
                         i,
                     )
             element_start, element_end = adjust_start_end(
-                table_start + element_match.start(), table_start + element_match.end(), comment_map
+                start + element_match.start(), start + element_match.end(), comment_map
             )
             self.elements.append(
                 SM64_AnimTableElement(

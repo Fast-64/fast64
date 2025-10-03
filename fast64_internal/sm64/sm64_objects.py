@@ -2485,7 +2485,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         if self.obj_name_col and self.export_col:
             self.draw_col_names(info_box)
 
-        if self.obj_name_anim and self.export_anim:
+        if self.anim_object is not None and self.export_anim:
             self.draw_anim_names(info_box)
 
         if self.obj_name_bhv:

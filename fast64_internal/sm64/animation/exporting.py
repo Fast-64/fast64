@@ -517,16 +517,17 @@ def update_table_file(
 ):
     assert isinstance(table.reference, str) and table.reference, "Invalid table reference"
 
-    text, comment_less, enum_text, comment_map = "", "", "", []
+    text, enum_text = "", ""
     existing_file = table_path.exists() and not override_files
     if existing_file:
         text = table_path.read_text()
-        comment_less, comment_map = get_comment_map(text)
+    comment_less, comment_map = get_comment_map(text)
 
     # add include if not already there
     descriptor = to_include_descriptor(Path("table_enum.h"))
     if gen_enums and len(find_descriptor_in_text(descriptor, comment_less, comment_map)) == 0:
         text = '#include "table_enum.h"\n' + text
+        comment_less, comment_map = get_comment_map(text)
 
     # First, find existing tables
     tables = import_tables(comment_less, table_path, comment_map, table.reference)
