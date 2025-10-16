@@ -712,22 +712,22 @@ def checkIdentityRotation(obj, rotation, allowYaw):
 
 
 def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
-    assert obj.type == "MESH", "Object is not a mesh"
+    """
+    Sets the object's origin to a new world-space location without moving the
+    object's mesh in the world.
 
-    if not target_loc.is_frozen:
-        target_loc = target_loc.copy()
-    offset = target_loc - obj.location
-    with bpy.context.temp_override(
-        selected_objects=[obj],
-        active_object=obj,
-    ):
-        obj.data.transform(mathutils.Matrix.Translation(-offset))
-        # Applying location puts the object origin at world origin
-        # (It is only needed to apply location to set the origin,
-        #  but historically this function has applied all transforms
-        #  so just keep doing that to not break anything)
-        bpy.ops.object.transform_apply()
-        obj.location = target_loc
+    HACK: Historically this applies all transforms to the mesh data, this is kept to prevent breaking things
+    """
+    assert obj.type == "MESH", "Object is not a mesh"
+    mesh: bpy.types.Mesh = obj.data
+
+    original_mat = obj.matrix_world.copy()
+    mesh.transform(original_mat)
+
+    target_mat = original_mat.copy()
+    target_mat.translation = target_loc
+    mesh.transform(target_mat.inverted())
+    obj.matrix_world = target_mat
 
 
 def checkIfPathExists(filePath):
