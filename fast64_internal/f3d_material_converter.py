@@ -3,14 +3,15 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from .f3d.f3d_material import *
-from .f3d.f3d_material_helpers import node_tree_copy
+from .f3d.f3d_node_gen import update_f3d_material_nodes
 from .utility import *
+from .operators import OperatorBase
 from bl_operators.presets import AddPresetBase
 
 
 def upgrade_f3d_version_all_meshes() -> None:
+    generate_f3d_node_groups()
     objs = [obj for obj in bpy.data.objects if obj.type == "MESH"]
-    f3d_node_tree = get_f3d_node_tree()
 
     # Remove original v2 node groups so that they can be recreated.
     deleteGroups = []
@@ -26,14 +27,14 @@ def upgrade_f3d_version_all_meshes() -> None:
     # handles cases where materials are used in multiple objects
     materialDict = {}
     for obj in objs:
-        upgradeF3DVersionOneObject(obj, materialDict, f3d_node_tree)
+        upgradeF3DVersionOneObject(obj, materialDict)
 
 
-def upgradeF3DVersionOneObject(obj, materialDict, f3d_node_tree: bpy.types.NodeTree):
+def upgradeF3DVersionOneObject(obj, materialDict):
     for index in range(len(obj.material_slots)):
         material = obj.material_slots[index].material
         if material is not None and material.is_f3d and material not in materialDict:
-            convertF3DtoNewVersion(obj, index, material, f3d_node_tree)
+            convertF3DtoNewVersion(obj, index, material)
             materialDict[material] = material
 
 
@@ -132,9 +133,7 @@ def set_best_draw_layer_for_materials():
             finished_mats.add(mat.name)
 
 
-def convertF3DtoNewVersion(
-    obj: bpy.types.Object | bpy.types.Bone, index: int, material, f3d_node_tree: bpy.types.NodeTree
-):
+def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index: int, material):
     try:
         if not has_valid_mat_ver(material):
             return
@@ -149,15 +148,9 @@ def convertF3DtoNewVersion(
         # Convert before node tree changes, as old materials store some values in the actual nodes
         if material.mat_ver <= 3:
             convertToNewMat(material)
-
-        node_tree_copy(f3d_node_tree, material.node_tree)
-
-        material.is_f3d, material.f3d_update_flag = True, False
+        material.is_f3d = True
         material.mat_ver = F3D_MAT_CUR_VERSION
-
-        createScenePropertiesForMaterial(material)
-        with bpy.context.temp_override(material=material):
-            update_all_node_values(material, bpy.context)  # Reload everything
+        update_f3d_material_nodes(material)
 
     except Exception as exc:
         print("Failed to upgrade", material.name)
@@ -277,7 +270,6 @@ class MatUpdateConvert(bpy.types.Operator):
         try:
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-
             if self.update_conv_all:
                 upgrade_f3d_version_all_meshes()
             else:
@@ -285,9 +277,9 @@ class MatUpdateConvert(bpy.types.Operator):
                     raise PluginError("Mesh not selected.")
                 elif type(context.selected_objects[0].data) is not bpy.types.Mesh:
                     raise PluginError("Mesh not selected.")
-
+                generate_f3d_node_groups()
                 obj = context.selected_objects[0]
-                upgradeF3DVersionOneObject(obj, {}, get_f3d_node_tree())
+                upgradeF3DVersionOneObject(obj, {})
 
         except Exception as e:
             raisePluginError(self, e)
@@ -295,6 +287,16 @@ class MatUpdateConvert(bpy.types.Operator):
 
         self.report({"INFO"}, "Created F3D material.")
         return {"FINISHED"}  # must return a set
+
+
+class RecreateAllF3DNodes(OperatorBase):
+    bl_idname = "scene.recreate_all_f3d_nodes"
+    bl_label = "Recreate All F3D Shader Nodes"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_description = "Recreates the node tree for f3d materials, use if material preview is broken."
+
+    def execute_operator(self, context):
+        generate_f3d_node_groups(False, True)
 
 
 class F3DMaterialConverterPanel(bpy.types.Panel):
@@ -318,12 +320,14 @@ class F3DMaterialConverterPanel(bpy.types.Panel):
         op = self.layout.operator(MatUpdateConvert.bl_idname)
         op.update_conv_all = context.scene.update_conv_all
         self.layout.prop(context.scene, "update_conv_all")
+        self.layout.operator(RecreateAllF3DNodes.bl_idname)
         self.layout.operator(ReloadDefaultF3DPresets.bl_idname)
 
 
 bsdf_conv_classes = (
     BSDFConvert,
     MatUpdateConvert,
+    RecreateAllF3DNodes,
 )
 
 bsdf_conv_panel_classes = (F3DMaterialConverterPanel,)
