@@ -7,6 +7,7 @@ from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
 from ...object import addMissingObjectsToAllRoomHeaders
 from ...model_classes import OOTModel, OOTGfxFormatter
+from ...utility import ExportInfo
 from ..file import RoomFile
 from ..utility import Utility, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader
@@ -35,7 +36,7 @@ class Room:
         model: OOTModel,
         roomIndex: int,
         sceneName: str,
-        saveTexturesAsPNG: bool,
+        exportInfo: ExportInfo,
     ):
         i = 0
         mainHeaderProps = roomObj.ootRoomHeader
@@ -91,10 +92,20 @@ class Room:
             headers.extend([altHeader.childNight, altHeader.adultDay, altHeader.adultNight])
             if len(altHeader.cutscenes) > 0:
                 headers.extend(altHeader.cutscenes)
-        addMissingObjectsToAllRoomHeaders(original_room_obj, headers)
+
+        if exportInfo.auto_add_room_objects:
+            addMissingObjectsToAllRoomHeaders(original_room_obj, headers)
 
         roomShape = RoomShapeUtility.create_shape(
-            sceneName, name, roomShapeType, model, transform, sceneObj, roomObj, saveTexturesAsPNG, mainHeaderProps
+            sceneName,
+            name,
+            roomShapeType,
+            model,
+            transform,
+            sceneObj,
+            roomObj,
+            exportInfo.saveTexturesAsPNG,
+            mainHeaderProps,
         )
         return Room(name, roomIndex, mainHeader, altHeader, roomShape, hasAlternateHeaders)
 

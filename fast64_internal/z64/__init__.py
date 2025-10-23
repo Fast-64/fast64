@@ -80,7 +80,7 @@ oot_versions_items = [
     ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq", 7),
     ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce", 3),
     ("ique-cn", "ique-cn", "ique-cn", 16),
-    ("hackeroot-mq", "HackerOoT", "hackeroot-mq", 9),  # TODO: force this value if HackerOoT features are enabled?
+    ("hackeroot-mq", "HackerOoT (Legacy)", "hackeroot-mq", 9),
     ("legacy", "Legacy", "Older Decomp Version", 10),
 ]
 

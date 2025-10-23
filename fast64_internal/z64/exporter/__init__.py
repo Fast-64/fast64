@@ -75,8 +75,7 @@ class SceneExport:
                 originalSceneObj,
                 sceneObj,
                 transform,
-                exportInfo.useMacros,
-                exportInfo.saveTexturesAsPNG,
+                exportInfo,
                 OOTModel(f"{sceneName}_dl", DLFormat.Static, False),
             )
             newScene.validateScene()

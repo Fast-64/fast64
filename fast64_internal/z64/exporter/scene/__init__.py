@@ -8,6 +8,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
+from ...utility import ExportInfo
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -33,8 +34,7 @@ class Scene:
         original_scene_obj: Object,
         sceneObj: Object,
         transform: Matrix,
-        useMacros: bool,
-        saveTexturesAsPNG: bool,
+        exportInfo: ExportInfo,
         model: OOTModel,
     ):
         i = 0
@@ -45,7 +45,7 @@ class Scene:
             original_scene_obj,
             sceneObj,
             transform,
-            saveTexturesAsPNG,
+            exportInfo,
         )
 
         colHeader = CollisionHeader.new(
@@ -53,13 +53,13 @@ class Scene:
             name,
             sceneObj,
             transform,
-            useMacros,
+            exportInfo.useMacros,
             True,
         )
 
         try:
             mainHeader = SceneHeader.new(
-                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros
+                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, exportInfo.useMacros
             )
         except Exception as exc:
             raise PluginError(f"In main scene header: {exc}") from exc
@@ -73,7 +73,9 @@ class Scene:
                 continue
             try:
                 setattr(
-                    altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
+                    altHeader,
+                    header,
+                    SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, exportInfo.useMacros),
                 )
                 hasAlternateHeaders = True
             except Exception as exc:
@@ -83,7 +85,7 @@ class Scene:
         for i, csHeader in enumerate(altProp.cutsceneHeaders, 4):
             try:
                 altHeader.cutscenes.append(
-                    SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
+                    SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, exportInfo.useMacros)
                 )
             except Exception as exc:
                 raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
