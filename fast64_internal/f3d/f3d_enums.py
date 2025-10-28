@@ -1,3 +1,6 @@
+from typing import NamedTuple
+
+
 combiner_enums = {
     "Case A": (
         ("COMBINED", "Combined Color", "Combined Color"),
@@ -147,12 +150,35 @@ combinerToNodeDictAlpha = {
     "0": ("0", 0),
 }
 
+DO_NOT_SET = (
+    "NONE",
+    "Don't Set",
+    "In write different this means not attempting to set, in write all it means fetching the world default",
+    "X",
+)
+
+
+def add_do_not_set(enum_list: list[tuple[str, str, str]]):
+    if enum_list and len(enum_list[0]) <= 3:
+        index = len(enum_list)
+    else:
+        index = next((i for i, e in enumerate(enum_list) if e[3] != i), len(enum_list))
+    with_no_set = [(*DO_NOT_SET, index)] + [(*knd[:3], i) for i, knd in enumerate(enum_list)]
+
+    def run(self, context):
+        if getattr(context, "material", None) is None:
+            return enum_list
+        return with_no_set
+
+    return run
+
+
 # hardware v2
 enumAlphaDither = [
-    ("G_AD_PATTERN", "Pattern", "Pattern"),
-    ("G_AD_NOTPATTERN", "NOT Pattern", "NOT Pattern"),
-    ("G_AD_NOISE", "Noise", "Noise"),
-    ("G_AD_DISABLE", "Disable", "Disable"),
+    ("G_AD_PATTERN", "Pattern", "Pattern", 0),
+    ("G_AD_NOTPATTERN", "NOT Pattern", "NOT Pattern", 1),
+    ("G_AD_NOISE", "Noise", "Noise", 2),
+    ("G_AD_DISABLE", "Disable", "Disable", 3),
 ]
 
 # hardware v2
@@ -343,17 +369,12 @@ enumTexFormat = [
     ("CI8", "Color Index 8-bit", "Color Index 8-bit"),
     ("RGBA16", "RGBA 16-bit", "RGBA 16-bit"),
     ("RGBA32", "RGBA 32-bit", "RGBA 32-bit"),
-    # ('YUV16','YUV 16-bit', 'YUV 16-bit'),
+    ("YUV16", "YUV 16-bit", "YUV 16-bit"),
 ]
 
 enumCIFormat = [
     ("RGBA16", "RGBA 16-bit", "RGBA 16-bit"),
     ("IA16", "Intensity Alpha 16-bit", "Intensity Alpha 16-bit"),
-]
-
-enumTexUV = [
-    ("TEXEL0", "Texture 0", "Texture 0"),
-    ("TEXEL1", "Texture 1", "Texture 1"),
 ]
 
 texBitSizeInt = {
@@ -455,3 +476,164 @@ enumCelTintType = [
     ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
     ("Light", "From Light", "Automatically load tint color from selectable light slot. Tint level stored in DL"),
 ]
+
+bitSizeDict = {
+    "G_IM_SIZ_4b": 4,
+    "G_IM_SIZ_8b": 8,
+    "G_IM_SIZ_16b": 16,
+    "G_IM_SIZ_32b": 32,
+}
+
+texBitSizeF3D = {
+    "I4": "G_IM_SIZ_4b",
+    "IA4": "G_IM_SIZ_4b",
+    "CI4": "G_IM_SIZ_4b",
+    "I8": "G_IM_SIZ_8b",
+    "IA8": "G_IM_SIZ_8b",
+    "CI8": "G_IM_SIZ_8b",
+    "RGBA16": "G_IM_SIZ_16b",
+    "IA16": "G_IM_SIZ_16b",
+    "YUV16": "G_IM_SIZ_16b",
+    "RGBA32": "G_IM_SIZ_32b",
+}
+
+texFormatOf = {
+    "I4": "G_IM_FMT_I",
+    "IA4": "G_IM_FMT_IA",
+    "CI4": "G_IM_FMT_CI",
+    "I8": "G_IM_FMT_I",
+    "IA8": "G_IM_FMT_IA",
+    "CI8": "G_IM_FMT_CI",
+    "RGBA16": "G_IM_FMT_RGBA",
+    "IA16": "G_IM_FMT_IA",
+    "YUV16": "G_IM_FMT_YUV",
+    "RGBA32": "G_IM_FMT_RGBA",
+}
+
+
+sm64EnumDrawLayers = [
+    ("0", "Background (0x00)", "Background"),
+    ("1", "Opaque (0x01)", "Opaque"),
+    ("2", "Opaque Decal (0x02)", "Opaque Decal"),
+    ("3", "Opaque Intersecting (0x03)", "Opaque Intersecting"),
+    ("4", "Cutout (0x04)", "Cutout"),
+    ("5", "Transparent (0x05)", "Transparent"),
+    ("6", "Transparent Decal (0x06)", "Transparent Decal"),
+    ("7", "Transparent Intersecting (0x07)", "Transparent Intersecting"),
+]
+
+ootEnumDrawLayers = [
+    ("Opaque", "Opaque", "Opaque"),
+    ("Transparent", "Transparent", "Transparent"),
+    ("Overlay", "Overlay", "Overlay"),
+]
+
+
+drawLayerSM64toOOT = {
+    "0": "Opaque",
+    "1": "Opaque",
+    "2": "Opaque",
+    "3": "Opaque",
+    "4": "Opaque",
+    "5": "Transparent",
+    "6": "Transparent",
+    "7": "Transparent",
+}
+
+drawLayerOOTtoSM64 = {
+    "Opaque": "1",
+    "Transparent": "5",
+    "Overlay": "1",
+}
+
+enumF3DSource = [
+    ("None", "None", "None"),
+    ("Texture", "Texture", "Texture"),
+    ("Tile Size", "Tile Size", "Tile Size"),
+    ("Primitive", "Primitive", "Primitive"),
+    ("Environment", "Environment", "Environment"),
+    ("Shade", "Shade", "Shade"),
+    ("Key", "Key", "Key"),
+    ("LOD Fraction", "LOD Fraction", "LOD Fraction"),
+    ("Convert", "Convert", "Convert"),
+]
+
+defaultMaterialPresets = {
+    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid"},
+    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
+}
+
+F3D_GEO_MODES = {
+    "zBuffer": "g_zbuffer",
+    "shade": "g_shade",
+    "cullFront": "g_cull_front",
+    "cullBack": "g_cull_back",
+    "fog": "g_fog",
+    "lighting": "g_lighting",
+    "texGen": "g_tex_gen",
+    "texGenLinear": "g_tex_gen_linear",
+    "lod": "g_lod",
+    "shadeSmooth": "g_shade_smooth",
+}
+
+F3DLX_GEO_MODES = {
+    "clipping": "g_clipping",
+}
+
+F3DEX3_GEO_MODES = {
+    "ambientOcclusion": "g_ambocclusion",
+    "attroffsetZ": "g_attroffset_z_enable",
+    "attroffsetST": "g_attroffset_st_enable",
+    "packedNormals": "g_packed_normals",
+    "lightToAlpha": "g_lighttoalpha",
+    "specularLighting": "g_lighting_specular",
+    "fresnelToColor": "g_fresnel_color",
+    "fresnelToAlpha": "g_fresnel_alpha",
+}
+
+
+T3D_GEO_MODES = {
+    "cullFront": "g_cull_front",
+    "cullBack": "g_cull_back",
+    "fog": "g_fog",
+    "texGen": "g_tex_gen",
+}
+
+
+class PropWithDefault(NamedTuple):
+    dict_name: str
+    default: str
+    name: str = ""
+
+
+OTHERMODE_H_ATTRS = {
+    "g_mdsft_alpha_dither": PropWithDefault("alphaDither", "G_AD_DISABLE", "Alpha Dither"),
+    "g_mdsft_rgb_dither": PropWithDefault("colorDither", "G_CD_MAGICSQ", "RGB Dither"),
+    "g_mdsft_combkey": PropWithDefault("chromaKey", "G_CK_NONE", "Chroma Key"),
+    "g_mdsft_textconv": PropWithDefault("textureConvert", "G_TC_CONV", "Texture Convert"),
+    "g_mdsft_text_filt": PropWithDefault("textureFilter", "G_TF_POINT", "Texture Filter"),
+    "g_mdsft_textlut": PropWithDefault("lutFormat", "G_TT_NONE", "Texture LUT"),
+    "g_mdsft_textlod": PropWithDefault("textureLoD", "G_TL_TILE", "Texture LoD"),
+    "g_mdsft_textdetail": PropWithDefault("textureDetail", "G_TD_CLAMP", "Texture Detail"),
+    "g_mdsft_textpersp": PropWithDefault("perspectiveCorrection", "G_TP_NONE", "Texture Perspective Correction"),
+    "g_mdsft_cycletype": PropWithDefault("cycleType", "G_CYC_1CYCLE", "Cycle Type"),
+    "g_mdsft_pipeline": PropWithDefault("pipelineMode", "G_PM_NPRIMITIVE", "Pipeline Span Buffer Coherency"),
+}
+
+OTHERMODE_L_ATTRS = {
+    "g_mdsft_alpha_compare": PropWithDefault("alphaCompare", "G_AC_NONE", "Alpha Compare"),
+    "g_mdsft_zsrcsel": PropWithDefault("zSourceSelection", "G_ZS_PIXEL", "Z Source Selection"),
+}
+
+RENDERMODE_FLAG_ATTRS = {
+    "aa_en": PropWithDefault("aa", False),
+    "z_cmp": PropWithDefault("zTest", False),
+    "z_upd": PropWithDefault("zWrite", False),
+    "clr_on_cvg": PropWithDefault("colorOnCvg", False),
+    "alpha_cvg_sel": PropWithDefault("alphaOnCvg", False),
+    "cvg_x_alpha": PropWithDefault("mulCvgXAlpha", False),
+    "force_bl": PropWithDefault("forceBlend", False),
+    "im_rd": PropWithDefault("readFB", False),
+    "cvg_dst": PropWithDefault("cvgDst", "CVG_DST_CLAMP"),
+    "zmode": PropWithDefault("zMode", "ZMODE_OPA"),
+}
