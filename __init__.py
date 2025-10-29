@@ -219,6 +219,11 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
 
     internal_game_update_ver: bpy.props.IntProperty(default=0)
 
+    internal_background_mode: bpy.props.BoolProperty(
+        default=False,
+        description="Used to disable certain parts of the codebase when Fast64 is ran with Blender in CLI mode",
+    )
+
     def to_repo_settings(self):
         data = {}
         data["autoLoad"] = self.auto_repo_load_settings
