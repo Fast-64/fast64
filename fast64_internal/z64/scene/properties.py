@@ -1,5 +1,6 @@
 import bpy
 
+from typing import Optional
 from bpy.types import PropertyGroup, Object, Light, UILayout, Scene, Context
 from bpy.props import (
     EnumProperty,
@@ -48,6 +49,7 @@ ootEnumLightGroupMenu = [
     ("Day", "Day", "Day"),
     ("Dusk", "Dusk", "Dusk"),
     ("Night", "Night", "Night"),
+    ("Extras", "Extras", "Extras"),
 ]
 
 ootEnumTransitionAnims = [
@@ -176,7 +178,14 @@ class OOTLightProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
 
     def draw_props(
-        self, layout: UILayout, name: str, showExpandTab: bool, index: int, sceneHeaderIndex: int, objName: str
+        self,
+        layout: UILayout,
+        name: str,
+        showExpandTab: bool,
+        index: Optional[int],
+        sceneHeaderIndex: Optional[int],
+        objName: Optional[str],
+        collection_type: Optional[str],
     ):
         if showExpandTab:
             box = layout.box().column()
@@ -187,28 +196,25 @@ class OOTLightProperty(PropertyGroup):
             expandTab = True
 
         if expandTab:
-            if index is not None:
-                drawCollectionOps(box, index, "Light", sceneHeaderIndex, objName)
+            if index is not None and collection_type is not None:
+                drawCollectionOps(box, index, collection_type, sceneHeaderIndex, objName)
             prop_split(box, self, "ambient", "Ambient Color")
 
-            if self.useCustomDiffuse0:
-                prop_split(box, self, "diffuse0Custom", "Diffuse 0")
-                box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
-            else:
-                prop_split(box, self, "diffuse0", "Diffuse 0")
-            box.prop(self, "useCustomDiffuse0")
+            def draw_diffuse(index: int):
+                layout_diffuse = box.box()
+                layout_diffuse.prop(self, f"useCustomDiffuse{index}")
+                if self.useCustomDiffuse0:
+                    layout_diffuse.label(text="Make sure light is not part of scene hierarchy.")
+                    prop_split(layout_diffuse, self, f"diffuse{index}Custom", f"Diffuse {index} Object")
+                else:
+                    prop_split(layout_diffuse, self, f"diffuse{index}", f"Diffuse{index} Color")
 
-            if self.useCustomDiffuse1:
-                prop_split(box, self, "diffuse1Custom", "Diffuse 1")
-                box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
-            else:
-                prop_split(box, self, "diffuse1", "Diffuse 1")
-            box.prop(self, "useCustomDiffuse1")
-
+            draw_diffuse(0)
+            draw_diffuse(1)
             prop_split(box, self, "fogColor", "Fog Color")
             prop_split(box, self, "fogNear", "Fog Near (Fog Far=1000)")
             prop_split(box, self, "z_far", "Z Far (Draw Distance)")
-            prop_split(box, self, "transitionSpeed", "Transition Speed")
+            prop_split(box, self, "transitionSpeed", "Blend Rate")
 
 
 class OOTLightGroupProperty(PropertyGroup):
@@ -218,19 +224,24 @@ class OOTLightGroupProperty(PropertyGroup):
     day: PointerProperty(type=OOTLightProperty)
     dusk: PointerProperty(type=OOTLightProperty)
     night: PointerProperty(type=OOTLightProperty)
+    extras: CollectionProperty(type=OOTLightProperty)
     defaultsSet: BoolProperty()
 
-    def draw_props(self, layout: UILayout):
+    def draw_props(self, layout: UILayout, header_index: int, obj_name: str):
         box = layout.column()
         box.row().prop(self, "menuTab", expand=True)
         if self.menuTab == "Dawn":
-            self.dawn.draw_props(box, "Dawn", False, None, None, None)
-        if self.menuTab == "Day":
-            self.day.draw_props(box, "Day", False, None, None, None)
-        if self.menuTab == "Dusk":
-            self.dusk.draw_props(box, "Dusk", False, None, None, None)
-        if self.menuTab == "Night":
-            self.night.draw_props(box, "Night", False, None, None, None)
+            self.dawn.draw_props(box, "Dawn", False, None, None, None, None)
+        elif self.menuTab == "Day":
+            self.day.draw_props(box, "Day", False, None, None, None, None)
+        elif self.menuTab == "Dusk":
+            self.dusk.draw_props(box, "Dusk", False, None, None, None, None)
+        elif self.menuTab == "Night":
+            self.night.draw_props(box, "Night", False, None, None, None, None)
+        elif self.menuTab == "Extras":
+            for i, extra_prop in enumerate(self.extras):
+                extra_prop.draw_props(box, f"Extra Lighting {i}", True, i, header_index, obj_name, "Light Extras")
+            drawAddButton(box, len(self.extras), "Light Extras", header_index, obj_name)
 
 
 class OOTSceneTableEntryProperty(PropertyGroup):
@@ -372,10 +383,10 @@ class OOTSceneHeaderProperty(PropertyGroup):
             lighting.box().label(text="Lighting List")
             drawEnumWithCustom(lighting, self, "skyboxLighting", "Lighting Mode", "")
             if self.skyboxLighting == "LIGHT_MODE_TIME":  # Time of Day
-                self.timeOfDayLights.draw_props(lighting)
+                self.timeOfDayLights.draw_props(lighting, headerIndex, objName)
             else:
                 for i in range(len(self.lightList)):
-                    self.lightList[i].draw_props(lighting, "Lighting " + str(i), True, i, headerIndex, objName)
+                    self.lightList[i].draw_props(lighting, "Lighting " + str(i), True, i, headerIndex, objName, "Light")
                 drawAddButton(lighting, len(self.lightList), "Light", headerIndex, objName)
 
         elif menuTab == "Cutscene":

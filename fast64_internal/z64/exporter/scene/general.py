@@ -14,6 +14,7 @@ class EnvLightSettings:
     """This class defines the information of one environment light setting"""
 
     envLightMode: str
+    setting_name: str
     ambientColor: tuple[int, int, int]
     light1Color: tuple[int, int, int]
     light1Dir: tuple[int, int, int]
@@ -65,6 +66,7 @@ class EnvLightSettings:
             lights.append(
                 EnvLightSettings(
                     "Custom",
+                    "Custom Light Settings",
                     tuple(colors_and_dirs[0]),
                     tuple(colors_and_dirs[1]),
                     tuple(colors_and_dirs[2]),
@@ -94,10 +96,8 @@ class EnvLightSettings:
 
         return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
 
-    def getEntryC(self, index: int):
+    def getEntryC(self):
         """Returns an environment light entry"""
-
-        isLightingCustom = self.envLightMode == "Custom"
 
         vectors = [
             (self.ambientColor, "Ambient Color", self.getColorValues),
@@ -113,21 +113,8 @@ class EnvLightSettings:
             (f"{self.zFar}", "Fog Far"),
         ]
 
-        lightDescs = ["Dawn", "Day", "Dusk", "Night"]
-
-        if not isLightingCustom and self.envLightMode == "LIGHT_MODE_TIME":
-            # TODO: Improve the lighting system.
-            # Currently Fast64 assumes there's only 4 possible settings for "Time of Day" lighting.
-            # This is not accurate and more complicated,
-            # for now we are doing ``index % 4`` to avoid having an OoB read in the list
-            # but this will need to be changed the day the lighting system is updated.
-            lightDesc = f"// {lightDescs[index % 4]} Lighting\n"
-        else:
-            isIndoor = not isLightingCustom and self.envLightMode == "LIGHT_MODE_SETTINGS"
-            lightDesc = f"// {'Indoor' if isIndoor else 'Custom'} No. {index + 1} Lighting\n"
-
         lightData = (
-            (indent + lightDesc)
+            (indent + f"// {self.setting_name}\n")
             + (indent + "{\n")
             + "".join(
                 indent * 2 + f"{'{ ' + vecToC(vector) + ' },':26} // {desc}\n" for (vector, desc, vecToC) in vectors
@@ -152,12 +139,19 @@ class SceneLighting:
         envLightMode = Utility.getPropValue(props, "skyboxLighting")
         lightList: dict[str, OOTLightProperty] = {}
         settings: list[EnvLightSettings] = []
+        is_custom = props.skyboxLighting == "Custom"
 
-        if envLightMode == "LIGHT_MODE_TIME":
+        if not is_custom and envLightMode == "LIGHT_MODE_TIME":
             todLights = props.timeOfDayLights
             lightList = {"Dawn": todLights.dawn, "Day": todLights.day, "Dusk": todLights.dusk, "Night": todLights.night}
+
+            for i, light in enumerate(todLights.extras):
+                lightList[f"Extra No. {i}"] = light
         else:
-            lightList = {str(i): light for i, light in enumerate(props.lightList)}
+            is_indoor = not is_custom and envLightMode == "LIGHT_MODE_SETTINGS"
+            lightList = {
+                f"{'Indoor' if is_indoor else 'Custom'} No. {i + 1}": light for i, light in enumerate(props.lightList)
+            }
 
         for setting_name, lightProp in lightList.items():
             try:
@@ -166,6 +160,7 @@ class SceneLighting:
                 settings.append(
                     EnvLightSettings(
                         envLightMode,
+                        setting_name,
                         exportColor(lightProp.ambient),
                         light1[0],
                         light1[1],
@@ -199,7 +194,7 @@ class SceneLighting:
 
         # .c
         lightSettingsC.source = (
-            (lightName + " = {\n") + "".join(light.getEntryC(i) for i, light in enumerate(self.settings)) + "};\n\n"
+            (lightName + " = {\n") + "".join(light.getEntryC() for i, light in enumerate(self.settings)) + "};\n\n"
         )
 
         return lightSettingsC
