@@ -104,8 +104,6 @@ def parseScene(
             subfolder = None
         importPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
 
-    if game_data.z64.is_oot():
-        sceneName = f"{sceneName}_scene"
 
     importSubdir = ""
     if settings.isCustomDest is not None:
@@ -121,7 +119,10 @@ def parseScene(
         False,
         True,
     )
-    filePath = os.path.join(sceneFolderPath, f"{sceneName}.c")
+    if game_data.z64.is_oot():
+        filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
+    else:
+        filePath = os.path.join(sceneFolderPath, f"{sceneName}.c")
     sceneData = readFile(filePath)
 
     if bpy.context.mode != "OBJECT":
@@ -145,9 +146,14 @@ def parseScene(
     bpy.context.space_data.overlay.show_curve_normals = True
     bpy.context.space_data.overlay.normals_length = 2
 
-    sceneCommandsName = f"{sceneName}Commands"
+    if game_data.z64.is_oot():
+        sceneCommandsName = f"{sceneName}_sceneCommands"
+    else:
+        sceneCommandsName = f"{sceneName}Commands"
+
     if sceneCommandsName not in sceneData:
-        sceneCommandsName = f"{sceneName}_header00"  # fast64 naming
+        sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
+
     sharedSceneData = SharedSceneData(
         sceneFolderPath,
         settings.includeMesh,
