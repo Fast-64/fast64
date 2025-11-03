@@ -2440,14 +2440,16 @@ class FModel:
         fMaterial.usedLights.append(key)
         self.lights[key] = value
 
-    def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj):
-        meshName = getFMeshName(name, namePrefix, drawLayer, isSkinned)
-        checkUniqueBoneNames(self, meshName, name)
-        self.meshes[meshName] = FMesh(meshName, self.DLFormat)
-
-        self.onAddMesh(self.meshes[meshName], contextObj)
-
-        return self.meshes[meshName]
+    def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False):
+        final_name = getFMeshName(name, namePrefix, drawLayer, isSkinned)
+        if dedup:
+            for i in range(1, len(self.meshes) + 2):
+                if final_name in self.meshes:
+                    final_name = f"{name}_{i:03}"
+        checkUniqueBoneNames(self, final_name, name)
+        self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
+        self.onAddMesh(mesh, contextObj)
+        return mesh
 
     def onAddMesh(self, fMesh, contextObj):
         return

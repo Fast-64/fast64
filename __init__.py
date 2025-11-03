@@ -6,7 +6,7 @@ from bpy.path import abspath
 from . import addon_updater_ops
 
 from .fast64_internal.game_data import game_data
-from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data
+from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data, Matrix4x4Property
 
 from .fast64_internal.repo_settings import (
     draw_repo_settings,
@@ -15,7 +15,7 @@ from .fast64_internal.repo_settings import (
     repo_settings_operators_unregister,
 )
 
-from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64 import sm64_register, sm64_unregister, SM64_ActionProperty
 from .fast64_internal.sm64.sm64_constants import sm64_world_defaults
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
@@ -35,7 +35,6 @@ from .fast64_internal.f3d.f3d_material import (
     mat_unregister,
     check_or_ask_color_management,
 )
-from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
@@ -93,6 +92,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "Microcode")
+        if context.scene.f3d_type in {"F3DEX3", "T3D"}:
+            prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
@@ -244,6 +245,14 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
 
+class Fast64_ActionProperties(bpy.types.PropertyGroup):
+    """
+    Properties in Action.fast64.
+    """
+
+    sm64: bpy.props.PointerProperty(type=SM64_ActionProperty, name="SM64 Properties")
+
+
 class Fast64_BoneProperties(bpy.types.PropertyGroup):
     """
     Properties in bone.fast64 (bpy.types.Bone)
@@ -313,6 +322,7 @@ classes = (
     Fast64RenderSettings_Properties,
     ManualUpdatePreviewOperator,
     Fast64_Properties,
+    Fast64_ActionProperties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
     F3D_GlobalSettingsPanel,
@@ -327,6 +337,7 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
+    SM64_BoneProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
         settings: Fast64Settings_Properties = scene.fast64.settings
@@ -422,9 +433,9 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
+    register_class(Matrix4x4Property)
     utility_anim_register()
     mat_register()
-    render_engine_register()
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
@@ -462,7 +473,7 @@ def register():
     bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
-
+    bpy.types.Action.fast64 = bpy.props.PointerProperty(type=Fast64_ActionProperties, name="Fast64 Action Properties")
     bpy.app.handlers.load_post.append(after_load)
 
 
@@ -479,7 +490,7 @@ def unregister():
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
-    render_engine_unregister()
+    unregister_class(Matrix4x4Property)
 
     del bpy.types.Scene.fullTraceback
     del bpy.types.Scene.ignoreTextureRestrictions
@@ -491,6 +502,7 @@ def unregister():
     del bpy.types.Scene.fast64
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
+    del bpy.types.Action.fast64
 
     repo_settings_operators_unregister()
 

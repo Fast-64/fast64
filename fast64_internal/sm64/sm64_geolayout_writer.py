@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 import typing
 
 import bpy, mathutils, math, copy, os, shutil, re
@@ -8,17 +9,18 @@ from io import BytesIO
 from ..operators import ObjectDataExporter
 from ..panels import SM64_Panel
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
+from .sm64_geolayout_bone import getSwitchOptionBone
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, write_material_headers
 
 from ..utility import (
     PluginError,
     VertexWeightError,
+    z_up_to_y_up_matrix,
     setOrigin,
     raisePluginError,
     findStartBones,
@@ -27,10 +29,8 @@ from ..utility import (
     getExportDir,
     toAlnum,
     writeMaterialFiles,
-    writeIfNotFound,
     get64bitAlignedAddr,
     encodeSegmentedAddr,
-    writeMaterialHeaders,
     writeInsertableFile,
     bytesToHex,
     checkSM64EmptyUsesGeoLayout,
@@ -52,11 +52,6 @@ from ..utility import (
     tempName,
     getAddressFromRAMAddress,
     prop_split,
-    customExportWarning,
-    decompFolderMessage,
-    makeWriteInfoBox,
-    writeBoxExportType,
-    enumExportHeaderType,
     geoNodeRotateOrder,
     deselectAllObjects,
     selectSingleObject,
@@ -102,7 +97,6 @@ from ..f3d.f3d_gbi import (
     DLFormat,
     SPEndDisplayList,
     SPDisplayList,
-    FMaterial,
 )
 
 from .sm64_geolayout_classes import (
@@ -120,28 +114,30 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
     RenderRangeNode,
     ShadowNode,
     DisplayListWithOffsetNode,
-    CustomAnimatedNode,
     HeldObjectNode,
     Geolayout,
 )
 
-from .sm64_constants import (
-    insertableBinaryTypes,
-    bank0Segment,
-    level_pointers,
-    defaultExtendSegment4,
-    level_enums,
-    enumLevelNames,
-)
+from .sm64_constants import insertableBinaryTypes, bank0Segment, defaultExtendSegment4
 
 if typing.TYPE_CHECKING:
     from .sm64_geolayout_bone import SM64_BoneProperties
+
+
+def get_custom_cmd_with_transform(node: "CustomNode", parentTransformNode, translate, rotate):
+    types = {a["arg_type"] for a in node.data["args"]}
+    has_translation, has_rotation, has_scale = "TRANSLATION" in types, "ROTATION" in types, "SCALE" in types
+    if (not has_translation and not isZeroTranslation(translate)) or (not has_rotation and not isZeroRotation(rotate)):
+        field = 0 if not (has_translation or has_rotation) else (1 if has_rotation else 2)
+        parentTransformNode = addParentNode(
+            parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
+        )
+    return node, parentTransformNode
 
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode=""):
@@ -387,7 +383,7 @@ def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
         draw_layer_dict = walk(node, draw_layer_dict.copy())
 
     def create_revert_node(draw_layer, node: DisplayListNode | None = None):
-        f_mesh = f_model.addMesh("final_revert", f_model.name, draw_layer, False, None)
+        f_mesh = f_model.addMesh("final_revert", f_model.name, draw_layer, False, None, dedup=True)
         f_mesh.draw = gfx_list = GfxList(f_mesh.name, GfxListTag.Draw, f_model.DLFormat)
         gfx_list.commands.extend(material_revert.commands)
         revert_node = DisplayListNode(draw_layer)
@@ -501,6 +497,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             obj,
             armatureObj,
             convertTransformMatrix,
+            None,
             None,
             None,
             None,
@@ -739,38 +736,12 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = '#include "actors/' + dirName + '/material.inc.c"'
-        matHInclude = '#include "actors/' + dirName + '/material.inc.h"'
+        matCInclude = Path("actors", dirName, "material.inc.c")
+        matHInclude = Path("actors", dirName, "material.inc.h")
         headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
-
-        if not customExport:
-            # Group name checking, before anything is exported to prevent invalid state on error.
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            if not os.path.exists(groupPathC):
-                raise PluginError(
-                    groupPathC + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathGeoC):
-                raise PluginError(
-                    groupPathGeoC
-                    + ' not found.\n Most likely issue is that "'
-                    + groupName
-                    + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathH):
-                raise PluginError(
-                    groupPathH + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-
     else:
-        matCInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.c"'
-        matHInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.h"'
+        matCInclude = Path("levels", levelName, dirName, "material.inc.c")
+        matHInclude = Path("levels", levelName, dirName, "material.inc.h")
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
@@ -816,6 +787,16 @@ def saveGeolayoutC(
     cDefFile.close()
 
     fileStatus = None
+    update_actor_includes(
+        headerType,
+        groupName,
+        Path(dirPath),
+        dirName,
+        levelName,
+        [Path("model.inc.c")],
+        [Path("geo_header.h")],
+        [Path("geo.inc.c")],
+    )
     if not customExport:
         if headerType == "Actor":
             if dirName == "star" and bpy.context.scene.replaceStarRefs:
@@ -867,31 +848,12 @@ def saveGeolayoutC(
 				appendSecondaryGeolayout(geoDirPath, 'bully', 'bully_boss', 'GEO_SCALE(0x00, 0x2000), GEO_NODE_OPEN(),')
 			"""
 
-            # Write to group files
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "' + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + dirName + '/geo_header.h"', "\n#endif")
-
             texscrollIncludeC = '#include "actors/' + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "actors/' + dirName + '/texscroll.inc.h"'
             texscrollGroup = groupName
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathGeoC = os.path.join(dirPath, "geo.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "levels/' + levelName + "/" + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + dirName + '/geo_header.h"', "\n#endif"
-            )
-
             texscrollIncludeC = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.h"'
             texscrollGroup = levelName
@@ -908,7 +870,7 @@ def saveGeolayoutC(
         )
 
         if DLFormat != DLFormat.Static:  # Change this
-            writeMaterialHeaders(exportDir, matCInclude, matHInclude)
+            write_material_headers(Path(exportDir), matCInclude, matHInclude)
 
     return staticData.header, fileStatus
 
@@ -1197,7 +1159,7 @@ def duplicateNode(transformNode, parentNode, index):
 
 
 def partOfGeolayout(obj):
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     return obj.type == "MESH" or useGeoEmpty
 
@@ -1268,8 +1230,6 @@ def processPreInlineGeo(
         node = JumpNode(True, None, obj.geoReference)
     elif inlineGeoConfig.name == "Geo Displaylist":
         node = DisplayListNode(int(obj.draw_layer_static), obj.dlReference)
-    elif inlineGeoConfig.name == "Custom Geo Command":
-        node = CustomNode(obj.customGeoCommand, obj.customGeoCommandArgs)
     addParentNode(parentTransformNode, node)  # Allow this node to be translated/rotated
 
 
@@ -1291,7 +1251,23 @@ def processInlineGeoNode(
     elif inlineGeoConfig.name == "Geo Rotation Node":
         node = RotateNode(obj.draw_layer_static, obj.useDLReference, rotate, obj.dlReference)
     elif inlineGeoConfig.name == "Geo Scale":
-        node = ScaleNode(obj.draw_layer_static, scale, obj.useDLReference, obj.dlReference)
+        node = ScaleNode(obj.draw_layer_static, scale[0], obj.useDLReference, obj.dlReference)
+    elif inlineGeoConfig.name == "Custom":
+        local_matrix = (
+            mathutils.Matrix.Translation(translate)
+            @ rotate.to_matrix().to_4x4()
+            @ mathutils.Matrix.Diagonal(scale).to_4x4()
+        )
+        node = obj.fast64.sm64.custom.get_final_cmd(
+            obj,
+            bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+            z_up_to_y_up_matrix @ mathutils.Matrix(obj.get("original_mtx_world")) @ z_up_to_y_up_matrix.inverted(),
+            local_matrix,
+            obj.draw_layer_static,
+            obj.useDLReference,
+            obj.dlReference,
+        )
+        node, parentTransformNode = get_custom_cmd_with_transform(node, parentTransformNode, translate, rotate)
     else:
         raise PluginError(f"Ooops! Didnt implement inline geo exporting for {inlineGeoConfig.name}")
 
@@ -1312,11 +1288,11 @@ def processMesh(
 ):
     # final_transform = copy.deepcopy(transformMatrix)
 
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     useSwitchNode = obj.type == "EMPTY" and obj.sm64_obj_type == "Switch"
 
-    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj.sm64_obj_type)
+    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj)
 
     addRooms = isRoot and obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.enableRoomSwitch
 
@@ -1326,7 +1302,7 @@ def processMesh(
     inlineGeoConfig: InlineGeolayoutObjConfig = inlineGeoLayoutObjects.get(obj.sm64_obj_type)
     processed_inline_geo = False
 
-    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type)
+    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj)
     if useInlineGeo and isPreInlineGeoLayout:
         processed_inline_geo = True
         processPreInlineGeo(inlineGeoConfig, obj, parentTransformNode)
@@ -1405,7 +1381,7 @@ def processMesh(
     else:
         if useInlineGeo and not processed_inline_geo:
             node, parentTransformNode = processInlineGeoNode(
-                inlineGeoConfig, obj, parentTransformNode, translate, rotate, scale[0]
+                inlineGeoConfig, obj, parentTransformNode, translate, rotate, scale
             )
             processed_inline_geo = True
 
@@ -1504,16 +1480,22 @@ def processMesh(
 
             if len(src_meshes):
                 fMeshes = {}
-                if useGeoEmpty:
-                    node.dlRef = src_meshes[0]["name"]
+                # find dl
+                draw, name = None, src_meshes[0]["dl_name"]
+                for fmesh in fModel.meshes.values():
+                    for fmesh_draw in [fmesh.draw] + fmesh.draw_overrides:
+                        if fmesh_draw.name == name:
+                            draw = fmesh_draw
+                            break
+                node.dlRef = draw
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
                 for src_mesh in src_meshes[1:]:
                     additionalNode = (
-                        DisplayListNode(src_mesh["layer"], src_mesh["name"])
+                        DisplayListNode(src_mesh["layer"], src_mesh["dl_name"])
                         if not isinstance(node, BillboardNode)
-                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["name"])
+                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["dl_name"])
                     )
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
@@ -1531,10 +1513,9 @@ def processMesh(
                 )
                 if fMeshes:
                     temp_obj["src_meshes"] = [
-                        ({"name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
+                        ({"dl_name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    if useGeoEmpty:
-                        node.dlRef = temp_obj["src_meshes"][0]["name"]
+                    node.dlRef = temp_obj["src_meshes"][0]["dl_name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
@@ -1607,6 +1588,7 @@ def processBone(
     transformMatrix,
     lastTranslateName,
     lastRotateName,
+    last_scale_name,
     lastDeformName,
     parentTransformNode,
     materialOverrides,
@@ -1642,40 +1624,38 @@ def processBone(
         rotateParent = None
         rotate = bone.matrix_local.decompose()[1]
 
+    # Get scale
+    if last_scale_name is not None:
+        scaleParent = armatureObj.data.bones[last_scale_name]
+        scale = (scaleParent.matrix_local.inverted() @ bone.matrix_local).decompose()[2]
+    else:
+        scaleParent = None
+        scale = bone.matrix_local.decompose()[2]
+
     translation = mathutils.Matrix.Translation(translate)
     rotation = rotate.to_matrix().to_4x4()
     zeroTranslation = isZeroTranslation(translate)
     zeroRotation = isZeroRotation(rotate)
+    zero_scale = isZeroScaleChange(scale)
 
     # hasDL = bone.use_deform
     hasDL = True
-    if bone.geo_cmd in animatableBoneTypes:
-        if bone.geo_cmd == "CustomAnimated":
-            if not bone.fast64.sm64.custom_geo_cmd_macro:
-                raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-            node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
+    if bone.geo_cmd == "DisplayListWithOffset":
+        if not zeroRotation:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
+
+            parentTransformNode = addParentNode(
+                parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
+            )
+
             lastTranslateName = boneName
             lastRotateName = boneName
-        else:  # DisplayListWithOffset
-            if not zeroRotation:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
-
-                parentTransformNode = addParentNode(
-                    parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
-                )
-
-                lastTranslateName = boneName
-                lastRotateName = boneName
-            else:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
-                lastTranslateName = boneName
+        else:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
+            lastTranslateName = boneName
 
         final_transform = transformMatrix @ translation
 
-    elif bone.geo_cmd == "CustomNonAnimated":
-        if bone.fast64.sm64.custom_geo_cmd_macro == "":
-            raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-        node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
     elif bone.geo_cmd == "Function":
         if bone.geo_func == "":
             raise PluginError("Function bone " + boneName + " function value is empty.")
@@ -1748,6 +1728,21 @@ def processBone(
             final_transform = transformMatrix @ mathutils.Matrix.Scale(node.scaleValue, 4)
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
+        elif bone.geo_cmd == "Custom":
+            local_matrix = mathutils.Matrix.LocRotScale(translate, rotate, scale)
+            world_matrix = z_up_to_y_up_matrix @ bone.matrix_local @ z_up_to_y_up_matrix.inverted()
+            node = bone_props.custom.get_final_cmd(
+                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, world_matrix, local_matrix, None, hasDL
+            )
+            node, parentTransformNode = get_custom_cmd_with_transform(node, parentTransformNode, translate, rotate)
+            if not has_scale and not zero_scale:
+                parentTransformNode = addParentNode(parentTransformNode, ScaleNode(node.drawLayer, scale[0], False))
+            if has_translation:
+                lastTranslateName = boneName
+            elif has_rotation:
+                lastRotateName = boneName
+            elif has_scale:
+                last_scale_name = boneName
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 
@@ -1853,12 +1848,6 @@ def processBone(
     if not isinstance(transformNode.node, SwitchNode):
         # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
-            # print("\tHas Children")
-            if bone.geo_cmd == "Function":
-                raise PluginError(
-                    "Function bones cannot have children. They instead affect the next sibling bone in alphabetical order."
-                )
-
             # Handle child nodes
             # nonDeformTransformData should be modified to be sent to children,
             # otherwise it should not be modified for parent.
@@ -1873,6 +1862,7 @@ def processBone(
                     final_transform,
                     lastTranslateName,
                     lastRotateName,
+                    last_scale_name,
                     lastDeformName,
                     transformNode,
                     materialOverrides,
@@ -1908,6 +1898,7 @@ def processBone(
                     final_transform,
                     lastTranslateName,
                     lastRotateName,
+                    last_scale_name,
                     lastDeformName,
                     nextStartNode,
                     materialOverrides,
@@ -1996,6 +1987,7 @@ def processBone(
                         optionObj,
                         optionArmature,
                         final_transform,
+                        optionBone.name,
                         optionBone.name,
                         optionBone.name,
                         optionBone.name,
@@ -2434,7 +2426,7 @@ def saveModelGivenVertexGroup(
             fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, None)
             fMeshes[drawLayer] = fMesh
 
-        for material_index, bFaces in materialFaces.items():
+        for material_index, bFaces in sorted(materialFaces.items()):
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2681,7 +2673,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
     # For selecting on error
     notInGroupBlenderVerts = []
     loopDict = {}
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         # These MUST be arrays (not dicts) as order is important
         inGroupVerts = []
         inGroupVertArray.append([material_index, inGroupVerts])
@@ -2767,7 +2759,7 @@ def saveSkinnedMeshByMaterial(
     # It seems like material setup must be done BEFORE triangles are drawn.
     # Because of this we cannot share verts between materials (?)
     curIndex = 0
-    for material_index, vertData in notInGroupVertArray:
+    for material_index, vertData in sorted(notInGroupVertArray, key=lambda x: x[0]):
         material = obj.material_slots[material_index].material
         checkForF3dMaterialInFaces(obj, material)
         f3dMat = material.f3d_mat if material.mat_ver > 3 else material
@@ -2810,7 +2802,7 @@ def saveSkinnedMeshByMaterial(
     # Load current group vertices, then draw commands by material
     existingVertData, matRegionDict = convertVertDictToArray(notInGroupVertArray)
 
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2944,7 +2936,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3142,7 +3134,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3246,6 +3238,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
+        props = context.scene.fast64.sm64.combined_export
         if context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
@@ -3256,7 +3249,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
             if context.scene.geoUseBank0:
                 prop_split(col, context.scene, "geoRAMAddr", "RAM Address")
             else:
-                col.prop(context.scene, "levelGeoExport")
+                prop_split(col, props, "level_name", "Level")
 
             col.prop(context.scene, "overwriteModelLoad")
             if context.scene.overwriteModelLoad:
@@ -3289,7 +3282,6 @@ def sm64_geo_writer_register():
     for cls in sm64_geo_writer_classes:
         register_class(cls)
 
-    bpy.types.Scene.levelGeoExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
     bpy.types.Scene.geoExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.geoExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
 
@@ -3322,7 +3314,6 @@ def sm64_geo_writer_unregister():
     for cls in reversed(sm64_geo_writer_classes):
         unregister_class(cls)
 
-    del bpy.types.Scene.levelGeoExport
     del bpy.types.Scene.geoExportStart
     del bpy.types.Scene.geoExportEnd
     del bpy.types.Scene.overwriteModelLoad

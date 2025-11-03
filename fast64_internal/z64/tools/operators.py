@@ -79,7 +79,7 @@ class OOT_AddScene(Operator):
             object.mode_set(mode="OBJECT")
         object.select_all(action="DESELECT")
 
-        location = Vector(context.scene.cursor.location)
+        location = Vector()
         mesh.primitive_plane_add(size=2 * self.scale, enter_editmode=False, align="WORLD", location=location[:])
         planeObj = context.view_layer.objects.active
         planeObj.name = "Floor"
@@ -106,6 +106,14 @@ class OOT_AddScene(Operator):
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = "Scene"
         parentObject(sceneObj, roomObj)
+
+        object.camera_add(align="WORLD", location=Vector(), rotation=Vector())
+        camera_obj = context.view_layer.objects.active
+        camera_obj.name = f"{sceneObj.name} Camera"
+        camera_props = camera_obj.ootCameraPositionProperty
+        camera_props.camSType = "CAM_SET_NORMAL0"
+        camera_props.hasPositionData = False
+        parentObject(sceneObj, camera_obj)
 
         context.scene.ootSceneExportObj = sceneObj
         context.scene.fast64.renderSettings.ootSceneObject = sceneObj
