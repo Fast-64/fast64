@@ -883,7 +883,7 @@ class SM64_AnimProperties(PropertyGroup):
 
     importing: PointerProperty(type=SM64_AnimImportProperties)
 
-    def upgrade_old_props(self, scene: Scene):
+    def upgrade_version_0(self, scene: Scene):
         self.importing.upgrade_old_props(scene)
 
         # Export
@@ -931,10 +931,13 @@ class SM64_AnimProperties(PropertyGroup):
 
         self.version = 1
 
-    def upgrade_changed_props(self, scene):
-        if self.version != self.cur_version:
-            self.upgrade_old_props(scene)
-            self.version = SM64_AnimProperties.cur_version
+    def upgrade_scene(self, scene: Scene):
+        if self.version < self.cur_version:
+            self.upgrade_version_0(scene)
+            self.set_to_newest_version()
+
+    def set_to_newest_version(self):
+        self.version = self.cur_version
 
 
 class SM64_ArmatureAnimProperties(PropertyGroup):
