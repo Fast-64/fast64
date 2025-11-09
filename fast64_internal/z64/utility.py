@@ -360,6 +360,7 @@ def clear_mesh_children(scene_obj: Object, scene_objs: list[Object]):
                 if obj in room_obj.children_recursive:
                     assign_new_parent(obj, room_obj)
                     assign_scene = False
+                    break
 
             if assign_scene:
                 assign_new_parent(obj, scene_obj)
