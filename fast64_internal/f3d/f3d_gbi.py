@@ -2940,7 +2940,7 @@ class FMesh:
         for cmd_list in self.draw_overrides:
             cmd_list.save_binary(romfile, f3d, segments)
 
-    def to_c(self, f3d, gfxFormatter):
+    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
         staticData = CData()
         if self.cullVertexList is not None:
             staticData.append(self.cullVertexList.to_c())
@@ -3021,7 +3021,11 @@ class FMaterial:
         self.material = GfxList(f"mat_{name}", GfxListTag.Material, DLFormat)
         self.mat_only_DL = GfxList(f"mat_only_{name}", GfxListTag.Material, DLFormat)
         self.texture_DL = GfxList(f"tex_{name}", GfxListTag.Material, DLFormat.Static)
-        self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
+
+        self.revert: Optional[GfxList] = None
+        if bpy.context.scene.gameEditorMode not in {"OOT", "MM"}:
+            self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
+
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
 

@@ -40,7 +40,7 @@ def ootConvertMeshToC(
     isCustomExport = settings.isCustom
     drawLayer = settings.drawLayer
     removeVanillaData = settings.removeVanillaData
-    name = toAlnum(originalObj.name)
+    name = f"{toAlnum(originalObj.name)}_dl"
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None

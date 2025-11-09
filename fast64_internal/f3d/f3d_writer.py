@@ -1336,7 +1336,9 @@ def saveOrGetF3DMaterial(material, fModel, _obj, drawLayer, convertTextureData):
             fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])
 
     fMaterial.mat_only_DL.commands.append(DPPipeSync())
-    fMaterial.revert.commands.append(DPPipeSync())
+
+    if fMaterial.revert is not None:
+        fMaterial.revert.commands.append(DPPipeSync())
 
     fMaterial.getScrollData(material, getMaterialScrollDimensions(f3dMat))
 
@@ -1520,7 +1522,7 @@ def saveOrGetF3DMaterial(material, fModel, _obj, drawLayer, convertTextureData):
         fMaterial.material.commands.append(SPEndDisplayList())
 
     # revertMatAndEndDraw(fMaterial.revert)
-    if len(fMaterial.revert.commands) > 1:  # 1 being the pipe sync
+    if fMaterial.revert is not None and len(fMaterial.revert.commands) > 1:  # 1 being the pipe sync
         if fMaterial.DLFormat == DLFormat.Static:
             fMaterial.revert.commands.append(SPEndDisplayList())
     else:
@@ -1620,13 +1622,17 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod, is_ex2:
 
     material, revert = get_geo_cmds(clear_modes, set_modes, is_ex2, matWriteMethod)
     fMaterial.mat_only_DL.commands.extend(material)
-    fMaterial.revert.commands.extend(revert)
+
+    if fMaterial.revert is not None:
+        fMaterial.revert.commands.extend(revert)
 
 
 def saveModeSetting(fMaterial, value, defaultValue, cmdClass):
     if value != defaultValue:
         fMaterial.mat_only_DL.commands.append(cmdClass(value))
-        fMaterial.revert.commands.append(cmdClass(defaultValue))
+
+        if fMaterial.revert is not None:
+            fMaterial.revert.commands.append(cmdClass(defaultValue))
 
 
 def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, matWriteMethod, f3d):
@@ -1694,7 +1700,9 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaul
                 32 - f3d.F3D_OLD_GBI,
                 {*defaultRenderMode, defaults.g_mdsft_alpha_compare, defaults.g_mdsft_zsrcsel},
             )
-            fMaterial.revert.commands.append(revert_cmd)
+
+            if fMaterial.revert is not None:
+                fMaterial.revert.commands.append(revert_cmd)
         flagList, blender = getRenderModeFlagList(settings, fMaterial)
         cmd.flagList.update(flagList)
         if blender is not None:
@@ -1709,14 +1717,16 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
         fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
-        fMaterial.revert.commands.append(DPSetPrimDepth())
+
+        if fMaterial.revert is not None:
+            fMaterial.revert.commands.append(DPSetPrimDepth())
 
     if settings.set_rendermode:
         flagList, blender = getRenderModeFlagList(settings, fMaterial)
         renderModeSet = DPSetRenderMode(flagList, blender)
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
-        if defaultRenderMode is not None:
+        if defaultRenderMode is not None and fMaterial.revert is not None:
             fMaterial.revert.commands.append(DPSetRenderMode(defaultRenderMode, None))
 
 
@@ -1775,7 +1785,9 @@ def saveOtherDefinition(fMaterial, material, defaults):
     settings = material.rdp_settings
     if settings.clip_ratio != defaults.clip_ratio:
         fMaterial.mat_only_DL.commands.append(SPClipRatio(settings.clip_ratio))
-        fMaterial.revert.commands.append(SPClipRatio(defaults.clip_ratio))
+
+        if fMaterial.revert is not None:
+            fMaterial.revert.commands.append(SPClipRatio(defaults.clip_ratio))
 
     if material.set_blend:
         fMaterial.mat_only_DL.commands.append(
