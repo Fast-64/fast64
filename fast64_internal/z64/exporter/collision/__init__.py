@@ -1,5 +1,6 @@
 import bpy
 import math
+import ctypes
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -202,7 +203,7 @@ class CollisionUtility:
                             colProp.ignoreProjectileCollision,
                             colProp.conveyorOption == "Land",
                             normal,
-                            distance,
+                            ctypes.c_short(distance).value,
                             useMacros,
                         )
                     )

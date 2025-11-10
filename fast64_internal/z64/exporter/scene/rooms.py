@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList
+from ...utility import ExportInfo, getObjectList
 from ...model_classes import OOTModel
 from ..room import Room
 
@@ -20,7 +20,7 @@ class RoomEntries:
         original_scene_obj: Object,
         sceneObj: Object,
         transform: Matrix,
-        saveTexturesAsPNG: bool,
+        exportInfo: ExportInfo,
     ):
         """Returns the room list from empty objects with the type 'Room'"""
 
@@ -59,7 +59,7 @@ class RoomEntries:
                 ),
                 roomIndex,
                 sceneName,
-                saveTexturesAsPNG,
+                exportInfo,
             )
 
         for i in range(min(roomDict.keys()), len(roomDict)):
