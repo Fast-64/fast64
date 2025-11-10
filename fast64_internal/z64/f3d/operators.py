@@ -2,14 +2,15 @@ import bpy
 import os
 import mathutils
 
-from bpy.types import Operator, Mesh
+from bpy.types import Operator
 from bpy.ops import object
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
+
 from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
-from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod, get_F3D_GBI
+from ...f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
 from ..utility import ootGetObjectPath, ootGetObjectHeaderPath, getOOTScale
 from ..model_classes import OOTF3DContext, ootGetIncludedAssetData
@@ -38,9 +39,8 @@ def ootConvertMeshToC(
     folderName = settings.folder
     exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
-    drawLayer = settings.drawLayer
     removeVanillaData = settings.removeVanillaData
-    name = f"{toAlnum(originalObj.name)}_dl"
+    name = toAlnum(originalObj.name)
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -48,14 +48,14 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(name, DLFormat, drawLayer)
+        fModel = OOTModel(name, DLFormat, None)
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
         )
 
         # Since we provide a draw layer override, there should only be one fMesh.
-        for drawLayer, fMesh in fMeshes.items():
+        for fMesh in fMeshes.values():
             fMesh.draw.name = name
 
         ootCleanupScene(originalObj, allObjs)

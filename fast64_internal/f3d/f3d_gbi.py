@@ -2078,7 +2078,8 @@ class GfxFormatter:
         """
         return CScrollData()
 
-    def drawToC(self, f3d: F3D, gfxList: "GfxList") -> CData:
+    # `layer`` argument used for Z64 overrides
+    def drawToC(self, f3d: F3D, gfxList: "GfxList", layer: Optional[str] = None) -> CData:
         """
         Called for building the entry point DL for drawing a model.
         """
@@ -2199,8 +2200,8 @@ class GfxList:
             data.extend(command.to_binary(f3d, segments))
         return data
 
-    def to_c_static(self):
-        data = f"Gfx {self.name}[] = {{\n"
+    def to_c_static(self, name: str):
+        data = f"Gfx {name}[] = {{\n"
         for command in self.commands:
             data += f"\t{command.to_c(True)},\n"
         data += "};\n\n"
@@ -2213,16 +2214,19 @@ class GfxList:
         data += "\treturn glistp;\n}\n\n"
         return data
 
-    def to_c(self, f3d):
+    def to_c(self, f3d, name_override: Optional[str] = None):
         data = CData()
+        name = name_override if name_override is not None else self.name
+
         if self.DLFormat == DLFormat.Static:
-            data.header = f"extern Gfx {self.name}[];\n"
-            data.source = self.to_c_static()
+            data.header = f"extern Gfx {name}[];\n"
+            data.source = self.to_c_static(name)
         elif self.DLFormat == DLFormat.Dynamic:
-            data.header = f"Gfx* {self.name}(Gfx* glistp);\n"
+            data.header = f"Gfx* {name}(Gfx* glistp);\n"
             data.source = self.to_c_dynamic()
         else:
             raise PluginError("Invalid GfxList format: " + str(self.DLFormat))
+
         return data
 
 
@@ -2942,13 +2946,19 @@ class FMesh:
 
     def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
         staticData = CData()
+
         if self.cullVertexList is not None:
             staticData.append(self.cullVertexList.to_c())
+
         for triGroup in self.triangleGroups:
             staticData.append(triGroup.to_c(f3d, gfxFormatter))
-        dynamicData = gfxFormatter.drawToC(f3d, self.draw)
+
+        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
+
         for cmd_list in self.draw_overrides:
             dynamicData.append(cmd_list.to_c(f3d))
+
         return staticData, dynamicData
 
 

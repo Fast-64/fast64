@@ -413,7 +413,14 @@ def saveMeshWithLargeTexturesByFaces(
 # Make sure to set original_name before calling this
 # used when duplicating an object
 def saveStaticModel(
-    triConverterInfo, fModel, obj, transformMatrix, ownerName, convertTextureData, revertMatAtEnd, drawLayerField
+    triConverterInfo,
+    fModel: FModel,
+    obj,
+    transformMatrix,
+    ownerName: str,
+    convertTextureData,
+    revertMatAtEnd: bool,
+    drawLayerField,
 ):
     if len(obj.data.polygons) == 0:
         return None
@@ -433,7 +440,7 @@ def saveStaticModel(
         if mat_index in faces_by_mat
     }
 
-    fMeshes = {}
+    fMeshes: dict[str, FMesh] = {}
     for material_index, faces in faces_by_mat.items():
         material = obj.material_slots[material_index].material
 

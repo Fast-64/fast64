@@ -1,5 +1,6 @@
 import bpy, os, re, mathutils
-from typing import Union
+from typing import Union, Optional
+
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
 from ..utility import PluginError, hexOrDecInt, create_or_get_world
@@ -303,6 +304,10 @@ class OOTModel(FModel):
 class OOTGfxFormatter(GfxFormatter):
     def __init__(self, scrollMethod):
         GfxFormatter.__init__(self, scrollMethod, 64, None)
+
+    # override the function to give a custom name to the DL array
+    def drawToC(self, f3d, gfxList, layer: Optional[str] = None):
+        return gfxList.to_c(f3d, name_override=f"{gfxList.name}_{layer.lower()}_dl")
 
 
 class OOTTriangleConverterInfo(TriangleConverterInfo):

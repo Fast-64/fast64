@@ -1,8 +1,7 @@
-import bpy
-
 from bpy.types import PropertyGroup, Object, World, Material, UILayout
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
+
 from ...f3d.f3d_material import update_world_default_rendermode
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
@@ -19,7 +18,6 @@ class OOTDLExportSettings(PropertyGroup):
         name="Use Custom Path", description="Determines whether or not to export to an explicitly specified folder"
     )
     removeVanillaData: BoolProperty(name="Replace Vanilla DLs")
-    drawLayer: EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     actorOverlayName: StringProperty(name="Overlay", default="")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
@@ -45,7 +43,6 @@ class OOTDLExportSettings(PropertyGroup):
                 box = layout.box().column()
                 prop_split(box, self, "flipbookArrayIndex2D", "Flipbook Index")
 
-        prop_split(layout, self, "drawLayer", "Export Draw Layer")
         layout.prop(self, "isCustom")
         layout.prop(self, "removeVanillaData")
 
