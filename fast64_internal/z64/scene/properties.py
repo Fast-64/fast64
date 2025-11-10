@@ -500,6 +500,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
         description="Does not split the scene and rooms into multiple files.",
     )
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    auto_add_room_objects: BoolProperty(name="Auto-add Missing Room Objects", default=True)
 
     # keeping this on purpose, will be removed once old code is cleaned-up
     useNewExporter: BoolProperty(name="Use New Exporter", default=True)
@@ -518,6 +519,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
 
         layout.prop(self, "singleFile")
         layout.prop(self, "customExport")
+        layout.prop(self, "auto_add_room_objects")
         # layout.prop(self, "useNewExporter")
 
 

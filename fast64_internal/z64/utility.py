@@ -296,6 +296,9 @@ class ExportInfo:
     hackerootBootOption: "OOTBootupSceneOptions"
     """ Options for setting the bootup scene in HackerOoT."""
 
+    auto_add_room_objects: bool
+    """ Whether to enable the automatic room object addition feature """
+
 
 @dataclass
 class RemoveInfo:
