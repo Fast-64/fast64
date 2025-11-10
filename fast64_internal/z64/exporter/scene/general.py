@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from bpy.types import Object
 
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, hexOrDecInt, indent
-from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
+from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTLightGroupProperty
 from ...utility import getEvalParamsInt
 from ..utility import Utility
 
@@ -142,11 +142,14 @@ class SceneLighting:
         is_custom = props.skyboxLighting == "Custom"
 
         if not is_custom and envLightMode == "LIGHT_MODE_TIME":
-            todLights = props.timeOfDayLights
-            lightList = {"Dawn": todLights.dawn, "Day": todLights.day, "Dusk": todLights.dusk, "Night": todLights.night}
+            tod_lights: list[OOTLightGroupProperty] = [props.timeOfDayLights] + list(props.tod_lights)
 
-            for i, light in enumerate(todLights.extras):
-                lightList[f"Extra No. {i}"] = light
+            for i, tod_light in enumerate(tod_lights):
+                for tod_type in ["Dawn", "Day", "Dusk", "Night"]:
+                    setting_name = (
+                        f"Default Settings ({tod_type})" if i == 0 else f"Light Settings No. {i} ({tod_type})"
+                    )
+                    lightList[setting_name] = getattr(tod_light, tod_type.lower())
         else:
             is_indoor = not is_custom and envLightMode == "LIGHT_MODE_SETTINGS"
             lightList = {

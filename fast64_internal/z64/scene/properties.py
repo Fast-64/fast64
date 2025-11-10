@@ -49,7 +49,6 @@ ootEnumLightGroupMenu = [
     ("Day", "Day", "Day"),
     ("Dusk", "Dusk", "Dusk"),
     ("Night", "Night", "Night"),
-    ("Extras", "Extras", "Extras"),
 ]
 
 ootEnumTransitionAnims = [
@@ -224,24 +223,25 @@ class OOTLightGroupProperty(PropertyGroup):
     day: PointerProperty(type=OOTLightProperty)
     dusk: PointerProperty(type=OOTLightProperty)
     night: PointerProperty(type=OOTLightProperty)
-    extras: CollectionProperty(type=OOTLightProperty)
     defaultsSet: BoolProperty()
 
-    def draw_props(self, layout: UILayout, header_index: int, obj_name: str):
+    def draw_props(self, layout: UILayout, index: Optional[int], header_index: int, obj_name: str):
         box = layout.column()
-        box.row().prop(self, "menuTab", expand=True)
-        if self.menuTab == "Dawn":
-            self.dawn.draw_props(box, "Dawn", False, None, None, None, None)
-        elif self.menuTab == "Day":
-            self.day.draw_props(box, "Day", False, None, None, None, None)
-        elif self.menuTab == "Dusk":
-            self.dusk.draw_props(box, "Dusk", False, None, None, None, None)
-        elif self.menuTab == "Night":
-            self.night.draw_props(box, "Night", False, None, None, None, None)
-        elif self.menuTab == "Extras":
-            for i, extra_prop in enumerate(self.extras):
-                extra_prop.draw_props(box, f"Extra Lighting {i}", True, i, header_index, obj_name, "Light Extras")
-            drawAddButton(box, len(self.extras), "Light Extras", header_index, obj_name)
+
+        text = "Default Settings" if index is None else f"Light Settings No. {index + 1}"
+        box.prop(self, "expandTab", text=text, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+
+        if self.expandTab:
+            if index is not None:
+                drawCollectionOps(box, index, "ToD Light", header_index, obj_name)
+
+            box.row().prop(self, "menuTab", expand=True)
+
+            for tod_type in ["Dawn", "Day", "Dusk", "Night"]:
+                if self.menuTab == tod_type:
+                    getattr(self, tod_type.lower()).draw_props(
+                        box, tod_type, False, index, header_index, obj_name, None
+                    )
 
 
 class OOTSceneTableEntryProperty(PropertyGroup):
@@ -300,8 +300,12 @@ class OOTSceneHeaderProperty(PropertyGroup):
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")
 
+    # ideally `timeOfDayLights` would be removed in favor of `tod_lights`
+    # but it's easier to keep it since we need at least one element in the collection
     timeOfDayLights: PointerProperty(type=OOTLightGroupProperty, name="Time Of Day Lighting")
+    tod_lights: CollectionProperty(type=OOTLightGroupProperty)
     lightList: CollectionProperty(type=OOTLightProperty, name="Lighting List")
+
     exitList: CollectionProperty(type=OOTExitProperty, name="Exit List")
 
     writeCutscene: BoolProperty(name="Write Cutscene")
@@ -382,11 +386,16 @@ class OOTSceneHeaderProperty(PropertyGroup):
             lighting = layout.column()
             lighting.box().label(text="Lighting List")
             drawEnumWithCustom(lighting, self, "skyboxLighting", "Lighting Mode", "")
+
             if self.skyboxLighting == "LIGHT_MODE_TIME":  # Time of Day
-                self.timeOfDayLights.draw_props(lighting, headerIndex, objName)
+                self.timeOfDayLights.draw_props(lighting.box(), None, headerIndex, objName)
+
+                for i, tod_light in enumerate(self.tod_lights):
+                    tod_light.draw_props(lighting.box(), i, headerIndex, objName)
+                drawAddButton(lighting, len(self.tod_lights), "ToD Light", headerIndex, objName)
             else:
                 for i in range(len(self.lightList)):
-                    self.lightList[i].draw_props(lighting, "Lighting " + str(i), True, i, headerIndex, objName, "Light")
+                    self.lightList[i].draw_props(lighting, f"Lighting {i}", True, i, headerIndex, objName, "Light")
                 drawAddButton(lighting, len(self.lightList), "Light", headerIndex, objName)
 
         elif menuTab == "Cutscene":
