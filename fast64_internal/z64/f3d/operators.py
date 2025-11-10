@@ -7,6 +7,7 @@ from bpy.ops import object
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
+from typing import Optional
 
 from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
@@ -27,6 +28,15 @@ from ..utility import (
     addIncludeFiles,
     getOOTScale,
 )
+
+
+class OOTF3DGfxFormatter(OOTGfxFormatter):
+    def __init__(self, scrollMethod):
+        OOTGfxFormatter.__init__(self, scrollMethod)
+
+    # override the function to give a custom name to the DL array
+    def drawToC(self, f3d, gfxList, layer: Optional[str] = None):
+        return gfxList.to_c(f3d, name_override=f"{gfxList.name}_{layer.lower()}_dl")
 
 
 def ootConvertMeshToC(
@@ -80,7 +90,7 @@ def ootConvertMeshToC(
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
+        TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
     )
 
     data.append(exportData.all())
