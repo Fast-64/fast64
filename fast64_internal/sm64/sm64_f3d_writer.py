@@ -1013,17 +1013,10 @@ def sm64_dl_writer_register():
     bpy.types.Scene.TexRectCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
     bpy.types.Scene.TexRectExportType = bpy.props.EnumProperty(name="Export Type", items=enumHUDExportLocation)
 
-    # TODO: move them elsewhere, it's used by f3d_writer.py so we need them
-    bpy.types.Scene.DLExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    bpy.types.Scene.DLTexDir = bpy.props.StringProperty(name="Include Path", default="levels/bob")
-
 
 def sm64_dl_writer_unregister():
     for cls in reversed(sm64_dl_writer_classes):
         unregister_class(cls)
-
-    del bpy.types.Scene.DLTexDir
-    del bpy.types.Scene.DLExportPath
 
     del bpy.types.Scene.DLExportStart
     del bpy.types.Scene.DLExportEnd

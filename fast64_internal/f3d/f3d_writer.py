@@ -1990,10 +1990,14 @@ def f3d_writer_register():
         register_class(cls)
 
     bpy.types.Scene.matWriteMethod = bpy.props.EnumProperty(items=enumMatWriteMethod)
+    bpy.types.Scene.DLExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
+    bpy.types.Scene.DLTexDir = bpy.props.StringProperty(name="Include Path", default="levels/bob")
 
 
 def f3d_writer_unregister():
     for cls in reversed(f3d_writer_classes):
         unregister_class(cls)
 
+    del bpy.types.Scene.DLTexDir
+    del bpy.types.Scene.DLExportPath
     del bpy.types.Scene.matWriteMethod
