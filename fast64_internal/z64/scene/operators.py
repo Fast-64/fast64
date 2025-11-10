@@ -181,6 +181,7 @@ class OOT_ExportScene(Operator):
                 settings.singleFile,
                 context.scene.fast64.oot.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
                 bootOptions if hackerFeaturesEnabled else None,
+                settings.auto_add_room_objects,
             )
 
             SceneExport.export(
