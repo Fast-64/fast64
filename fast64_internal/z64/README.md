@@ -12,6 +12,7 @@
 9. [Custom Link Process](#custom-link-process)
 10. [Custom Skeleton Mesh Process](#custom-skeleton-mesh-process)
 11. [Cutscenes](#cutscenes)
+11. [Animated Materials](#animated-materials)
 
 ### Getting Started
 1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
@@ -194,3 +195,63 @@ If the camera preview in Blender isn't following where you have the bones or if 
 2. If you moved / rotated / etc. one of the camera shots / armatures in object mode, this transformation will be ignored. You can fix this by selecting the shot / armature in object mode and clicking Object > Apply > All Transforms. That will convert the transform to actual changed positions for each bone.
 
 If the game crashes check the transitions if you use the transition command (check both the ones from the entrance table and your cutscene script), also it will crash if you try to use the map select without having a 5th entrance (or more depending on the number of cutscenes you have) in the group for your scene.
+
+### Animated Materials
+
+This is a feature you can use for Majora's Mask and OoT backports like HackerOoT (requires enabling `Enable MM Features` for non-HackerOoT OoT decomp projects). It allows you to do some animation on any material you want, on Majora's Mask it's used to animate some actor's textures, and it's used in scenes too, this is what makes the walls in Majora's Lair animated, for instance.
+
+**Getting Started**
+
+To get started you'll need to either use the `Add Animated Material` button under the `Tools` tab, or manually adding an empty object and setting the object mode to `Animated Materials`. If doing the latter make sure the object is parented to the scene object, it can be parented to a room too, or anything else as long as the scene object is in the hierarchy, but it will be exported to the scene file.
+
+<details>
+<summary>This is how the UI should look like at this point:</summary>
+
+![alt-text](/images/z64/animated_materials/am_part_1.png)
+</details>
+
+Note: the `Export To` option doesn't do anything, leave it to `Scene`. In the future you will be able to export to an actor.
+
+**Creating the animated materials list**
+
+Click on `Add Item` to add a new animated material list.
+
+<details>
+<summary>This is how the UI should look like at this point:</summary>
+
+![alt-text](/images/z64/animated_materials/am_part_2.png)
+</details>
+
+`Header Index` lets you choose which header this list belongs to, a value of `-1` means "every headers". Below you should have the list of the materials you can setup. Click on `Add Item` to add a new item to that list.
+
+<details>
+<summary>This is how the UI should look like at this point:</summary>
+
+![alt-text](/images/z64/animated_materials/am_part_3.png)
+</details>
+
+You can pick the segment number with the `Segment Number` field (make sure to use the same number on the material you want this to be used on), for convenience it shows the real number then when it exports it corrects that number. It's just how the in-game implementation works. `Draw Handler Type` lets you choose what kind of animated material you want, it can be one of:
+- `0`: Texture Scroll
+- `1`: Two-textures Scroll
+- `2`: Color
+- `3`: Color LERP
+- `4`: Color Non-linear Interpolation
+- `5`: Texture Cycle (like a GIF)
+
+For the color types you will also have a `Keyframe Length` field, this corresponds to the length of the animation.
+
+Both texture scroll types will use the same elements:
+- `Step X`: step value on the X axis
+- `Step Y`: step value on the Y axis
+- `Texture Width`: the width of the texture
+- `Texture Height`: the height of the texture
+
+Note: for the two-textures scroll type you will need to add 2 items per texture since it targets multi-textures (it can be used to animate water for instance).
+
+All 3 color types will use the same elements:
+- `Frame No.`: when to execute this entry (relative to the keyframe length)
+- `Primitive LOD Frac`: unknown purpose, feel free to complete!
+- `Primitive Color`: the primitive color to apply
+- `Environment Color`: the environment color to apply
+
+The texture cycle type will show you two lists to fill, one for the texture symbols to use and another one for the indices that points to the textures list. Note that both list don't need to be the same length, also this technically uses a keyframe length too but it should always match the total number of indices that's why you can't manually choose it.
