@@ -38,31 +38,17 @@ class Scene:
         model: OOTModel,
     ):
         i = 0
-        rooms = RoomEntries.new(
-            f"{name}_roomList",
-            name.removesuffix("_scene"),
-            model,
-            original_scene_obj,
-            sceneObj,
-            transform,
-            exportInfo,
-        )
-
-        colHeader = CollisionHeader.new(
-            f"{name}_collisionHeader",
-            name,
-            sceneObj,
-            transform,
-            exportInfo.useMacros,
-            True,
-        )
 
         try:
             mainHeader = SceneHeader.new(
                 f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, exportInfo.useMacros
             )
+
+            if mainHeader.infos is not None:
+                model.draw_config = mainHeader.infos.drawConfig
         except Exception as exc:
             raise PluginError(f"In main scene header: {exc}") from exc
+
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = sceneObj.ootAlternateSceneHeaders
@@ -89,6 +75,25 @@ class Scene:
                 )
             except Exception as exc:
                 raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
+
+        rooms = RoomEntries.new(
+            f"{name}_roomList",
+            name.removesuffix("_scene"),
+            model,
+            original_scene_obj,
+            sceneObj,
+            transform,
+            exportInfo,
+        )
+
+        colHeader = CollisionHeader.new(
+            f"{name}_collisionHeader",
+            name,
+            sceneObj,
+            transform,
+            exportInfo.useMacros,
+            True,
+        )
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
         altHeader = altHeader if hasAlternateHeaders else None

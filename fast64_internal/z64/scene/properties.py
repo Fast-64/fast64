@@ -448,6 +448,7 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
                 headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 
 
+# TODO: move to HackerOoT properties.py
 class OOTBootupSceneOptions(PropertyGroup):
     bootToScene: BoolProperty(default=False, name="Boot To Scene")
     overrideHeader: BoolProperty(default=False, name="Override Header")

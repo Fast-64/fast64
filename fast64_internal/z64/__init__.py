@@ -57,7 +57,11 @@ from .skeleton.panels import skeleton_panels_register, skeleton_panels_unregiste
 from .spline.properties import spline_props_register, spline_props_unregister
 from .spline.panels import spline_panels_register, spline_panels_unregister
 
-from .animated_mats.properties import animated_mats_register, animated_mats_unregister
+from .animated_mats.properties import animated_mats_props_register, animated_mats_props_unregister
+
+from .hackeroot.operators import hackeroot_ops_register, hackeroot_ops_unregister
+from .hackeroot.properties import HackerOoTSettings, hackeroot_props_register, hackeroot_props_unregister
+from .hackeroot.panels import hackeroot_panels_register, hackeroot_panels_unregister
 
 from .tools import (
     oot_operator_panel_register,
@@ -113,6 +117,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     mm_version: bpy.props.EnumProperty(name="MM Version", items=mm_versions_items, default="n64-us")
     oot_version_custom: bpy.props.StringProperty(name="Custom Version")
     mm_features: bpy.props.BoolProperty(name="Enable MM Features", default=False)
+    hackeroot_settings: bpy.props.PointerProperty(type=HackerOoTSettings)
 
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version
@@ -159,6 +164,7 @@ oot_classes = (OOT_Properties,)
 
 def oot_panel_register():
     oot_operator_panel_register()
+    hackeroot_panels_register()
     cutscene_panels_register()
     scene_panels_register()
     f3d_panels_register()
@@ -171,6 +177,7 @@ def oot_panel_register():
 
 def oot_panel_unregister():
     oot_operator_panel_unregister()
+    hackeroot_panels_unregister()
     cutscene_panels_unregister()
     collision_panels_unregister()
     oot_obj_panel_unregister()
@@ -202,7 +209,9 @@ def oot_register(registerPanels):
     f3d_ops_register()
     file_register()
     anim_props_register()
-    animated_mats_register()
+    hackeroot_props_register()
+    hackeroot_ops_register()
+    animated_mats_props_register()
 
     csMotion_ops_register()
     csMotion_props_register()
@@ -234,7 +243,9 @@ def oot_unregister(unregisterPanels):
     csMotion_props_unregister()
     csMotion_ops_unregister()
 
-    animated_mats_unregister()
+    animated_mats_props_unregister()
+    hackeroot_ops_unregister()
+    hackeroot_props_unregister()
     anim_props_unregister()
     file_unregister()
     f3d_ops_unregister()

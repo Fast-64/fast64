@@ -95,7 +95,6 @@ class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
     customCall0_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
     customCall1: BoolProperty()
     customCall1_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
-    is_anim_mat: BoolProperty(default=False)
 
     def key(self):
         return (
@@ -107,14 +106,10 @@ class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
             self.segmentD,
             self.customCall0_seg if self.customCall0 else None,
             self.customCall1_seg if self.customCall1 else None,
-            self.is_anim_mat,
         )
 
     def draw_props(self, layout: UILayout, suffix: str):
-        if is_hackeroot():
-            layout.prop(self, "is_anim_mat", text="Use Segment for Animated Materials")
-
-        row = layout.box().row()
+        row = layout.row()
         for colIndex in range(2):
             col = row.column()
             for rowIndex in range(3):

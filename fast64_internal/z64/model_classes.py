@@ -106,15 +106,18 @@ def ootGetLinkData(basePath: str) -> str:
 # custom `SPDisplayList` so we can customize the C output
 @dataclass(unsafe_hash=True)
 class DynamicMaterialDL(SPDisplayList):
-    displayList: GfxList
+    is_animated_material_sdc: bool
 
     def __post_init__(self):
-        self.add_ifdef = False
         self.default_formatting = False
 
     def to_c(self, static=True):
         assert static
-        if self.add_ifdef:
+        if (
+            is_hackeroot()
+            and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs
+            and self.is_animated_material_sdc
+        ):
             return (
                 "#if ENABLE_ANIMATED_MATERIALS\n" + indent + f"gsSPDisplayList({self.displayList.name}),\n" + "#endif\n"
             )
@@ -123,9 +126,10 @@ class DynamicMaterialDL(SPDisplayList):
 
 
 class OOTModel(FModel):
-    def __init__(self, name, DLFormat, drawLayerOverride):
+    def __init__(self, name, DLFormat, drawLayerOverride, draw_config: Optional[str] = None):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[TextureFlipbook] = []
+        self.draw_config = draw_config
 
         FModel.__init__(self, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
@@ -313,9 +317,11 @@ class OOTModel(FModel):
 
         for i in range(8, 14):
             if getattr(matDrawLayer, f"segment{i:X}"):
-                command = DynamicMaterialDL(GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static))
-                command.add_ifdef = is_hackeroot() and matDrawLayer.is_anim_mat
-                gfxList.commands.append(command)
+                gfxList.commands.append(
+                    DynamicMaterialDL(
+                        GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), "mat_anim" in self.draw_config
+                    )
+                )
 
         for i in range(0, 2):
             p = f"customCall{i}"

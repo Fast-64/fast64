@@ -281,11 +281,11 @@ classes = (
 )
 
 
-def animated_mats_register():
+def animated_mats_props_register():
     for cls in classes:
         register_class(cls)
 
 
-def animated_mats_unregister():
+def animated_mats_props_unregister():
     for cls in reversed(classes):
         unregister_class(cls)
