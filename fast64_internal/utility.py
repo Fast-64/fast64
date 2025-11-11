@@ -2060,7 +2060,13 @@ def get_include_data(include: str, strip: bool = False):
     return data
 
 
-def get_new_empty_object(name: str, location=[0.0, 0.0, 0.0], rotation_euler=[0.0, 0.0, 0.0], scale=[1.0, 1.0, 1.0]):
+def get_new_empty_object(
+    name: str,
+    location=[0.0, 0.0, 0.0],
+    rotation_euler=[0.0, 0.0, 0.0],
+    scale=[1.0, 1.0, 1.0],
+    parent: Optional[bpy.types.Object] = None,
+):
     """Creates and returns a new empty object"""
 
     new_obj = bpy.data.objects.new(name, None)
@@ -2068,4 +2074,5 @@ def get_new_empty_object(name: str, location=[0.0, 0.0, 0.0], rotation_euler=[0.
     new_obj.location = location
     new_obj.rotation_euler = rotation_euler
     new_obj.scale = scale
+    new_obj.parent = parent
     return new_obj

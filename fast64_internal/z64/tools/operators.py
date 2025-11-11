@@ -1,11 +1,12 @@
 import bpy
 
 from mathutils import Vector
-from bpy.ops import mesh, object, curve
+from bpy.ops import mesh, object
 from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
+
 from ...operators import AddWaterBox, addMaterialByName
-from ...utility import parentObject, setOrigin
+from ...utility import parentObject, setOrigin, get_new_empty_object
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..utility import getNewPath
 from .quick_import import QuickImportAborted, quick_import_exec
@@ -300,4 +301,56 @@ class OOTQuickImport(Operator):
         except QuickImportAborted as e:
             self.report({"ERROR"}, e.message)
             return {"CANCELLED"}
+        return {"FINISHED"}
+
+
+class Z64_AddAnimatedMaterial(Operator):
+    bl_idname = "object.z64_add_animated_material"
+    bl_label = "Add Animated Materials"
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = "Create a new Animated Material empty object."
+
+    add_test_color: BoolProperty(default=False)
+    obj_name: StringProperty(default="Scene Animated Materials")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "obj_name", text="Name")
+        self.layout.prop(self, "add_test_color", text="Add Color Non-linear Interpolation Example")
+
+    def execute(self, context: Context):
+        scene_obj: Object = context.scene.ootSceneExportObj
+        new_obj = get_new_empty_object(self.obj_name, parent=scene_obj)
+        new_obj.ootEmptyType = "Animated Materials"
+
+        if self.add_test_color:
+            am_props = new_obj.fast64.oot.animated_materials
+            new_am = am_props.items.add()
+            new_am_item = new_am.entries.add()
+            new_am_item.type = "color_nonlinear_interp"
+            new_am_item.color_params.keyframe_length = 60
+
+            keyframe_1 = new_am_item.color_params.keyframes.add()
+            keyframe_1.frame_num = 0
+            keyframe_1.prim_lod_frac = 128
+
+            keyframe_2 = new_am_item.color_params.keyframes.add()
+            keyframe_2.frame_num = 5
+            keyframe_2.prim_lod_frac = 128
+
+            keyframe_3 = new_am_item.color_params.keyframes.add()
+            keyframe_3.frame_num = 30
+            keyframe_3.prim_lod_frac = 128
+            keyframe_3.prim_color = (1.0, 0.18, 0.0, 1.0)  # FF7600
+
+            keyframe_4 = new_am_item.color_params.keyframes.add()
+            keyframe_4.frame_num = 55
+            keyframe_4.prim_lod_frac = 128
+
+            keyframe_5 = new_am_item.color_params.keyframes.add()
+            keyframe_5.frame_num = 59
+            keyframe_5.prim_lod_frac = 128
+
         return {"FINISHED"}
