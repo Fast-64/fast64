@@ -5,6 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import update_world_default_rendermode
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
+from ..utility import is_hackeroot
 
 
 class OOTDLExportSettings(PropertyGroup):
@@ -94,6 +95,7 @@ class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
     customCall0_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
     customCall1: BoolProperty()
     customCall1_seg: StringProperty(description="Segment address of a display list to call, e.g. 0x08000010")
+    is_anim_mat: BoolProperty(default=False)
 
     def key(self):
         return (
@@ -105,10 +107,14 @@ class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
             self.segmentD,
             self.customCall0_seg if self.customCall0 else None,
             self.customCall1_seg if self.customCall1 else None,
+            self.is_anim_mat,
         )
 
     def draw_props(self, layout: UILayout, suffix: str):
-        row = layout.row()
+        if is_hackeroot():
+            layout.prop(self, "is_anim_mat", text="Use Segment for Animated Materials")
+
+        row = layout.box().row()
         for colIndex in range(2):
             col = row.column()
             for rowIndex in range(3):

@@ -240,6 +240,8 @@ You can pick the segment number with the `Segment Number` field (make sure to us
 - `4`: Color Non-linear Interpolation
 - `5`: Texture Cycle (like a GIF)
 
+Note: for HackerOoT users, you can choose to toggle exporting the `ENABLE_ANIMATED_MATERIALS` ifdef around the segment call from the display list with the `Use Segment for Animated Materials` checkbox in the material's `Dynamic Material Properties` panel. This is not mandatory and only there for convenience.
+
 For the color types you will also have a `Keyframe Length` field, this corresponds to the length of the animation.
 
 Both texture scroll types will use the same elements:
