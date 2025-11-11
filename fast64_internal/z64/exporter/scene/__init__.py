@@ -150,6 +150,7 @@ class Scene:
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
+            + (curHeader.anim_mat.get_cmd() if curHeader.anim_mat is not None and curHeader.anim_mat.is_used() else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )

@@ -17,7 +17,7 @@ from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
 from ..collection_utility import drawCollectionOps, drawAddButton
-from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
+from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, is_oot_features
 
 from ..constants import (
     ootEnumMusicSeq,
@@ -537,6 +537,7 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
     includePaths: BoolProperty(name="Paths", default=True)
     includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
     includeCutscenes: BoolProperty(name="Cutscenes", default=False)
+    includeAnimatedMats: BoolProperty(name="Animated Materials", default=False)
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
     def draw_props(self, layout: UILayout, sceneOption: str):
@@ -555,6 +556,11 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
         includeButtons3.prop(self, "includePaths", toggle=1)
         includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
         includeButtons3.prop(self, "includeCutscenes", toggle=1)
+
+        includeButtons4 = col.row(align=True)
+        if not is_oot_features():
+            includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
+
         col.prop(self, "isCustomDest")
 
         if self.isCustomDest:

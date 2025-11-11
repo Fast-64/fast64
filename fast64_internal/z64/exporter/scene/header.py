@@ -2,12 +2,15 @@ from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
+
 from ....utility import CData
+from ...utility import is_oot_features
 from ...scene.properties import OOTSceneHeaderProperty
 from ..cutscene import SceneCutscene
 from .general import SceneLighting, SceneInfos, SceneExits
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
 from .pathways import ScenePathways
+from .animated_mats import SceneAnimatedMaterial
 
 
 @dataclass
@@ -24,6 +27,9 @@ class SceneHeader:
     spawns: Optional[SceneSpawns]
     path: Optional[ScenePathways]
 
+    # MM (or HackerOoT)
+    anim_mat: Optional[SceneAnimatedMaterial]
+
     @staticmethod
     def new(
         name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool
@@ -39,6 +45,9 @@ class SceneHeader:
             entranceActors,
             SceneSpawns(f"{name}_entranceList", entranceActors.entries),
             ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
+            SceneAnimatedMaterial.new(f"{name}_AnimatedMaterial", sceneObj, headerIndex)
+            if not is_oot_features()
+            else None,
         )
 
     def getC(self):
@@ -66,6 +75,10 @@ class SceneHeader:
         # Write the path data, if used
         if len(self.path.pathList) > 0:
             headerData.append(self.path.getC())
+
+        # Write the animated material list, if used
+        if self.anim_mat is not None and self.anim_mat.is_used():
+            headerData.append(self.anim_mat.to_c())
 
         return headerData
 
