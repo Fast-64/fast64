@@ -8,7 +8,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import ExportInfo
+from ...utility import ExportInfo, is_hackeroot
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -285,6 +285,9 @@ class Scene:
                 '#include "room.h"',
                 '#include "scene.h"',
             ]
+
+        if is_hackeroot():
+            includes.append('#include "animated_materials.h"')
 
         backwards_compatibility = [
             "// For older decomp versions",
