@@ -319,7 +319,7 @@ class SceneAnimatedMaterial:
 
         if is_hackeroot():
             data.source += "#endif\n\n"
-            data.header += "#endif\n\n"
+            data.header += "\n#endif\n"
         else:
             data.source += "\n"
             data.header += "\n"
