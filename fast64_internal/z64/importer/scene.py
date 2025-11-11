@@ -5,6 +5,7 @@ import mathutils
 
 from pathlib import Path
 
+from ...game_data import game_data
 from ...utility import PluginError, readFile, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ...f3d.f3d_gbi import get_F3D_GBI
@@ -107,7 +108,10 @@ def parseScene(
         True,
     )
 
-    file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene.c"
+    if game_data.z64.is_oot():
+        file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene.c"
+    else:
+        file_path = Path(sceneFolderPath).resolve() / f"{sceneName}.c"
     is_single_file = True
 
     if not file_path.exists():
@@ -128,7 +132,11 @@ def parseScene(
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
 
-    sceneCommandsName = f"{sceneName}_sceneCommands"
+    if game_data.z64.is_oot():
+        sceneCommandsName = f"{sceneName}_sceneCommands"
+    else:
+        sceneCommandsName = f"{sceneName}Commands"
+
     not_zapd_assets = False
 
     # fast64 naming
@@ -137,13 +145,13 @@ def parseScene(
         sceneCommandsName = f"{sceneName}_scene_header00"
 
     # newer assets system naming
-    if sceneCommandsName not in sceneData:
+    if game_data.z64.is_oot() and sceneCommandsName not in sceneData:
         not_zapd_assets = True
         sceneCommandsName = f"{sceneName}_scene"
 
     sharedSceneData = SharedSceneData(
         sceneFolderPath,
-        f"{sceneName}_scene",
+        f"{sceneName}_scene" if game_data.z64.is_oot() else sceneName,
         settings.includeMesh,
         settings.includeCollision,
         settings.includeActors,
@@ -153,6 +161,7 @@ def parseScene(
         settings.includePaths,
         settings.includeWaterBoxes,
         settings.includeCutscenes,
+        settings.includeAnimatedMats,
         is_single_file,
         f"{sceneName}_scene_header00" in sceneData,
         not_zapd_assets,
@@ -172,7 +181,8 @@ def parseScene(
 
     if not settings.isCustomDest:
         drawConfigName = SceneTableUtility.get_draw_config(sceneName)
-        drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
+        filename = "z_scene_table" if game_data.z64.is_oot() else "z_scene_proc"
+        drawConfigData = readFile(os.path.join(importPath, f"src/code/{filename}.c"))
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
     bpy.context.space_data.overlay.show_relationship_lines = False

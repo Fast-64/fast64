@@ -8,8 +8,11 @@ from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
-from .constants import ootSceneIDToName
 from dataclasses import dataclass
+
+from ..game_data import game_data
+from .constants import ootSceneIDToName
+
 
 from ..utility import (
     PluginError,
@@ -601,7 +604,9 @@ class CullGroup:
         self.cullDepth = abs(int(round(scale[0] * emptyScale)))
 
 
-def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str, str, str]] | None):
+def setCustomProperty(
+    data: any, prop: str, value: str, enumList: list[tuple[str, str, str]] | None, custom_name: Optional[str] = None
+):
     if enumList is not None:
         if value in [enumItem[0] for enumItem in enumList]:
             setattr(data, prop, value)
@@ -617,7 +622,7 @@ def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str
                 pass
 
     setattr(data, prop, "Custom")
-    setattr(data, prop + str("Custom"), value)
+    setattr(data, custom_name if custom_name is not None else f"{prop}Custom", value)
 
 
 def getCustomProperty(data, prop):
@@ -1016,3 +1021,24 @@ def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
         raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
 
     return actor_prop
+
+
+def get_list_tab_text(base_text: str, list_length: int):
+    if list_length > 0:
+        items_amount = f"{list_length} Item{'s' if list_length > 1 else ''}"
+    else:
+        items_amount = "Empty"
+
+    return f"{base_text} ({items_amount})"
+
+
+def is_oot_features():
+    return (
+        game_data.z64.is_oot()
+        and not bpy.context.scene.fast64.oot.mm_features
+        and not bpy.context.scene.fast64.oot.hackerFeaturesEnabled
+    )
+
+
+def is_hackeroot():
+    return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.hackerFeaturesEnabled
