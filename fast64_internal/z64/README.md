@@ -200,6 +200,8 @@ If the game crashes check the transitions if you use the transition command (che
 
 This is a feature you can use for Majora's Mask and OoT backports like HackerOoT (requires enabling `Enable MM Features` for non-HackerOoT OoT decomp projects). It allows you to do some animation on any material you want, on Majora's Mask it's used to animate some actor's textures, and it's used in scenes too, this is what makes the walls in Majora's Lair animated, for instance.
 
+**Important**: this requires the scene to use a specific draw config called `Material Animated` (or `Material Animated (manual step)` for special cases).
+
 **Getting Started**
 
 To get started you'll need to either use the `Add Animated Material` button under the `Tools` tab, or manually adding an empty object and setting the object mode to `Animated Materials`. If doing the latter make sure the object is parented to the scene object, it can be parented to a room too, or anything else as long as the scene object is in the hierarchy, but it will be exported to the scene file.

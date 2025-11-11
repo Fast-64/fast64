@@ -29,7 +29,6 @@ from ..constants import (
     ootEnumCameraMode,
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
-    ootEnumDrawConfig,
     ootEnumHeaderMenuComplete,
 )
 
@@ -234,12 +233,16 @@ class OOTLightGroupProperty(PropertyGroup):
 
 
 class OOTSceneTableEntryProperty(PropertyGroup):
-    drawConfig: EnumProperty(items=ootEnumDrawConfig, name="Scene Draw Config", default="SDC_DEFAULT")
+    drawConfig: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum("drawConfig"), name="Scene Draw Config", default=1
+    )
     drawConfigCustom: StringProperty(name="Scene Draw Config Custom")
-    hasTitle: BoolProperty(default=True)
 
     def draw_props(self, layout: UILayout):
         drawEnumWithCustom(layout, self, "drawConfig", "Draw Config", "")
+
+        if "mat_anim" in self.drawConfig and is_oot_features():
+            layout.label(text="This draw config requires MM features to be enabled.", icon="ERROR")
 
 
 class OOTExtraCutsceneProperty(PropertyGroup):

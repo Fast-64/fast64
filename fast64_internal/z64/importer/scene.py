@@ -13,7 +13,6 @@ from ...f3d.flipbook import TextureFlipbook
 from ..model_classes import OOTF3DContext
 from ..exporter.decomp_edit.scene_table import SceneTableUtility
 from ..scene.properties import OOTImportSceneSettingsProperty
-from ..constants import ootEnumDrawConfig
 from ..cutscene.importer import importCutsceneData
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
@@ -200,7 +199,7 @@ def parseScene(
             sceneObj.ootSceneHeader.sceneTableEntry,
             "drawConfig",
             SceneTableUtility.get_draw_config(sceneName),
-            ootEnumDrawConfig,
+            game_data.z64.get_enum("drawConfig"),
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:

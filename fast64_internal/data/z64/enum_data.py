@@ -93,7 +93,7 @@ class Z64_EnumData:
                             item.attrib["ID"],
                             item.attrib["Key"],
                             # note: the name sets automatically after the init if None
-                            item.attrib["Name"] if enum.attrib["Key"] == "seqId" else None,
+                            item.get("Name"),
                             int(item.attrib["Index"]),
                             enum.attrib["Key"],
                             game,

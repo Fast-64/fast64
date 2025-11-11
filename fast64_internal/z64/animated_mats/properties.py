@@ -252,9 +252,10 @@ class Z64_AnimatedMaterialProperty(PropertyGroup):
         layout = layout.column()
 
         prop_split(layout, self, "mode", "Export To")
+        layout.label(text="Make sure one of the 'Material Animated' draw configs is selected.", icon="QUESTION")
 
         prop_text = get_list_tab_text("Animated Materials List", len(self.items))
-        layout_entries = layout.box().column()
+        layout_entries = layout.column()
         layout_entries.prop(
             self, "show_entries", text=prop_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT"
         )
