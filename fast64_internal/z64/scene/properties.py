@@ -11,13 +11,15 @@ from bpy.props import (
     FloatVectorProperty,
 )
 from bpy.utils import register_class, unregister_class
+from typing import Optional
 
 from ...game_data import game_data
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
 from ..collection_utility import drawCollectionOps, drawAddButton
-from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, is_oot_features
+from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, is_oot_features, getEnumIndex
+from ..animated_mats.properties import Z64_AnimatedMaterial
 
 from ..constants import (
     ootEnumMusicSeq,
@@ -30,6 +32,7 @@ from ..constants import (
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
     ootEnumHeaderMenuComplete,
+    am_enum_map,
 )
 
 ootEnumSceneMenuAlternate = [
@@ -37,6 +40,7 @@ ootEnumSceneMenuAlternate = [
     ("Lighting", "Lighting", "Lighting"),
     ("Cutscene", "Cutscene", "Cutscene"),
     ("Exits", "Exits", "Exits"),
+    ("AnimMats", "Material Anim.", "Material Anim."),
 ]
 ootEnumSceneMenu = ootEnumSceneMenuAlternate + [
     ("Alternate", "Alternate", "Alternate"),
@@ -320,7 +324,36 @@ class OOTSceneHeaderProperty(PropertyGroup):
         name="Title Card", default="none", description="Segment name of the title card to use"
     )
 
-    def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
+    reuse_anim_mat: BoolProperty(default=False)
+    reuse_anim_mat_cs_index: IntProperty(min=game_data.z64.cs_index_start, default=game_data.z64.cs_index_start)
+    animated_material: PointerProperty(type=Z64_AnimatedMaterial)
+
+    internal_anim_mat_header: StringProperty(default="Child Day")  # used for the export
+    internal_header_index: IntProperty(min=1, default=1)  # used for the UI
+    reuse_anim_mat_header: EnumProperty(
+        items=lambda self, context: self.get_anim_mat_header_list(),
+        set=lambda self, value: self.on_am_header_set(value),
+        get=lambda self: self.on_am_header_get(),
+    )
+
+    def get_anim_mat_header_list(self):
+        return am_enum_map[self.internal_header_index]
+
+    def on_am_header_set(self, value):
+        enum = self.get_anim_mat_header_list()
+        self.internal_anim_mat_header = enum[value][0]
+
+    def on_am_header_get(self):
+        index = getEnumIndex(self.get_anim_mat_header_list(), self.internal_anim_mat_header)
+        return index if index is not None else 0
+
+    def draw_props(
+        self,
+        layout: UILayout,
+        dropdownLabel: str,
+        headerIndex: int,
+        obj: Object,
+    ):
         from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
 
         if dropdownLabel is not None:
@@ -328,18 +361,19 @@ class OOTSceneHeaderProperty(PropertyGroup):
             if not self.expandTab:
                 return
         if headerIndex is not None and headerIndex > 3:
-            drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, objName)
+            drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, obj.name)
 
         if headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
 
+        menu_box = layout.grid_flow(row_major=True, align=True, columns=3)
         if headerIndex is None or headerIndex == 0:
-            layout.row().prop(self, "menuTab", expand=True)
+            menu_box.prop(self, "menuTab", expand=True)
             menuTab = self.menuTab
         else:
-            layout.row().prop(self, "altMenuTab", expand=True)
+            menu_box.prop(self, "altMenuTab", expand=True)
             menuTab = self.altMenuTab
 
         if menuTab == "General":
@@ -360,7 +394,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
             drawEnumWithCustom(skyboxAndSound, self, "skyboxCloudiness", "Cloudiness", "")
             drawEnumWithCustom(skyboxAndSound, self, "musicSeq", "Music Sequence", "")
             musicSearch = skyboxAndSound.operator(OOT_SearchMusicSeqEnumOperator.bl_idname, icon="VIEWZOOM")
-            musicSearch.objName = objName
+            musicSearch.objName = obj.name
             musicSearch.headerIndex = headerIndex if headerIndex is not None else 0
             drawEnumWithCustom(skyboxAndSound, self, "nightSeq", "Nighttime SFX", "")
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
@@ -378,8 +412,8 @@ class OOTSceneHeaderProperty(PropertyGroup):
                 self.timeOfDayLights.draw_props(lighting)
             else:
                 for i in range(len(self.lightList)):
-                    self.lightList[i].draw_props(lighting, "Lighting " + str(i), True, i, headerIndex, objName)
-                drawAddButton(lighting, len(self.lightList), "Light", headerIndex, objName)
+                    self.lightList[i].draw_props(lighting, "Lighting " + str(i), True, i, headerIndex, obj.name)
+                drawAddButton(lighting, len(self.lightList), "Light", headerIndex, obj.name)
 
         elif menuTab == "Cutscene":
             cutscene = layout.column()
@@ -396,18 +430,31 @@ class OOTSceneHeaderProperty(PropertyGroup):
                 cutscene.label(text="Extra cutscenes (not in any header):")
                 for i in range(len(self.extraCutscenes)):
                     box = cutscene.box().column()
-                    drawCollectionOps(box, i, "extraCutscenes", None, objName, True)
+                    drawCollectionOps(box, i, "extraCutscenes", None, obj.name, True)
                     box.prop(self.extraCutscenes[i], "csObject", text="CS obj")
                 if len(self.extraCutscenes) == 0:
-                    drawAddButton(cutscene, 0, "extraCutscenes", 0, objName)
+                    drawAddButton(cutscene, 0, "extraCutscenes", 0, obj.name)
 
         elif menuTab == "Exits":
             exitBox = layout.column()
             exitBox.box().label(text="Exit List")
             for i in range(len(self.exitList)):
-                self.exitList[i].draw_props(exitBox, i, headerIndex, objName)
+                self.exitList[i].draw_props(exitBox, i, headerIndex, obj.name)
 
-            drawAddButton(exitBox, len(self.exitList), "Exit", headerIndex, objName)
+            drawAddButton(exitBox, len(self.exitList), "Exit", headerIndex, obj.name)
+
+        elif menuTab == "AnimMats":
+            if headerIndex is not None:
+                layout.prop(self, "reuse_anim_mat", text="Use Existing Material Anim.")
+
+            if headerIndex is not None and headerIndex > 0 and self.reuse_anim_mat:
+                pass
+                prop_split(layout, self, "reuse_anim_mat_header", "Use Material Anim. from")
+
+                if self.internal_anim_mat_header == "Cutscene":
+                    prop_split(layout, self, "reuse_anim_mat_cs_index", "Cutscene Index")
+            else:
+                self.animated_material.draw_props(layout, obj, None, headerIndex)
 
 
 def update_cutscene_index(self: "OOTAlternateSceneHeaderProperty", context: Context):
@@ -426,24 +473,28 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
     currentCutsceneIndex: IntProperty(default=1, update=update_cutscene_index)
 
-    def draw_props(self, layout: UILayout, objName: str):
+    def draw_props(self, layout: UILayout, obj: Object):
         headerSetup = layout.column()
-        # headerSetup.box().label(text = "Alternate Headers")
         headerSetupBox = headerSetup.column()
 
+        menu_tab_map = {
+            "Child Night": ("childNightHeader", 1),
+            "Adult Day": ("adultDayHeader", 2),
+            "Adult Night": ("adultNightHeader", 3),
+            "Cutscene": ("cutsceneHeaders", game_data.z64.cs_index_start),
+        }
+
         headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
-        if self.headerMenuTab == "Child Night":
-            self.childNightHeader.draw_props(headerSetupBox, None, 1, objName)
-        elif self.headerMenuTab == "Adult Day":
-            self.adultDayHeader.draw_props(headerSetupBox, None, 2, objName)
-        elif self.headerMenuTab == "Adult Night":
-            self.adultNightHeader.draw_props(headerSetupBox, None, 3, objName)
-        elif self.headerMenuTab == "Cutscene":
+        attr_name, header_index = menu_tab_map[self.headerMenuTab]
+
+        if header_index < 4:
+            getattr(self, attr_name).draw_props(headerSetupBox, None, header_index, obj)
+        else:
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
-            drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, objName)
+            drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, obj.name)
             index = self.currentCutsceneIndex
             if index - game_data.z64.cs_index_start < len(self.cutsceneHeaders):
-                self.cutsceneHeaders[index - game_data.z64.cs_index_start].draw_props(headerSetup, None, index, objName)
+                self.cutsceneHeaders[index - game_data.z64.cs_index_start].draw_props(headerSetup, None, index, obj)
             else:
                 headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 

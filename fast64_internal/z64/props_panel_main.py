@@ -45,9 +45,9 @@ ootEnumEmptyType = [
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
-    obj.ootSceneHeader.draw_props(box, None, None, objName)
+    obj.ootSceneHeader.draw_props(box.box(), None, None, obj)
     if obj.ootSceneHeader.menuTab == "Alternate":
-        obj.ootAlternateSceneHeaders.draw_props(box, objName)
+        obj.ootAlternateSceneHeaders.draw_props(box.box(), obj)
     box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
 

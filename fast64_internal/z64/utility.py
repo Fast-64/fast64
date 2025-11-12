@@ -782,6 +782,17 @@ def onMenuTabChange(self, context: bpy.types.Context):
     onHeaderPropertyChange(self, context, callback)
 
 
+def on_alt_menu_tab_change(self, context: bpy.types.Context):
+    if self.headerMenuTab == "Child Night":
+        self.childNightHeader.internal_header_index = 1
+    elif self.headerMenuTab == "Adult Day":
+        self.adultDayHeader.internal_header_index = 2
+    elif self.headerMenuTab == "Adult Night":
+        self.adultNightHeader.internal_header_index = 3
+    elif self.headerMenuTab == "Cutscene" and (self.currentCutsceneIndex - 4) < len(self.cutsceneHeaders):
+        self.cutsceneHeaders[self.currentCutsceneIndex - 4].internal_header_index = 4
+
+
 def onHeaderMenuTabChange(self, context: bpy.types.Context):
     def callback(thisHeader, otherObj: bpy.types.Object):
         if otherObj.ootEmptyType == "Scene":
@@ -793,6 +804,9 @@ def onHeaderMenuTabChange(self, context: bpy.types.Context):
         header.currentCutsceneIndex = thisHeader.currentCutsceneIndex
 
     onHeaderPropertyChange(self, context, callback)
+
+    if context.object.ootEmptyType == "Scene":
+        on_alt_menu_tab_change(self, context)
 
 
 def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[[any, bpy.types.Object], None]):

@@ -10,9 +10,11 @@ from bpy.props import (
     FloatVectorProperty,
 )
 
+from typing import Optional
+
 from ...utility import prop_split
-from ..collection_utility import drawAddButton, drawCollectionOps, getCollection
-from ..utility import get_list_tab_text
+from ..collection_utility import drawAddButton, drawCollectionOps
+from ..utility import get_list_tab_text, getEnumIndex
 
 
 # no custom since we only need to know where to export the data
@@ -55,30 +57,49 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
         default=(1, 1, 1, 1),
     )
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int, index: int):
+    def draw_props(
+        self, layout: UILayout, owner: Object, parent_index: int, index: int, is_draw_color: bool, use_env_color: bool
+    ):
         drawCollectionOps(layout, index, "Animated Mat. Color", None, owner.name, collection_index=parent_index)
-        prop_split(layout, self, "frame_num", "Frame No.")
+
+        # "draw color" type don't need this
+        if not is_draw_color:
+            prop_split(layout, self, "frame_num", "Frame No.")
+
         prop_split(layout, self, "prim_lod_frac", "Primitive LOD Frac")
         prop_split(layout, self, "prim_color", "Primitive Color")
-        prop_split(layout, self, "env_color", "Environment Color")
+
+        if not is_draw_color or use_env_color:
+            prop_split(layout, self, "env_color", "Environment Color")
 
 
 class Z64_AnimatedMatColorParams(PropertyGroup):
     keyframe_length: IntProperty(name="Keyframe Length", min=0)
     keyframes: CollectionProperty(type=Z64_AnimatedMatColorKeyFrame)
+    use_env_color: BoolProperty()
 
     # ui only props
     show_entries: BoolProperty(default=False)
 
+    internal_color_type: StringProperty()
+
     def draw_props(self, layout: UILayout, owner: Object, parent_index: int):
-        prop_split(layout, self, "keyframe_length", "Keyframe Length")
+        is_draw_color = self.internal_color_type == "color"
+
+        if not is_draw_color:
+            prop_split(layout, self, "keyframe_length", "Keyframe Length")
+
+        if is_draw_color:
+            layout.prop(self, "use_env_color", text="Use Environment Color")
 
         prop_text = get_list_tab_text("Keyframes", len(self.keyframes))
         layout.prop(self, "show_entries", text=prop_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
 
         if self.show_entries:
             for i, keyframe in enumerate(self.keyframes):
-                keyframe.draw_props(layout, owner, parent_index, i)
+                keyframe.draw_props(
+                    layout, owner, parent_index, i, is_draw_color, not is_draw_color or self.use_env_color
+                )
 
             drawAddButton(layout, len(self.keyframes), "Animated Mat. Color", None, owner.name, parent_index)
 
@@ -166,9 +187,16 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
     """see the `AnimatedMaterial` struct from `z64scene.h`"""
 
     segment_num: IntProperty(name="Segment Number", min=8, max=13, default=8)
-    type: EnumProperty(
-        name="Draw Handler Type", items=enum_anim_mat_type, default=2, description="Index to `sMatAnimDrawHandlers`"
+
+    user_type: EnumProperty(
+        name="Draw Handler Type",
+        items=enum_anim_mat_type,
+        default=2,
+        description="Index to `sMatAnimDrawHandlers`",
+        get=lambda self: getEnumIndex(enum_anim_mat_type, self.type),
+        set=lambda self, value: self.on_type_set(value),
     )
+    type: StringProperty(default=enum_anim_mat_type[2][0])
     type_custom: StringProperty(name="Custom Draw Handler Index", default="2")
 
     color_params: PointerProperty(type=Z64_AnimatedMatColorParams)
@@ -177,6 +205,12 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
 
     # ui only props
     show_item: BoolProperty(default=False)
+
+    def on_type_set(self, value: str):
+        self.type = enum_anim_mat_type[value][0]
+
+        if self.type in {"color", "color_lerp", "color_nonlinear_interp"}:
+            self.color_params.internal_color_type = self.type
 
     def draw_props(self, layout: UILayout, owner: Object, index: int):
         layout.prop(
@@ -189,7 +223,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
             prop_split(layout, self, "segment_num", "Segment Number")
 
             layout_type = layout.column()
-            prop_split(layout_type, self, "type", "Draw Handler Type")
+            prop_split(layout_type, self, "user_type", "Draw Handler Type")
 
             if self.type == "Custom":
                 layout_type.label(
@@ -207,21 +241,21 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
 class Z64_AnimatedMaterial(PropertyGroup):
     """Defines an Animated Material array"""
 
-    header_index: IntProperty(name="Header Index", min=-1, default=-1, description="Header Index, -1 means all headers")
     entries: CollectionProperty(type=Z64_AnimatedMaterialItem)
 
     # ui only props
     show_list: BoolProperty(default=True)
     show_entries: BoolProperty(default=True)
 
-    def draw_props(self, layout: UILayout, owner: Object, index: int):
-        layout.prop(
-            self, "show_list", text=f"List No.{index + 1}", icon="TRIA_DOWN" if self.show_list else "TRIA_RIGHT"
-        )
+    def draw_props(self, layout: UILayout, owner: Object, index: Optional[int], header_index: Optional[int] = None):
+        if index is not None:
+            layout.prop(
+                self, "show_list", text=f"List No.{index + 1}", icon="TRIA_DOWN" if self.show_list else "TRIA_RIGHT"
+            )
 
         if self.show_list:
-            drawCollectionOps(layout, index, "Animated Mat. List", None, owner.name)
-            prop_split(layout, self, "header_index", "Header Index")
+            if index is not None:
+                drawCollectionOps(layout, index, "Animated Mat. List", None, owner.name)
 
             prop_text = get_list_tab_text("Animated Materials", len(self.entries))
             layout_entries = layout.column()
@@ -233,7 +267,7 @@ class Z64_AnimatedMaterial(PropertyGroup):
                 for i, item in enumerate(self.entries):
                     item.draw_props(layout_entries.box().column(), owner, i)
 
-                drawAddButton(layout_entries, len(self.entries), "Animated Mat.", None, owner.name)
+                drawAddButton(layout_entries, len(self.entries), "Animated Mat.", header_index, owner.name)
 
 
 class Z64_AnimatedMaterialProperty(PropertyGroup):

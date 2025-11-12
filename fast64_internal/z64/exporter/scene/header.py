@@ -32,9 +32,21 @@ class SceneHeader:
 
     @staticmethod
     def new(
-        name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool
+        name: str,
+        props: OOTSceneHeaderProperty,
+        sceneObj: Object,
+        transform: Matrix,
+        headerIndex: int,
+        useMacros: bool,
+        target_name: Optional[str],
     ):
         entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
+
+        animated_materials = None
+        if not is_oot_features():
+            final_name = target_name if target_name is not None else f"{name}_AnimatedMaterial"
+            animated_materials = SceneAnimatedMaterial.new(final_name, props, target_name is not None)
+
         return SceneHeader(
             name,
             SceneInfos.new(props, sceneObj),
@@ -45,9 +57,7 @@ class SceneHeader:
             entranceActors,
             SceneSpawns(f"{name}_entranceList", entranceActors.entries),
             ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
-            SceneAnimatedMaterial.new(f"{name}_AnimatedMaterial", sceneObj, headerIndex)
-            if not is_oot_features()
-            else None,
+            animated_materials,
         )
 
     def getC(self):
@@ -77,7 +87,7 @@ class SceneHeader:
             headerData.append(self.path.getC())
 
         # Write the animated material list, if used
-        if self.anim_mat is not None and self.anim_mat.is_used():
+        if self.anim_mat is not None:
             headerData.append(self.anim_mat.to_c())
 
         return headerData

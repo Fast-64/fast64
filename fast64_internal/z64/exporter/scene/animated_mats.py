@@ -1,8 +1,12 @@
+import bpy
+
 from dataclasses import dataclass
 from bpy.types import Object
+from typing import Optional
 
 from ....utility import CData, PluginError, exportColor, scaleToU8, indent
 from ...utility import getObjectList, is_oot_features, is_hackeroot
+from ...scene.properties import OOTSceneHeaderProperty
 from ...animated_mats.properties import (
     Z64_AnimatedMatColorParams,
     Z64_AnimatedMatTexScrollParams,
@@ -18,17 +22,17 @@ class AnimatedMatColorParams:
         segment_num: int,
         type_num: int,
         base_name: str,
-        header_index: int,
         index: int,
+        type: str,
     ):
+        is_draw_color = type == "color"
         # the code adds back 7 when processing animated materials
         self.segment_num = segment_num - 7
         self.type_num = type_num
         self.base_name = base_name
-        self.header_index = header_index
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}ColorParams{self.header_suffix}"
-        self.frame_length = props.keyframe_length
+        self.frame_length = len(props.keyframes) if is_draw_color else props.keyframe_length
         self.prim_colors: list[tuple[int, int, int, int, int]] = []
         self.env_colors: list[tuple[int, int, int, int]] = []
         self.frames: list[int] = []
@@ -36,14 +40,23 @@ class AnimatedMatColorParams:
         for keyframe in props.keyframes:
             prim = exportColor(keyframe.prim_color[0:3]) + [scaleToU8(keyframe.prim_color[3])]
             self.prim_colors.append((prim[0], prim[1], prim[2], prim[3], keyframe.prim_lod_frac))
-            self.env_colors.append(tuple(exportColor(keyframe.env_color[0:3]) + [scaleToU8(keyframe.env_color[3])]))
-            self.frames.append(keyframe.frame_num)
 
-            if keyframe.frame_num > self.frame_length:
+            if not is_draw_color or props.use_env_color:
+                self.env_colors.append(tuple(exportColor(keyframe.env_color[0:3]) + [scaleToU8(keyframe.env_color[3])]))
+
+            if not is_draw_color:
+                self.frames.append(keyframe.frame_num)
+
+            if not is_draw_color and keyframe.frame_num > self.frame_length:
                 raise PluginError("ERROR: the frame number cannot be higher than the total frame count!")
 
         self.frame_count = len(self.frames)
-        assert len(self.frames) == len(self.prim_colors) == len(self.env_colors)
+
+        if not is_draw_color:
+            assert len(self.frames) == len(self.prim_colors) == len(self.env_colors)
+
+        if is_draw_color and props.use_env_color:
+            assert len(self.prim_colors) == len(self.env_colors)
 
     def to_c(self):
         data = CData()
@@ -52,11 +65,17 @@ class AnimatedMatColorParams:
         frames_array_name = f"{self.base_name}ColorKeyFrames{self.header_suffix}"
         params_name = f"AnimatedMatColorParams {self.name}"
 
+        if len(self.env_colors) == 0:
+            env_array_name = "NULL"
+
+        if len(self.frames) == 0:
+            frames_array_name = "NULL"
+
         # .h
         data.header = (
             f"extern F3DPrimColor {prim_array_name}[];\n"
-            + f"extern F3DEnvColor {env_array_name}[];\n"
-            + f"extern u16 {frames_array_name}[];\n"
+            + (f"extern F3DEnvColor {env_array_name}[];\n" if len(self.env_colors) > 0 else "")
+            + (f"extern u16 {frames_array_name}[];\n" if len(self.frames) > 0 else "")
             + f"extern {params_name};\n"
         )
 
@@ -71,16 +90,24 @@ class AnimatedMatColorParams:
                 + "\n};\n\n"
             )
             + (
-                (f"F3DEnvColor {env_array_name}[]" + " = {\n" + indent)
-                + f",\n{indent}".join(
-                    "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }" for entry in self.env_colors
+                (
+                    (f"F3DEnvColor {env_array_name}[]" + " = {\n" + indent)
+                    + f",\n{indent}".join(
+                        "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }" for entry in self.env_colors
+                    )
+                    + "\n};\n\n"
                 )
-                + "\n};\n\n"
+                if len(self.env_colors) > 0
+                else ""
             )
             + (
-                (f"u16 {frames_array_name}[]" + " = {\n" + indent)
-                + f",\n{indent}".join(f"{entry}" for entry in self.frames)
-                + "\n};\n\n"
+                (
+                    (f"u16 {frames_array_name}[]" + " = {\n" + indent)
+                    + f",\n{indent}".join(f"{entry}" for entry in self.frames)
+                    + "\n};\n\n"
+                )
+                if len(self.frames) > 0
+                else ""
             )
             + (
                 (params_name + " = {\n")
@@ -103,14 +130,13 @@ class AnimatedMatTexScrollParams:
         segment_num: int,
         type_num: int,
         base_name: str,
-        header_index: int,
         index: int,
+        type: str,
     ):
         # the code adds back 7 when processing animated materials
         self.segment_num = segment_num - 7
         self.type_num = type_num
         self.base_name = base_name
-        self.header_index = header_index
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}TexScrollParams{self.header_suffix}"
         self.entries: list[str] = []
@@ -140,14 +166,13 @@ class AnimatedMatTexCycleParams:
         segment_num: int,
         type_num: int,
         base_name: str,
-        header_index: int,
         index: int,
+        type: str,
     ):
         # the code adds back 7 when processing animated materials
         self.segment_num = segment_num - 7
         self.type_num = type_num
         self.base_name = base_name
-        self.header_index = header_index
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}TexCycleParams{self.header_suffix}"
         self.textures: list[str] = []
@@ -201,11 +226,12 @@ class AnimatedMatTexCycleParams:
 
 
 class AnimatedMaterial:
-    def __init__(self, props: Z64_AnimatedMaterial, base_name: str, scene_header_index: int):
+    def __init__(self, props: Z64_AnimatedMaterial, base_name: str):
         self.name = base_name
-        self.scene_header_index = scene_header_index
-        self.header_index = props.header_index
         self.entries: list[AnimatedMatColorParams | AnimatedMatTexScrollParams | AnimatedMatTexCycleParams] = []
+
+        if len(props.entries) == 0:
+            return
 
         type_list_map: dict[
             str, tuple[AnimatedMatColorParams | AnimatedMatTexScrollParams | AnimatedMatTexCycleParams, str, int]
@@ -219,12 +245,12 @@ class AnimatedMaterial:
         }
 
         for i, item in enumerate(props.entries):
-            if item.type != "Custom":
-                class_def, prop_name, type_num = type_list_map[item.type]
+            type = item.type if item.type != "Custom" else item.typeCustom
+            if type != "Custom":
+                class_def, prop_name, type_num = type_list_map[type]
+
                 # example: `self.tex_scroll_entries.append(AnimatedMatTexScrollParams(item.tex_scroll_params, base_name, header_index))`
-                self.entries.append(
-                    class_def(getattr(item, prop_name), item.segment_num, type_num, base_name, self.header_index, i)
-                )
+                self.entries.append(class_def(getattr(item, prop_name), item.segment_num, type_num, base_name, i, type))
 
         # the last entry's segment need to be negative
         if len(self.entries) > 0 and self.entries[-1].segment_num > 0:
@@ -234,31 +260,29 @@ class AnimatedMaterial:
         data = CData()
 
         for entry in self.entries:
-            if entry.header_index == -1 or entry.header_index == self.scene_header_index:
-                data.append(entry.to_c())
+            data.append(entry.to_c())
+
+        array_name = f"AnimatedMaterial {self.name}[]"
+
+        # .h
+        data.header += f"extern {array_name};"
+
+        # .c
+        data.source += array_name + " = {\n" + indent
 
         if len(self.entries) > 0:
-            array_name = f"AnimatedMaterial {self.name}[]"
-
-            # .h
-            data.header += f"extern {array_name};"
-
-            # .c
-            data.source += (
-                (array_name + " = {\n" + indent)
-                + f",\n{indent}".join(
-                    "{ "
-                    + f"{entry.segment_num} /* {abs(entry.segment_num) + 7} */, "
-                    + f"{entry.type_num}, "
-                    + f"{'&' if entry.type_num in {2, 3, 4, 5} else ''}{entry.name}"
-                    + " }"
-                    for entry in self.entries
-                )
-                + "\n};\n"
+            data.source += f",\n{indent}".join(
+                "{ "
+                + f"{entry.segment_num} /* {abs(entry.segment_num) + 7} */, "
+                + f"{entry.type_num}, "
+                + f"{'&' if entry.type_num in {2, 3, 4, 5} else ''}{entry.name}"
+                + " }"
+                for entry in self.entries
             )
         else:
-            raise PluginError("ERROR: Trying to export animated materials with empty entries!")
+            data.source += "{ 0, 6, NULL }"
 
+        data.source += "\n};\n"
         return data
 
 
@@ -267,7 +291,50 @@ class SceneAnimatedMaterial:
     """This class hosts exit data"""
 
     name: str
-    header_index: int
+    animated_material: Optional[AnimatedMaterial]
+
+    @staticmethod
+    def new(name: str, props: OOTSceneHeaderProperty, is_reuse: bool):
+        return SceneAnimatedMaterial(name, AnimatedMaterial(props.animated_material, name) if not is_reuse else None)
+
+    def get_cmd(self):
+        """Returns the animated material scene command"""
+
+        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+            return (
+                "#if ENABLE_ANIMATED_MATERIALS\n"
+                + indent
+                + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
+                + "#endif\n"
+            )
+        else:
+            return indent + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
+
+    def to_c(self):
+        data = CData()
+
+        if self.animated_material is not None:
+            if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+                data.source += "#if ENABLE_ANIMATED_MATERIALS\n"
+                data.header += "#if ENABLE_ANIMATED_MATERIALS\n"
+
+            data.append(self.animated_material.to_c())
+
+            if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+                data.source += "#endif\n\n"
+                data.header += "\n#endif\n"
+            else:
+                data.source += "\n"
+                data.header += "\n"
+
+        return data
+
+
+@dataclass
+class ActorAnimatedMaterial:
+    """This class hosts exit data"""
+
+    name: str
     entries: list[AnimatedMaterial]
 
     @staticmethod
@@ -281,43 +348,22 @@ class SceneAnimatedMaterial:
                     [AnimatedMaterial(item, name, header_index) for item in obj.fast64.oot.animated_materials.items]
                 )
 
-        last_index = -1
-        for entry in entries:
-            if entry.header_index >= 0:
-                if entry.header_index > last_index:
-                    last_index = entry.header_index
-                else:
-                    raise PluginError("ERROR: Animated Materials header indices are not consecutives!")
-
-        return SceneAnimatedMaterial(name, header_index, entries)
+        return ActorAnimatedMaterial(name, entries)
 
     def is_used(self):
         return not is_oot_features() and len(self.entries) > 0
 
-    def get_cmd(self):
-        """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
-
-        if is_hackeroot():
-            return (
-                "#if ENABLE_ANIMATED_MATERIALS\n"
-                + indent
-                + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
-                + "#endif\n"
-            )
-        else:
-            return indent + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
-
     def to_c(self):
         data = CData()
 
-        if is_hackeroot():
+        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
             data.source += "#if ENABLE_ANIMATED_MATERIALS\n"
             data.header += "#if ENABLE_ANIMATED_MATERIALS\n"
 
         for entry in self.entries:
             data.append(entry.to_c())
 
-        if is_hackeroot():
+        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
             data.source += "#endif\n\n"
             data.header += "\n#endif\n"
         else:

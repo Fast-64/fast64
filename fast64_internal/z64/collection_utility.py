@@ -20,12 +20,15 @@ class OOTCollectionAdd(Operator):
     def execute(self, context):
         collection = getCollection(self.objName, self.collectionType, self.subIndex, self.collection_index)
 
-        collection.add()
+        new_entry = collection.add()
         collection.move(len(collection) - 1, self.option)
 
         owner = bpy.data.objects[self.objName]
         if self.collectionType == "Actor CS" and owner.ootEmptyType == "Actor Cutscene":
             context.scene.fast64.oot.global_actor_cs_count = len(collection)
+
+        if self.collectionType == "Scene":
+            new_entry.internal_header_index = 4
 
         return {"FINISHED"}
 
@@ -99,22 +102,22 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
     elif collectionType == "Animated Mat. List":
         collection = obj.fast64.oot.animated_materials.items
-    elif collectionType == "Animated Mat.":
-        collection = obj.fast64.oot.animated_materials.items[subIndex].entries
-    elif collectionType == "Animated Mat. Color":
-        collection = obj.fast64.oot.animated_materials.items[subIndex].entries[collection_index].color_params.keyframes
-    elif collectionType == "Animated Mat. Scroll":
-        collection = (
-            obj.fast64.oot.animated_materials.items[subIndex].entries[collection_index].tex_scroll_params.entries
-        )
-    elif collectionType == "Animated Mat. Cycle (Index)":
-        collection = (
-            obj.fast64.oot.animated_materials.items[subIndex].entries[collection_index].tex_cycle_params.keyframes
-        )
-    elif collectionType == "Animated Mat. Cycle (Texture)":
-        collection = (
-            obj.fast64.oot.animated_materials.items[subIndex].entries[collection_index].tex_cycle_params.textures
-        )
+    elif collectionType.startswith("Animated Mat."):
+        if obj.ootEmptyType == "Scene":
+            props = getCollectionFromIndex(obj, "animated_material", subIndex, False)
+        else:
+            props = obj.fast64.oot.animated_materials.items[subIndex]
+
+        if collectionType == "Animated Mat.":
+            collection = props.entries
+        elif collectionType == "Animated Mat. Color":
+            collection = props.entries[collection_index].color_params.keyframes
+        elif collectionType == "Animated Mat. Scroll":
+            collection = props.entries[collection_index].tex_scroll_params.entries
+        elif collectionType == "Animated Mat. Cycle (Index)":
+            collection = props.entries[collection_index].tex_cycle_params.keyframes
+        elif collectionType == "Animated Mat. Cycle (Texture)":
+            collection = props.entries[collection_index].tex_cycle_params.textures
     elif collectionType == "Curve":
         collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):

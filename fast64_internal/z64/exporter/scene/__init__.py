@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from typing import Optional
+
+from ....game_data import game_data
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
@@ -14,6 +16,31 @@ from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
 from .header import SceneAlternateHeader, SceneHeader
 from .rooms import RoomEntries
+
+
+def get_anm_mat_target_name(alt_prop: OOTSceneHeaderProperty, name: str, header_index: int):
+    animated_materials = None
+
+    if alt_prop.reuse_anim_mat:
+        header_map = {
+            "Child Night": 1,
+            "Adult Day": 2,
+            "Adult Night": 3,
+        }
+
+        anim_mat_header = alt_prop.internal_anim_mat_header
+
+        if anim_mat_header == "Child Day":
+            index = 0
+        elif anim_mat_header == "Cutscene":
+            assert header_index >= game_data.z64.cs_index_start
+            index = header_index
+        else:
+            index = header_map[anim_mat_header]
+
+        animated_materials = f"{name}_header{index:02}_AnimatedMaterial"
+
+    return animated_materials
 
 
 @dataclass
@@ -41,7 +68,7 @@ class Scene:
 
         try:
             mainHeader = SceneHeader.new(
-                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, exportInfo.useMacros
+                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, exportInfo.useMacros, None
             )
 
             if mainHeader.infos is not None:
@@ -55,23 +82,33 @@ class Scene:
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
+
             if altP.usePreviousHeader:
                 continue
+
             try:
+                target_name = get_anm_mat_target_name(altP, name, i)
+
                 setattr(
                     altHeader,
                     header,
-                    SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, exportInfo.useMacros),
+                    SceneHeader.new(
+                        f"{name}_header{i:02}", altP, sceneObj, transform, i, exportInfo.useMacros, target_name
+                    ),
                 )
                 hasAlternateHeaders = True
             except Exception as exc:
                 raise PluginError(f"In alternate scene header {header}: {exc}") from exc
 
         altHeader.cutscenes = []
-        for i, csHeader in enumerate(altProp.cutsceneHeaders, 4):
+        for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start):
             try:
+                target_name = get_anm_mat_target_name(csHeader, name, i)
+
                 altHeader.cutscenes.append(
-                    SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, exportInfo.useMacros)
+                    SceneHeader.new(
+                        f"{name}_header{i:02}", csHeader, sceneObj, transform, i, exportInfo.useMacros, target_name
+                    )
                 )
             except Exception as exc:
                 raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
@@ -126,7 +163,7 @@ class Scene:
             if headerIndex == i:
                 return getattr(self.altHeader, header)
 
-        for i, csHeader in enumerate(self.altHeader.cutscenes, 4):
+        for i, csHeader in enumerate(self.altHeader.cutscenes, game_data.z64.cs_index_start):
             if headerIndex == i:
                 return csHeader
 
@@ -155,7 +192,7 @@ class Scene:
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
-            + (curHeader.anim_mat.get_cmd() if curHeader.anim_mat is not None and curHeader.anim_mat.is_used() else "")
+            + (curHeader.anim_mat.get_cmd() if curHeader.anim_mat is not None else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )
@@ -180,7 +217,11 @@ class Scene:
                 headers.append((csHeader, f"Cutscene No. {i + 1}"))
 
             altHeaderPtrs = "\n".join(
-                indent + curHeader.name + "," if curHeader is not None else indent + "NULL," if i < 4 else ""
+                indent + curHeader.name + ","
+                if curHeader is not None
+                else indent + "NULL,"
+                if i < game_data.z64.cs_index_start
+                else ""
                 for i, (curHeader, _) in enumerate(headers, 1)
             )
 

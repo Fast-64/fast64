@@ -194,6 +194,7 @@ def oot_register(registerPanels):
     collision_ops_register()  # register first, so panel goes above mat panel
     collision_props_register()
     cutscene_props_register()
+    animated_mats_props_register()
     scene_ops_register()
     scene_props_register()
     room_ops_register()
@@ -211,7 +212,6 @@ def oot_register(registerPanels):
     anim_props_register()
     hackeroot_props_register()
     hackeroot_ops_register()
-    animated_mats_props_register()
 
     csMotion_ops_register()
     csMotion_props_register()
@@ -243,7 +243,6 @@ def oot_unregister(unregisterPanels):
     csMotion_props_unregister()
     csMotion_ops_unregister()
 
-    animated_mats_props_unregister()
     hackeroot_ops_unregister()
     hackeroot_props_unregister()
     anim_props_unregister()
@@ -261,6 +260,7 @@ def oot_unregister(unregisterPanels):
     room_ops_unregister()
     scene_props_unregister()
     scene_ops_unregister()
+    animated_mats_props_unregister()
     cutscene_props_unregister()
     collision_props_unregister()
     collision_ops_unregister()
