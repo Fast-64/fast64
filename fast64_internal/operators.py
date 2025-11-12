@@ -20,6 +20,8 @@ from .f3d.f3d_material import createF3DMat
 
 
 def addMaterialByName(obj, matName, preset):
+    from .f3d.f3d_material import createF3DMat
+
     if matName in bpy.data.materials:
         bpy.ops.object.material_slot_add()
         obj.material_slots[0].material = bpy.data.materials[matName]

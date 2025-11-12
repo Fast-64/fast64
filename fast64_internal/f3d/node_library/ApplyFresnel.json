@@ -1,0 +1,464 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "75107f6e2034b7b36e1d4f0016bab052",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"default_value": [
+				0.5,
+				0.5,
+				0.5,
+				1.0
+			],
+			"name": "Color"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"hide_value": true,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Alpha"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"hide_value": true,
+			"name": "G_FRESNEL_ALPHA"
+		},
+		{
+			"bl_idname": "NodeSocketInt",
+			"default_value": 1,
+			"hide_value": true,
+			"name": "G_FRESNEL_COLOR"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"default_value": 0.5,
+			"hide_value": true,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Fresnel"
+		}
+	],
+	"interface_hash": "b4e678b6adbf9905879f8d1e7cd511d3",
+	"name": "ApplyFresnel",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-318.6995,
+				-80.7069
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5,
+						1.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute"
+						}
+					],
+					"name": "Color"
+				},
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true,
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.001"
+						}
+					],
+					"name": "Alpha"
+				},
+				"2": {
+					"hide_value": true,
+					"links": [
+						{
+							"index": 0,
+							"node": "Math"
+						}
+					],
+					"name": "G_FRESNEL_ALPHA"
+				},
+				"3": {
+					"default_value": 1,
+					"hide_value": true,
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.010"
+						}
+					],
+					"name": "G_FRESNEL_COLOR"
+				},
+				"4": {
+					"default_value": 0.5,
+					"hide_value": true,
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.053"
+						}
+					],
+					"name": "Fresnel"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"name": "Color"
+				},
+				"1": {
+					"name": "Alpha"
+				},
+				"2": {
+					"name": ""
+				}
+			},
+			"location": [
+				315.2231,
+				106.1039
+			],
+			"width_hidden": 42.0
+		},
+		"Group.004": {
+			"bl_idname": "ShaderNodeGroup",
+			"inputs": {
+				"0": {
+					"default_value": 0.5,
+					"name": "Fac"
+				},
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true,
+					"name": "Input0"
+				},
+				"2": {
+					"default_value": 0.5,
+					"hide_value": true,
+					"name": "Input1"
+				}
+			},
+			"label": "Fresnel to Alpha",
+			"location": [
+				115.9491,
+				10.0818
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Group Output"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Math": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"label": "Color overrides Alpha",
+			"location": [
+				-80.5831,
+				-45.0205
+			],
+			"operation": "SUBTRACT",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group.004"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"use_clamp": true,
+			"width_hidden": 42.0
+		},
+		"Mix.001": {
+			"bl_idname": "ShaderNodeMixRGB",
+			"inputs": {
+				"0": {
+					"name": "Fac"
+				},
+				"1": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5,
+						1.0
+					],
+					"name": "Color1"
+				},
+				"2": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5,
+						1.0
+					],
+					"name": "Color2"
+				}
+			},
+			"label": "Fresnel to Color",
+			"location": [
+				116.807,
+				193.8259
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Color"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-141.0258,
+				60.5642
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Mix.001"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-138.7407,
+				-103.9636
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Group.004"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.010": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-105.215,
+				-182.8108
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Math"
+						},
+						{
+							"index": 0,
+							"node": "Reroute.056"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.053": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				84.5865,
+				-204.1189
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Reroute.054"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.054": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				85.1312,
+				-124.4681
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 2,
+							"node": "Group.004"
+						},
+						{
+							"index": 0,
+							"node": "Reroute.055"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.055": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				84.1019,
+				37.3866
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 2,
+							"node": "Mix.001"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		},
+		"Reroute.056": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"location": [
+				-104.9713,
+				81.9426
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Mix.001"
+						}
+					],
+					"name": "Output"
+				}
+			},
+			"width": 16.0,
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"name": "Color"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"max_value": 0.0,
+			"min_value": 0.0,
+			"name": "Alpha"
+		}
+	]
+}

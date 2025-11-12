@@ -1,0 +1,338 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "2963c3e08f505437a1f6c685235114e5",
+	"interface_hash": "fca3251c48c4d453a756578810efb46b",
+	"name": "Fog",
+	"nodes": {
+		"Camera Data": {
+			"bl_idname": "ShaderNodeCameraData",
+			"location": [
+				-463.6024,
+				-23.266
+			],
+			"outputs": {
+				"1": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Math"
+						},
+						{
+							"index": 0,
+							"node": "Math.001"
+						}
+					],
+					"name": "View Z Depth"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"ColorRamp": {
+			"bl_idname": "ShaderNodeValToRGB",
+			"color_ramp": {
+				"color_mode": "RGB",
+				"elements": [
+					{
+						"alpha": 1.0,
+						"color": [
+							0.0,
+							0.0,
+							0.0,
+							1.0
+						],
+						"position": 0.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							2.0,
+							2.0,
+							2.0,
+							1.0
+						],
+						"position": 0.7863638401031494
+					}
+				],
+				"hue_interpolation": "NEAR",
+				"interpolation": "LINEAR",
+				"serialized_type": "ColorRamp"
+			},
+			"inputs": {
+				"0": {
+					"name": "Fac"
+				}
+			},
+			"location": [
+				-72.3463,
+				23.266
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Gamma"
+						}
+					],
+					"name": "Color"
+				}
+			},
+			"width": 240.0,
+			"width_hidden": 42.0
+		},
+		"ColorRamp.001": {
+			"bl_idname": "ShaderNodeValToRGB",
+			"color_ramp": {
+				"color_mode": "RGB",
+				"elements": [
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 0.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							0.0,
+							0.0,
+							0.0,
+							1.0
+						],
+						"position": 0.1636366993188858
+					}
+				],
+				"hue_interpolation": "NEAR",
+				"interpolation": "EASE",
+				"serialized_type": "ColorRamp"
+			},
+			"inputs": {
+				"0": {
+					"name": "Fac"
+				}
+			},
+			"location": [
+				-72.3463,
+				-194.1823
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Gamma.001"
+						}
+					],
+					"name": "Color"
+				}
+			},
+			"width": 240.0,
+			"width_hidden": 42.0
+		},
+		"Gamma": {
+			"bl_idname": "ShaderNodeGamma",
+			"inputs": {
+				"0": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0,
+						1.0
+					],
+					"name": "Color"
+				},
+				"1": {
+					"name": "Gamma"
+				}
+			},
+			"location": [
+				207.226,
+				45.3343
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"name": "Color"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Gamma.001": {
+			"bl_idname": "ShaderNodeGamma",
+			"inputs": {
+				"0": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0,
+						1.0
+					],
+					"name": "Color"
+				},
+				"1": {
+					"name": "Gamma"
+				}
+			},
+			"location": [
+				207.226,
+				-172.114
+			],
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Color"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"hide": true,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"name": "Color"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				408.0125,
+				-2.6611
+			],
+			"width_hidden": 42.0
+		},
+		"Math": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.013124999590218067
+				},
+				"2": {
+					"default_value": -0.10000000149011612
+				}
+			},
+			"location": [
+				-272.0528,
+				-36.6214
+			],
+			"operation": "MULTIPLY_ADD",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "ColorRamp"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.013124999590218067
+				},
+				"2": {
+					"default_value": -0.10000000149011612
+				}
+			},
+			"location": [
+				-272.0528,
+				-254.0697
+			],
+			"operation": "MULTIPLY_ADD",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "ColorRamp.001"
+						}
+					],
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"label": "approx of 970 -> 1000 fog",
+			"location": [
+				-157.067,
+				32.0329
+			],
+			"outputs": {},
+			"width": 16.0,
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"name": "Color"
+		}
+	]
+}

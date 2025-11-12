@@ -1,0 +1,113 @@
+{
+	"bpy_ver": [
+		3,
+		2,
+		0
+	],
+	"cached_hash": "facc48fb0b7d0585abf62ff90f447a1e",
+	"inputs": [
+		{
+			"bl_idname": "NodeSocketColor",
+			"name": "Ambient Color"
+		},
+		{
+			"bl_idname": "NodeSocketFloat",
+			"name": "AO Ambient Factor"
+		}
+	],
+	"interface_hash": "e514b7b679d4ada3b7d1cfc1448b34a3",
+	"name": "AmbientLight",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-200.0,
+				0.0
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Vector Math.003"
+						}
+					],
+					"name": "Ambient Color"
+				},
+				"1": {
+					"links": [
+						{
+							"index": 1,
+							"node": "Vector Math.003"
+						},
+						{
+							"index": 3,
+							"node": "Vector Math.003"
+						}
+					],
+					"name": "AO Ambient Factor"
+				}
+			},
+			"width_hidden": 42.0
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"inputs": {
+				"0": {
+					"name": "Light Level"
+				},
+				"1": {
+					"name": ""
+				}
+			},
+			"location": [
+				183.8044,
+				54.8822
+			],
+			"width_hidden": 42.0
+		},
+		"Vector Math.003": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"inputs": {
+				"0": {},
+				"1": {
+					"enabled": false
+				},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"default_value": 1.0,
+					"name": "Scale"
+				}
+			},
+			"location": [
+				-10.621,
+				53.1117
+			],
+			"operation": "SCALE",
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"index": 0,
+							"node": "Group Output"
+						}
+					],
+					"name": "Vector"
+				},
+				"1": {
+					"enabled": false,
+					"name": "Value"
+				}
+			},
+			"width_hidden": 42.0
+		}
+	},
+	"outputs": [
+		{
+			"bl_idname": "NodeSocketVector",
+			"name": "Light Level"
+		}
+	]
+}

@@ -2011,6 +2011,13 @@ def wrap_func_with_error_message(error_message: Callable):
     return decorator
 
 
+def to_valid_file_name(name: str):
+    """Replace any invalid characters with an underscore"""
+    valid_chars = set(string.ascii_letters + string.digits) | {"."}
+    valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
+    return "".join(c if c in valid_chars else "_" for c in name)
+
+
 def as_posix(path: Path) -> str:
     return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
 

@@ -1,6 +1,8 @@
 import bpy
 import mathutils
 import math
+
+from .f3d.f3d_node_gen import find_node_group
 from .utility import *
 
 
@@ -161,9 +163,10 @@ def update_scene_props_from_rs_light1SpecSize(
 
 
 def update_scene_props_from_rs_useWorldSpaceLighting(renderSettings: "Fast64RenderSettings_Properties"):
-    bpy.data.node_groups["GetSpecularNormal"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
+    specular_normal_node_tree = find_node_group("GetSpecularNormal")
+    specular_normal_node_tree.nodes["GeometryNormal"].node_tree = find_node_group(
         "GeometryNormal_WorldSpace" if renderSettings.useWorldSpaceLighting else "GeometryNormal_ViewSpace"
-    ]
+    )
 
 
 def update_scene_props_from_render_settings(
@@ -271,7 +274,7 @@ def poll_oot_scene(self, object):
 
 
 def resync_scene_props():
-    if "GetSpecularNormal" in bpy.data.node_groups:
+    if find_node_group("GetSpecularNormal") is not None:
         # Lighting space needs to be updated due to the nodes being shared and reloaded
         update_scene_props_from_rs_useWorldSpaceLighting(bpy.context.scene.fast64.renderSettings)
 
