@@ -26,8 +26,7 @@ class AnimatedMatColorParams:
         type: str,
     ):
         is_draw_color = type == "color"
-        # the code adds back 7 when processing animated materials
-        self.segment_num = segment_num - 7
+        self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
@@ -133,16 +132,26 @@ class AnimatedMatTexScrollParams:
         index: int,
         type: str,
     ):
-        # the code adds back 7 when processing animated materials
-        self.segment_num = segment_num - 7
+        self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
-        self.name = f"{self.base_name}TexScrollParams{self.header_suffix}"
-        self.entries: list[str] = []
+        self.texture_1 = (
+            "{ "
+            + f"{props.texture_1.step_x}, {props.texture_1.step_y}, {props.texture_1.width}, {props.texture_1.height}"
+            + " },"
+        )
+        self.texture_2: Optional[str] = None
 
-        for item in props.entries:
-            self.entries.append("{ " + f"{item.step_x}, {item.step_y}, {item.width}, {item.height}" + " }")
+        if type == "two_tex_scroll":
+            self.name = f"{self.base_name}TwoTexScrollParams{self.header_suffix}"
+            self.texture_2 = (
+                "{ "
+                + f"{props.texture_2.step_x}, {props.texture_2.step_y}, {props.texture_2.width}, {props.texture_2.height}"
+                + " },"
+            )
+        else:
+            self.name = f"{self.base_name}TexScrollParams{self.header_suffix}"
 
     def to_c(self):
         data = CData()
@@ -152,9 +161,12 @@ class AnimatedMatTexScrollParams:
         data.header = f"extern {params_name};\n"
 
         # .c
-        data.source = (
-            f"{params_name}" + " = {\n" + indent + f",\n{indent}".join(entry for entry in self.entries) + "\n};\n\n"
-        )
+        data.source = f"{params_name}" + " = {\n" + indent + self.texture_1
+
+        if self.texture_2 is not None:
+            data.source += "\n" + indent + self.texture_2
+
+        data.source += "\n};\n\n"
 
         return data
 
@@ -169,8 +181,7 @@ class AnimatedMatTexCycleParams:
         index: int,
         type: str,
     ):
-        # the code adds back 7 when processing animated materials
-        self.segment_num = segment_num - 7
+        self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
@@ -186,6 +197,8 @@ class AnimatedMatTexCycleParams:
             self.texture_indices.append(keyframe.texture_index)
 
         self.frame_length = len(self.texture_indices)
+        assert len(self.textures) > 0, "you need at least one texture symbol (Animated Material)"
+        assert len(self.texture_indices) > 0, "you need at least one texture index (Animated Material)"
 
     def to_c(self):
         data = CData()
@@ -248,13 +261,7 @@ class AnimatedMaterial:
             type = item.type if item.type != "Custom" else item.typeCustom
             if type != "Custom":
                 class_def, prop_name, type_num = type_list_map[type]
-
-                # example: `self.tex_scroll_entries.append(AnimatedMatTexScrollParams(item.tex_scroll_params, base_name, header_index))`
                 self.entries.append(class_def(getattr(item, prop_name), item.segment_num, type_num, base_name, i, type))
-
-        # the last entry's segment need to be negative
-        if len(self.entries) > 0 and self.entries[-1].segment_num > 0:
-            self.entries[-1].segment_num = -self.entries[-1].segment_num
 
     def to_c(self):
         data = CData()
@@ -271,14 +278,18 @@ class AnimatedMaterial:
         data.source += array_name + " = {\n" + indent
 
         if len(self.entries) > 0:
-            data.source += f",\n{indent}".join(
-                "{ "
-                + f"{entry.segment_num} /* {abs(entry.segment_num) + 7} */, "
+            entries = [
+                f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
                 + f"{entry.type_num}, "
                 + f"{'&' if entry.type_num in {2, 3, 4, 5} else ''}{entry.name}"
-                + " }"
                 for entry in self.entries
-            )
+            ]
+
+            # the last entry's segment need to be negative
+            if len(self.entries) > 0 and self.entries[-1].segment_num > 0:
+                entries[-1] = f"LAST_{entries[-1]}"
+
+            data.source += f",\n{indent}".join("{ " + entry + " }" for entry in entries)
         else:
             data.source += "{ 0, 6, NULL }"
 
@@ -343,10 +354,9 @@ class ActorAnimatedMaterial:
         entries: list[AnimatedMaterial] = []
 
         for obj in obj_list:
-            if obj.fast64.oot.animated_materials.mode == "Scene":
-                entries.extend(
-                    [AnimatedMaterial(item, name, header_index) for item in obj.fast64.oot.animated_materials.items]
-                )
+            entries.extend(
+                [AnimatedMaterial(item, name, header_index) for item in obj.fast64.oot.animated_materials.items]
+            )
 
         return ActorAnimatedMaterial(name, entries)
 

@@ -58,9 +58,16 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
     )
 
     def draw_props(
-        self, layout: UILayout, owner: Object, parent_index: int, index: int, is_draw_color: bool, use_env_color: bool
+        self,
+        layout: UILayout,
+        owner: Object,
+        header_index: int,
+        parent_index: int,
+        index: int,
+        is_draw_color: bool,
+        use_env_color: bool,
     ):
-        drawCollectionOps(layout, index, "Animated Mat. Color", None, owner.name, collection_index=parent_index)
+        drawCollectionOps(layout, index, "Animated Mat. Color", header_index, owner.name, collection_index=parent_index)
 
         # "draw color" type don't need this
         if not is_draw_color:
@@ -83,7 +90,7 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
 
     internal_color_type: StringProperty()
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int):
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
         is_draw_color = self.internal_color_type == "color"
 
         if not is_draw_color:
@@ -98,10 +105,10 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
         if self.show_entries:
             for i, keyframe in enumerate(self.keyframes):
                 keyframe.draw_props(
-                    layout, owner, parent_index, i, is_draw_color, not is_draw_color or self.use_env_color
+                    layout, owner, header_index, parent_index, i, is_draw_color, not is_draw_color or self.use_env_color
                 )
 
-            drawAddButton(layout, len(self.keyframes), "Animated Mat. Color", None, owner.name, parent_index)
+            drawAddButton(layout, len(self.keyframes), "Animated Mat. Color", header_index, owner.name, parent_index)
 
 
 class Z64_AnimatedMatTexScrollItem(PropertyGroup):
@@ -110,8 +117,7 @@ class Z64_AnimatedMatTexScrollItem(PropertyGroup):
     width: IntProperty(min=0)
     height: IntProperty(min=0)
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int, index: int):
-        drawCollectionOps(layout, index, "Animated Mat. Scroll", None, owner.name, collection_index=parent_index)
+    def draw_props(self, layout: UILayout):
         prop_split(layout, self, "step_x", "Step X")
         prop_split(layout, self, "step_y", "Step Y")
         prop_split(layout, self, "width", "Texture Width")
@@ -119,28 +125,37 @@ class Z64_AnimatedMatTexScrollItem(PropertyGroup):
 
 
 class Z64_AnimatedMatTexScrollParams(PropertyGroup):
-    entries: CollectionProperty(type=Z64_AnimatedMatTexScrollItem)
+    texture_1: PointerProperty(type=Z64_AnimatedMatTexScrollItem)
+    texture_2: PointerProperty(type=Z64_AnimatedMatTexScrollItem)
 
     # ui only props
     show_entries: BoolProperty(default=False)
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int):
-        prop_text = get_list_tab_text("Tex. Scroll", len(self.entries))
-        layout.prop(self, "show_entries", text=prop_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
+    internal_scroll_type: StringProperty(default="two_tex_scroll")
+
+    def draw_props(self, layout: UILayout):
+        tab_text = "Two-Texture Scroll" if self.internal_scroll_type == "two_tex_scroll" else "Texture Scroll"
+        layout.prop(self, "show_entries", text=tab_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
 
         if self.show_entries:
-            for i, item in enumerate(self.entries):
-                item.draw_props(layout, owner, parent_index, i)
+            if self.internal_scroll_type == "two_tex_scroll":
+                tex1_box = layout.box().column()
+                tex1_box.label(text="Texture 1")
+                self.texture_1.draw_props(tex1_box)
 
-            drawAddButton(layout, len(self.entries), "Animated Mat. Scroll", None, owner.name, parent_index)
+                tex2_box = layout.box().column()
+                tex2_box.label(text="Texture 2")
+                self.texture_2.draw_props(tex2_box)
+            else:
+                self.texture_1.draw_props(layout)
 
 
 class Z64_AnimatedMatTexCycleTexture(PropertyGroup):
     symbol: StringProperty(name="Texture Symbol")
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int, index: int):
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int, index: int):
         drawCollectionOps(
-            layout, index, "Animated Mat. Cycle (Texture)", None, owner.name, collection_index=parent_index
+            layout, index, "Animated Mat. Cycle (Texture)", header_index, owner.name, collection_index=parent_index
         )
         prop_split(layout, self, "symbol", "Texture Symbol")
 
@@ -148,8 +163,10 @@ class Z64_AnimatedMatTexCycleTexture(PropertyGroup):
 class Z64_AnimatedMatTexCycleKeyFrame(PropertyGroup):
     texture_index: IntProperty(min=0)
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int, index: int):
-        drawCollectionOps(layout, index, "Animated Mat. Cycle (Index)", None, owner.name, collection_index=parent_index)
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int, index: int):
+        drawCollectionOps(
+            layout, index, "Animated Mat. Cycle (Index)", header_index, owner.name, collection_index=parent_index
+        )
         prop_split(layout, self, "texture_index", "Texture Symbol")
 
 
@@ -161,7 +178,7 @@ class Z64_AnimatedMatTexCycleParams(PropertyGroup):
     show_entries: BoolProperty(default=False)
     show_textures: BoolProperty(default=False)
 
-    def draw_props(self, layout: UILayout, owner: Object, parent_index: int):
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
         texture_box = layout.box()
         prop_text = get_list_tab_text("Textures", len(self.textures))
         texture_box.prop(
@@ -169,9 +186,9 @@ class Z64_AnimatedMatTexCycleParams(PropertyGroup):
         )
         if self.show_textures:
             for i, texture in enumerate(self.textures):
-                texture.draw_props(texture_box, owner, parent_index, i)
+                texture.draw_props(texture_box, owner, header_index, parent_index, i)
             drawAddButton(
-                texture_box, len(self.textures), "Animated Mat. Cycle (Texture)", None, owner.name, parent_index
+                texture_box, len(self.textures), "Animated Mat. Cycle (Texture)", header_index, owner.name, parent_index
             )
 
         index_box = layout.box()
@@ -179,8 +196,10 @@ class Z64_AnimatedMatTexCycleParams(PropertyGroup):
         index_box.prop(self, "show_entries", text=prop_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
         if self.show_entries:
             for i, keyframe in enumerate(self.keyframes):
-                keyframe.draw_props(index_box, owner, parent_index, i)
-            drawAddButton(index_box, len(self.keyframes), "Animated Mat. Cycle (Index)", None, owner.name, parent_index)
+                keyframe.draw_props(index_box, owner, header_index, parent_index, i)
+            drawAddButton(
+                index_box, len(self.keyframes), "Animated Mat. Cycle (Index)", header_index, owner.name, parent_index
+            )
 
 
 class Z64_AnimatedMaterialItem(PropertyGroup):
@@ -209,16 +228,18 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
     def on_type_set(self, value: str):
         self.type = enum_anim_mat_type[value][0]
 
-        if self.type in {"color", "color_lerp", "color_nonlinear_interp"}:
+        if "tex_scroll" in self.type:
+            self.tex_scroll_params.internal_scroll_type = self.type
+        elif "color" in self.type:
             self.color_params.internal_color_type = self.type
 
-    def draw_props(self, layout: UILayout, owner: Object, index: int):
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, index: int):
         layout.prop(
             self, "show_item", text=f"Item No.{index + 1}", icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT"
         )
 
         if self.show_item:
-            drawCollectionOps(layout, index, "Animated Mat.", None, owner.name)
+            drawCollectionOps(layout, index, "Animated Mat.", header_index, owner.name)
 
             prop_split(layout, self, "segment_num", "Segment Number")
 
@@ -231,11 +252,11 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
                 )
                 prop_split(layout_type, self, "type_custom", "Custom Draw Handler Index")
             elif self.type in {"tex_scroll", "two_tex_scroll"}:
-                self.tex_scroll_params.draw_props(layout_type, owner, index)
+                self.tex_scroll_params.draw_props(layout_type)
             elif self.type in {"color", "color_lerp", "color_nonlinear_interp"}:
-                self.color_params.draw_props(layout_type, owner, index)
+                self.color_params.draw_props(layout_type, owner, header_index, index)
             elif self.type == "tex_cycle":
-                self.tex_cycle_params.draw_props(layout_type, owner, index)
+                self.tex_cycle_params.draw_props(layout_type, owner, header_index, index)
 
 
 class Z64_AnimatedMaterial(PropertyGroup):
@@ -255,7 +276,7 @@ class Z64_AnimatedMaterial(PropertyGroup):
 
         if self.show_list:
             if index is not None:
-                drawCollectionOps(layout, index, "Animated Mat. List", None, owner.name)
+                drawCollectionOps(layout, index, "Animated Mat. List", header_index, owner.name)
 
             prop_text = get_list_tab_text("Animated Materials", len(self.entries))
             layout_entries = layout.column()
@@ -265,15 +286,13 @@ class Z64_AnimatedMaterial(PropertyGroup):
 
             if self.show_entries:
                 for i, item in enumerate(self.entries):
-                    item.draw_props(layout_entries.box().column(), owner, i)
+                    item.draw_props(layout_entries.box().column(), owner, header_index, i)
 
                 drawAddButton(layout_entries, len(self.entries), "Animated Mat.", header_index, owner.name)
 
 
 class Z64_AnimatedMaterialProperty(PropertyGroup):
     """List of Animated Material arrays"""
-
-    mode: EnumProperty(name="Export To", items=enum_mode)
 
     # this is probably useless since usually you wouldn't use different animated materials
     # on different headers but it's better to give users the choice
@@ -284,9 +303,6 @@ class Z64_AnimatedMaterialProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, owner: Object):
         layout = layout.column()
-
-        prop_split(layout, self, "mode", "Export To")
-        layout.label(text="Make sure one of the 'Material Animated' draw configs is selected.", icon="QUESTION")
 
         prop_text = get_list_tab_text("Animated Materials List", len(self.items))
         layout_entries = layout.column()

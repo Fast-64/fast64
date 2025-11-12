@@ -112,8 +112,6 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
             collection = props.entries
         elif collectionType == "Animated Mat. Color":
             collection = props.entries[collection_index].color_params.keyframes
-        elif collectionType == "Animated Mat. Scroll":
-            collection = props.entries[collection_index].tex_scroll_params.entries
         elif collectionType == "Animated Mat. Cycle (Index)":
             collection = props.entries[collection_index].tex_cycle_params.keyframes
         elif collectionType == "Animated Mat. Cycle (Texture)":

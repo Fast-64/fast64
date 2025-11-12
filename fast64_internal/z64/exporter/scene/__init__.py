@@ -18,26 +18,66 @@ from .header import SceneAlternateHeader, SceneHeader
 from .rooms import RoomEntries
 
 
-def get_anm_mat_target_name(alt_prop: OOTSceneHeaderProperty, name: str, header_index: int):
+def get_anm_mat_target_name(scene_obj: Object, alt_prop: OOTSceneHeaderProperty, name: str, header_index: int):
+    """
+    This function tries to find the name of the animated material array we want to use.
+    It can return either a string, if using another header's data, or None, in which case we will export for the current header.
+    """
+
     animated_materials = None
 
+    # start by checking if we should try to find the right header's name
     if alt_prop.reuse_anim_mat:
+        # little map for convenience
         header_map = {
-            "Child Night": 1,
-            "Adult Day": 2,
-            "Adult Night": 3,
+            "Child Night": ("childNightHeader", 1),
+            "Adult Day": ("adultDayHeader", 2),
+            "Adult Night": ("adultNightHeader", 3),
         }
 
-        anim_mat_header = alt_prop.internal_anim_mat_header
+        # initial values
+        target_prop = alt_prop
+        index = None
 
-        if anim_mat_header == "Child Day":
-            index = 0
-        elif anim_mat_header == "Cutscene":
-            assert header_index >= game_data.z64.cs_index_start
-            index = header_index
-        else:
-            index = header_map[anim_mat_header]
+        # search as long as we don't find an entry
+        while target_prop.reuse_anim_mat:
+            # if it's not none it means this at least the second iteration
+            if index is not None:
+                # infinite loops can happen if set header A to reuse header B and header B to reuse header A
+                assert (
+                    target_prop.internal_anim_mat_header != alt_prop.internal_anim_mat_header
+                ), f"infinite loop in {repr(scene_obj.name)}'s Animated Materials"
 
+            if target_prop.internal_anim_mat_header == "Child Day":
+                target_prop = scene_obj.ootSceneHeader
+                index = 0
+            elif target_prop.internal_anim_mat_header == "Cutscene":
+                index = cs_index = alt_prop.reuse_anim_mat_cs_index
+                assert (
+                    cs_index >= game_data.z64.cs_index_start and cs_index != header_index
+                ), "invalid cutscene index (Animated Material)"
+
+                cs_index -= game_data.z64.cs_index_start
+                assert cs_index < len(
+                    scene_obj.ootAlternateSceneHeaders.cutsceneHeaders
+                ), f"CS Header No. {index} don't exist (Animated Material)"
+
+                target_prop = scene_obj.ootAlternateSceneHeaders.cutsceneHeaders[cs_index]
+            else:
+                prop_name, index = header_map[target_prop.internal_anim_mat_header]
+                target_prop = getattr(scene_obj.ootAlternateSceneHeaders, prop_name)
+
+                if target_prop.usePreviousHeader:
+                    index -= 1
+
+                    if prop_name == "childNightHeader":
+                        target_prop = scene_obj.ootSceneHeader
+                    elif prop_name == "adultDayHeader":
+                        target_prop = scene_obj.ootAlternateSceneHeaders.childNightHeader
+                    elif prop_name == "adultNightHeader":
+                        target_prop = scene_obj.ootAlternateSceneHeaders.adultDayHeader
+
+        assert index is not None
         animated_materials = f"{name}_header{index:02}_AnimatedMaterial"
 
     return animated_materials
@@ -65,10 +105,18 @@ class Scene:
         model: OOTModel,
     ):
         i = 0
+        use_mat_anim = "mat_anim" in sceneObj.ootSceneHeader.sceneTableEntry.drawConfig
 
         try:
             mainHeader = SceneHeader.new(
-                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, exportInfo.useMacros, None
+                f"{name}_header{i:02}",
+                sceneObj.ootSceneHeader,
+                sceneObj,
+                transform,
+                i,
+                exportInfo.useMacros,
+                use_mat_anim,
+                None,
             )
 
             if mainHeader.infos is not None:
@@ -87,13 +135,20 @@ class Scene:
                 continue
 
             try:
-                target_name = get_anm_mat_target_name(altP, name, i)
+                target_name = get_anm_mat_target_name(sceneObj, altP, name, i)
 
                 setattr(
                     altHeader,
                     header,
                     SceneHeader.new(
-                        f"{name}_header{i:02}", altP, sceneObj, transform, i, exportInfo.useMacros, target_name
+                        f"{name}_header{i:02}",
+                        altP,
+                        sceneObj,
+                        transform,
+                        i,
+                        exportInfo.useMacros,
+                        use_mat_anim,
+                        target_name,
                     ),
                 )
                 hasAlternateHeaders = True
@@ -103,11 +158,18 @@ class Scene:
         altHeader.cutscenes = []
         for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start):
             try:
-                target_name = get_anm_mat_target_name(csHeader, name, i)
+                target_name = get_anm_mat_target_name(sceneObj, csHeader, name, i)
 
                 altHeader.cutscenes.append(
                     SceneHeader.new(
-                        f"{name}_header{i:02}", csHeader, sceneObj, transform, i, exportInfo.useMacros, target_name
+                        f"{name}_header{i:02}",
+                        csHeader,
+                        sceneObj,
+                        transform,
+                        i,
+                        exportInfo.useMacros,
+                        use_mat_anim,
+                        target_name,
                     )
                 )
             except Exception as exc:
@@ -346,6 +408,18 @@ class Scene:
             "#endif\n\n",
         ]
 
+        # add a macro for the segment number for convenience (only if using animated materials)
+        mat_seg_num_macro = [
+            "// Animated Materials requires the segment number to be offset by 7",
+            "#ifndef MATERIAL_SEGMENT_NUM",
+            "#define MATERIAL_SEGMENT_NUM(n) ((n) - 7)",
+            "#endif\n",
+            "// The last entry also requires to be a negative number",
+            "#ifndef LAST_MATERIAL_SEGMENT_NUM",
+            "#define LAST_MATERIAL_SEGMENT_NUM(n) -MATERIAL_SEGMENT_NUM(n)",
+            "#endif\n\n",
+        ]
+
         return SceneFile(
             self.name,
             sceneMainData.source,
@@ -363,6 +437,7 @@ class Scene:
                 + f"#define {self.name.upper()}_H\n\n"
                 + ("\n".join(includes) + "\n\n")
                 + "\n".join(backwards_compatibility)
+                + ("\n".join(mat_seg_num_macro) if "AnimatedMaterial" in sceneMainData.header else "")
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

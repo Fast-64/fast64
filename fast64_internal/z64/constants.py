@@ -24,7 +24,6 @@ enum_am_headers_2.pop(2)
 enum_am_headers_3 = ootEnumHeaderMenuComplete.copy()
 enum_am_headers_3.pop(3)
 enum_am_headers_4 = ootEnumHeaderMenuComplete.copy()
-enum_am_headers_4.pop(4)
 am_enum_map = {
     1: enum_am_headers_1,
     2: enum_am_headers_2,

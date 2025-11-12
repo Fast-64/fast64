@@ -38,12 +38,13 @@ class SceneHeader:
         transform: Matrix,
         headerIndex: int,
         useMacros: bool,
+        use_mat_anim: bool,
         target_name: Optional[str],
     ):
         entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
 
         animated_materials = None
-        if not is_oot_features():
+        if use_mat_anim and not is_oot_features():
             final_name = target_name if target_name is not None else f"{name}_AnimatedMaterial"
             animated_materials = SceneAnimatedMaterial.new(final_name, props, target_name is not None)
 

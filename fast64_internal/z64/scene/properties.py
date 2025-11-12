@@ -447,6 +447,13 @@ class OOTSceneHeaderProperty(PropertyGroup):
             if headerIndex is not None:
                 layout.prop(self, "reuse_anim_mat", text="Use Existing Material Anim.")
 
+            if "mat_anim" not in obj.ootSceneHeader.sceneTableEntry.drawConfig:
+                wrong_box = layout.box().column()
+                wrong_box.label(text="Wrong Draw Config", icon="ERROR")
+                wrong_box.label(text="Make sure one of the 'Material Animated'")
+                wrong_box.label(text="draw configs is selected otherwise")
+                wrong_box.label(text="animated materials won't be exported.")
+
             if headerIndex is not None and headerIndex > 0 and self.reuse_anim_mat:
                 pass
                 prop_split(layout, self, "reuse_anim_mat_header", "Use Material Anim. from")
@@ -471,7 +478,7 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
     cutsceneHeaders: CollectionProperty(type=OOTSceneHeaderProperty)
 
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
-    currentCutsceneIndex: IntProperty(default=1, update=update_cutscene_index)
+    currentCutsceneIndex: IntProperty(default=game_data.z64.cs_index_start, update=update_cutscene_index)
 
     def draw_props(self, layout: UILayout, obj: Object):
         headerSetup = layout.column()
