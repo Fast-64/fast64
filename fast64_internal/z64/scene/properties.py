@@ -32,7 +32,6 @@ from ..constants import (
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
     ootEnumHeaderMenuComplete,
-    am_enum_map,
 )
 
 ootEnumSceneMenuAlternate = [
@@ -337,6 +336,27 @@ class OOTSceneHeaderProperty(PropertyGroup):
     )
 
     def get_anim_mat_header_list(self):
+        # all but child night
+        enum_am_headers_1 = ootEnumHeaderMenuComplete.copy()
+        enum_am_headers_1.pop(1)
+
+        # all but adult day
+        enum_am_headers_2 = ootEnumHeaderMenuComplete.copy()
+        enum_am_headers_2.pop(2)
+
+        # all but adult night
+        enum_am_headers_3 = ootEnumHeaderMenuComplete.copy()
+        enum_am_headers_3.pop(3)
+
+        enum_am_headers_4 = ootEnumHeaderMenuComplete.copy()
+
+        am_enum_map = {
+            1: enum_am_headers_1,
+            2: enum_am_headers_2,
+            3: enum_am_headers_3,
+            4: enum_am_headers_4,
+        }
+
         return am_enum_map[self.internal_header_index]
 
     def on_am_header_set(self, value):
@@ -450,9 +470,14 @@ class OOTSceneHeaderProperty(PropertyGroup):
             if "mat_anim" not in obj.ootSceneHeader.sceneTableEntry.drawConfig:
                 wrong_box = layout.box().column()
                 wrong_box.label(text="Wrong Draw Config", icon="ERROR")
-                wrong_box.label(text="Make sure one of the 'Material Animated'")
-                wrong_box.label(text="draw configs is selected otherwise")
-                wrong_box.label(text="animated materials won't be exported.")
+
+                if bpy.context.scene.ootSceneExportSettings.customExport:
+                    wrong_box.label(text="Make sure the `scene_table.h` entry is using")
+                    wrong_box.label(text="the right draw config.")
+                else:
+                    wrong_box.label(text="Make sure one of the 'Material Animated'")
+                    wrong_box.label(text="draw configs is selected otherwise")
+                    wrong_box.label(text="animated materials won't be exported.")
 
             if headerIndex is not None and headerIndex > 0 and self.reuse_anim_mat:
                 pass

@@ -27,7 +27,7 @@ class SceneHeader:
     spawns: Optional[SceneSpawns]
     path: Optional[ScenePathways]
 
-    # MM (or HackerOoT)
+    # MM (or modded OoT)
     anim_mat: Optional[SceneAnimatedMaterial]
 
     @staticmethod

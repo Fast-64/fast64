@@ -737,7 +737,7 @@
     <Item Key="sdc_fishing_pond" ID="SDC_FISHING_POND" Name="Fishing Pond (Turibori)" Index="50"/>
     <Item Key="sdc_ganons_tower_collapse_interior" ID="SDC_GANONS_TOWER_COLLAPSE_INTERIOR" Name="Ganon's Tower (Collapsing) (Ganon Sonogo)" Index="51"/>
     <Item Key="sdc_inside_ganons_castle_collapse" ID="SDC_INSIDE_GANONS_CASTLE_COLLAPSE" Name="Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)" Index="52"/>
-    <!-- For HackerOoT -->
+    <!-- For mods -->
     <Item Key="sdc_mat_anim" ID="SDC_MAT_ANIM" Name="Material Animated" Index="53"/>
     <Item Key="sdc_mat_anim_manual_step" ID="SDC_MAT_ANIM_MANUAL_STEP" Name="Material Animated (manual step)" Index="54"/>
   </Enum>

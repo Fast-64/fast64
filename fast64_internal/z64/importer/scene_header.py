@@ -497,7 +497,7 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_END":
             command_list.remove(command)
 
-        # handle Majora's Mask (or HackerOoT) exclusive commands
+        # handle Majora's Mask (or modded OoT) exclusive commands
         elif game_data.z64.is_mm() or is_hackeroot():
             if command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
                 if sharedSceneData.includeAnimatedMats:

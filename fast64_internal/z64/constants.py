@@ -15,22 +15,6 @@ ootEnumHeaderMenuComplete = [
     ("Child Day", "Child Day", "Child Day"),
 ] + ootEnumHeaderMenu
 
-enum_am_headers_1 = ootEnumHeaderMenuComplete.copy()
-enum_am_headers_1.pop(1)
-enum_am_headers_1 = ootEnumHeaderMenuComplete.copy()
-enum_am_headers_1.pop(1)
-enum_am_headers_2 = ootEnumHeaderMenuComplete.copy()
-enum_am_headers_2.pop(2)
-enum_am_headers_3 = ootEnumHeaderMenuComplete.copy()
-enum_am_headers_3.pop(3)
-enum_am_headers_4 = ootEnumHeaderMenuComplete.copy()
-am_enum_map = {
-    1: enum_am_headers_1,
-    2: enum_am_headers_2,
-    3: enum_am_headers_3,
-    4: enum_am_headers_4,
-}
-
 ootEnumCameraMode = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),

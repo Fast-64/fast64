@@ -446,7 +446,7 @@ class SceneAnimatedMaterial:
         else:
             return indent + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
 
-    def to_c(self):
+    def to_c(self, is_scene: bool = True):
         data = CData()
 
         if self.animated_material is not None:
@@ -461,7 +461,7 @@ class SceneAnimatedMaterial:
                 extra = "#endif\n"
 
             data.source += extra + "\n"
-            data.header += "\n" + extra
+            data.header += ("\n" if not is_scene else "") + extra
 
         return data
 

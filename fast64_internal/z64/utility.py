@@ -805,7 +805,8 @@ def onHeaderMenuTabChange(self, context: bpy.types.Context):
 
     onHeaderPropertyChange(self, context, callback)
 
-    if context.view_layer.objects.active.ootEmptyType == "Scene":
+    active_obj = context.view_layer.objects.active
+    if active_obj is not None and active_obj.ootEmptyType == "Scene":
         # not using `self` is intended
         on_alt_menu_tab_change(context.view_layer.objects.active.ootAlternateSceneHeaders, context)
 

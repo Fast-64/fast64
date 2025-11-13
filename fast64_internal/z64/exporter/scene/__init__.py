@@ -44,7 +44,7 @@ def get_anm_mat_target_name(scene_obj: Object, alt_prop: OOTSceneHeaderProperty,
         while target_prop.reuse_anim_mat:
             # if it's not none it means this at least the second iteration
             if index is not None:
-                # infinite loops can happen if set header A to reuse header B and header B to reuse header A
+                # infinite loops can happen if you set header A to reuse header B and header B to reuse header A
                 assert (
                     target_prop.internal_anim_mat_header != alt_prop.internal_anim_mat_header
                 ), f"infinite loop in {repr(scene_obj.name)}'s Animated Materials"

@@ -84,6 +84,7 @@ class OOTCollectionRemove(Operator):
     )
     internal_amount: IntProperty(min=0, default=0)
 
+    # static methods because it doesn't work otherwise
     @staticmethod
     def on_amount_set(owner, value):
         owner.internal_amount = value
@@ -134,7 +135,7 @@ class OOTCollectionRemove(Operator):
             elif self.amount == 1:
                 text = f"Will remove Item No. {self.option + 1} and the next one."
             else:
-                text = f"Will remove Item No. {self.option + 1} and the next {self.amount - 1}."
+                text = f"Will remove Item No. {self.option + 1} and the next {self.amount}."
 
             layout.label(text=text)
 

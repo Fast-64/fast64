@@ -12,7 +12,7 @@
 9. [Custom Link Process](#custom-link-process)
 10. [Custom Skeleton Mesh Process](#custom-skeleton-mesh-process)
 11. [Cutscenes](#cutscenes)
-11. [Animated Materials](#animated-materials)
+12. [Animated Materials](#animated-materials)
 
 ### Getting Started
 1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
