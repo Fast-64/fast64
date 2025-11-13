@@ -1,6 +1,3 @@
-import bpy
-import os
-
 from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
 from ...panels import OOT_Panel
@@ -10,14 +7,12 @@ from .properties import (
     OOTExportSceneSettingsProperty,
     OOTImportSceneSettingsProperty,
     OOTRemoveSceneSettingsProperty,
-    OOTBootupSceneOptions,
 )
 
 from .operators import (
     OOT_ImportScene,
     OOT_ExportScene,
     OOT_RemoveScene,
-    OOT_ClearBootupScene,
     OOT_SearchSceneEnumOperator,
 )
 
@@ -42,18 +37,6 @@ class OOT_ExportScenePanel(OOT_Panel):
         if not settings.customExport:
             self.drawSceneSearchOp(exportBox, settings.option, "Export")
         settings.draw_props(exportBox)
-
-        if context.scene.fast64.oot.hackerFeaturesEnabled:
-            hackerOoTBox = exportBox.box().column()
-            hackerOoTBox.label(text="HackerOoT Options")
-
-            bootOptions: OOTBootupSceneOptions = context.scene.fast64.oot.bootupSceneOptions
-            bootOptions.draw_props(hackerOoTBox)
-
-            hackerOoTBox.label(
-                text="Note: Scene boot config changes aren't detected by the make process.", icon="ERROR"
-            )
-            hackerOoTBox.operator(OOT_ClearBootupScene.bl_idname, text="Undo Boot To Scene (HackerOOT Repo)")
 
         exportBox.operator(OOT_ExportScene.bl_idname)
 

@@ -261,10 +261,11 @@ def getGroupNameFromIndex(obj, index):
     return None
 
 
-def copyPropertyCollection(oldProp, newProp):
-    newProp.clear()
-    for item in oldProp:
-        newItem = newProp.add()
+def copyPropertyCollection(from_prop, to_prop, do_clear: bool = True):
+    if do_clear:
+        to_prop.clear()
+    for item in from_prop:
+        newItem = to_prop.add()
         if isinstance(item, bpy.types.PropertyGroup):
             copyPropertyGroup(item, newItem)
         elif type(item).__name__ == "bpy_prop_collection_idprop":
@@ -273,18 +274,18 @@ def copyPropertyCollection(oldProp, newProp):
             newItem = item
 
 
-def copyPropertyGroup(oldProp, newProp):
-    for sub_value_attr in oldProp.bl_rna.properties.keys():
+def copyPropertyGroup(from_prop, to_prop):
+    for sub_value_attr in from_prop.bl_rna.properties.keys():
         if sub_value_attr == "rna_type":
             continue
-        sub_value = getattr(oldProp, sub_value_attr)
+        sub_value = getattr(from_prop, sub_value_attr)
         if isinstance(sub_value, bpy.types.PropertyGroup):
-            copyPropertyGroup(sub_value, getattr(newProp, sub_value_attr))
+            copyPropertyGroup(sub_value, getattr(to_prop, sub_value_attr))
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
-            newCollection = getattr(newProp, sub_value_attr)
+            newCollection = getattr(to_prop, sub_value_attr)
             copyPropertyCollection(sub_value, newCollection)
         else:
-            setattr(newProp, sub_value_attr, sub_value)
+            setattr(to_prop, sub_value_attr, sub_value)
 
 
 def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object):
@@ -1331,7 +1332,7 @@ def filepath_ui_warnings(
     return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
 
 
-def toAlnum(name, exceptions=[]):
+def toAlnum(name: str, exceptions=[]):
     if name is None or name == "":
         return None
     for i in range(len(name)):
@@ -2061,17 +2062,35 @@ def get_include_data(include: str, strip: bool = False):
 
 
 def get_new_object(
-    name: str, data: Optional[Any], selectObject: bool, parentObj: Optional[bpy.types.Object]
+    name: str,
+    data: Optional[Any],
+    do_select: bool,
+    location=[0.0, 0.0, 0.0],
+    rotation_euler=[0.0, 0.0, 0.0],
+    scale=[1.0, 1.0, 1.0],
+    parent: Optional[bpy.types.Object] = None,
 ) -> bpy.types.Object:
-    newObj = bpy.data.objects.new(name=name, object_data=data)
-    bpy.context.view_layer.active_layer_collection.collection.objects.link(newObj)
+    new_obj = bpy.data.objects.new(name=name, object_data=data)
+    bpy.context.view_layer.active_layer_collection.collection.objects.link(new_obj)
 
-    if selectObject:
-        newObj.select_set(True)
-        bpy.context.view_layer.objects.active = newObj
+    if do_select:
+        new_obj.select_set(True)
+        bpy.context.view_layer.objects.active = new_obj
 
-    newObj.parent = parentObj
-    newObj.location = [0.0, 0.0, 0.0]
-    newObj.rotation_euler = [0.0, 0.0, 0.0]
-    newObj.scale = [1.0, 1.0, 1.0]
-    return newObj
+    new_obj.parent = parent
+    new_obj.location = location
+    new_obj.rotation_euler = rotation_euler
+    new_obj.scale = scale
+    return new_obj
+
+
+def get_new_empty_object(
+    name: str,
+    do_select: bool = False,
+    location=[0.0, 0.0, 0.0],
+    rotation_euler=[0.0, 0.0, 0.0],
+    scale=[1.0, 1.0, 1.0],
+    parent: Optional[bpy.types.Object] = None,
+):
+    """Creates and returns a new empty object"""
+    return get_new_object(name, None, do_select, location, rotation_euler, scale, parent)

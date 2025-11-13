@@ -1,11 +1,12 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .utility import getSceneObj, getRoomObj
+from .utility import getSceneObj, getRoomObj, is_oot_features
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
+from .animated_mats.properties import Z64_AnimatedMaterialProperty
 from .cutscene.motion.properties import (
     OOTCutsceneMotionProperty,
     CutsceneCmdActorCueListProperty,
@@ -37,15 +38,16 @@ ootEnumEmptyType = [
     ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
     ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
     ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
+    ("Animated Materials", "Animated Materials", "Animated Materials"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
-    obj.ootSceneHeader.draw_props(box, None, None, objName)
+    obj.ootSceneHeader.draw_props(box.box(), None, None, obj)
     if obj.ootSceneHeader.menuTab == "Alternate":
-        obj.ootAlternateSceneHeaders.draw_props(box, objName)
+        obj.ootAlternateSceneHeaders.draw_props(box.box(), obj)
     box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
 
@@ -172,6 +174,13 @@ class OOTObjectPanel(bpy.types.Panel):
             csProp: OOTCutsceneProperty = obj.ootCutsceneProperty
             csProp.draw_props(box, obj)
 
+        elif obj.ootEmptyType == "Animated Materials":
+            if is_oot_features() and not context.scene.fast64.oot.hackerFeaturesEnabled:
+                box.label(text="This required MM or HackerOoT features to be enabled.")
+            else:
+                anim_props: Z64_AnimatedMaterialProperty = obj.fast64.oot.animated_materials
+                anim_props.draw_props(box, obj)
+
         elif obj.ootEmptyType in [
             "CS Actor Cue List",
             "CS Player Cue List",
@@ -192,7 +201,9 @@ class OOTObjectPanel(bpy.types.Panel):
 
 
 class OOT_ObjectProperties(bpy.types.PropertyGroup):
+    # bpy.data.objects["XXXX"].fast64.oot.
     scene: bpy.props.PointerProperty(type=OOTSceneProperties)
+    animated_materials: bpy.props.PointerProperty(type=Z64_AnimatedMaterialProperty)
 
     @staticmethod
     def upgrade_changed_props():

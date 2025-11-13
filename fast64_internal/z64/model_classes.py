@@ -1,12 +1,18 @@
-import bpy, os, re, mathutils
-from typing import Union
+import bpy
+import os
+import re
+import mathutils
+
+from typing import Union, Optional
+from dataclasses import dataclass
 
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
-from ..utility import PluginError, hexOrDecInt, create_or_get_world
-from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
+from ..utility import PluginError, hexOrDecInt, create_or_get_world, indent
+from ..f3d.flipbook import TextureFlipbook, usesFlipbook, ootFlipbookReferenceIsValid
 
 from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo
+
 from ..f3d.f3d_texture_writer import (
     getColorsUsedInImage,
     mergePalettes,
@@ -14,12 +20,12 @@ from ..f3d.f3d_texture_writer import (
     writeNonCITextureData,
     getTextureNamesFromImage,
 )
+
 from ..f3d.f3d_gbi import (
     FModel,
     FMaterial,
     FImage,
     FImageKey,
-    FPaletteKey,
     GfxMatWriteMethod,
     SPDisplayList,
     GfxList,
@@ -27,9 +33,11 @@ from ..f3d.f3d_gbi import (
     DLFormat,
     SPMatrix,
     GfxFormatter,
-    MTX_SIZE,
     DPSetTile,
+    MTX_SIZE,
 )
+
+from .utility import is_hackeroot
 
 
 # read included asset data
@@ -95,10 +103,33 @@ def ootGetLinkData(basePath: str) -> str:
     return actorData
 
 
+# custom `SPDisplayList` so we can customize the C output
+@dataclass(unsafe_hash=True)
+class DynamicMaterialDL(SPDisplayList):
+    is_animated_material_sdc: bool
+
+    def __post_init__(self):
+        self.default_formatting = False
+
+    def to_c(self, static=True):
+        assert static
+        if (
+            is_hackeroot()
+            and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs
+            and self.is_animated_material_sdc
+        ):
+            return (
+                "#if ENABLE_ANIMATED_MATERIALS\n" + indent + f"gsSPDisplayList({self.displayList.name}),\n" + "#endif\n"
+            )
+        else:
+            return indent + f"gsSPDisplayList({self.displayList.name}),\n"
+
+
 class OOTModel(FModel):
-    def __init__(self, name, DLFormat, drawLayerOverride):
+    def __init__(self, name, DLFormat, drawLayerOverride, draw_config: Optional[str] = None):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[TextureFlipbook] = []
+        self.draw_config = draw_config
 
         FModel.__init__(self, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
@@ -283,16 +314,20 @@ class OOTModel(FModel):
         # handle dynamic material calls
         gfxList = fMaterial.material
         matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
+
         for i in range(8, 14):
-            if getattr(matDrawLayer, "segment" + format(i, "X")):
+            if getattr(matDrawLayer, f"segment{i:X}"):
                 gfxList.commands.append(
-                    SPDisplayList(GfxList("0x" + format(i, "X") + "000000", GfxListTag.Material, DLFormat.Static))
+                    DynamicMaterialDL(
+                        GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), "mat_anim" in self.draw_config
+                    )
                 )
+
         for i in range(0, 2):
-            p = "customCall" + str(i)
+            p = f"customCall{i}"
             if getattr(matDrawLayer, p):
                 gfxList.commands.append(
-                    SPDisplayList(GfxList(getattr(matDrawLayer, p + "_seg"), GfxListTag.Material, DLFormat.Static))
+                    SPDisplayList(GfxList(getattr(matDrawLayer, f"{p}_seg"), GfxListTag.Material, DLFormat.Static))
                 )
 
     def onAddMesh(self, fMesh, contextObj):

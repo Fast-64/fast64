@@ -5,6 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import update_world_default_rendermode
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
+from ..utility import is_hackeroot
 
 
 class OOTDLExportSettings(PropertyGroup):

@@ -12,6 +12,7 @@
 9. [Custom Link Process](#custom-link-process)
 10. [Custom Skeleton Mesh Process](#custom-skeleton-mesh-process)
 11. [Cutscenes](#cutscenes)
+12. [Animated Materials](#animated-materials)
 
 ### Getting Started
 1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
@@ -194,3 +195,43 @@ If the camera preview in Blender isn't following where you have the bones or if 
 2. If you moved / rotated / etc. one of the camera shots / armatures in object mode, this transformation will be ignored. You can fix this by selecting the shot / armature in object mode and clicking Object > Apply > All Transforms. That will convert the transform to actual changed positions for each bone.
 
 If the game crashes check the transitions if you use the transition command (check both the ones from the entrance table and your cutscene script), also it will crash if you try to use the map select without having a 5th entrance (or more depending on the number of cutscenes you have) in the group for your scene.
+
+### Animated Materials
+
+This is a feature you can use for Majora's Mask and OoT backports like HackerOoT (requires enabling `Enable MM Features` for non-HackerOoT OoT decomp projects). It allows you to do some animation on any material you want, on Majora's Mask it's used to animate some actor's textures, and it's used in scenes too, this is what makes the walls in Majora's Lair animated, for instance.
+
+**Important**: this requires the scene to use a specific draw config called `Material Animated` (or `Material Animated (manual step)` for special cases).
+
+**Getting Started**
+
+For non-scene export you'll need to either use the `Add Animated Material` button under the `Tools` tab, or manually adding an empty object and setting the object mode to `Animated Materials`. If doing the latter make sure the object is parented to the scene object, it can be parented to a room too, or anything else as long as the scene object is in the hierarchy, but it will be exported to the scene file.
+
+For scenes it's integrated as a tab in the scene header properties panel.
+
+**Creating the animated materials list**
+
+For non-scene export, click on `Add Item` to add a new animated material list.
+
+You can pick the segment number with the `Segment Number` field (make sure to use the same number on the material you want this to be used on), for convenience the exporter will add a macro to make it more readable. `Draw Handler Type` lets you choose what kind of animated material you want, it can be one of:
+- `0`: Texture Scroll
+- `1`: Two-textures Scroll
+- `2`: Color
+- `3`: Color LERP
+- `4`: Color Non-linear Interpolation
+- `5`: Texture Cycle (like a GIF)
+
+For the LERP and non-linear interpolation color types you will also have a `Keyframe Length` field, this corresponds to the length of the animation. `Draw Color` (type 2) can use environment color but it's not mandatory unlike the other ones.
+
+Both texture scroll types will use the same elements:
+- `Step X`: step value on the X axis
+- `Step Y`: step value on the Y axis
+- `Texture Width`: the width of the texture
+- `Texture Height`: the height of the texture
+
+All 3 color types will use the same elements:
+- `Frame No.`: when to execute this entry (relative to the keyframe length), not available for `Draw Color`
+- `Primitive LOD Frac`: unknown purpose, feel free to complete!
+- `Primitive Color`: the primitive color to apply
+- `Environment Color`: the environment color to apply, optional for `Draw Color`
+
+The texture cycle type will show you two lists to fill, one for the texture symbols to use and another one for the indices that points to the textures list. Note that both list don't need to be the same length, also this technically uses a keyframe length too but it should always match the total number of indices that's why you can't manually choose it.

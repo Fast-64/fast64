@@ -2,12 +2,15 @@ from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
+
 from ....utility import CData
+from ...utility import is_oot_features
 from ...scene.properties import OOTSceneHeaderProperty
 from ..cutscene import SceneCutscene
 from .general import SceneLighting, SceneInfos, SceneExits
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
 from .pathways import ScenePathways
+from .animated_mats import SceneAnimatedMaterial
 
 
 @dataclass
@@ -24,11 +27,27 @@ class SceneHeader:
     spawns: Optional[SceneSpawns]
     path: Optional[ScenePathways]
 
+    # MM (or modded OoT)
+    anim_mat: Optional[SceneAnimatedMaterial]
+
     @staticmethod
     def new(
-        name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool
+        name: str,
+        props: OOTSceneHeaderProperty,
+        sceneObj: Object,
+        transform: Matrix,
+        headerIndex: int,
+        useMacros: bool,
+        use_mat_anim: bool,
+        target_name: Optional[str],
     ):
         entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
+
+        animated_materials = None
+        if use_mat_anim and not is_oot_features():
+            final_name = target_name if target_name is not None else f"{name}_AnimatedMaterial"
+            animated_materials = SceneAnimatedMaterial.new(final_name, props, target_name is not None)
+
         return SceneHeader(
             name,
             SceneInfos.new(props, sceneObj),
@@ -39,6 +58,7 @@ class SceneHeader:
             entranceActors,
             SceneSpawns(f"{name}_entranceList", entranceActors.entries),
             ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
+            animated_materials,
         )
 
     def getC(self):
@@ -66,6 +86,10 @@ class SceneHeader:
         # Write the path data, if used
         if len(self.path.pathList) > 0:
             headerData.append(self.path.getC())
+
+        # Write the animated material list, if used
+        if self.anim_mat is not None:
+            headerData.append(self.anim_mat.to_c())
 
         return headerData
 

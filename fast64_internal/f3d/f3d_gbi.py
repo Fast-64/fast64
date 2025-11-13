@@ -2203,7 +2203,10 @@ class GfxList:
     def to_c_static(self, name: str):
         data = f"Gfx {name}[] = {{\n"
         for command in self.commands:
-            data += f"\t{command.to_c(True)},\n"
+            if command.default_formatting:
+                data += f"\t{command.to_c(True)},\n"
+            else:
+                data += command.to_c(True)
         data += "};\n\n"
         return data
 
@@ -3413,6 +3416,11 @@ class GbiMacro:
     That would cause an issue for scrolling that modifies static DLs, which requires the command's index into its current display list.
     For example, inling material commands.
     This is unannotated and will not be considered when calculating the hash.
+    """
+
+    default_formatting = True
+    """
+    Type: bool. Used to allow an overriden `to_c` function customize the formatting (identation, newlines, etc).
     """
 
     def get_ptr_offsets(self, f3d):

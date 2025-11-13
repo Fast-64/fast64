@@ -9,6 +9,7 @@ from .operators import (
     OOT_AddPath,
     OOTClearTransformAndLock,
     OOTQuickImport,
+    Z64_AddAnimatedMaterial,
 )
 
 
@@ -26,6 +27,7 @@ class OoT_ToolsPanel(OOT_Panel):
         col.operator(OOT_AddPath.bl_idname)
         col.operator(OOTClearTransformAndLock.bl_idname)
         col.operator(OOTQuickImport.bl_idname)
+        col.operator(Z64_AddAnimatedMaterial.bl_idname)
 
 
 oot_operator_panel_classes = [
@@ -41,6 +43,7 @@ toolOpsToRegister = [
     OOT_AddPath,
     OOTClearTransformAndLock,
     OOTQuickImport,
+    Z64_AddAnimatedMaterial,
 ]
 
 
