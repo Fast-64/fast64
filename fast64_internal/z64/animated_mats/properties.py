@@ -13,7 +13,7 @@ from bpy.props import (
 from typing import Optional
 
 from ...utility import prop_split
-from ..collection_utility import drawAddButton, drawCollectionOps
+from ..collection_utility import drawAddButton, drawCollectionOps, draw_utility_ops
 from ..utility import get_list_tab_text, getEnumIndex
 
 
@@ -67,7 +67,16 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
         is_draw_color: bool,
         use_env_color: bool,
     ):
-        drawCollectionOps(layout, index, "Animated Mat. Color", header_index, owner.name, collection_index=parent_index)
+        drawCollectionOps(
+            layout,
+            index,
+            "Animated Mat. Color",
+            header_index,
+            owner.name,
+            collection_index=parent_index,
+            ask_for_copy=True,
+            ask_for_amount=True,
+        )
 
         # "draw color" type don't need this
         if not is_draw_color:
@@ -108,7 +117,15 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
                     layout, owner, header_index, parent_index, i, is_draw_color, not is_draw_color or self.use_env_color
                 )
 
-            drawAddButton(layout, len(self.keyframes), "Animated Mat. Color", header_index, owner.name, parent_index)
+            draw_utility_ops(
+                layout.row(),
+                len(self.keyframes),
+                "Animated Mat. Color",
+                header_index,
+                owner.name,
+                parent_index,
+                ask_for_amount=True,
+            )
 
 
 class Z64_AnimatedMatTexScrollItem(PropertyGroup):
@@ -155,7 +172,14 @@ class Z64_AnimatedMatTexCycleTexture(PropertyGroup):
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int, index: int):
         drawCollectionOps(
-            layout, index, "Animated Mat. Cycle (Texture)", header_index, owner.name, collection_index=parent_index
+            layout,
+            index,
+            "Animated Mat. Cycle (Texture)",
+            header_index,
+            owner.name,
+            collection_index=parent_index,
+            ask_for_copy=True,
+            ask_for_amount=True,
         )
         prop_split(layout, self, "symbol", "Texture Symbol")
 
@@ -165,7 +189,14 @@ class Z64_AnimatedMatTexCycleKeyFrame(PropertyGroup):
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int, index: int):
         drawCollectionOps(
-            layout, index, "Animated Mat. Cycle (Index)", header_index, owner.name, collection_index=parent_index
+            layout,
+            index,
+            "Animated Mat. Cycle (Index)",
+            header_index,
+            owner.name,
+            collection_index=parent_index,
+            ask_for_copy=True,
+            ask_for_amount=True,
         )
         prop_split(layout, self, "texture_index", "Texture Symbol")
 
@@ -187,8 +218,14 @@ class Z64_AnimatedMatTexCycleParams(PropertyGroup):
         if self.show_textures:
             for i, texture in enumerate(self.textures):
                 texture.draw_props(texture_box, owner, header_index, parent_index, i)
-            drawAddButton(
-                texture_box, len(self.textures), "Animated Mat. Cycle (Texture)", header_index, owner.name, parent_index
+            draw_utility_ops(
+                texture_box.row(),
+                len(self.textures),
+                "Animated Mat. Cycle (Texture)",
+                header_index,
+                owner.name,
+                parent_index,
+                ask_for_amount=True,
             )
 
         index_box = layout.box()
@@ -197,8 +234,14 @@ class Z64_AnimatedMatTexCycleParams(PropertyGroup):
         if self.show_entries:
             for i, keyframe in enumerate(self.keyframes):
                 keyframe.draw_props(index_box, owner, header_index, parent_index, i)
-            drawAddButton(
-                index_box, len(self.keyframes), "Animated Mat. Cycle (Index)", header_index, owner.name, parent_index
+            draw_utility_ops(
+                index_box.row(),
+                len(self.keyframes),
+                "Animated Mat. Cycle (Index)",
+                header_index,
+                owner.name,
+                parent_index,
+                ask_for_amount=True,
             )
 
 
@@ -239,7 +282,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
         )
 
         if self.show_item:
-            drawCollectionOps(layout, index, "Animated Mat.", header_index, owner.name)
+            drawCollectionOps(layout, index, "Animated Mat.", header_index, owner.name, ask_for_amount=True)
 
             prop_split(layout, self, "segment_num", "Segment Number")
 
@@ -276,7 +319,15 @@ class Z64_AnimatedMaterial(PropertyGroup):
 
         if self.show_list:
             if index is not None:
-                drawCollectionOps(layout, index, "Animated Mat. List", header_index, owner.name)
+                drawCollectionOps(
+                    layout,
+                    index,
+                    "Animated Mat. List",
+                    header_index,
+                    owner.name,
+                    ask_for_copy=True,
+                    ask_for_amount=True,
+                )
 
             prop_text = get_list_tab_text("Animated Materials", len(self.entries))
             layout_entries = layout.column()
@@ -288,7 +339,14 @@ class Z64_AnimatedMaterial(PropertyGroup):
                 for i, item in enumerate(self.entries):
                     item.draw_props(layout_entries.box().column(), owner, header_index, i)
 
-                drawAddButton(layout_entries, len(self.entries), "Animated Mat.", header_index, owner.name)
+                draw_utility_ops(
+                    layout_entries.row(),
+                    len(self.entries),
+                    "Animated Mat.",
+                    header_index,
+                    owner.name,
+                    ask_for_amount=True,
+                )
 
 
 class Z64_AnimatedMaterialProperty(PropertyGroup):

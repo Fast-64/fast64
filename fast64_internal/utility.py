@@ -261,10 +261,11 @@ def getGroupNameFromIndex(obj, index):
     return None
 
 
-def copyPropertyCollection(oldProp, newProp):
-    newProp.clear()
-    for item in oldProp:
-        newItem = newProp.add()
+def copyPropertyCollection(from_prop, to_prop, do_clear: bool = True):
+    if do_clear:
+        to_prop.clear()
+    for item in from_prop:
+        newItem = to_prop.add()
         if isinstance(item, bpy.types.PropertyGroup):
             copyPropertyGroup(item, newItem)
         elif type(item).__name__ == "bpy_prop_collection_idprop":
@@ -273,18 +274,18 @@ def copyPropertyCollection(oldProp, newProp):
             newItem = item
 
 
-def copyPropertyGroup(oldProp, newProp):
-    for sub_value_attr in oldProp.bl_rna.properties.keys():
+def copyPropertyGroup(from_prop, to_prop):
+    for sub_value_attr in from_prop.bl_rna.properties.keys():
         if sub_value_attr == "rna_type":
             continue
-        sub_value = getattr(oldProp, sub_value_attr)
+        sub_value = getattr(from_prop, sub_value_attr)
         if isinstance(sub_value, bpy.types.PropertyGroup):
-            copyPropertyGroup(sub_value, getattr(newProp, sub_value_attr))
+            copyPropertyGroup(sub_value, getattr(to_prop, sub_value_attr))
         elif type(sub_value).__name__ == "bpy_prop_collection_idprop":
-            newCollection = getattr(newProp, sub_value_attr)
+            newCollection = getattr(to_prop, sub_value_attr)
             copyPropertyCollection(sub_value, newCollection)
         else:
-            setattr(newProp, sub_value_attr, sub_value)
+            setattr(to_prop, sub_value_attr, sub_value)
 
 
 def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object):
