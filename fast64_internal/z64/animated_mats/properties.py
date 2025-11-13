@@ -50,6 +50,7 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
 
     def validate_frame_num(self):
         if self.internal_frame_num >= self.internal_length:
+            # TODO: figure out if having the same value is fine
             self.internal_frame_num = self.internal_length - 1
 
     def on_frame_num_set(self, value):
