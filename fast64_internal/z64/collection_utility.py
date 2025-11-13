@@ -269,6 +269,8 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
         collection = obj.ootAlternateSceneHeaders.cutsceneHeaders
     elif collectionType == "Light":
         collection = getCollectionFromIndex(obj, "lightList", subIndex, False)
+    elif collectionType == "ToD Light":
+        collection = getCollectionFromIndex(obj, "tod_lights", subIndex, False)
     elif collectionType == "Exit":
         collection = getCollectionFromIndex(obj, "exitList", subIndex, False)
     elif collectionType == "Object":

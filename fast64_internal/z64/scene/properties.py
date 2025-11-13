@@ -1,5 +1,6 @@
 import bpy
 
+from typing import Optional
 from bpy.types import PropertyGroup, Object, Light, UILayout, Scene, Context
 from bpy.props import (
     EnumProperty,
@@ -178,7 +179,14 @@ class OOTLightProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
 
     def draw_props(
-        self, layout: UILayout, name: str, showExpandTab: bool, index: int, sceneHeaderIndex: int, objName: str
+        self,
+        layout: UILayout,
+        name: str,
+        showExpandTab: bool,
+        index: Optional[int],
+        sceneHeaderIndex: Optional[int],
+        objName: Optional[str],
+        collection_type: Optional[str],
     ):
         if showExpandTab:
             box = layout.box().column()
@@ -189,28 +197,25 @@ class OOTLightProperty(PropertyGroup):
             expandTab = True
 
         if expandTab:
-            if index is not None:
-                drawCollectionOps(box, index, "Light", sceneHeaderIndex, objName)
+            if index is not None and collection_type is not None:
+                drawCollectionOps(box, index, collection_type, sceneHeaderIndex, objName)
             prop_split(box, self, "ambient", "Ambient Color")
 
-            if self.useCustomDiffuse0:
-                prop_split(box, self, "diffuse0Custom", "Diffuse 0")
-                box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
-            else:
-                prop_split(box, self, "diffuse0", "Diffuse 0")
-            box.prop(self, "useCustomDiffuse0")
+            def draw_diffuse(index: int):
+                layout_diffuse = box.box()
+                layout_diffuse.prop(self, f"useCustomDiffuse{index}")
+                if self.useCustomDiffuse0:
+                    layout_diffuse.label(text="Make sure light is not part of scene hierarchy.")
+                    prop_split(layout_diffuse, self, f"diffuse{index}Custom", f"Diffuse {index} Object")
+                else:
+                    prop_split(layout_diffuse, self, f"diffuse{index}", f"Diffuse{index} Color")
 
-            if self.useCustomDiffuse1:
-                prop_split(box, self, "diffuse1Custom", "Diffuse 1")
-                box.label(text="Make sure light is not part of scene hierarchy.", icon="FILE_PARENT")
-            else:
-                prop_split(box, self, "diffuse1", "Diffuse 1")
-            box.prop(self, "useCustomDiffuse1")
-
+            draw_diffuse(0)
+            draw_diffuse(1)
             prop_split(box, self, "fogColor", "Fog Color")
             prop_split(box, self, "fogNear", "Fog Near (Fog Far=1000)")
             prop_split(box, self, "z_far", "Z Far (Draw Distance)")
-            prop_split(box, self, "transitionSpeed", "Transition Speed")
+            prop_split(box, self, "transitionSpeed", "Blend Rate")
 
 
 class OOTLightGroupProperty(PropertyGroup):
@@ -222,17 +227,23 @@ class OOTLightGroupProperty(PropertyGroup):
     night: PointerProperty(type=OOTLightProperty)
     defaultsSet: BoolProperty()
 
-    def draw_props(self, layout: UILayout):
+    def draw_props(self, layout: UILayout, index: Optional[int], header_index: int, obj_name: str):
         box = layout.column()
-        box.row().prop(self, "menuTab", expand=True)
-        if self.menuTab == "Dawn":
-            self.dawn.draw_props(box, "Dawn", False, None, None, None)
-        if self.menuTab == "Day":
-            self.day.draw_props(box, "Day", False, None, None, None)
-        if self.menuTab == "Dusk":
-            self.dusk.draw_props(box, "Dusk", False, None, None, None)
-        if self.menuTab == "Night":
-            self.night.draw_props(box, "Night", False, None, None, None)
+
+        text = "Default Settings" if index is None else f"Light Settings No. {index + 1}"
+        box.prop(self, "expandTab", text=text, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+
+        if self.expandTab:
+            if index is not None:
+                drawCollectionOps(box, index, "ToD Light", header_index, obj_name)
+
+            box.row().prop(self, "menuTab", expand=True)
+
+            for tod_type in ["Dawn", "Day", "Dusk", "Night"]:
+                if self.menuTab == tod_type:
+                    getattr(self, tod_type.lower()).draw_props(
+                        box, tod_type, False, index, header_index, obj_name, None
+                    )
 
 
 class OOTSceneTableEntryProperty(PropertyGroup):
@@ -295,8 +306,12 @@ class OOTSceneHeaderProperty(PropertyGroup):
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")
 
+    # ideally `timeOfDayLights` would be removed in favor of `tod_lights`
+    # but it's easier to keep it since we need at least one element in the collection
     timeOfDayLights: PointerProperty(type=OOTLightGroupProperty, name="Time Of Day Lighting")
+    tod_lights: CollectionProperty(type=OOTLightGroupProperty)
     lightList: CollectionProperty(type=OOTLightProperty, name="Lighting List")
+
     exitList: CollectionProperty(type=OOTExitProperty, name="Exit List")
 
     writeCutscene: BoolProperty(name="Write Cutscene")
@@ -428,11 +443,16 @@ class OOTSceneHeaderProperty(PropertyGroup):
             lighting = layout.column()
             lighting.box().label(text="Lighting List")
             drawEnumWithCustom(lighting, self, "skyboxLighting", "Lighting Mode", "")
+
             if self.skyboxLighting == "LIGHT_MODE_TIME":  # Time of Day
-                self.timeOfDayLights.draw_props(lighting)
+                self.timeOfDayLights.draw_props(lighting.box(), None, headerIndex, obj.name)
+
+                for i, tod_light in enumerate(self.tod_lights):
+                    tod_light.draw_props(lighting.box(), i, headerIndex, obj.name)
+                drawAddButton(lighting, len(self.tod_lights), "ToD Light", headerIndex, obj.name)
             else:
                 for i in range(len(self.lightList)):
-                    self.lightList[i].draw_props(lighting, "Lighting " + str(i), True, i, headerIndex, obj.name)
+                    self.lightList[i].draw_props(lighting, f"Lighting {i}", True, i, headerIndex, obj.name, "Light")
                 drawAddButton(lighting, len(self.lightList), "Light", headerIndex, obj.name)
 
         elif menuTab == "Cutscene":

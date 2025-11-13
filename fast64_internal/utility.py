@@ -2061,19 +2061,36 @@ def get_include_data(include: str, strip: bool = False):
     return data
 
 
+def get_new_object(
+    name: str,
+    data: Optional[Any],
+    do_select: bool,
+    location=[0.0, 0.0, 0.0],
+    rotation_euler=[0.0, 0.0, 0.0],
+    scale=[1.0, 1.0, 1.0],
+    parent: Optional[bpy.types.Object] = None,
+) -> bpy.types.Object:
+    new_obj = bpy.data.objects.new(name=name, object_data=data)
+    bpy.context.view_layer.active_layer_collection.collection.objects.link(new_obj)
+
+    if do_select:
+        new_obj.select_set(True)
+        bpy.context.view_layer.objects.active = new_obj
+
+    new_obj.parent = parent
+    new_obj.location = location
+    new_obj.rotation_euler = rotation_euler
+    new_obj.scale = scale
+    return new_obj
+
+
 def get_new_empty_object(
     name: str,
+    do_select: bool = False,
     location=[0.0, 0.0, 0.0],
     rotation_euler=[0.0, 0.0, 0.0],
     scale=[1.0, 1.0, 1.0],
     parent: Optional[bpy.types.Object] = None,
 ):
     """Creates and returns a new empty object"""
-
-    new_obj = bpy.data.objects.new(name, None)
-    bpy.context.scene.collection.objects.link(new_obj)
-    new_obj.location = location
-    new_obj.rotation_euler = rotation_euler
-    new_obj.scale = scale
-    new_obj.parent = parent
-    return new_obj
+    return get_new_object(name, None, do_select, location, rotation_euler, scale, parent)
