@@ -1,5 +1,4 @@
 import math
-import os
 import re
 import bpy
 import mathutils
@@ -8,12 +7,12 @@ from pathlib import Path
 from typing import Optional
 
 from ...game_data import game_data
-from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
+from ...utility import PluginError, get_new_object, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import getEvalParams, setCustomProperty
+from ..utility import setCustomProperty
 from .constants import headerNames
 from .utility import getDataMatch, stripName, parse_commands_data
 from .classes import SharedSceneData
@@ -57,7 +56,7 @@ def parseDirection(index: int, values: tuple[int, int, int]) -> tuple[float, flo
 
 
 def parseLight(
-    lightHeader: OOTLightProperty, index: int, rotation: mathutils.Euler, color: mathutils.Vector
+    lightHeader: OOTLightProperty, index: int, rotation: mathutils.Euler, color: mathutils.Vector, desc: str
 ) -> bpy.types.Object | None:
     setattr(lightHeader, f"useCustomDiffuse{index}", rotation != "Zero" and rotation != "Default")
 
@@ -66,14 +65,47 @@ def parseLight(
         setattr(lightHeader, f"diffuse{index}", color + (1,))
         return None
     else:
-        light = bpy.data.lights.new("Light", "SUN")
-        lightObj = bpy.data.objects.new("Light", light)
+        light = bpy.data.lights.new(f"{desc} Diffuse {index} Light", "SUN")
+        lightObj = bpy.data.objects.new(f"{desc} Diffuse {index}", light)
         bpy.context.scene.collection.objects.link(lightObj)
         setattr(lightHeader, f"diffuse{index}Custom", lightObj.data)
         lightObj.rotation_euler = rotation
         lightObj.data.color = color
         lightObj.data.type = "SUN"
         return lightObj
+
+
+def set_light_props(
+    parent_obj: bpy.types.Object,
+    light_props: OOTLightProperty,
+    header_index: int,
+    index: int,
+    light_entry: EnvLightSettings,
+    desc: str,
+):
+    ambient_col = parseColor(light_entry.ambientColor)
+    diffuse0_dir = parseDirection(0, light_entry.light1Dir)
+    diffuse0_col = parseColor(light_entry.light1Color)
+    diffuse1_dir = parseDirection(1, light_entry.light2Dir)
+    diffuse1_col = parseColor(light_entry.light2Color)
+    fog_col = parseColor(light_entry.fogColor)
+
+    light_props.ambient = ambient_col + (1,)
+
+    lightObj0 = parseLight(light_props, 0, diffuse0_dir, diffuse0_col, desc)
+    lightObj1 = parseLight(light_props, 1, diffuse1_dir, diffuse1_col, desc)
+
+    if lightObj0 is not None:
+        parentObject(parent_obj, lightObj0)
+        lightObj0.location = [4 + header_index * 2, 0, -index * 2]
+    if lightObj1 is not None:
+        parentObject(parent_obj, lightObj1)
+        lightObj1.location = [4 + header_index * 2, 2, -index * 2]
+
+    light_props.fogColor = fog_col + (1,)
+    light_props.fogNear = light_entry.fogNear
+    light_props.z_far = light_entry.zFar
+    light_props.transitionSpeed = light_entry.blendRate
 
 
 def parseLightList(
@@ -85,41 +117,61 @@ def parseLightList(
     sharedSceneData: SharedSceneData,
 ):
     lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list", strip=True)
-
-    # I currently don't understand the light list format in respect to this lighting flag.
-    # So we'll set it to custom instead.
-    if sceneHeader.skyboxLighting != "Custom":
-        sceneHeader.skyboxLightingCustom = sceneHeader.skyboxLighting
-        sceneHeader.skyboxLighting = "Custom"
-    sceneHeader.lightList.clear()
-
     lightList = EnvLightSettings.from_data(lightData, sharedSceneData.not_zapd_assets)
 
-    for index, lightEntry in enumerate(lightList):
-        ambientColor = parseColor(lightEntry.ambientColor)
-        diffuseDir0 = parseDirection(0, lightEntry.light1Dir)
-        diffuseColor0 = parseColor(lightEntry.light1Color)
-        diffuseDir1 = parseDirection(1, lightEntry.light2Dir)
-        diffuseColor1 = parseColor(lightEntry.light2Color)
-        fogColor = parseColor(lightEntry.fogColor)
+    sceneHeader.tod_lights.clear()
+    sceneHeader.lightList.clear()
 
-        lightHeader = sceneHeader.lightList.add()
-        lightHeader.ambient = ambientColor + (1,)
+    lights_empty = None
+    if len(lightList) > 0:
+        lights_empty = get_new_object(f"{sceneObj.name} Lights (header {headerIndex})", None, False, sceneObj)
+        lights_empty.ootEmptyType = "None"
 
-        lightObj0 = parseLight(lightHeader, 0, diffuseDir0, diffuseColor0)
-        lightObj1 = parseLight(lightHeader, 1, diffuseDir1, diffuseColor1)
+    parent_obj = lights_empty if lights_empty is not None else sceneObj
 
-        if lightObj0 is not None:
-            parentObject(sceneObj, lightObj0)
-            lightObj0.location = [4 + headerIndex * 2, 0, -index * 2]
-        if lightObj1 is not None:
-            parentObject(sceneObj, lightObj1)
-            lightObj1.location = [4 + headerIndex * 2, 2, -index * 2]
+    custom_value = None
+    if sceneHeader.skyboxLighting == "Custom":
+        # try to convert the custom value to an int
+        try:
+            custom_value = hexOrDecInt(sceneHeader.skyboxLightingCustom)
+        except:
+            custom_value = None
 
-        lightHeader.fogColor = fogColor + (1,)
-        lightHeader.fogNear = lightEntry.fogNear
-        lightHeader.z_far = lightEntry.zFar
-        lightHeader.transitionSpeed = lightEntry.blendRate
+        # for older decomps, make sure it's using the right thing for convenience
+        if custom_value is not None and custom_value <= 1:
+            sceneHeader.skyboxLighting = "LIGHT_MODE_TIME" if custom_value == 0 else "LIGHT_MODE_SETTINGS"
+
+    for i, lightEntry in enumerate(lightList):
+        if sceneHeader.skyboxLighting == "LIGHT_MODE_TIME":
+            new_tod_light = sceneHeader.tod_lights.add() if i > 0 else None
+
+            settings_name = "Default Settings" if i == 0 else f"Light Settings {i}"
+            sub_lights_empty = get_new_object(f"(Header {headerIndex}) {settings_name}", None, False, parent_obj)
+            sub_lights_empty.ootEmptyType = "None"
+
+            for tod_type in ["Dawn", "Day", "Dusk", "Night"]:
+                desc = f"{settings_name} ({tod_type})"
+
+                if i == 0:
+                    set_light_props(
+                        sub_lights_empty,
+                        getattr(sceneHeader.timeOfDayLights, tod_type.lower()),
+                        headerIndex,
+                        i,
+                        lightEntry,
+                        desc,
+                    )
+                else:
+                    assert new_tod_light is not None
+                    set_light_props(
+                        sub_lights_empty, getattr(new_tod_light, tod_type.lower()), headerIndex, i, lightEntry, desc
+                    )
+        else:
+            settings_name = "Indoor" if sceneHeader.skyboxLighting != "Custom" else "Custom"
+            desc = f"{settings_name} {i}"
+
+            # indoor and custom modes shares the same properties
+            set_light_props(parent_obj, sceneHeader.lightList.add(), headerIndex, i, lightEntry, desc)
 
 
 def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):

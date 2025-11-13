@@ -2,14 +2,16 @@ import bpy
 import os
 import mathutils
 
-from bpy.types import Operator, Mesh
+from bpy.types import Operator
 from bpy.ops import object
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
+from typing import Optional
+
 from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
-from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod, get_F3D_GBI
+from ...f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
 from ..utility import ootGetObjectPath, ootGetObjectHeaderPath, getOOTScale
 from ..model_classes import OOTF3DContext, ootGetIncludedAssetData
@@ -28,6 +30,15 @@ from ..utility import (
 )
 
 
+class OOTF3DGfxFormatter(OOTGfxFormatter):
+    def __init__(self, scrollMethod):
+        OOTGfxFormatter.__init__(self, scrollMethod)
+
+    # override the function to give a custom name to the DL array
+    def drawToC(self, f3d, gfxList, layer: Optional[str] = None):
+        return gfxList.to_c(f3d, name_override=f"{gfxList.name}_{layer.lower()}_dl")
+
+
 def ootConvertMeshToC(
     originalObj: bpy.types.Object,
     finalTransform: mathutils.Matrix,
@@ -38,7 +49,6 @@ def ootConvertMeshToC(
     folderName = settings.folder
     exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
-    drawLayer = settings.drawLayer
     removeVanillaData = settings.removeVanillaData
     name = toAlnum(originalObj.name)
     overlayName = settings.actorOverlayName
@@ -48,14 +58,14 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(name, DLFormat, drawLayer)
+        fModel = OOTModel(name, DLFormat, None)
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
         )
 
         # Since we provide a draw layer override, there should only be one fMesh.
-        for drawLayer, fMesh in fMeshes.items():
+        for fMesh in fMeshes.values():
             fMesh.draw.name = name
 
         ootCleanupScene(originalObj, allObjs)
@@ -80,7 +90,7 @@ def ootConvertMeshToC(
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
+        TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
     )
 
     data.append(exportData.all())

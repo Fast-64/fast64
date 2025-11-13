@@ -2068,3 +2068,20 @@ def get_prop_annotations(cls):
         prop_annotations = getattr(cls, "__annotations__")
 
     return prop_annotations
+
+
+def get_new_object(
+    name: str, data: Optional[Any], selectObject: bool, parentObj: Optional[bpy.types.Object]
+) -> bpy.types.Object:
+    newObj = bpy.data.objects.new(name=name, object_data=data)
+    bpy.context.view_layer.active_layer_collection.collection.objects.link(newObj)
+
+    if selectObject:
+        newObj.select_set(True)
+        bpy.context.view_layer.objects.active = newObj
+
+    newObj.parent = parentObj
+    newObj.location = [0.0, 0.0, 0.0]
+    newObj.rotation_euler = [0.0, 0.0, 0.0]
+    newObj.scale = [1.0, 1.0, 1.0]
+    return newObj
