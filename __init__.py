@@ -57,6 +57,15 @@ from .fast64_internal.render_settings import (
     on_update_render_settings,
 )
 
+from .fast64_internal.gltf_extension import (
+    glTF2ExportUserExtension,  # Import these so they are visible to the glTF add-on
+    glTF2ImportUserExtension,
+    glTF2_pre_export_callback,
+    Fast64GlTFSettings,
+    gltf_extension_register,
+    gltf_extension_unregister,
+)
+
 # info about add on
 bl_info = {
     "name": "Fast64",
@@ -169,6 +178,8 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     """Settings affecting exports for all games found in scene.fast64.settings"""
 
     version: bpy.props.IntProperty(name="Fast64Settings_Properties Version", default=0)
+
+    glTF: bpy.props.PointerProperty(type=Fast64GlTFSettings, name="glTF Properties")
 
     anim_range_choice: bpy.props.EnumProperty(
         name="Anim Range",
@@ -443,6 +454,8 @@ def register():
     oot_register(True)
     mk64_register(True)
 
+    gltf_extension_register()
+
     repo_settings_operators_register()
 
     for cls in classes:
@@ -490,6 +503,7 @@ def unregister():
     oot_unregister(True)
     mk64_unregister(True)
     mat_unregister()
+    gltf_extension_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
     unregister_class(Matrix4x4Property)
