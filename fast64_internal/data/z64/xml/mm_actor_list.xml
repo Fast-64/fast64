@@ -853,7 +853,7 @@ for each sub element (of <Actor>) mentioned below:
     <Item Key="item_3E" Value="0x3E" Name="Map" />
     <Item Key="item_3F" Value="0x3F" Name="Compass" />
     <Item Key="item_40" Value="0x40" Name="GI_40" />
-    <Item Key="item_41" Value="0x41" Name="Hookshor" />
+    <Item Key="item_41" Value="0x41" Name="Hookshot" />
     <Item Key="item_42" Value="0x42" Name="Lens of Truth" />
     <Item Key="item_43" Value="0x43" Name="Pictograph Box" />
     <Item Key="item_44" Value="0x44" Name="GI_44" />

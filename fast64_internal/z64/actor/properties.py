@@ -339,7 +339,7 @@ class OOTActorProperty(PropertyGroup):
 
                 if "Rot" in target:
                     attr = getattr(self, get_prop_name(actor.key, "Type", None, 1), None)
-                    type_value = getEvalParamsInt(attr) if attr is not None else None
+                    type_value = getEvalParamsInt(attr) if attr is not None and attr != "Custom" else None
 
                 if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
                     val = ((param_val if param_val is not None else -1) & param.mask) >> getShiftFromMask(param.mask)
