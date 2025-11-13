@@ -48,13 +48,16 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
     internal_frame_num: IntProperty(min=0)
     internal_length: IntProperty(min=0)
 
-    def on_frame_num_set(self, value):
-        self.internal_frame_num = value
-
-    def on_frame_num_get(self):
+    def validate_frame_num(self):
         if self.internal_frame_num >= self.internal_length:
             self.internal_frame_num = self.internal_length - 1
 
+    def on_frame_num_set(self, value):
+        self.internal_frame_num = value
+        self.validate_frame_num()
+
+    def on_frame_num_get(self):
+        self.validate_frame_num()
         return self.internal_frame_num
 
     prim_lod_frac: IntProperty(name="Primitive LOD Frac", min=0, max=255, default=128)
@@ -125,13 +128,16 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
 
     internal_color_type: StringProperty()
 
+    def update_keyframes(self):
+        for keyframe in self.keyframes:
+            keyframe.internal_length = self.internal_keyframe_length
+
     def on_length_set(self, value):
         self.internal_keyframe_length = value
-
-        for keyframe in self.keyframes:
-            keyframe.internal_length = value
+        self.update_keyframes()
 
     def on_length_get(self):
+        self.update_keyframes()
         return self.internal_keyframe_length
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
