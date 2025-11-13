@@ -1332,7 +1332,7 @@ def filepath_ui_warnings(
     return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
 
 
-def toAlnum(name, exceptions=[]):
+def toAlnum(name: str, exceptions=[]):
     if name is None or name == "":
         return None
     for i in range(len(name)):

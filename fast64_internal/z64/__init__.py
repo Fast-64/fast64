@@ -57,7 +57,14 @@ from .skeleton.panels import skeleton_panels_register, skeleton_panels_unregiste
 from .spline.properties import spline_props_register, spline_props_unregister
 from .spline.panels import spline_panels_register, spline_panels_unregister
 
-from .animated_mats.properties import animated_mats_props_register, animated_mats_props_unregister
+from .animated_mats.operators import animated_mats_ops_register, animated_mats_ops_unregister
+from .animated_mats.panels import animated_mats_panels_register, animated_mats_panels_unregister
+from .animated_mats.properties import (
+    Z64_AnimatedMaterialExportSettings,
+    Z64_AnimatedMaterialImportSettings,
+    animated_mats_props_register,
+    animated_mats_props_unregister,
+)
 
 from .hackeroot.operators import hackeroot_ops_register, hackeroot_ops_unregister
 from .hackeroot.properties import HackerOoTSettings, hackeroot_props_register, hackeroot_props_unregister
@@ -118,6 +125,8 @@ class OOT_Properties(bpy.types.PropertyGroup):
     oot_version_custom: bpy.props.StringProperty(name="Custom Version")
     mm_features: bpy.props.BoolProperty(name="Enable MM Features", default=False)
     hackeroot_settings: bpy.props.PointerProperty(type=HackerOoTSettings)
+    anim_mats_export_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialExportSettings)
+    anim_mats_import_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialImportSettings)
 
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version
@@ -173,6 +182,7 @@ def oot_panel_register():
     spline_panels_register()
     anim_panels_register()
     skeleton_panels_register()
+    animated_mats_panels_register()
 
 
 def oot_panel_unregister():
@@ -186,6 +196,7 @@ def oot_panel_unregister():
     f3d_panels_unregister()
     anim_panels_unregister()
     skeleton_panels_unregister()
+    animated_mats_panels_unregister()
 
 
 def oot_register(registerPanels):
@@ -194,6 +205,7 @@ def oot_register(registerPanels):
     collision_ops_register()  # register first, so panel goes above mat panel
     collision_props_register()
     cutscene_props_register()
+    animated_mats_ops_register()
     animated_mats_props_register()
     scene_ops_register()
     scene_props_register()
@@ -261,6 +273,7 @@ def oot_unregister(unregisterPanels):
     scene_props_unregister()
     scene_ops_unregister()
     animated_mats_props_unregister()
+    animated_mats_ops_unregister()
     cutscene_props_unregister()
     collision_props_unregister()
     collision_ops_unregister()

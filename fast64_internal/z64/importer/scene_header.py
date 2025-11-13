@@ -20,7 +20,7 @@ from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
 from .scene_collision import parseCollisionHeader
 from .scene_pathways import parsePathList
-from ..animated_mats.properties import enum_anim_mat_type
+from ..animated_mats.properties import Z64_AnimatedMaterial, enum_anim_mat_type
 
 from ..constants import (
     ootEnumAudioSessionPreset,
@@ -233,7 +233,7 @@ def parseAlternateSceneHeaders(
             )
 
 
-def parse_animated_material(scene_header: OOTSceneHeaderProperty, header_index: int, scene_data: str, list_name: str):
+def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, list_name: str):
     anim_mat_type_to_struct = {
         0: "AnimatedMatTexScrollParams",
         1: "AnimatedMatTexScrollParams",
@@ -252,19 +252,22 @@ def parse_animated_material(scene_header: OOTSceneHeaderProperty, header_index: 
     data_match = getDataMatch(scene_data, list_name, "AnimatedMaterial", "animated material")
     anim_mat_data = data_match.strip().split("\n")
 
-    anim_mat_item = scene_header.animated_material
-
     for data in anim_mat_data:
         data = data.replace("{", "").replace("}", "").removesuffix(",").strip()
 
         split = data.split(", ")
+
+        type_num = int(split[1], base=0)
+
+        if type_num == 6:
+            continue
+
         raw_segment = split[0]
 
         if "MATERIAL_SEGMENT_NUM" in raw_segment:
             raw_segment = raw_segment.removesuffix(")").split("(")[1]
 
         segment = int(raw_segment, base=0)
-        type_num = int(split[1], base=0)
         data_ptr = split[2].removeprefix("&")
 
         is_array = type_num in {0, 1}
@@ -286,7 +289,7 @@ def parse_animated_material(scene_header: OOTSceneHeaderProperty, header_index: 
             if struct_name == "AnimatedMatColorParams":
                 params_data.extend([match.group(7), match.group(9)])
 
-        entry = anim_mat_item.entries.add()
+        entry = anim_mat.entries.add()
         entry.segment_num = segment
         enum_type = entry.user_type = enum_anim_mat_type[type_num + 1][0]
         entry.on_type_set(getEnumIndex(enum_anim_mat_type, enum_type))
@@ -498,7 +501,7 @@ def parseSceneCommands(
         elif game_data.z64.is_mm() or is_hackeroot():
             if command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
                 if sharedSceneData.includeAnimatedMats:
-                    parse_animated_material(sceneHeader, headerIndex, sceneData, stripName(args[0]))
+                    parse_animated_material(sceneHeader.animated_material, sceneData, stripName(args[0]))
                 command_list.remove(command)
 
     if "SCENE_CMD_ROOM_LIST" in delayed_commands:

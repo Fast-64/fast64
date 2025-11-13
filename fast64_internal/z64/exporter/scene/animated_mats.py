@@ -1,18 +1,24 @@
 import bpy
+import re
 
 from dataclasses import dataclass
 from bpy.types import Object
 from typing import Optional
+from pathlib import Path
 
-from ....utility import CData, PluginError, exportColor, scaleToU8, indent
-from ...utility import getObjectList, is_oot_features, is_hackeroot
+from ....utility import CData, PluginError, exportColor, scaleToU8, toAlnum, get_new_empty_object, indent
+from ...utility import getObjectList, is_hackeroot
 from ...scene.properties import OOTSceneHeaderProperty
 from ...animated_mats.properties import (
     Z64_AnimatedMatColorParams,
     Z64_AnimatedMatTexScrollParams,
     Z64_AnimatedMatTexCycleParams,
     Z64_AnimatedMaterial,
+    Z64_AnimatedMaterialExportSettings,
+    Z64_AnimatedMaterialImportSettings,
 )
+
+from ...importer.scene_header import parse_animated_material
 
 
 class AnimatedMatColorParams:
@@ -24,13 +30,14 @@ class AnimatedMatColorParams:
         base_name: str,
         index: int,
         type: str,
+        suffix: str = "",
     ):
         is_draw_color = type == "color"
         self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
-        self.name = f"{self.base_name}ColorParams{self.header_suffix}"
+        self.name = f"{self.base_name}{suffix}ColorParams{self.header_suffix}"
         self.frame_length = len(props.keyframes) if is_draw_color else props.keyframe_length
         self.prim_colors: list[tuple[int, int, int, int, int]] = []
         self.env_colors: list[tuple[int, int, int, int]] = []
@@ -57,7 +64,7 @@ class AnimatedMatColorParams:
         if is_draw_color and props.use_env_color:
             assert len(self.prim_colors) == len(self.env_colors)
 
-    def to_c(self):
+    def to_c(self, all_externs: bool = True):
         data = CData()
         prim_array_name = f"{self.base_name}ColorPrimColor{self.header_suffix}"
         env_array_name = f"{self.base_name}ColorEnvColor{self.header_suffix}"
@@ -71,12 +78,13 @@ class AnimatedMatColorParams:
             frames_array_name = "NULL"
 
         # .h
-        data.header = (
-            f"extern F3DPrimColor {prim_array_name}[];\n"
-            + (f"extern F3DEnvColor {env_array_name}[];\n" if len(self.env_colors) > 0 else "")
-            + (f"extern u16 {frames_array_name}[];\n" if len(self.frames) > 0 else "")
-            + f"extern {params_name};\n"
-        )
+        if all_externs:
+            data.header = (
+                f"extern F3DPrimColor {prim_array_name}[];\n"
+                + (f"extern F3DEnvColor {env_array_name}[];\n" if len(self.env_colors) > 0 else "")
+                + (f"extern u16 {frames_array_name}[];\n" if len(self.frames) > 0 else "")
+                + f"extern {params_name};\n"
+            )
 
         # .c
         data.source = (
@@ -131,6 +139,7 @@ class AnimatedMatTexScrollParams:
         base_name: str,
         index: int,
         type: str,
+        suffix: str = "",
     ):
         self.segment_num = segment_num
         self.type_num = type_num
@@ -144,21 +153,22 @@ class AnimatedMatTexScrollParams:
         self.texture_2: Optional[str] = None
 
         if type == "two_tex_scroll":
-            self.name = f"{self.base_name}TwoTexScrollParams{self.header_suffix}"
+            self.name = f"{self.base_name}{suffix}TwoTexScrollParams{self.header_suffix}"
             self.texture_2 = (
                 "{ "
                 + f"{props.texture_2.step_x}, {props.texture_2.step_y}, {props.texture_2.width}, {props.texture_2.height}"
                 + " },"
             )
         else:
-            self.name = f"{self.base_name}TexScrollParams{self.header_suffix}"
+            self.name = f"{self.base_name}{suffix}TexScrollParams{self.header_suffix}"
 
-    def to_c(self):
+    def to_c(self, all_externs: bool = True):
         data = CData()
         params_name = f"AnimatedMatTexScrollParams {self.name}[]"
 
         # .h
-        data.header = f"extern {params_name};\n"
+        if all_externs:
+            data.header = f"extern {params_name};\n"
 
         # .c
         data.source = f"{params_name}" + " = {\n" + indent + self.texture_1
@@ -180,12 +190,13 @@ class AnimatedMatTexCycleParams:
         base_name: str,
         index: int,
         type: str,
+        suffix: str = "",
     ):
         self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
-        self.name = f"{self.base_name}TexCycleParams{self.header_suffix}"
+        self.name = f"{self.base_name}{suffix}TexCycleParams{self.header_suffix}"
         self.textures: list[str] = []
         self.texture_indices: list[int] = []
 
@@ -200,18 +211,19 @@ class AnimatedMatTexCycleParams:
         assert len(self.textures) > 0, "you need at least one texture symbol (Animated Material)"
         assert len(self.texture_indices) > 0, "you need at least one texture index (Animated Material)"
 
-    def to_c(self):
+    def to_c(self, all_externs: bool = True):
         data = CData()
         texture_array_name = f"{self.base_name}CycleTextures{self.header_suffix}"
         texture_indices_array_name = f"{self.base_name}CycleTextureIndices{self.header_suffix}"
         params_name = f"AnimatedMatTexCycleParams {self.name}"
 
         # .h
-        data.header = (
-            f"extern TexturePtr {texture_array_name}[];\n"
-            + f"extern u8 {texture_indices_array_name}[];\n"
-            + f"extern {params_name};\n"
-        )
+        if all_externs:
+            data.header = (
+                f"extern TexturePtr {texture_array_name}[];\n"
+                + f"extern u8 {texture_indices_array_name}[];\n"
+                + f"extern {params_name};\n"
+            )
 
         # .c
         data.source = (
@@ -239,7 +251,7 @@ class AnimatedMatTexCycleParams:
 
 
 class AnimatedMaterial:
-    def __init__(self, props: Z64_AnimatedMaterial, base_name: str):
+    def __init__(self, props: Z64_AnimatedMaterial, base_name: str, suffix: str = ""):
         self.name = base_name
         self.entries: list[AnimatedMatColorParams | AnimatedMatTexScrollParams | AnimatedMatTexCycleParams] = []
 
@@ -261,18 +273,20 @@ class AnimatedMaterial:
             type = item.type if item.type != "Custom" else item.typeCustom
             if type != "Custom":
                 class_def, prop_name, type_num = type_list_map[type]
-                self.entries.append(class_def(getattr(item, prop_name), item.segment_num, type_num, base_name, i, type))
+                self.entries.append(
+                    class_def(getattr(item, prop_name), item.segment_num, type_num, base_name, i, type, suffix)
+                )
 
-    def to_c(self):
+    def to_c(self, all_externs: bool = True):
         data = CData()
 
         for entry in self.entries:
-            data.append(entry.to_c())
+            data.append(entry.to_c(all_externs))
 
         array_name = f"AnimatedMaterial {self.name}[]"
 
         # .h
-        data.header += f"extern {array_name};"
+        data.header += f"extern {array_name};\n"
 
         # .c
         data.source += array_name + " = {\n" + indent
@@ -299,14 +313,125 @@ class AnimatedMaterial:
 
 @dataclass
 class SceneAnimatedMaterial:
-    """This class hosts exit data"""
+    """This class hosts Animated Materials data for scenes"""
 
     name: str
     animated_material: Optional[AnimatedMaterial]
 
+    # add a macro for the segment number for convenience (only if using animated materials)
+    mat_seg_num_macro = "\n".join(
+        [
+            "// Animated Materials requires the segment number to be offset by 7",
+            "#ifndef MATERIAL_SEGMENT_NUM",
+            "#define MATERIAL_SEGMENT_NUM(n) ((n) - 7)",
+            "#endif\n",
+            "// The last entry also requires to be a negative number",
+            "#ifndef LAST_MATERIAL_SEGMENT_NUM",
+            "#define LAST_MATERIAL_SEGMENT_NUM(n) -MATERIAL_SEGMENT_NUM(n)",
+            "#endif\n\n",
+        ]
+    )
+
     @staticmethod
     def new(name: str, props: OOTSceneHeaderProperty, is_reuse: bool):
         return SceneAnimatedMaterial(name, AnimatedMaterial(props.animated_material, name) if not is_reuse else None)
+
+    @staticmethod
+    def export():
+        """Exports animated materials data as C files, this should be called to do a separate export from the scene."""
+
+        settings: Z64_AnimatedMaterialExportSettings = bpy.context.scene.fast64.oot.anim_mats_export_settings
+        export_obj: Object = settings.export_obj
+        name = toAlnum(export_obj.name)
+        assert name is not None
+
+        # convert props
+        entries: list[AnimatedMaterial] = [
+            AnimatedMaterial(item, f"{name}_AnimatedMaterial_{i:02}", "_")
+            for i, item in enumerate(export_obj.fast64.oot.animated_materials.items)
+        ]
+        assert len(entries) > 0, "The Animated Material list is empty!"
+
+        filename = f"{name.lower()}_anim_mats"
+
+        # create C data
+        data = CData()
+        data.header += f'#include "{settings.get_include_name()}"\n'
+
+        if is_hackeroot():
+            data.header += '#include "config.h"\n\n'
+
+            if bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+                data.header += "#if ENABLE_ANIMATED_MATERIALS\n\n"
+        else:
+            data.header += "\n"
+
+        if not settings.is_custom_path:
+            data.source += f'#include "assets/objects/{settings.object_name}/{filename}.h"\n\n'
+
+            if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+                data.source += "#if ENABLE_ANIMATED_MATERIALS\n\n"
+
+        data.header += SceneAnimatedMaterial.mat_seg_num_macro
+
+        for entry in entries:
+            c_data = entry.to_c(False)
+            c_data.source += "\n"
+            data.append(c_data)
+
+        if is_hackeroot():
+            if not settings.is_custom_path:
+                data.header += "\n"
+        else:
+            data.source = data.source[:-1]
+
+        extra = ""
+        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+            extra = "#endif\n"
+
+        data.source += extra
+
+        if not settings.is_custom_path:
+            data.header += extra
+
+        # write C data
+        if settings.is_custom_path:
+            export_path = Path(settings.export_path)
+            export_path.mkdir(exist_ok=True)
+        else:
+            export_path = Path(bpy.context.scene.ootDecompPath) / "assets" / "objects" / settings.object_name
+
+        export_path = export_path.resolve()
+        assert export_path.exists(), f"This path doesn't exist: {repr(export_path)}"
+
+        if settings.is_custom_path:
+            c_path = export_path / f"{filename}.inc.c"
+            c_path.write_text(data.header + "\n" + data.source)
+        else:
+            h_path = export_path / f"{filename}.h"
+            h_path.write_text(data.header)
+
+            c_path = export_path / f"{filename}.c"
+            c_path.write_text(data.source)
+
+    @staticmethod
+    def from_data():
+        """Imports animated materials data from C files, this should be called to do a separate import from the scene."""
+
+        settings: Z64_AnimatedMaterialImportSettings = bpy.context.scene.fast64.oot.anim_mats_import_settings
+        import_path = Path(settings.import_path).resolve()
+
+        file_data = import_path.read_text()
+        array_names = [
+            match.group(1)
+            for match in re.finditer(r"AnimatedMaterial\s([a-zA-Z0-9_]*)\[\]\s=\s\{", file_data, re.DOTALL)
+        ]
+
+        new_obj = get_new_empty_object("Actor Animated Materials")
+        new_obj.ootEmptyType = "Animated Materials"
+
+        for array_name in array_names:
+            parse_animated_material(new_obj.fast64.oot.animated_materials.items.add(), file_data, array_name)
 
     def get_cmd(self):
         """Returns the animated material scene command"""
@@ -331,19 +456,19 @@ class SceneAnimatedMaterial:
 
             data.append(self.animated_material.to_c())
 
+            extra = ""
             if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
-                data.source += "#endif\n\n"
-                data.header += "\n#endif\n"
-            else:
-                data.source += "\n"
-                data.header += "\n"
+                extra = "#endif\n"
+
+            data.source += extra + "\n"
+            data.header += "\n" + extra
 
         return data
 
 
 @dataclass
 class ActorAnimatedMaterial:
-    """This class hosts exit data"""
+    """This class hosts Animated Materials data for actors"""
 
     name: str
     entries: list[AnimatedMaterial]
@@ -359,25 +484,3 @@ class ActorAnimatedMaterial:
             )
 
         return ActorAnimatedMaterial(name, entries)
-
-    def is_used(self):
-        return not is_oot_features() and len(self.entries) > 0
-
-    def to_c(self):
-        data = CData()
-
-        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
-            data.source += "#if ENABLE_ANIMATED_MATERIALS\n"
-            data.header += "#if ENABLE_ANIMATED_MATERIALS\n"
-
-        for entry in self.entries:
-            data.append(entry.to_c())
-
-        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
-            data.source += "#endif\n\n"
-            data.header += "\n#endif\n"
-        else:
-            data.source += "\n"
-            data.header += "\n"
-
-        return data

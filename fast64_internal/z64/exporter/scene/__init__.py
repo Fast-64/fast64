@@ -14,6 +14,7 @@ from ...utility import ExportInfo, is_hackeroot
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
+from .animated_mats import SceneAnimatedMaterial
 from .header import SceneAlternateHeader, SceneHeader
 from .rooms import RoomEntries
 
@@ -408,18 +409,6 @@ class Scene:
             "#endif\n\n",
         ]
 
-        # add a macro for the segment number for convenience (only if using animated materials)
-        mat_seg_num_macro = [
-            "// Animated Materials requires the segment number to be offset by 7",
-            "#ifndef MATERIAL_SEGMENT_NUM",
-            "#define MATERIAL_SEGMENT_NUM(n) ((n) - 7)",
-            "#endif\n",
-            "// The last entry also requires to be a negative number",
-            "#ifndef LAST_MATERIAL_SEGMENT_NUM",
-            "#define LAST_MATERIAL_SEGMENT_NUM(n) -MATERIAL_SEGMENT_NUM(n)",
-            "#endif\n\n",
-        ]
-
         return SceneFile(
             self.name,
             sceneMainData.source,
@@ -437,7 +426,7 @@ class Scene:
                 + f"#define {self.name.upper()}_H\n\n"
                 + ("\n".join(includes) + "\n\n")
                 + "\n".join(backwards_compatibility)
-                + ("\n".join(mat_seg_num_macro) if "AnimatedMaterial" in sceneMainData.header else "")
+                + (SceneAnimatedMaterial.mat_seg_num_macro if "AnimatedMaterial" in sceneMainData.header else "")
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

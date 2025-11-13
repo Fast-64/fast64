@@ -311,7 +311,7 @@ class Z64_AddAnimatedMaterial(Operator):
     bl_description = "Create a new Animated Material empty object."
 
     add_test_color: BoolProperty(default=False)
-    obj_name: StringProperty(default="Scene Animated Materials")
+    obj_name: StringProperty(default="Actor Animated Materials")
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
@@ -321,8 +321,7 @@ class Z64_AddAnimatedMaterial(Operator):
         self.layout.prop(self, "add_test_color", text="Add Color Non-linear Interpolation Example")
 
     def execute(self, context: Context):
-        scene_obj: Object = context.scene.ootSceneExportObj
-        new_obj = get_new_empty_object(self.obj_name, parent=scene_obj)
+        new_obj = get_new_empty_object(self.obj_name)
         new_obj.ootEmptyType = "Animated Materials"
 
         if self.add_test_color:

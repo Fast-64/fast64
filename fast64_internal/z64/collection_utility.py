@@ -371,6 +371,7 @@ def draw_utility_ops(
     header_index: Optional[int],
     obj_name: str,
     collection_index: int = 0,
+    do_copy: bool = True,
     ask_for_copy: bool = False,
     ask_for_amount: bool = False,
 ):
@@ -378,7 +379,9 @@ def draw_utility_ops(
         layout, index, collection_type, header_index, obj_name, collection_index, ask_for_copy, ask_for_amount
     )
     draw_clear_button(layout, collection_type, header_index, obj_name, collection_index)
-    draw_copy_button(layout, collection_type, header_index, obj_name, collection_index)
+
+    if do_copy:
+        draw_copy_button(layout, collection_type, header_index, obj_name, collection_index)
 
 
 def drawCollectionOps(

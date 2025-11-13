@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup, UILayout, Object
 from bpy.props import (
@@ -13,8 +15,9 @@ from bpy.props import (
 from typing import Optional
 
 from ...utility import prop_split
-from ..collection_utility import drawAddButton, drawCollectionOps, draw_utility_ops
-from ..utility import get_list_tab_text, getEnumIndex
+from ..collection_utility import drawCollectionOps, draw_utility_ops
+from ..utility import get_list_tab_text, getEnumIndex, is_hackeroot
+from .operators import Z64_ExportAnimatedMaterials, Z64_ImportAnimatedMaterials
 
 
 # no custom since we only need to know where to export the data
@@ -317,7 +320,14 @@ class Z64_AnimatedMaterial(PropertyGroup):
     show_list: BoolProperty(default=True)
     show_entries: BoolProperty(default=True)
 
-    def draw_props(self, layout: UILayout, owner: Object, index: Optional[int], header_index: Optional[int] = None):
+    def draw_props(
+        self,
+        layout: UILayout,
+        owner: Object,
+        index: Optional[int],
+        sub_index: Optional[int] = None,
+        is_scene: bool = True,
+    ):
         if index is not None:
             layout.prop(
                 self, "show_list", text=f"List No.{index + 1}", icon="TRIA_DOWN" if self.show_list else "TRIA_RIGHT"
@@ -329,10 +339,10 @@ class Z64_AnimatedMaterial(PropertyGroup):
                     layout,
                     index,
                     "Animated Mat. List",
-                    header_index,
+                    sub_index,
                     owner.name,
-                    ask_for_copy=True,
-                    ask_for_amount=True,
+                    ask_for_copy=False,
+                    ask_for_amount=False,
                 )
 
             prop_text = get_list_tab_text("Animated Materials", len(self.entries))
@@ -343,14 +353,15 @@ class Z64_AnimatedMaterial(PropertyGroup):
 
             if self.show_entries:
                 for i, item in enumerate(self.entries):
-                    item.draw_props(layout_entries.box().column(), owner, header_index, i)
+                    item.draw_props(layout_entries.box().column(), owner, sub_index, i)
 
                 draw_utility_ops(
                     layout_entries.row(),
                     len(self.entries),
                     "Animated Mat.",
-                    header_index,
+                    sub_index,
                     owner.name,
+                    do_copy=is_scene,
                     ask_for_amount=True,
                 )
 
@@ -376,9 +387,68 @@ class Z64_AnimatedMaterialProperty(PropertyGroup):
 
         if self.show_entries:
             for i, item in enumerate(self.items):
-                item.draw_props(layout_entries.box().column(), owner, i)
+                item.draw_props(layout_entries.box().column(), owner, i, i, is_scene=False)
 
-            drawAddButton(layout_entries, len(self.items), "Animated Mat. List", None, owner.name)
+            draw_utility_ops(
+                layout_entries.row(), len(self.items), "Animated Mat. List", None, owner.name, do_copy=False
+            )
+
+
+class Z64_AnimatedMaterialExportSettings(PropertyGroup):
+    object_name: StringProperty(default="gameplay_keep")
+
+    include_name: StringProperty(default="animated_materials.h")
+    is_custom_inc: BoolProperty(default=False)
+
+    export_path: StringProperty(name="File", subtype="DIR_PATH")
+    export_obj: PointerProperty(type=Object, poll=lambda self, obj: self.filter(obj))
+    is_custom_path: BoolProperty(default=False)
+
+    def filter(self, obj):
+        return obj.type == "EMPTY" and obj.ootEmptyType == "Animated Materials"
+
+    def get_include_name(self):
+        if is_hackeroot():
+            return "animated_materials.h"
+
+        if self.is_custom_inc:
+            return self.include_name if self.include_name.endswith(".h") else f"{self.include_name}.h"
+
+        if bpy.context.scene.fast64.oot.is_z64sceneh_present():
+            return "z64scene.h"
+
+        return "scene.h"
+
+    def draw_props(self, layout: UILayout):
+        layout = layout.column()
+        layout.label(text="Animated Materials Exporter")
+        prop_split(layout, self, "export_obj", "Export Object")
+
+        if not is_hackeroot():
+            inc_box = layout.box()
+            inc_box.prop(self, "is_custom_inc", text="Custom Include")
+            if self.is_custom_inc:
+                prop_split(inc_box, self, "include_name", "Include")
+
+        path_box = layout.box()
+        path_box.prop(self, "is_custom_path", text="Custom Path")
+        if self.is_custom_path:
+            path_box.label(text="The object name will be the file name", icon="QUESTION")
+            prop_split(path_box, self, "export_path", "Export To")
+        else:
+            prop_split(path_box, self, "object_name", "Object Name")
+
+        layout.operator(Z64_ExportAnimatedMaterials.bl_idname)
+
+
+class Z64_AnimatedMaterialImportSettings(PropertyGroup):
+    import_path: StringProperty(name="File", subtype="FILE_PATH")
+
+    def draw_props(self, layout: UILayout):
+        layout = layout.column()
+        layout.label(text="Animated Materials Importer")
+        prop_split(layout, self, "import_path", "Import From")
+        layout.operator(Z64_ImportAnimatedMaterials.bl_idname)
 
 
 classes = (
@@ -392,6 +462,8 @@ classes = (
     Z64_AnimatedMaterialItem,
     Z64_AnimatedMaterial,
     Z64_AnimatedMaterialProperty,
+    Z64_AnimatedMaterialExportSettings,
+    Z64_AnimatedMaterialImportSettings,
 )
 
 
