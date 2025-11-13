@@ -1,5 +1,4 @@
 import math
-import os
 import re
 import bpy
 import mathutils
@@ -8,14 +7,14 @@ from pathlib import Path
 from typing import Optional
 
 from ...game_data import game_data
-from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, get_new_empty_object
+from ...utility import PluginError, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import getEvalParams, setCustomProperty, getObjectList, is_hackeroot
+from ..utility import setCustomProperty, is_hackeroot, getEnumIndex
 from .constants import headerNames
-from .utility import getDataMatch, stripName, parse_commands_data
+from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
@@ -25,11 +24,9 @@ from ..animated_mats.properties import enum_anim_mat_type
 
 from ..constants import (
     ootEnumAudioSessionPreset,
-    ootEnumMusicSeq,
     ootEnumCameraMode,
     ootEnumMapLocation,
     ootEnumNaviHints,
-    ootEnumGlobalObject,
     ootEnumSkyboxLighting,
 )
 
@@ -236,108 +233,124 @@ def parseAlternateSceneHeaders(
             )
 
 
-animated_material_first_list_name = ""
-anim_mat_type_to_struct = {
-    0: "AnimatedMatTexScrollParams",
-    1: "AnimatedMatTexScrollParams",
-    2: "AnimatedMatColorParams",
-    3: "AnimatedMatColorParams",
-    4: "AnimatedMatColorParams",
-    5: "AnimatedMatTexCycleParams",
-}
+def parse_animated_material(scene_header: OOTSceneHeaderProperty, header_index: int, scene_data: str, list_name: str):
+    anim_mat_type_to_struct = {
+        0: "AnimatedMatTexScrollParams",
+        1: "AnimatedMatTexScrollParams",
+        2: "AnimatedMatColorParams",
+        3: "AnimatedMatColorParams",
+        4: "AnimatedMatColorParams",
+        5: "AnimatedMatTexCycleParams",
+    }
 
-
-def parse_animated_material(scene_obj: bpy.types.Object, header_index: int, scene_data: str, list_name: str):
-    global animated_material_first_list_name
+    struct_to_regex = {
+        "AnimatedMatTexScrollParams": r"\{\s?(0?x?\-?\d+),\s?(0?x?\-?\d+),\s?(0?x?\-?\d+),\s?(0?x?\-?\d+)\s?\}",
+        "AnimatedMatColorParams": r"(\d+)(\,\n?\s*)?(\d+)(\,\n?\s*)?([a-zA-Z0-9_]*)(\,\n?\s*)?([a-zA-Z0-9_]*)(\,\n?\s*)?([a-zA-Z0-9_]*)",
+        "AnimatedMatTexCycleParams": r"(\d+)(\,\n?\s*)?([a-zA-Z0-9_]*)(\,\n?\s*)?([a-zA-Z0-9_]*)",
+    }
 
     data_match = getDataMatch(scene_data, list_name, "AnimatedMaterial", "animated material")
     anim_mat_data = data_match.strip().split("\n")
 
-    if header_index == 0:
-        animated_material_first_list_name = list_name
-        anim_mat_obj = get_new_empty_object("Animated Material")
-        anim_mat_obj.ootEmptyType = "Animated Materials"
-        parentObject(scene_obj, anim_mat_obj)
-    else:
-        obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Animated Materials")
-        anim_mat_obj = obj_list[0]
-
-    # if the alternate header is using the first header's data then don't do anything
-    if header_index > 0 and list_name == animated_material_first_list_name:
-        return
-
-    anim_mat_props = anim_mat_obj.fast64.oot.animated_materials
-    anim_mat_item = anim_mat_props.items.add()
-    anim_mat_item.header_index = header_index
+    anim_mat_item = scene_header.animated_material
 
     for data in anim_mat_data:
         data = data.replace("{", "").replace("}", "").removesuffix(",").strip()
 
         split = data.split(", ")
-        segment = int(split[0], base=0)
+        raw_segment = split[0]
+
+        if "MATERIAL_SEGMENT_NUM" in raw_segment:
+            raw_segment = raw_segment.removesuffix(")").split("(")[1]
+
+        segment = int(raw_segment, base=0)
         type_num = int(split[1], base=0)
         data_ptr = split[2].removeprefix("&")
 
         is_array = type_num in {0, 1}
         struct_name = anim_mat_type_to_struct[type_num]
+        regex = struct_to_regex[struct_name]
         data_match = getDataMatch(scene_data, data_ptr, struct_name, "animated params", is_array, False)
+        params_data: list[list[str]] | list[str] = []
 
         if is_array:
-            params_data = data_match.replace("{", "").replace("}", "").replace(" ", "").split("\n")
+            params_data = [
+                [match.group(1), match.group(2), match.group(3), match.group(4)]
+                for match in re.finditer(regex, data_match, re.DOTALL)
+            ]
         else:
-            params_data = data_match.replace("\n", "").replace(" ", "").split(",")
+            match = re.search(regex, data_match, re.DOTALL)
+            assert match is not None
+
+            params_data = [match.group(1), match.group(3), match.group(5)]
+            if struct_name == "AnimatedMatColorParams":
+                params_data.extend([match.group(7), match.group(9)])
 
         entry = anim_mat_item.entries.add()
-        entry.segment_num = abs(segment) + 7
-        entry.type = enum_anim_mat_type[type_num + 1][0]
+        entry.segment_num = segment
+        enum_type = entry.user_type = enum_anim_mat_type[type_num + 1][0]
+        entry.on_type_set(getEnumIndex(enum_anim_mat_type, enum_type))
 
         if struct_name == "AnimatedMatTexScrollParams":
-            for params in params_data:
-                if len(params) > 0:
-                    split = params.split(",")
-                    scroll_entry = entry.tex_scroll_params.entries.add()
-                    scroll_entry.step_x = int(split[0], base=0)
-                    scroll_entry.step_y = int(split[1], base=0)
-                    scroll_entry.width = int(split[2], base=0)
-                    scroll_entry.height = int(split[3], base=0)
+            entry.tex_scroll_params.texture_1.set_from_data(params_data[0])
+
+            if len(params_data) > 1:
+                entry.tex_scroll_params.texture_2.set_from_data(params_data[1])
         elif struct_name == "AnimatedMatColorParams":
             entry.color_params.keyframe_length = int(params_data[0], base=0)
 
             prim_match = getDataMatch(scene_data, params_data[2], "F3DPrimColor", "animated material prim color", True)
             prim_data = prim_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
 
-            env_match = getDataMatch(scene_data, params_data[3], "F3DEnvColor", "animated material env color", True)
-            env_data = env_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
+            use_env_color = params_data[3] != "NULL"
+            use_frame_indices = params_data[4] != "NULL"
 
-            frame_match = getDataMatch(scene_data, params_data[4], "u16", "animated material color frame data", True)
-            frame_data = (
-                frame_match.strip()
-                .replace(" ", "")
-                .replace(",\n", ",")
-                .replace(",", "\n")
-                .removesuffix("\n")
-                .split("\n")
-            )
+            env_data = [None] * len(prim_data)
+            if use_env_color:
+                env_match = getDataMatch(scene_data, params_data[3], "F3DEnvColor", "animated material env color", True)
+                env_data = env_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
+
+            frame_data = [None] * len(prim_data)
+            if use_frame_indices:
+                frame_match = getDataMatch(
+                    scene_data, params_data[4], "u16", "animated material color frame data", True
+                )
+                frame_data = (
+                    frame_match.strip()
+                    .replace(" ", "")
+                    .replace(",\n", ",")
+                    .replace(",", "\n")
+                    .removesuffix("\n")
+                    .split("\n")
+                )
 
             assert len(prim_data) == len(env_data) == len(frame_data)
 
             for prim_color_raw, env_color_raw, frame in zip(prim_data, env_data, frame_data):
                 prim_color = [hexOrDecInt(elem) for elem in prim_color_raw.split(",") if len(elem) > 0]
-                env_color = [hexOrDecInt(elem) for elem in env_color_raw.split(",") if len(elem) > 0]
 
                 color_entry = entry.color_params.keyframes.add()
-                color_entry.frame_num = int(frame, base=0)
+
+                if use_frame_indices:
+                    assert frame is not None
+                    color_entry.frame_num = int(frame, base=0)
+
                 color_entry.prim_lod_frac = prim_color[4]
                 color_entry.prim_color = parseColor(prim_color[0:3]) + (1,)
-                color_entry.env_color = parseColor(env_color[0:3]) + (1,)
+
+                if use_env_color:
+                    assert env_color_raw is not None
+                    env_color = [hexOrDecInt(elem) for elem in env_color_raw.split(",") if len(elem) > 0]
+                    color_entry.env_color = parseColor(env_color[0:3]) + (1,)
         elif struct_name == "AnimatedMatTexCycleParams":
             entry.tex_cycle_params.keyframe_length = int(params_data[0], base=0)
             textures: list[str] = []
             frames: list[int] = []
 
             data_match = getDataMatch(scene_data, params_data[1], "TexturePtr", "animated material texture ptr", True)
-            for texture_ptr in data_match.replace(",", "\n").strip().split("\n"):
-                textures.append(texture_ptr.strip())
+            for texture_ptr in data_match.replace(" ", "").replace("\n", "").split(","):
+                if len(texture_ptr) > 0:
+                    textures.append(texture_ptr.strip())
 
             data_match = getDataMatch(scene_data, params_data[2], "u8", "animated material frame data", True)
             for frame_num in data_match.replace(",", "\n").strip().split("\n"):
@@ -485,7 +498,7 @@ def parseSceneCommands(
         elif game_data.z64.is_mm() or is_hackeroot():
             if command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
                 if sharedSceneData.includeAnimatedMats:
-                    parse_animated_material(sceneObj, headerIndex, sceneData, stripName(args[0]))
+                    parse_animated_material(sceneHeader, headerIndex, sceneData, stripName(args[0]))
                 command_list.remove(command)
 
     if "SCENE_CMD_ROOM_LIST" in delayed_commands:

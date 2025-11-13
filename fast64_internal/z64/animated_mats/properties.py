@@ -134,6 +134,12 @@ class Z64_AnimatedMatTexScrollItem(PropertyGroup):
     width: IntProperty(min=0)
     height: IntProperty(min=0)
 
+    def set_from_data(self, raw_data: list[str]):
+        self.step_x = int(raw_data[0], base=0)
+        self.step_y = int(raw_data[1], base=0)
+        self.width = int(raw_data[2], base=0)
+        self.height = int(raw_data[3], base=0)
+
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "step_x", "Step X")
         prop_split(layout, self, "step_y", "Step Y")
@@ -268,7 +274,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
     # ui only props
     show_item: BoolProperty(default=False)
 
-    def on_type_set(self, value: str):
+    def on_type_set(self, value: int):
         self.type = enum_anim_mat_type[value][0]
 
         if "tex_scroll" in self.type:
