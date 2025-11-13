@@ -39,9 +39,25 @@ enum_anim_mat_type = [
 
 
 class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
-    frame_num: IntProperty(name="Frame No.", min=0)
+    frame_num: IntProperty(
+        name="Frame No.",
+        min=0,
+        set=lambda self, value: self.on_frame_num_set(value),
+        get=lambda self: self.on_frame_num_get(),
+    )
+    internal_frame_num: IntProperty(min=0)
+    internal_length: IntProperty(min=0)
 
-    prim_lod_frac: IntProperty(name="Primitive LOD Frac", min=0, max=255)
+    def on_frame_num_set(self, value):
+        self.internal_frame_num = value
+
+    def on_frame_num_get(self):
+        if self.internal_frame_num >= self.internal_length:
+            self.internal_frame_num = self.internal_length - 1
+
+        return self.internal_frame_num
+
+    prim_lod_frac: IntProperty(name="Primitive LOD Frac", min=0, max=255, default=128)
     prim_color: FloatVectorProperty(
         name="Primitive Color",
         subtype="COLOR",
@@ -93,7 +109,14 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
 
 
 class Z64_AnimatedMatColorParams(PropertyGroup):
-    keyframe_length: IntProperty(name="Keyframe Length", min=0)
+    keyframe_length: IntProperty(
+        name="Keyframe Length",
+        min=0,
+        set=lambda self, value: self.on_length_set(value),
+        get=lambda self: self.on_length_get(),
+    )
+    internal_keyframe_length: IntProperty(min=0)
+
     keyframes: CollectionProperty(type=Z64_AnimatedMatColorKeyFrame)
     use_env_color: BoolProperty()
 
@@ -101,6 +124,15 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
     show_entries: BoolProperty(default=False)
 
     internal_color_type: StringProperty()
+
+    def on_length_set(self, value):
+        self.internal_keyframe_length = value
+
+        for keyframe in self.keyframes:
+            keyframe.internal_length = value
+
+    def on_length_get(self):
+        return self.internal_keyframe_length
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
         is_draw_color = self.internal_color_type == "color"

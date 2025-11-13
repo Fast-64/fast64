@@ -106,7 +106,10 @@ class Scene:
         model: OOTModel,
     ):
         i = 0
-        use_mat_anim = "mat_anim" in sceneObj.ootSceneHeader.sceneTableEntry.drawConfig
+        use_mat_anim = (
+            "mat_anim" in sceneObj.ootSceneHeader.sceneTableEntry.drawConfig
+            or bpy.context.scene.ootSceneExportSettings.customExport
+        )
 
         try:
             mainHeader = SceneHeader.new(
