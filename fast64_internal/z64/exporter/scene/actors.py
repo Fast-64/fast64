@@ -61,7 +61,7 @@ class SceneTransitionActors:
         actorObjList.sort(key=lambda obj: actorToRoom[obj].ootRoomHeader.roomIndex)
 
         entries: list[TransitionActor] = []
-        for obj in actorObjList:
+        for i, obj in enumerate(actorObjList):
             transActorProp = obj.ootTransitionActorProperty
             actorProp: OOTActorProperty = transActorProp.actor
             if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actorProp.actor_id != "None":
@@ -97,7 +97,7 @@ class SceneTransitionActors:
                     actorProp.params
                     if bpy.context.scene.fast64.oot.use_new_actor_panel and actorProp.actor_id != "Custom"
                     else actorProp.params_custom
-                )
+                ) + f" | ({i} << 10)"
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
                 entries.append(transActor)
