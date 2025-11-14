@@ -42,15 +42,23 @@ def parseTransActorList(
 
             sharedSceneData.transDict[actor] = actorObj
 
-            fromRoom = roomObjs[actor.roomFrom]
-            toRoom = roomObjs[actor.roomTo]
-            if actor.roomFrom != actor.roomTo:
-                parentObject(fromRoom, actorObj)
+            # make sure the room is valid
+            fromRoom = roomObjs[actor.roomFrom] if actor.roomFrom >= 0 else None
+            toRoom = roomObjs[actor.roomTo] if actor.roomTo >= 0 else None
+            transActorProp.isRoomTransition = actor.isRoomTransition
+
+            if actor.isRoomTransition:
+                if fromRoom is not None:
+                    parentObject(fromRoom, actorObj)
+                else:
+                    # make it obvious to the user that this transition actor has an issue
+                    actorObj.name = f"Invalid Front Room Index - {actorObj.name}"
+
                 transActorProp.fromRoom = fromRoom
                 transActorProp.toRoom = toRoom
-                transActorProp.isRoomTransition = True
             else:
-                transActorProp.isRoomTransition = False
+                # that side should always be valid
+                assert toRoom is not None
                 parentObject(toRoom, actorObj)
 
             setCustomProperty(transActorProp, "cameraTransitionFront", actor.cameraFront, ootEnumCamTransition)
