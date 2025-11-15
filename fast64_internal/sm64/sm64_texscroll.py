@@ -1,8 +1,15 @@
 from pathlib import Path
-import os, re, bpy
-from ..utility import PluginError, getDataFromFile, saveDataToFile, CScrollData, CData
+import os
+import re
+import bpy
+import typing
+
+from ..utility import PluginError, getDataFromFile, saveDataToFile, CScrollData, CData, filepath_checks
 from .c_templates.tile_scroll import tile_scroll_c, tile_scroll_h
 from .sm64_utility import END_IF_FOOTER, ModifyFoundDescriptor, getMemoryCFilePath, write_or_delete_if_found
+
+if typing.TYPE_CHECKING:
+    from .settings.properties import SM64_Properties
 
 # This is for writing framework for scroll code.
 # Actual scroll code found in f3d_gbi.py (FVertexScrollData)
@@ -13,13 +20,13 @@ class SM64TexScrollFileStatus:
         self.starSelectC = False
 
 
-def readSegmentInfo(baseDir):
+def readSegmentInfo(sm64_props: "SM64_Properties", baseDir):
     ldPath = os.path.join(baseDir, "sm64.ld")
     ldFile = open(ldPath, "r", newline="\n")
     ldData = ldFile.read()
     ldFile.close()
 
-    compressionFmt = bpy.context.scene.fast64.sm64.compression_format
+    compressionFmt = sm64_props.compression_format
     segDict = {}
     for matchResult in re.finditer(
         "(?<!#define )STANDARD\_OBJECTS\(" + "(((?!\,).)*)\,\s*(((?!\,).)*)\,\s*(((?!\)).)*)\)", ldData
@@ -30,7 +37,8 @@ def readSegmentInfo(baseDir):
             int(matchResult.group(5).strip()[2:4], 16),
         )
 
-    levelPath = os.path.join(baseDir, "levels/level_defines.h")
+    levelPath = Path(baseDir, sm64_props.levels_folder, "level_defines.h")
+    filepath_checks(levelPath)
     levelFile = open(levelPath, "r", newline="\n")
     levelData = levelFile.read()
     levelFile.close()
@@ -225,7 +233,7 @@ def writeTexScrollBase(baseDir):
     return fileStatus
 
 
-def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
+def createTexScrollHeadersGroup(sm64_props: "SM64_Properties", exportDir, groupName, dataInclude):
     includeH = "src/game/texscroll/" + groupName + "_texscroll.inc.h"
     includeC = "src/game/texscroll/" + groupName + "_texscroll.inc.c"
 
@@ -283,7 +291,7 @@ def createTexScrollHeadersGroup(exportDir, groupName, dataInclude):
             raise PluginError("Texture scroll function not found.")
 
     # Call group scroll function in scroll_textures()
-    groupDict = readSegmentInfo(exportDir)
+    groupDict = readSegmentInfo(sm64_props, exportDir)
     segment = groupDict[groupName][1]
     segmentRomStart = groupDict[groupName][0]
 
@@ -337,6 +345,7 @@ def writeTexScrollHeadersLevel(exportDir, includeC, includeH, groupName, scrollD
 
 
 def modifyTexScrollHeadersGroup(
+    sm64_props: "SM64_Properties",
     exportDir: str,
     includeC: str,
     includeH: str,
@@ -345,9 +354,9 @@ def modifyTexScrollHeadersGroup(
     dataInclude: str,
     hasScrolling: bool,
 ):
-    if not bpy.context.scene.fast64.sm64.disable_scroll and hasScrolling:
+    if not sm64_props.disable_scroll and hasScrolling:
         fileStatus = writeTexScrollHeadersGroup(
-            exportDir, includeC, includeH, groupName, topLevelScrollFunc, dataInclude
+            sm64_props, exportDir, includeC, includeH, groupName, topLevelScrollFunc, dataInclude
         )
         return fileStatus
     else:
@@ -356,10 +365,16 @@ def modifyTexScrollHeadersGroup(
 
 
 def writeTexScrollHeadersGroup(
-    exportDir: str, includeC: str, includeH: str, groupName: str, topLevelScrollFunc: str, dataInclude: str
+    sm64_props: "SM64_Properties",
+    exportDir: str,
+    includeC: str,
+    includeH: str,
+    groupName: str,
+    topLevelScrollFunc: str,
+    dataInclude: str,
 ):
     # Create group scroll files
-    fileStatus = createTexScrollHeadersGroup(exportDir, groupName, dataInclude)
+    fileStatus = createTexScrollHeadersGroup(sm64_props, exportDir, groupName, dataInclude)
 
     # Write to group inc.h
     groupPathH = os.path.join(exportDir, "src/game/texscroll/" + groupName + "_texscroll.inc.h")

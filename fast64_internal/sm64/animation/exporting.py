@@ -15,8 +15,6 @@ from ...utility import (
     encodeSegmentedAddr,
     decodeSegmentedAddr,
     get64bitAlignedAddr,
-    getPathAndLevel,
-    getExportDir,
     intToHex,
     applyBasicTweaks,
     toAlnum,
@@ -34,6 +32,7 @@ from ..sm64_utility import (
     update_actor_includes,
     int_from_str,
     write_or_delete_if_found,
+    get_export_dirs,
 )
 from ..sm64_classes import BinaryExporter, RomReader, InsertableBinaryData
 from ..sm64_level_parser import parseLevelAtPointer
@@ -433,6 +432,7 @@ def to_table_class(
 
 
 def update_includes(
+    sm64_props: "SM64_Properties",
     combined_props: "SM64_CombinedObjectProperties",
     header_dir: Path,
     actor_name,
@@ -444,6 +444,7 @@ def update_includes(
         data_includes.append(Path("anims/table.inc.c"))
         header_includes.append(Path("anim_header.h"))
     update_actor_includes(
+        sm64_props,
         combined_props.export_header_type,
         combined_props.actor_group_name,
         header_dir,
@@ -733,10 +734,11 @@ def export_animation_table_insertable(table: SM64_AnimTable, is_dma: bool, direc
 
 def create_and_get_paths(
     anim_props: "SM64_ArmatureAnimProperties",
+    sm64_props: "SM64_Properties",
     combined_props: "SM64_CombinedObjectProperties",
     actor_name: str,
-    decomp: Path,
 ):
+    decomp = sm64_props.abs_decomp_path
     anim_directory = geo_directory = header_directory = None
     if anim_props.is_dma:
         if combined_props.export_header_type == "Custom":
@@ -745,13 +747,9 @@ def create_and_get_paths(
         else:
             anim_directory = Path(decomp, anim_props.dma_folder)
     else:
-        export_path, level_name = getPathAndLevel(
-            combined_props.is_actor_custom_export,
-            combined_props.actor_custom_path,
-            combined_props.export_level_name,
-            combined_props.level_name,
-        )
-        header_directory, _tex_dir = getExportDir(
+        export_path, level_name = combined_props.get_path_and_level(sm64_props)
+        header_directory, _tex_dir = get_export_dirs(
+            sm64_props,
             combined_props.is_actor_custom_export,
             export_path,
             combined_props.export_header_type,
@@ -771,16 +769,16 @@ def create_and_get_paths(
 
 def export_animation_table_c(
     anim_props: "SM64_ArmatureAnimProperties",
+    sm64_props: "SM64_Properties",
     combined_props: "SM64_CombinedObjectProperties",
     table: SM64_AnimTable,
-    decomp: Path,
     actor_name: str,
-    designated: bool,
 ):
+    designated = sm64_props.designated
     if not combined_props.is_actor_custom_export:
-        applyBasicTweaks(decomp)
+        applyBasicTweaks(sm64_props.abs_decomp_path)
     anim_directory, geo_directory, header_directory = create_and_get_paths(
-        anim_props, combined_props, actor_name, decomp
+        anim_props, sm64_props, combined_props, actor_name
     )
 
     print("Creating all animation C data")
@@ -816,7 +814,7 @@ def export_animation_table_c(
         enum_list_path=anim_directory / "table_enum.h",
         override_files=anim_props.override_files,
     )
-    update_includes(combined_props, header_directory, actor_name, True)
+    update_includes(sm64_props, combined_props, header_directory, actor_name, True)
 
 
 def export_animation_binary(
@@ -890,15 +888,15 @@ def export_animation_insertable(animation: SM64_Anim, is_dma: bool, directory: P
 def export_animation_c(
     animation: SM64_Anim,
     anim_props: "SM64_ArmatureAnimProperties",
+    sm64_props: "SM64_Properties",
     combined_props: "SM64_CombinedObjectProperties",
-    decomp: Path,
     actor_name: str,
-    designated: bool,
 ):
+    designated = sm64_props.designated
     if not combined_props.is_actor_custom_export:
-        applyBasicTweaks(decomp)
+        applyBasicTweaks(sm64_props.abs_decomp_path)
     anim_directory, geo_directory, header_directory = create_and_get_paths(
-        anim_props, combined_props, actor_name, decomp
+        anim_props, sm64_props, combined_props, actor_name
     )
 
     (anim_directory / animation.file_name).write_text(animation.to_c(anim_props.is_dma))
@@ -957,9 +955,7 @@ def export_animation(context: Context, obj: Object):
     except Exception as exc:
         raise PluginError(f"Failed to generate animation class. {exc}") from exc
     if sm64_props.export_type == "C":
-        export_animation_c(
-            animation, anim_props, combined_props, sm64_props.abs_decomp_path, actor_name, sm64_props.designated
-        )
+        export_animation_c(animation, anim_props, sm64_props, combined_props, actor_name)
     elif sm64_props.export_type == "Insertable Binary":
         export_animation_insertable(animation, anim_props.is_dma, Path(abspath(combined_props.insertable_directory)))
     elif sm64_props.export_type == "Binary":
@@ -1012,9 +1008,7 @@ def export_animation_table(context: Context, obj: Object):
 
     print("Exporting table data")
     if sm64_props.export_type == "C":
-        export_animation_table_c(
-            anim_props, combined_props, table, sm64_props.abs_decomp_path, actor_name, sm64_props.designated
-        )
+        export_animation_table_c(anim_props, sm64_props, combined_props, table, actor_name)
     elif sm64_props.export_type == "Insertable Binary":
         export_animation_table_insertable(table, anim_props.is_dma, Path(abspath(combined_props.insertable_directory)))
     elif sm64_props.export_type == "Binary":

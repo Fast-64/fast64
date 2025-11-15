@@ -1,5 +1,5 @@
 import dataclasses
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, TYPE_CHECKING
 from pathlib import Path
 from io import StringIO
 import random
@@ -18,8 +18,12 @@ from ..utility import (
     as_posix,
     PluginError,
     COMMENT_PATTERN,
+    toAlnum,
 )
 from .sm64_function_map import func_map
+
+if TYPE_CHECKING:
+    from .settings.properties import SM64_Properties
 
 
 def starSelectWarning(operator, fileStatus):
@@ -393,6 +397,7 @@ def write_includes(
 
 
 def update_actor_includes(
+    sm64_props: "SM64_Properties",
     header_type: str,
     group_name: str,
     header_dir: Path,
@@ -430,7 +435,7 @@ def update_actor_includes(
             path_and_alternates = [
                 [
                     Path(dir_name, include),
-                    Path("levels", level_name, dir_name, include),  # backwards compatability
+                    Path(sm64_props.levels_folder, level_name, dir_name, include),  # backwards compatability
                 ]
                 for include in includes
             ]
@@ -454,3 +459,33 @@ def update_actor_includes(
 def write_material_headers(decomp: Path, c_include: Path, h_include: Path):
     write_includes(decomp / "src/game/materials.c", [c_include])
     write_includes(decomp / "src/game/materials.h", [h_include], before_endif=True)
+
+
+def draw_export_dir(writeBox, sm64_props: "SM64_Properties", headerType, name, levelName, levelOption):
+    if not name:
+        writeBox.label(text="Empty actor name", icon="ERROR")
+        return
+    if headerType == "Actor":
+        writeBox.label(text=as_posix(Path(sm64_props.actors_folder, toAlnum(name) or "")))
+    elif headerType == "Level":
+        if levelOption != "Custom":
+            levelName = levelOption
+        if not name:
+            writeBox.label(text="Empty level name", icon="ERROR")
+            return
+        writeBox.label(text=as_posix(Path(sm64_props.levels_folder, levelName, toAlnum(name) or "")))
+
+
+def get_export_dirs(sm64_props, customExport, dirPath, headerType, levelName, texDir, dirName):
+    # Get correct directory from decomp base, and overwrite texDir
+    if not customExport:
+        if headerType == "Actor":
+            dirPath = Path(dirPath, sm64_props.actors_folder)
+            texDir = Path(sm64_props.actors_folder, dirName)
+        elif headerType == "Level":
+            dirPath = Path(dirPath, sm64_props.levels_folder, levelName)
+            texDir = Path(sm64_props.levels_folder, levelName)
+    elif not texDir:
+        texDir = Path(dirPath).name / Path(dirName)
+
+    return as_posix(dirPath), as_posix(texDir)

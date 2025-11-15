@@ -466,19 +466,6 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, level_enum):
-    if is_custom_export:
-        export_path = bpy.path.abspath(str(custom_export_path))
-        level_name = custom_level_name
-    else:
-        export_path = str(bpy.context.scene.fast64.sm64.abs_decomp_path)
-        if level_enum == "Custom":
-            level_name = custom_level_name
-        else:
-            level_name = level_enum
-    return export_path, level_name
-
-
 def findStartBones(armatureObj):
     noParentBones = sorted(
         [
@@ -739,36 +726,6 @@ def makeWriteInfoBox(layout):
     writeBox = layout.box()
     writeBox.label(text="Along with header edits, this will write to:")
     return writeBox
-
-
-def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
-    if not name:
-        writeBox.label(text="Empty actor name", icon="ERROR")
-        return
-    if headerType == "Actor":
-        writeBox.label(text="actors/" + toAlnum(name))
-    elif headerType == "Level":
-        if levelOption != "Custom":
-            levelName = levelOption
-        if not name:
-            writeBox.label(text="Empty level name", icon="ERROR")
-            return
-        writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
-
-
-def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
-    # Get correct directory from decomp base, and overwrite texDir
-    if not customExport:
-        if headerType == "Actor":
-            dirPath = os.path.join(dirPath, "actors")
-            texDir = "actors/" + dirName
-        elif headerType == "Level":
-            dirPath = os.path.join(dirPath, "levels/" + levelName)
-            texDir = "levels/" + levelName
-    elif not texDir:
-        texDir = (Path(dirPath).name / Path(dirName)).as_posix()
-
-    return dirPath, texDir
 
 
 def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction, post_regex=""):
@@ -1307,6 +1264,25 @@ def directory_ui_warnings(
     not_a_directory="Path is not a folder.",
 ):
     return run_and_draw_errors(layout, directory_path_checks, path, empty, doesnt_exist, not_a_directory, False)
+
+
+def draw_directory(
+    layout: UILayout,
+    owner: object,
+    prop: str,
+    split=True,
+    name="",
+    base_dir: Path | None = None,
+    empty="Empty path.",
+    doesnt_exist="Directory does not exist.",
+    not_a_directory="Path is not a folder.",
+):
+    if split:
+        prop_split(layout, owner, prop, name)
+    dir = Path(getattr(owner, prop) + "/")
+    if base_dir is not None:
+        dir = base_dir / dir
+    return directory_ui_warnings(layout, dir.as_posix(), empty, doesnt_exist, not_a_directory)
 
 
 def filepath_checks(
