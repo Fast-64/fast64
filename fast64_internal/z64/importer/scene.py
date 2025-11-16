@@ -105,6 +105,7 @@ def parseScene(
         sceneName,
         False,
         True,
+        True,
     )
 
     file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene.c"
