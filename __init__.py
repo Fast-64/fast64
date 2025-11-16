@@ -269,7 +269,7 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
     """
 
     sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
-    oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
+    oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="Z64 Object Properties")  # TODO: rename oot to z64
 
 
 class UpgradeF3DMaterialsDialog(bpy.types.Operator):

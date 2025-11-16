@@ -1,5 +1,4 @@
 import bpy
-import os
 
 from bpy.path import abspath
 from bpy.types import Operator
@@ -13,7 +12,7 @@ from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID
 from ..constants import ootEnumSceneID
 from ..importer import parseScene
-from ..exporter.decomp_edit.config import Config
+
 from ..exporter import SceneExport, Files
 
 
@@ -86,17 +85,6 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
         return {"RUNNING_MODAL"}
-
-
-class OOT_ClearBootupScene(Operator):
-    bl_idname = "object.oot_clear_bootup_scene"
-    bl_label = "Undo Boot To Scene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    def execute(self, context):
-        Config.clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
-        self.report({"INFO"}, "Success!")
-        return {"FINISHED"}
 
 
 class OOT_ImportScene(Operator):
@@ -254,7 +242,6 @@ class OOT_RemoveScene(Operator):
 classes = (
     OOT_SearchMusicSeqEnumOperator,
     OOT_SearchSceneEnumOperator,
-    OOT_ClearBootupScene,
     OOT_ImportScene,
     OOT_ExportScene,
     OOT_RemoveScene,

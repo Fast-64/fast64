@@ -55,6 +55,7 @@ class RoomEntries:
                         f"{roomName}_dl",
                         model.DLFormat,
                         None,
+                        model.draw_config,
                     )
                 ),
                 roomIndex,
