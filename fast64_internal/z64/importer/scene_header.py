@@ -460,9 +460,12 @@ def parseSceneCommands(
     command_map: dict[str, list[str]] = {}
 
     # store the commands to process with the corresponding args
-    for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
-        command = commandMatch.group(1)
-        args = [arg.strip() for arg in commandMatch.group(2).split(",")]
+    raw_cmds = commands.strip().replace(" ", "").split("\n")
+    for raw_cmd in raw_cmds:
+        cmd_match = re.search(r"(SCENE\_CMD\_[a-zA-Z0-9\_]*)", raw_cmd, re.DOTALL)
+        assert cmd_match is not None
+        command = cmd_match.group(1)
+        args = raw_cmd.removeprefix(f"{command}(").removesuffix("),").split(",")
         command_map[command] = args
 
     command_list = list(command_map.keys())
