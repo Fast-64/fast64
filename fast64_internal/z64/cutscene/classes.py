@@ -501,13 +501,13 @@ class CutsceneObjectFactory:
     """This class contains functions to create new Blender objects"""
 
     def getNewEmptyObject(self, name: str, selectObject: bool, parentObj: Object):
-        return get_new_object(name, None, selectObject, parentObj)
+        return get_new_object(name, None, selectObject, parent=parentObj)
 
     def getNewArmatureObject(self, name: str, selectObject: bool, parentObj: Object):
         newArmatureData = bpy.data.armatures.new(name)
         newArmatureData.display_type = "STICK"
         newArmatureData.show_names = True
-        newArmatureObject = get_new_object(name, newArmatureData, selectObject, parentObj)
+        newArmatureObject = get_new_object(name, newArmatureData, selectObject, parent=parentObj)
         return newArmatureObject
 
     def getNewCutsceneObject(self, name: str, frameCount: int, parentObj: Object):
@@ -585,7 +585,7 @@ class CutsceneObjectFactory:
         self, name: str, displaySize: float, clipStart: float, clipEnd: float, alpha: float, parentObj: Object
     ):
         newCamera = bpy.data.cameras.new(name)
-        newCameraObj = get_new_object(name, newCamera, False, parentObj)
+        newCameraObj = get_new_object(name, newCamera, False, parent=parentObj)
         newCameraObj.data.display_size = displaySize
         newCameraObj.data.clip_start = clipStart
         newCameraObj.data.clip_end = clipEnd

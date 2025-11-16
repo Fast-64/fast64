@@ -7,27 +7,26 @@ from pathlib import Path
 from typing import Optional
 
 from ...game_data import game_data
-from ...utility import PluginError, get_new_object, parentObject, hexOrDecInt, gammaInverse
+from ...utility import PluginError, get_new_empty_object, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import setCustomProperty
+from ..utility import setCustomProperty, is_hackeroot, getEnumIndex
 from .constants import headerNames
-from .utility import getDataMatch, stripName, parse_commands_data
+from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
 from .scene_collision import parseCollisionHeader
 from .scene_pathways import parsePathList
+from ..animated_mats.properties import Z64_AnimatedMaterial, enum_anim_mat_type
 
 from ..constants import (
     ootEnumAudioSessionPreset,
-    ootEnumMusicSeq,
     ootEnumCameraMode,
     ootEnumMapLocation,
     ootEnumNaviHints,
-    ootEnumGlobalObject,
     ootEnumSkyboxLighting,
 )
 
@@ -125,7 +124,9 @@ def parseLightList(
 
     lights_empty = None
     if len(lightList) > 0:
-        lights_empty = get_new_object(f"{sceneObj.name} Lights (header {headerIndex})", None, False, sceneObj)
+        lights_empty = get_new_empty_object(
+            f"{sceneObj.name} Lights (header {headerIndex})", do_select=False, parent=sceneObj
+        )
         lights_empty.ootEmptyType = "None"
 
     parent_obj = lights_empty if lights_empty is not None else sceneObj
@@ -147,7 +148,9 @@ def parseLightList(
             new_tod_light = sceneHeader.tod_lights.add() if i > 0 else None
 
             settings_name = "Default Settings" if i == 0 else f"Light Settings {i}"
-            sub_lights_empty = get_new_object(f"(Header {headerIndex}) {settings_name}", None, False, parent_obj)
+            sub_lights_empty = get_new_empty_object(
+                f"(Header {headerIndex}) {settings_name}", do_select=False, parent=parent_obj
+            )
             sub_lights_empty.ootEmptyType = "None"
 
             for tod_type in ["Dawn", "Day", "Dusk", "Night"]:
@@ -287,6 +290,141 @@ def parseAlternateSceneHeaders(
             )
 
 
+def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, list_name: str):
+    anim_mat_type_to_struct = {
+        0: "AnimatedMatTexScrollParams",
+        1: "AnimatedMatTexScrollParams",
+        2: "AnimatedMatColorParams",
+        3: "AnimatedMatColorParams",
+        4: "AnimatedMatColorParams",
+        5: "AnimatedMatTexCycleParams",
+    }
+
+    struct_to_regex = {
+        "AnimatedMatTexScrollParams": r"\{\s?(0?x?\-?\d+),\s?(0?x?\-?\d+),\s?(0?x?\-?\d+),\s?(0?x?\-?\d+)\s?\}",
+        "AnimatedMatColorParams": r"(\d+)(\,\n?\s*)?(\d+)(\,\n?\s*)?([a-zA-Z0-9_]*)(\,\n?\s*)?([a-zA-Z0-9_]*)(\,\n?\s*)?([a-zA-Z0-9_]*)",
+        "AnimatedMatTexCycleParams": r"(\d+)(\,\n?\s*)?([a-zA-Z0-9_]*)(\,\n?\s*)?([a-zA-Z0-9_]*)",
+    }
+
+    data_match = getDataMatch(scene_data, list_name, "AnimatedMaterial", "animated material")
+    anim_mat_data = data_match.strip().split("\n")
+
+    for data in anim_mat_data:
+        data = data.replace("{", "").replace("}", "").removesuffix(",").strip()
+
+        split = data.split(", ")
+
+        type_num = int(split[1], base=0)
+
+        if type_num == 6:
+            continue
+
+        raw_segment = split[0]
+
+        if "MATERIAL_SEGMENT_NUM" in raw_segment:
+            raw_segment = raw_segment.removesuffix(")").split("(")[1]
+
+        segment = int(raw_segment, base=0)
+        data_ptr = split[2].removeprefix("&")
+
+        is_array = type_num in {0, 1}
+        struct_name = anim_mat_type_to_struct[type_num]
+        regex = struct_to_regex[struct_name]
+        data_match = getDataMatch(scene_data, data_ptr, struct_name, "animated params", is_array, False)
+        params_data: list[list[str]] | list[str] = []
+
+        if is_array:
+            params_data = [
+                [match.group(1), match.group(2), match.group(3), match.group(4)]
+                for match in re.finditer(regex, data_match, re.DOTALL)
+            ]
+        else:
+            match = re.search(regex, data_match, re.DOTALL)
+            assert match is not None
+
+            params_data = [match.group(1), match.group(3), match.group(5)]
+            if struct_name == "AnimatedMatColorParams":
+                params_data.extend([match.group(7), match.group(9)])
+
+        entry = anim_mat.entries.add()
+        entry.segment_num = segment
+        enum_type = entry.user_type = enum_anim_mat_type[type_num + 1][0]
+        entry.on_type_set(getEnumIndex(enum_anim_mat_type, enum_type))
+
+        if struct_name == "AnimatedMatTexScrollParams":
+            entry.tex_scroll_params.texture_1.set_from_data(params_data[0])
+
+            if len(params_data) > 1:
+                entry.tex_scroll_params.texture_2.set_from_data(params_data[1])
+        elif struct_name == "AnimatedMatColorParams":
+            entry.color_params.keyframe_length = int(params_data[0], base=0)
+
+            prim_match = getDataMatch(scene_data, params_data[2], "F3DPrimColor", "animated material prim color", True)
+            prim_data = prim_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
+
+            use_env_color = params_data[3] != "NULL"
+            use_frame_indices = params_data[4] != "NULL"
+
+            env_data = [None] * len(prim_data)
+            if use_env_color:
+                env_match = getDataMatch(scene_data, params_data[3], "F3DEnvColor", "animated material env color", True)
+                env_data = env_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
+
+            frame_data = [None] * len(prim_data)
+            if use_frame_indices:
+                frame_match = getDataMatch(
+                    scene_data, params_data[4], "u16", "animated material color frame data", True
+                )
+                frame_data = (
+                    frame_match.strip()
+                    .replace(" ", "")
+                    .replace(",\n", ",")
+                    .replace(",", "\n")
+                    .removesuffix("\n")
+                    .split("\n")
+                )
+
+            assert len(prim_data) == len(env_data) == len(frame_data)
+
+            for prim_color_raw, env_color_raw, frame in zip(prim_data, env_data, frame_data):
+                prim_color = [hexOrDecInt(elem) for elem in prim_color_raw.split(",") if len(elem) > 0]
+
+                color_entry = entry.color_params.keyframes.add()
+
+                if use_frame_indices:
+                    assert frame is not None
+                    color_entry.frame_num = int(frame, base=0)
+
+                color_entry.prim_lod_frac = prim_color[4]
+                color_entry.prim_color = parseColor(prim_color[0:3]) + (1,)
+
+                if use_env_color:
+                    assert env_color_raw is not None
+                    env_color = [hexOrDecInt(elem) for elem in env_color_raw.split(",") if len(elem) > 0]
+                    color_entry.env_color = parseColor(env_color[0:3]) + (1,)
+        elif struct_name == "AnimatedMatTexCycleParams":
+            entry.tex_cycle_params.keyframe_length = int(params_data[0], base=0)
+            textures: list[str] = []
+            frames: list[int] = []
+
+            data_match = getDataMatch(scene_data, params_data[1], "TexturePtr", "animated material texture ptr", True)
+            for texture_ptr in data_match.replace(" ", "").replace("\n", "").split(","):
+                if len(texture_ptr) > 0:
+                    textures.append(texture_ptr.strip())
+
+            data_match = getDataMatch(scene_data, params_data[2], "u8", "animated material frame data", True)
+            for frame_num in data_match.replace(",", "\n").strip().split("\n"):
+                frames.append(int(frame_num.strip(), base=0))
+
+            for symbol in textures:
+                cycle_entry = entry.tex_cycle_params.textures.add()
+                cycle_entry.symbol = symbol
+
+            for frame_num in frames:
+                cycle_entry = entry.tex_cycle_params.keyframes.add()
+                cycle_entry.texture_index = frame_num
+
+
 def parseSceneCommands(
     sceneName: Optional[str],
     sceneObj: Optional[bpy.types.Object],
@@ -306,93 +444,162 @@ def parseSceneCommands(
 
     if headerIndex == 0:
         sceneHeader = sceneObj.ootSceneHeader
-    elif headerIndex < 4:
+    elif game_data.z64.is_oot() and headerIndex < game_data.z64.cs_index_start:
         sceneHeader = getattr(sceneObj.ootAlternateSceneHeaders, headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = sceneObj.ootAlternateSceneHeaders.cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - 3:
+        while len(cutsceneHeaders) < headerIndex - (game_data.z64.cs_index_start - 1):
             cutsceneHeaders.add()
-        sceneHeader = cutsceneHeaders[headerIndex - 4]
+        sceneHeader = cutsceneHeaders[headerIndex - game_data.z64.cs_index_start]
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
-    cmd_map = parse_commands_data(commands)
     entranceList = None
-    altHeadersListName = None
-    for command, args in cmd_map.items():
+    # command to delay: command args
+    delayed_commands: dict[str, list[str]] = {}
+    command_map: dict[str, list[str]] = {}
+
+    # store the commands to process with the corresponding args
+    for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
+        command = commandMatch.group(1)
+        args = [arg.strip() for arg in commandMatch.group(2).split(",")]
+        command_map[command] = args
+
+    command_list = list(command_map.keys())
+
+    for command, args in command_map.items():
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(sceneHeader, "nightSeq", args[1], game_data.z64.get_enum("nature_id"))
-            setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
+
+            if args[2].startswith("NA_BGM_"):
+                enum_id = args[2]
+            else:
+                enum_id = game_data.z64.enums.enumByKey["seq_id"].item_by_index[int(args[2])].id
+
+            setCustomProperty(sceneHeader, "musicSeq", enum_id, game_data.z64.get_enum("musicSeq"))
+            command_list.remove(command)
         elif command == "SCENE_CMD_ROOM_LIST":
-            # Assumption that all scenes use the same room list.
-            if headerIndex == 0:
-                if roomObjs is not None:
-                    raise PluginError("Attempting to parse a room list while room objs already loaded.")
-                roomListName = stripName(args[1])
-                roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedSceneData, headerIndex)
-
-        # This must be handled after rooms, so that room objs can be referenced
-        elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST" and sharedSceneData.includeActors:
-            transActorListName = stripName(args[1])
-            parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
-
-        elif command == "SCENE_CMD_MISC_SETTINGS":
+            # Delay until actor cutscenes are processed
+            delayed_commands[command] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
+            if sharedSceneData.includeActors:
+                # This must be handled after rooms, so that room objs can be referenced
+                delayed_commands[command] = args
+            command_list.remove(command)
+        elif game_data.z64.is_oot() and command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
+            command_list.remove(command)
+        elif command == "SCENE_CMD_COL_HEADER":
+            # Delay until after rooms are processed
+            delayed_commands[command] = args
+            command_list.remove(command)
+        elif command in {"SCENE_CMD_ENTRANCE_LIST", "SCENE_CMD_SPAWN_LIST"}:
+            if sharedSceneData.includeActors:
+                # Delay until after rooms are processed
+                delayed_commands["SCENE_CMD_SPAWN_LIST"] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_SPECIAL_FILES":
+            if game_data.z64.is_oot():
+                setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
+            setCustomProperty(sceneHeader, "globalObject", args[1], game_data.z64.get_enum("globalObject"))
+            command_list.remove(command)
+        elif command == "SCENE_CMD_PATH_LIST":
+            if sharedSceneData.includePaths:
+                pathListName = stripName(args[0])
+                parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
+            command_list.remove(command)
+        elif command in {"SCENE_CMD_SPAWN_LIST", "SCENE_CMD_PLAYER_ENTRY_LIST"}:
+            if sharedSceneData.includeActors:
+                # This must be handled after entrance list, so that entrance list and room list can be referenced
+                delayed_commands["SCENE_CMD_PLAYER_ENTRY_LIST"] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_SKYBOX_SETTINGS":
+            args_index = 0
+            if game_data.z64.is_mm():
+                sceneHeader.skybox_texture_id = args[args_index]
+                args_index += 1
+            setCustomProperty(sceneHeader, "skyboxID", args[args_index], game_data.z64.get_enum("skybox"))
+            setCustomProperty(
+                sceneHeader, "skyboxCloudiness", args[args_index + 1], game_data.z64.get_enum("skybox_config")
+            )
+            setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)
+            command_list.remove(command)
+        elif command == "SCENE_CMD_EXIT_LIST":
+            exitListName = stripName(args[0])
+            parseExitList(sceneHeader, sceneData, exitListName)
+            command_list.remove(command)
+        elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS":
+            if sharedSceneData.includeLights:
+                if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
+                    lightsListName = stripName(args[1])
+                    parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex, sharedSceneData)
+            command_list.remove(command)
+        elif command == "SCENE_CMD_CUTSCENE_DATA":
+            if sharedSceneData.includeCutscenes:
+                sceneHeader.writeCutscene = True
+                sceneHeader.csWriteType = "Object"
+                csObjName = f"Cutscene.{args[0]}"
+                try:
+                    sceneHeader.csWriteObject = bpy.data.objects[csObjName]
+                except:
+                    print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
+            command_list.remove(command)
+        elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
+            # Delay until after rooms are processed
+            delayed_commands[command] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_END":
+            command_list.remove(command)
+
+        # handle Majora's Mask (or modded OoT) exclusive commands
+        elif game_data.z64.is_mm() or is_hackeroot():
+            if command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
+                if sharedSceneData.includeAnimatedMats:
+                    parse_animated_material(sceneHeader.animated_material, sceneData, stripName(args[0]))
+                command_list.remove(command)
+
+    if "SCENE_CMD_ROOM_LIST" in delayed_commands:
+        args = delayed_commands["SCENE_CMD_ROOM_LIST"]
+        # Assumption that all scenes use the same room list.
+        if headerIndex == 0:
+            if roomObjs is not None:
+                raise PluginError("Attempting to parse a room list while room objs already loaded.")
+            roomListName = stripName(args[1])
+            roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedSceneData, headerIndex)
+        delayed_commands.pop("SCENE_CMD_ROOM_LIST")
+    else:
+        raise PluginError("ERROR: no room command found for this scene!")
+
+    # any other delayed command requires rooms to be processed
+    for command, args in delayed_commands.items():
+        if command == "SCENE_CMD_TRANSITION_ACTOR_LIST" and sharedSceneData.includeActors:
+            transActorListName = stripName(args[1])
+            parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
         elif command == "SCENE_CMD_COL_HEADER":
             # Assumption that all scenes use the same collision.
             if headerIndex == 0:
                 collisionHeaderName = args[0][1:]  # remove '&'
                 parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName, sharedSceneData)
-        elif (
-            command in {"SCENE_CMD_ENTRANCE_LIST", "SCENE_CMD_SPAWN_LIST"}
-            and sharedSceneData.includeActors
-            and len(args) == 1
-        ):
+        elif command == "SCENE_CMD_SPAWN_LIST" and sharedSceneData.includeActors and len(args) == 1:
             if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
                 entranceListName = stripName(args[0])
                 entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
-        elif command == "SCENE_CMD_SPECIAL_FILES":
-            setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
-            setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
-        elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
-            pathListName = stripName(args[0])
-            parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
-
-        # This must be handled after entrance list, so that entrance list can be referenced
-        elif command in {"SCENE_CMD_SPAWN_LIST", "SCENE_CMD_PLAYER_ENTRY_LIST"} and sharedSceneData.includeActors:
+        elif command == "SCENE_CMD_PLAYER_ENTRY_LIST" and sharedSceneData.includeActors:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 spawnListName = stripName(args[1])
                 parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedSceneData, headerIndex)
 
                 # Clear entrance list
                 entranceList = None
-
-        elif command == "SCENE_CMD_SKYBOX_SETTINGS":
-            setCustomProperty(sceneHeader, "skyboxID", args[0], game_data.z64.get_enum("skybox"))
-            setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], game_data.z64.get_enum("skybox_config"))
-            setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
-        elif command == "SCENE_CMD_EXIT_LIST":
-            exitListName = stripName(args[0])
-            parseExitList(sceneHeader, sceneData, exitListName)
-        elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS" and sharedSceneData.includeLights:
-            if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
-                lightsListName = stripName(args[1])
-                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex, sharedSceneData)
-        elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
-            sceneHeader.writeCutscene = True
-            sceneHeader.csWriteType = "Object"
-            csObjName = f"Cutscene.{args[0]}"
-            try:
-                sceneHeader.csWriteObject = bpy.data.objects[csObjName]
-            except:
-                print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
-            # Delay until after rooms are parsed
-            altHeadersListName = stripName(args[0])
+            parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, stripName(args[0]), f3dContext, sharedSceneData)
 
-    if altHeadersListName is not None:
-        parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
+    if len(command_list) > 0:
+        print(f"INFO: The following scene commands weren't processed for header {headerIndex}:")
+        for command in command_list:
+            print(f"- {repr(command)}")
 
     return sceneObj
