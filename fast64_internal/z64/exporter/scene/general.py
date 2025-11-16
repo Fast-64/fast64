@@ -47,7 +47,10 @@ class EnvLightSettings:
                     blend_rate *= 4
                 else:
                     blend_and_fogs = entry.split("},")[-1].split(",")
-                    blend_split = blend_and_fogs[0].removeprefix("(").removesuffix(")").split("|")
+                    if blend_and_fogs[0].endswith(")"):
+                        blend_split = blend_and_fogs[0].removeprefix("(").removesuffix(")").split("|")
+                    else:
+                        blend_split = blend_and_fogs[0].split("|")
                     blend_raw = blend_split[0]
                     fog_near = hexOrDecInt(blend_split[1])
                     z_far = hexOrDecInt(blend_and_fogs[1])
