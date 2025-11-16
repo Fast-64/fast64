@@ -409,6 +409,9 @@ class Scene:
             "#undef SCENE_CMD_SPAWN_LIST",
             "#define SCENE_CMD_SPAWN_LIST(spawnList) \\",
             indent + "{ SCENE_CMD_ID_ENTRANCE_LIST, 0, CMD_PTR(spawnList) }",
+            "#endif\n",
+            "#ifndef BLEND_RATE_AND_FOG_NEAR",
+            "#define BLEND_RATE_AND_FOG_NEAR(blendRate, fogNear) (s16)((((blendRate) / 4) << 10) | (fogNear))",
             "#endif\n\n",
         ]
 

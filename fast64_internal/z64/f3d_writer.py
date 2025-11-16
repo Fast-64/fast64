@@ -352,5 +352,8 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> Optional
             scale = scale[:-1]
         return getOOTScale(1 / float(scale))
 
+    if isLink:
+        return getOOTScale(100.0)
+
     print("WARNING: auto-detection failed, defaulting to this panel's actor scale property value")
     return None

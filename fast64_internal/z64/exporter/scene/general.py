@@ -1,3 +1,4 @@
+import bpy
 import re
 
 from dataclasses import dataclass
@@ -37,16 +38,24 @@ class EnvLightSettings:
                 for match in re.finditer(r"(\{([0-9\-]*,[0-9\-]*,[0-9\-]*)\})", entry, re.DOTALL):
                     colors_and_dirs.append([hexOrDecInt(value) for value in match.group(2).split(",")])
 
-                blend_and_fogs = entry.split("},")[-1].split(",")
-                blend_split = blend_and_fogs[0].removeprefix("(").removesuffix(")").split("|")
-                blend_raw = blend_split[0]
-                fog_near = hexOrDecInt(blend_split[1])
-                z_far = hexOrDecInt(blend_and_fogs[1])
-                blend_rate = getEvalParamsInt(blend_raw)
-                assert blend_rate is not None
-
-                if "/" in blend_raw:
+                if "BLEND_RATE_AND_FOG_NEAR" in entry:
+                    blend_and_fogs = entry.replace(")", "").split("BLEND_RATE_AND_FOG_NEAR(")[-1].strip().split(",")
+                    fog_near = hexOrDecInt(blend_and_fogs[1])
+                    z_far = hexOrDecInt(blend_and_fogs[2])
+                    blend_rate = getEvalParamsInt(blend_and_fogs[0])
+                    assert blend_rate is not None
                     blend_rate *= 4
+                else:
+                    blend_and_fogs = entry.split("},")[-1].split(",")
+                    blend_split = blend_and_fogs[0].removeprefix("(").removesuffix(")").split("|")
+                    blend_raw = blend_split[0]
+                    fog_near = hexOrDecInt(blend_split[1])
+                    z_far = hexOrDecInt(blend_and_fogs[1])
+                    blend_rate = getEvalParamsInt(blend_raw)
+                    assert blend_rate is not None
+
+                    if "/" in blend_raw:
+                        blend_rate *= 4
             else:
                 split = entry.split(",")
 
@@ -83,6 +92,9 @@ class EnvLightSettings:
 
     def getBlendFogNear(self):
         """Returns the packed blend rate and fog near values"""
+
+        if bpy.context.scene.fast64.oot.useDecompFeatures:
+            return f"BLEND_RATE_AND_FOG_NEAR({self.blendRate}, {self.fogNear})"
 
         return f"(({self.blendRate} << 10) | {self.fogNear})"
 

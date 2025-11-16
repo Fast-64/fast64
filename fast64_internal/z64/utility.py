@@ -530,7 +530,9 @@ def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: st
     return filepath
 
 
-def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists, useFolderForCustom):
+def ootGetPath(
+    exportPath, isCustomExport, subPath, folderName, makeIfNotExists, useFolderForCustom, is_import: bool = False
+):
     if isCustomExport:
         path = bpy.path.abspath(os.path.join(exportPath, (folderName if useFolderForCustom else "")))
     else:
@@ -539,7 +541,7 @@ def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists,
         path = bpy.path.abspath(os.path.join(os.path.join(bpy.context.scene.ootDecompPath, subPath), folderName))
 
     if not os.path.exists(path):
-        if isCustomExport or makeIfNotExists:
+        if not is_import and isCustomExport or makeIfNotExists:
             os.makedirs(path)
         else:
             raise PluginError(path + " does not exist.")

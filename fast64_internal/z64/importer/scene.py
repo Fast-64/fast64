@@ -105,6 +105,7 @@ def parseScene(
         sceneName,
         False,
         True,
+        True,
     )
 
     if game_data.z64.is_oot():
