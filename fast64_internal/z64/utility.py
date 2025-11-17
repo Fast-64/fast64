@@ -346,32 +346,6 @@ class OOTObjectCategorizer:
                 self.meshes.append(obj)
 
 
-def clear_mesh_children(scene_obj: Object, scene_objs: list[Object]):
-    """Forces objects to not be parented to a mesh object to avoid transform issues, default is the scene object but this tries to parent to the room object if present in the hierarchy"""
-    room_list = getObjectList(scene_objs, "EMPTY", "Room")
-
-    def assign_new_parent(obj: Object, new_parent: Object):
-        """Updates the parent and the matrix inverse to keep the transform"""
-        matrix = obj.matrix_world.copy()
-        obj.parent = new_parent
-        obj.matrix_parent_inverse = new_parent.matrix_world.inverted()
-        obj.matrix_local = new_parent.matrix_world.inverted() @ matrix
-
-    for obj in scene_objs:
-        assign_scene = True
-
-        if obj.parent is not None and obj.parent.type == "MESH":
-            # assign the object to the first matching room empty, assign to the scene object by default
-            for room_obj in room_list:
-                if obj in room_obj.children_recursive:
-                    assign_new_parent(obj, room_obj)
-                    assign_scene = False
-                    break
-
-            if assign_scene:
-                assign_new_parent(obj, scene_obj)
-
-
 # This also sets all origins relative to the scene object.
 def ootDuplicateHierarchy(
     obj: Object, ignoreAttr: Optional[str], includeEmpties: bool, objectCategorizer: OOTObjectCategorizer
@@ -388,9 +362,6 @@ def ootDuplicateHierarchy(
         bpy.ops.object.make_single_user(obdata=True)
 
         objectCategorizer.sortObjects(allObjs)
-
-        # parent any children of a mesh to the mesh's parent to prevent said children to be misplaced because of `setOrigin` moving the mesh
-        clear_mesh_children(objectCategorizer.sceneObj, allObjs)
 
         meshObjs = objectCategorizer.meshes
         deselectAllObjects()
