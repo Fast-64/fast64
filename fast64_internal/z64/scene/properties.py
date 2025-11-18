@@ -1,0 +1,721 @@
+import bpy
+
+from typing import Optional
+from bpy.types import PropertyGroup, Object, Light, UILayout, Scene, Context
+from bpy.props import (
+    EnumProperty,
+    IntProperty,
+    StringProperty,
+    CollectionProperty,
+    PointerProperty,
+    BoolProperty,
+    FloatVectorProperty,
+)
+from bpy.utils import register_class, unregister_class
+from typing import Optional
+
+from ...game_data import game_data
+from ...render_settings import on_update_oot_render_settings
+from ...utility import prop_split, customExportWarning
+from ..cutscene.constants import ootEnumCSWriteType
+from ..collection_utility import drawCollectionOps, drawAddButton
+from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, is_oot_features, getEnumIndex
+from ..animated_mats.properties import Z64_AnimatedMaterial
+
+from ..constants import (
+    ootEnumMusicSeq,
+    ootEnumSceneID,
+    ootEnumGlobalObject,
+    ootEnumNaviHints,
+    ootEnumSkyboxLighting,
+    ootEnumMapLocation,
+    ootEnumCameraMode,
+    ootEnumAudioSessionPreset,
+    ootEnumHeaderMenu,
+    ootEnumHeaderMenuComplete,
+)
+
+ootEnumSceneMenuAlternate = [
+    ("General", "General", "General"),
+    ("Lighting", "Lighting", "Lighting"),
+    ("Cutscene", "Cutscene", "Cutscene"),
+    ("Exits", "Exits", "Exits"),
+    ("AnimMats", "Material Anim.", "Material Anim."),
+]
+ootEnumSceneMenu = ootEnumSceneMenuAlternate + [
+    ("Alternate", "Alternate", "Alternate"),
+]
+
+ootEnumLightGroupMenu = [
+    ("Dawn", "Dawn", "Dawn"),
+    ("Day", "Day", "Day"),
+    ("Dusk", "Dusk", "Dusk"),
+    ("Night", "Night", "Night"),
+]
+
+ootEnumTransitionAnims = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Spiky", "Spiky"),
+    ("0x01", "Triforce", "Triforce"),
+    ("0x02", "Slow Black Fade", "Slow Black Fade"),
+    ("0x03", "Slow Day/White, Slow Night/Black Fade", "Slow Day/White, Slow Night/Black Fade"),
+    ("0x04", "Fast Day/Black, Slow Night/Black Fade", "Fast Day/Black, Slow Night/Black Fade"),
+    ("0x05", "Fast Day/White, Slow Night/Black Fade", "Fast Day/White, Slow Night/Black Fade"),
+    ("0x06", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
+    ("0x07", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
+    ("0x0E", "Slow Sandstorm Fade", "Slow Sandstorm Fade"),
+    ("0x0F", "Fast Sandstorm Fade", "Fast Sandstorm Fade"),
+    ("0x20", "Iris Fade", "Iris Fade"),
+    ("0x2C", "Shortcut Transition", "Shortcut Transition"),
+]
+
+ootEnumExitIndex = [
+    ("Custom", "Custom", "Custom"),
+    ("Default", "Default", "Default"),
+]
+
+
+class OOTSceneCommon:
+    ootEnumBootMode = [
+        ("Play", "Play", "Play"),
+        ("Map Select", "Map Select", "Map Select"),
+        ("File Select", "File Select", "File Select"),
+    ]
+
+    def isSceneObj(self, obj):
+        return obj.type == "EMPTY" and obj.ootEmptyType == "Scene"
+
+
+class OOTSceneProperties(PropertyGroup):
+    write_dummy_room_list: BoolProperty(
+        name="Dummy Room List",
+        default=False,
+        description=(
+            "When exporting the scene to C, use NULL for the pointers to room "
+            "start/end offsets, instead of the appropriate symbols"
+        ),
+    )
+
+
+class OOTExitProperty(PropertyGroup):
+    expandTab: BoolProperty(name="Expand Tab")
+
+    exitIndex: EnumProperty(items=ootEnumExitIndex, default="Default")
+    exitIndexCustom: StringProperty(default="0x0000")
+
+    # These are used when adding an entry to gEntranceTable
+    scene: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    sceneCustom: StringProperty(default="SCENE_DEKU_TREE")
+
+    # These are used when adding an entry to gEntranceTable
+    continueBGM: BoolProperty(default=False)
+    displayTitleCard: BoolProperty(default=True)
+    fadeInAnim: EnumProperty(items=ootEnumTransitionAnims, default="0x02")
+    fadeInAnimCustom: StringProperty(default="0x02")
+    fadeOutAnim: EnumProperty(items=ootEnumTransitionAnims, default="0x02")
+    fadeOutAnimCustom: StringProperty(default="0x02")
+
+    def draw_props(self, layout: UILayout, index: int, headerIndex: int, objName: str):
+        box = layout.box()
+        box.prop(self, "expandTab", text="Exit " + str(index + 1), icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+        if self.expandTab:
+            drawCollectionOps(box, index, "Exit", headerIndex, objName)
+            drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
+            if self.exitIndex != "Custom":
+                box.label(text='This is unfinished, use "Custom".')
+                exitGroup = box.column()
+                exitGroup.enabled = False
+                drawEnumWithCustom(exitGroup, self, "scene", "Scene", "")
+                exitGroup.prop(self, "continueBGM", text="Continue BGM")
+                exitGroup.prop(self, "displayTitleCard", text="Display Title Card")
+                drawEnumWithCustom(exitGroup, self, "fadeInAnim", "Fade In Animation", "")
+                drawEnumWithCustom(exitGroup, self, "fadeOutAnim", "Fade Out Animation", "")
+
+
+class OOTLightProperty(PropertyGroup):
+    ambient: FloatVectorProperty(
+        name="Ambient Color",
+        size=4,
+        min=0,
+        max=1,
+        default=(70 / 255, 40 / 255, 57 / 255, 1),
+        subtype="COLOR",
+        update=on_update_oot_render_settings,
+    )
+    useCustomDiffuse0: BoolProperty(name="Use Custom Diffuse 0 Light Object", update=on_update_oot_render_settings)
+    useCustomDiffuse1: BoolProperty(name="Use Custom Diffuse 1 Light Object", update=on_update_oot_render_settings)
+    diffuse0: FloatVectorProperty(
+        name="",
+        size=4,
+        min=0,
+        max=1,
+        default=(180 / 255, 154 / 255, 138 / 255, 1),
+        subtype="COLOR",
+        update=on_update_oot_render_settings,
+    )
+    diffuse1: FloatVectorProperty(
+        name="",
+        size=4,
+        min=0,
+        max=1,
+        default=(20 / 255, 20 / 255, 60 / 255, 1),
+        subtype="COLOR",
+        update=on_update_oot_render_settings,
+    )
+    diffuse0Custom: PointerProperty(name="Diffuse 0", type=Light, update=on_update_oot_render_settings)
+    diffuse1Custom: PointerProperty(name="Diffuse 1", type=Light, update=on_update_oot_render_settings)
+    fogColor: FloatVectorProperty(
+        name="",
+        size=4,
+        min=0,
+        max=1,
+        default=(140 / 255, 120 / 255, 110 / 255, 1),
+        subtype="COLOR",
+        update=on_update_oot_render_settings,
+    )
+    fogNear: IntProperty(name="", default=993, min=0, max=2**10 - 1, update=on_update_oot_render_settings)
+    transitionSpeed: IntProperty(name="", default=1, min=0, max=63, update=on_update_oot_render_settings)
+    z_far: IntProperty(name="", default=0x3200, min=0, max=2**15 - 1, update=on_update_oot_render_settings)
+    expandTab: BoolProperty(name="Expand Tab")
+
+    def draw_props(
+        self,
+        layout: UILayout,
+        name: str,
+        showExpandTab: bool,
+        index: Optional[int],
+        sceneHeaderIndex: Optional[int],
+        objName: Optional[str],
+        collection_type: Optional[str],
+    ):
+        if showExpandTab:
+            box = layout.box().column()
+            box.prop(self, "expandTab", text=name, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+            expandTab = self.expandTab
+        else:
+            box = layout
+            expandTab = True
+
+        if expandTab:
+            if index is not None and collection_type is not None:
+                drawCollectionOps(box, index, collection_type, sceneHeaderIndex, objName)
+            prop_split(box, self, "ambient", "Ambient Color")
+
+            def draw_diffuse(index: int):
+                layout_diffuse = box.box()
+                layout_diffuse.prop(self, f"useCustomDiffuse{index}")
+                if self.useCustomDiffuse0:
+                    layout_diffuse.label(text="Make sure light is not part of scene hierarchy.")
+                    prop_split(layout_diffuse, self, f"diffuse{index}Custom", f"Diffuse {index} Object")
+                else:
+                    prop_split(layout_diffuse, self, f"diffuse{index}", f"Diffuse{index} Color")
+
+            draw_diffuse(0)
+            draw_diffuse(1)
+            prop_split(box, self, "fogColor", "Fog Color")
+            prop_split(box, self, "fogNear", "Fog Near (Fog Far=1000)")
+            prop_split(box, self, "z_far", "Z Far (Draw Distance)")
+            prop_split(box, self, "transitionSpeed", "Blend Rate")
+
+
+class OOTLightGroupProperty(PropertyGroup):
+    expandTab: BoolProperty()
+    menuTab: EnumProperty(items=ootEnumLightGroupMenu)
+    dawn: PointerProperty(type=OOTLightProperty)
+    day: PointerProperty(type=OOTLightProperty)
+    dusk: PointerProperty(type=OOTLightProperty)
+    night: PointerProperty(type=OOTLightProperty)
+    defaultsSet: BoolProperty()
+
+    def draw_props(self, layout: UILayout, index: Optional[int], header_index: int, obj_name: str):
+        box = layout.column()
+
+        text = "Default Settings" if index is None else f"Light Settings No. {index + 1}"
+        box.prop(self, "expandTab", text=text, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+
+        if self.expandTab:
+            if index is not None:
+                drawCollectionOps(box, index, "ToD Light", header_index, obj_name)
+
+            box.row().prop(self, "menuTab", expand=True)
+
+            for tod_type in ["Dawn", "Day", "Dusk", "Night"]:
+                if self.menuTab == tod_type:
+                    getattr(self, tod_type.lower()).draw_props(
+                        box, tod_type, False, index, header_index, obj_name, None
+                    )
+
+
+class OOTSceneTableEntryProperty(PropertyGroup):
+    drawConfig: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum("drawConfig"), name="Scene Draw Config", default=1
+    )
+    drawConfigCustom: StringProperty(name="Scene Draw Config Custom")
+
+    def draw_props(self, layout: UILayout):
+        drawEnumWithCustom(layout, self, "drawConfig", "Draw Config", "")
+
+        if "mat_anim" in self.drawConfig and is_oot_features():
+            layout.label(text="This draw config requires MM features to be enabled.", icon="ERROR")
+
+
+class OOTExtraCutsceneProperty(PropertyGroup):
+    csObject: PointerProperty(
+        name="Cutscene Object",
+        type=Object,
+        poll=lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene",
+    )
+
+
+class OOTSceneHeaderProperty(PropertyGroup):
+    expandTab: BoolProperty(name="Expand Tab")
+    usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
+
+    globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
+    globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
+    naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
+    naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
+
+    skyboxID: EnumProperty(name="Skybox", items=lambda self, context: game_data.z64.get_enum("skybox"), default=2)
+    skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
+    skyboxCloudiness: EnumProperty(
+        name="Cloudiness", items=lambda self, context: game_data.z64.get_enum("skybox_config"), default=1
+    )
+    skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
+    skyboxLighting: EnumProperty(
+        name="Skybox Lighting",
+        items=ootEnumSkyboxLighting,
+        default="LIGHT_MODE_TIME",
+        update=on_update_oot_render_settings,
+    )
+    skyboxLightingCustom: StringProperty(
+        name="Skybox Lighting Custom", default="0x00", update=on_update_oot_render_settings
+    )
+
+    mapLocation: EnumProperty(name="Map Location", items=ootEnumMapLocation, default="0x00")
+    mapLocationCustom: StringProperty(name="Skybox Lighting Custom", default="0x00")
+    cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
+    cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
+
+    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
+    nightSeq: EnumProperty(
+        name="Nighttime SFX", items=lambda self, context: game_data.z64.get_enum("nature_id"), default=1
+    )
+    nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
+    audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
+    audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")
+
+    # ideally `timeOfDayLights` would be removed in favor of `tod_lights`
+    # but it's easier to keep it since we need at least one element in the collection
+    timeOfDayLights: PointerProperty(type=OOTLightGroupProperty, name="Time Of Day Lighting")
+    tod_lights: CollectionProperty(type=OOTLightGroupProperty)
+    lightList: CollectionProperty(type=OOTLightProperty, name="Lighting List")
+
+    exitList: CollectionProperty(type=OOTExitProperty, name="Exit List")
+
+    writeCutscene: BoolProperty(name="Write Cutscene")
+    csWriteType: EnumProperty(name="Cutscene Data Type", items=ootEnumCSWriteType, default="Object")
+    csWriteCustom: StringProperty(name="CS hdr var:", default="")
+    csWriteObject: PointerProperty(
+        name="Cutscene Object",
+        type=Object,
+        poll=lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene",
+    )
+
+    extraCutscenes: CollectionProperty(type=OOTExtraCutsceneProperty, name="Extra Cutscenes")
+    sceneTableEntry: PointerProperty(type=OOTSceneTableEntryProperty)
+    menuTab: EnumProperty(name="Menu", items=ootEnumSceneMenu, update=onMenuTabChange)
+    altMenuTab: EnumProperty(name="Menu", items=ootEnumSceneMenuAlternate)
+
+    appendNullEntrance: BoolProperty(
+        name="Append Null Entrance",
+        description="Add an additional {0, 0} to the end of the EntranceEntry list.",
+        default=False,
+    )
+
+    title_card_name: StringProperty(
+        name="Title Card", default="none", description="Segment name of the title card to use"
+    )
+
+    reuse_anim_mat: BoolProperty(default=False)
+    reuse_anim_mat_cs_index: IntProperty(min=game_data.z64.cs_index_start, default=game_data.z64.cs_index_start)
+    animated_material: PointerProperty(type=Z64_AnimatedMaterial)
+
+    internal_anim_mat_header: StringProperty(default="Child Day")  # used for the export
+    internal_header_index: IntProperty(min=1, default=1)  # used for the UI
+    reuse_anim_mat_header: EnumProperty(
+        items=lambda self, context: self.get_anim_mat_header_list(),
+        set=lambda self, value: self.on_am_header_set(value),
+        get=lambda self: self.on_am_header_get(),
+    )
+
+    def get_anim_mat_header_list(self):
+        # all but child night
+        enum_am_headers_1 = ootEnumHeaderMenuComplete.copy()
+        enum_am_headers_1.pop(1)
+
+        # all but adult day
+        enum_am_headers_2 = ootEnumHeaderMenuComplete.copy()
+        enum_am_headers_2.pop(2)
+
+        # all but adult night
+        enum_am_headers_3 = ootEnumHeaderMenuComplete.copy()
+        enum_am_headers_3.pop(3)
+
+        enum_am_headers_4 = ootEnumHeaderMenuComplete.copy()
+
+        am_enum_map = {
+            1: enum_am_headers_1,
+            2: enum_am_headers_2,
+            3: enum_am_headers_3,
+            4: enum_am_headers_4,
+        }
+
+        return am_enum_map[self.internal_header_index]
+
+    def on_am_header_set(self, value):
+        enum = self.get_anim_mat_header_list()
+        self.internal_anim_mat_header = enum[value][0]
+
+    def on_am_header_get(self):
+        index = getEnumIndex(self.get_anim_mat_header_list(), self.internal_anim_mat_header)
+        return index if index is not None else 0
+
+    def draw_props(
+        self,
+        layout: UILayout,
+        dropdownLabel: str,
+        headerIndex: int,
+        obj: Object,
+    ):
+        from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
+
+        if dropdownLabel is not None:
+            layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+            if not self.expandTab:
+                return
+        if headerIndex is not None and headerIndex > 3:
+            drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, obj.name)
+
+        if headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
+            layout.prop(self, "usePreviousHeader", text="Use Previous Header")
+            if self.usePreviousHeader:
+                return
+
+        menu_box = layout.grid_flow(row_major=True, align=True, columns=3)
+        if headerIndex is None or headerIndex == 0:
+            menu_box.prop(self, "menuTab", expand=True)
+            menuTab = self.menuTab
+        else:
+            menu_box.prop(self, "altMenuTab", expand=True)
+            menuTab = self.altMenuTab
+
+        if menuTab == "General":
+            general = layout.column()
+            general.box().label(text="General")
+            drawEnumWithCustom(general, self, "globalObject", "Global Object", "")
+            drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
+            if headerIndex is None or headerIndex == 0:
+                self.sceneTableEntry.draw_props(general)
+                prop_split(general, self, "title_card_name", "Title Card")
+                if bpy.context.scene.ootSceneExportSettings.customExport:
+                    general.label(text="Custom Export Path enabled, title card will be ignored.", icon="INFO")
+            general.prop(self, "appendNullEntrance")
+
+            skyboxAndSound = layout.column()
+            skyboxAndSound.box().label(text="Skybox And Sound")
+            drawEnumWithCustom(skyboxAndSound, self, "skyboxID", "Skybox", "")
+            drawEnumWithCustom(skyboxAndSound, self, "skyboxCloudiness", "Cloudiness", "")
+            drawEnumWithCustom(skyboxAndSound, self, "musicSeq", "Music Sequence", "")
+            musicSearch = skyboxAndSound.operator(OOT_SearchMusicSeqEnumOperator.bl_idname, icon="VIEWZOOM")
+            musicSearch.objName = obj.name
+            musicSearch.headerIndex = headerIndex if headerIndex is not None else 0
+            drawEnumWithCustom(skyboxAndSound, self, "nightSeq", "Nighttime SFX", "")
+            drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
+
+            cameraAndWorldMap = layout.column()
+            cameraAndWorldMap.box().label(text="Camera And World Map")
+            drawEnumWithCustom(cameraAndWorldMap, self, "mapLocation", "Map Location", "")
+            drawEnumWithCustom(cameraAndWorldMap, self, "cameraMode", "Camera Mode", "")
+
+        elif menuTab == "Lighting":
+            lighting = layout.column()
+            lighting.box().label(text="Lighting List")
+            drawEnumWithCustom(lighting, self, "skyboxLighting", "Lighting Mode", "")
+
+            if self.skyboxLighting == "LIGHT_MODE_TIME":  # Time of Day
+                self.timeOfDayLights.draw_props(lighting.box(), None, headerIndex, obj.name)
+
+                for i, tod_light in enumerate(self.tod_lights):
+                    tod_light.draw_props(lighting.box(), i, headerIndex, obj.name)
+                drawAddButton(lighting, len(self.tod_lights), "ToD Light", headerIndex, obj.name)
+            else:
+                for i in range(len(self.lightList)):
+                    self.lightList[i].draw_props(lighting, f"Lighting {i}", True, i, headerIndex, obj.name, "Light")
+                drawAddButton(lighting, len(self.lightList), "Light", headerIndex, obj.name)
+
+        elif menuTab == "Cutscene":
+            cutscene = layout.column()
+            r = cutscene.row()
+            r.prop(self, "writeCutscene", text="Write Cutscene")
+            if self.writeCutscene:
+                r.prop(self, "csWriteType", text="Data")
+                if self.csWriteType == "Custom":
+                    cutscene.prop(self, "csWriteCustom")
+                else:
+                    cutscene.prop(self, "csWriteObject")
+
+            if headerIndex is None or headerIndex == 0:
+                cutscene.label(text="Extra cutscenes (not in any header):")
+                for i in range(len(self.extraCutscenes)):
+                    box = cutscene.box().column()
+                    drawCollectionOps(box, i, "extraCutscenes", None, obj.name, True)
+                    box.prop(self.extraCutscenes[i], "csObject", text="CS obj")
+                if len(self.extraCutscenes) == 0:
+                    drawAddButton(cutscene, 0, "extraCutscenes", 0, obj.name)
+
+        elif menuTab == "Exits":
+            exitBox = layout.column()
+            exitBox.box().label(text="Exit List")
+            for i in range(len(self.exitList)):
+                self.exitList[i].draw_props(exitBox, i, headerIndex, obj.name)
+
+            drawAddButton(exitBox, len(self.exitList), "Exit", headerIndex, obj.name)
+
+        elif menuTab == "AnimMats":
+            if headerIndex is not None:
+                layout.prop(self, "reuse_anim_mat", text="Use Existing Material Anim.")
+
+            if "mat_anim" not in obj.ootSceneHeader.sceneTableEntry.drawConfig:
+                wrong_box = layout.box().column()
+                wrong_box.label(text="Wrong Draw Config", icon="ERROR")
+
+                if bpy.context.scene.ootSceneExportSettings.customExport:
+                    wrong_box.label(text="Make sure the `scene_table.h` entry is using")
+                    wrong_box.label(text="the right draw config.")
+                else:
+                    wrong_box.label(text="Make sure one of the 'Material Animated'")
+                    wrong_box.label(text="draw configs is selected otherwise")
+                    wrong_box.label(text="animated materials won't be exported.")
+
+            if headerIndex is not None and headerIndex > 0 and self.reuse_anim_mat:
+                pass
+                prop_split(layout, self, "reuse_anim_mat_header", "Use Material Anim. from")
+
+                if self.internal_anim_mat_header == "Cutscene":
+                    prop_split(layout, self, "reuse_anim_mat_cs_index", "Cutscene Index")
+            else:
+                self.animated_material.draw_props(layout, obj, None, headerIndex)
+
+
+def update_cutscene_index(self: "OOTAlternateSceneHeaderProperty", context: Context):
+    if self.currentCutsceneIndex < game_data.z64.cs_index_start:
+        self.currentCutsceneIndex = game_data.z64.cs_index_start
+
+    onHeaderMenuTabChange(self, context)
+
+
+class OOTAlternateSceneHeaderProperty(PropertyGroup):
+    childNightHeader: PointerProperty(name="Child Night Header", type=OOTSceneHeaderProperty)
+    adultDayHeader: PointerProperty(name="Adult Day Header", type=OOTSceneHeaderProperty)
+    adultNightHeader: PointerProperty(name="Adult Night Header", type=OOTSceneHeaderProperty)
+    cutsceneHeaders: CollectionProperty(type=OOTSceneHeaderProperty)
+
+    headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: IntProperty(default=game_data.z64.cs_index_start, update=update_cutscene_index)
+
+    def draw_props(self, layout: UILayout, obj: Object):
+        headerSetup = layout.column()
+        headerSetupBox = headerSetup.column()
+
+        menu_tab_map = {
+            "Child Night": ("childNightHeader", 1),
+            "Adult Day": ("adultDayHeader", 2),
+            "Adult Night": ("adultNightHeader", 3),
+            "Cutscene": ("cutsceneHeaders", game_data.z64.cs_index_start),
+        }
+
+        headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
+        attr_name, header_index = menu_tab_map[self.headerMenuTab]
+
+        if header_index < 4:
+            getattr(self, attr_name).draw_props(headerSetupBox, None, header_index, obj)
+        else:
+            prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
+            drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, obj.name)
+            index = self.currentCutsceneIndex
+            if index - game_data.z64.cs_index_start < len(self.cutsceneHeaders):
+                self.cutsceneHeaders[index - game_data.z64.cs_index_start].draw_props(headerSetup, None, index, obj)
+            else:
+                headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
+
+
+# TODO: move to HackerOoT properties.py
+class OOTBootupSceneOptions(PropertyGroup):
+    bootToScene: BoolProperty(default=False, name="Boot To Scene")
+    overrideHeader: BoolProperty(default=False, name="Override Header")
+    headerOption: EnumProperty(items=ootEnumHeaderMenuComplete, name="Header", default="Child Day")
+    spawnIndex: IntProperty(name="Spawn", min=0)
+    newGameOnly: BoolProperty(
+        default=False,
+        name="Override Scene On New Game Only",
+        description="Only use this starting scene after loading a new save file",
+    )
+    newGameName: StringProperty(default="Link", name="New Game Name")
+    bootMode: EnumProperty(default="Play", name="Boot Mode", items=OOTSceneCommon.ootEnumBootMode)
+
+    # see src/code/z_play.c:Play_Init() - can't access more than 16 cutscenes?
+    cutsceneIndex: IntProperty(min=4, max=19, default=4, name="Cutscene Index")
+
+    def draw_props(self, layout: UILayout):
+        layout.prop(self, "bootToScene", text="Boot To Scene (HackerOOT)")
+        if self.bootToScene:
+            layout.prop(self, "newGameOnly")
+            prop_split(layout, self, "bootMode", "Boot Mode")
+            if self.bootMode == "Play":
+                prop_split(layout, self, "newGameName", "New Game Name")
+            if self.bootMode != "Map Select":
+                prop_split(layout, self, "spawnIndex", "Spawn")
+                layout.prop(self, "overrideHeader")
+                if self.overrideHeader:
+                    prop_split(layout, self, "headerOption", "Header Option")
+                    if self.headerOption == "Cutscene":
+                        prop_split(layout, self, "cutsceneIndex", "Cutscene Index")
+
+
+class OOTRemoveSceneSettingsProperty(PropertyGroup):
+    name: StringProperty(name="Name", default="spot03")
+    subFolder: StringProperty(name="Subfolder", default="overworld")
+    customExport: BoolProperty(name="Custom Export Path")
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+
+    def draw_props(self, layout: UILayout):
+        if self.option == "Custom":
+            prop_split(layout, self, "subFolder", "Subfolder")
+            prop_split(layout, self, "name", "Name")
+
+
+class OOTExportSceneSettingsProperty(PropertyGroup):
+    name: StringProperty(name="Name", default="spot03")
+    subFolder: StringProperty(name="Subfolder", default="overworld")
+    exportPath: StringProperty(name="Directory", subtype="FILE_PATH")
+    customExport: BoolProperty(name="Custom Export Path")
+    singleFile: BoolProperty(
+        name="Export as Single File",
+        default=False,
+        description="Does not split the scene and rooms into multiple files.",
+    )
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    auto_add_room_objects: BoolProperty(name="Auto-add Missing Room Objects", default=True)
+
+    # keeping this on purpose, will be removed once old code is cleaned-up
+    useNewExporter: BoolProperty(name="Use New Exporter", default=True)
+
+    def draw_props(self, layout: UILayout):
+        if self.customExport:
+            prop_split(layout, self, "exportPath", "Directory")
+            prop_split(layout, self, "name", "Name")
+            customExportWarning(layout)
+        else:
+            if self.option == "Custom":
+                prop_split(layout, self, "subFolder", "Subfolder")
+                prop_split(layout, self, "name", "Name")
+
+        prop_split(layout, bpy.context.scene, "ootSceneExportObj", "Scene Object")
+
+        layout.prop(self, "singleFile")
+        layout.prop(self, "customExport")
+        layout.prop(self, "auto_add_room_objects")
+        # layout.prop(self, "useNewExporter")
+
+
+class OOTImportSceneSettingsProperty(PropertyGroup):
+    name: StringProperty(name="Name", default="spot03")
+    subFolder: StringProperty(name="Subfolder", default="overworld")
+    destPath: StringProperty(name="Directory", subtype="FILE_PATH")
+    isCustomDest: BoolProperty(name="Custom Path")
+    includeMesh: BoolProperty(name="Mesh", default=True)
+    includeCollision: BoolProperty(name="Collision", default=True)
+    includeActors: BoolProperty(name="Actors", default=True)
+    includeCullGroups: BoolProperty(name="Cull Groups", default=True)
+    includeLights: BoolProperty(name="Lights", default=True)
+    includeCameras: BoolProperty(name="Cameras", default=True)
+    includePaths: BoolProperty(name="Paths", default=True)
+    includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
+    includeCutscenes: BoolProperty(name="Cutscenes", default=False)
+    includeAnimatedMats: BoolProperty(name="Animated Materials", default=False)
+    option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+
+    def draw_props(self, layout: UILayout, sceneOption: str):
+        col = layout.column()
+        includeButtons1 = col.row(align=True)
+        includeButtons1.prop(self, "includeMesh", toggle=1)
+        includeButtons1.prop(self, "includeCollision", toggle=1)
+        includeButtons1.prop(self, "includeActors", toggle=1)
+
+        includeButtons2 = col.row(align=True)
+        includeButtons2.prop(self, "includeCullGroups", toggle=1)
+        includeButtons2.prop(self, "includeLights", toggle=1)
+        includeButtons2.prop(self, "includeCameras", toggle=1)
+
+        includeButtons3 = col.row(align=True)
+        includeButtons3.prop(self, "includePaths", toggle=1)
+        includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
+        includeButtons3.prop(self, "includeCutscenes", toggle=1)
+
+        includeButtons4 = col.row(align=True)
+        if not is_oot_features():
+            includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
+
+        col.prop(self, "isCustomDest")
+
+        if self.isCustomDest:
+            prop_split(col, self, "destPath", "Directory")
+            prop_split(col, self, "name", "Name")
+        else:
+            if self.option == "Custom":
+                prop_split(col, self, "subFolder", "Subfolder")
+                prop_split(col, self, "name", "Name")
+
+        if "SCENE_JABU_JABU" in sceneOption:
+            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
+
+
+classes = (
+    OOTExitProperty,
+    OOTLightProperty,
+    OOTLightGroupProperty,
+    OOTSceneTableEntryProperty,
+    OOTExtraCutsceneProperty,
+    OOTSceneHeaderProperty,
+    OOTAlternateSceneHeaderProperty,
+    OOTBootupSceneOptions,
+    OOTRemoveSceneSettingsProperty,
+    OOTExportSceneSettingsProperty,
+    OOTImportSceneSettingsProperty,
+)
+
+
+def scene_props_register():
+    for cls in classes:
+        register_class(cls)
+
+    Object.ootSceneHeader = PointerProperty(type=OOTSceneHeaderProperty)
+    Object.ootAlternateSceneHeaders = PointerProperty(type=OOTAlternateSceneHeaderProperty)
+    Scene.ootSceneExportObj = PointerProperty(type=Object, poll=OOTSceneCommon.isSceneObj)
+    Scene.ootSceneExportSettings = PointerProperty(type=OOTExportSceneSettingsProperty)
+    Scene.ootSceneImportSettings = PointerProperty(type=OOTImportSceneSettingsProperty)
+    Scene.ootSceneRemoveSettings = PointerProperty(type=OOTRemoveSceneSettingsProperty)
+
+
+def scene_props_unregister():
+    del Object.ootSceneHeader
+    del Object.ootAlternateSceneHeaders
+    del Scene.ootSceneExportObj
+    del Scene.ootSceneExportSettings
+    del Scene.ootSceneImportSettings
+    del Scene.ootSceneRemoveSettings
+
+    for cls in reversed(classes):
+        unregister_class(cls)

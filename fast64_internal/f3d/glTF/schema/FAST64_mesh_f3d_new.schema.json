@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_materials_f3dlx.schema glTF Material Extension",
+    "type": "object",
+    "description": "Sub-extension to FAST64_mesh_f3d that implements post F3DLX properties",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "use_culling": {
+            "type": "object",
+            "properties": {
+                "clipping": {
+                    "type": "boolean",
+                    "description": "Adds culling vertices for SPCullDisplayList",
+                    "default": true
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}

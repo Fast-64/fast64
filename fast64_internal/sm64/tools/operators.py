@@ -6,13 +6,13 @@ from bpy.props import EnumProperty, BoolProperty, IntProperty, FloatProperty, St
 from bpy.path import abspath
 
 from ...operators import OperatorBase, AddWaterBox
-from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr
+from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr, selectSingleObject
 from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
 from ...utility import parentObject, intToHex, bytesToHex
 
-from ..sm64_constants import level_pointers, levelIDNames, level_enums
+from ..sm64_constants import levelIDNames, enumLevelNames
 from ..sm64_utility import import_rom_checks, int_from_str
-from ..sm64_level_parser import parseLevelAtPointer
+from ..sm64_level_parser import parse_level_binary
 from ..sm64_geolayout_utility import createBoneGroups
 from ..sm64_geolayout_parser import generateMetarig
 
@@ -31,7 +31,7 @@ class SM64_AddrConv(OperatorBase):
     rom: StringProperty(name="ROM", subtype="FILE_PATH")
     # Using an enum here looks cleaner when using this as an operator
     option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
-    level: EnumProperty(items=level_enums, name="Level", default="IC")
+    level: EnumProperty(items=enumLevelNames, name="Level", default="castle_inside")
     addr: StringProperty(name="Address")
     clipboard: BoolProperty(name="Copy to clipboard", default=True)
     result: StringProperty(name="Result")
@@ -41,7 +41,7 @@ class SM64_AddrConv(OperatorBase):
         import_rom_path = abspath(self.rom)
         import_rom_checks(import_rom_path)
         with open(import_rom_path, "rb") as romfile:
-            level_parsed = parseLevelAtPointer(romfile, level_pointers[self.level])
+            level_parsed = parse_level_binary(romfile, self.level)
             segment_data = level_parsed.segmentData
         if self.option == "TO_VIR":
             result = intToHex(decodeSegmentedAddr(addr.to_bytes(4, "big"), segment_data))
@@ -143,9 +143,14 @@ class SM64_CreateSimpleLevel(OperatorBase):
     add_death_plane: BoolProperty(name="Add Death Plane")
     set_as_start_level: BoolProperty(name="Set As Start Level")
     respawn_in_level: BoolProperty(name="Respawn In The Same Level")
+    bounds: EnumProperty(
+        name="Bounds",
+        items=[("1", "1x", "1x"), ("2", "2x", "2x"), ("4", "4x", "4x"), ("NONE", "None", "No bounding box")],
+    )
 
     def execute_operator(self, context: Context):
         scene = context.scene
+        combined_export = scene.fast64.sm64.combined_export
 
         level_object = create_sm64_empty("Level", "Level Root", "PLAIN_AXES", (0, 0, 0))
         level_object.setAsStartLevel = self.set_as_start_level
@@ -182,13 +187,13 @@ class SM64_CreateSimpleLevel(OperatorBase):
 
             custom_level_id = "LEVEL_BOB"
             for key, value in levelIDNames.items():
-                if value == scene.levelName:
+                if value == combined_export.level_name:
                     custom_level_id = key
 
             area_object.warpNodes.add()
             area_object.warpNodes[-1].warpID = "0x0A"  # Spin warp
             area_object.warpNodes[-1].destLevel = custom_level_id
-            area_object.warpNodes[-1].destLevelEnum = scene.levelOption
+            area_object.warpNodes[-1].destLevelEnum = combined_export.export_level_name
             area_object.warpNodes[-1].destNode = "0x0A"
 
             area_object.warpNodes.add()
@@ -199,7 +204,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
             area_object.warpNodes.add()
             area_object.warpNodes[-1].warpID = "0xF1"  # Death
             if self.respawn_in_level:
-                area_object.warpNodes[-1].destLevelEnum = scene.levelOption
+                area_object.warpNodes[-1].destLevelEnum = combined_export.export_level_name
                 area_object.warpNodes[-1].destLevel = custom_level_id
                 area_object.warpNodes[-1].destNode = "0x0A"
             else:
@@ -244,9 +249,15 @@ class SM64_CreateSimpleLevel(OperatorBase):
             warp_game_object.bparam2 = "0x0A"
             warp_game_object.bparams = "0x000A0000"
 
-        bpy.ops.object.select_all(action="DESELECT")
-        level_object.select_set(True)
-        bpy.context.view_layer.objects.active = level_object
+        if self.bounds != "NONE":
+            bounds_loc = location_offset[0], location_offset[1], location_offset[2] + (0.05 * scale)
+            bounds_object = create_sm64_empty(f"Bounds ({self.bounds}x)", "Object", location=bounds_loc)
+            bounds_object.sm64_obj_type = "None"
+            radius = 8192.0 * float(self.bounds) / scale
+            bounds_object.scale = (radius, radius, 1.40381 * radius / int(self.bounds))
+            parentObject(level_object, bounds_object)
+
+        selectSingleObject(level_object)
 
 
 class SM64_AddWaterBox(AddWaterBox):

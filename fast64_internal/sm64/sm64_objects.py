@@ -1,8 +1,11 @@
 import math, bpy, mathutils
 from bpy.utils import register_class, unregister_class
+from bpy.types import UILayout
 from re import findall, sub
 from pathlib import Path
-from .sm64_function_map import func_map
+
+from bpy.utils import register_class, unregister_class
+
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 
@@ -10,6 +13,10 @@ from ..utility import (
     PluginError,
     CData,
     Vector,
+    yUpToZUp,
+    y_up_to_z_up,
+    directory_ui_warnings,
+    filepath_ui_warnings,
     toAlnum,
     convertRadiansToS16,
     checkIdentityRotation,
@@ -20,6 +27,7 @@ from ..utility import (
     multilineLabel,
     raisePluginError,
     enumExportHeaderType,
+    selectSingleObject,
 )
 
 from ..f3d.f3d_gbi import (
@@ -42,8 +50,10 @@ from .sm64_constants import (
     obj_group_enums,
     groupsSeg5,
     groupsSeg6,
+    groups_seg8,
     groups_obj_export,
 )
+from .sm64_utility import convert_addr_to_func
 
 from .sm64_spline import (
     assertCurveValid,
@@ -57,11 +67,19 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
 )
 
+from .animation import (
+    export_animation,
+    export_animation_table,
+    get_anim_obj,
+    is_obj_animatable,
+    SM64_ArmatureAnimProperties,
+)
+
+from .custom_cmd.properties import SM64_CustomCmdProperties
 
 enumTerrain = [
     ("Custom", "Custom", "Custom"),
@@ -223,26 +241,28 @@ inlineGeoLayoutObjects = {
     "Geo Billboard": InlineGeolayoutObjConfig("Geo Billboard", BillboardNode, can_have_dl=True, uses_location=True),
     "Geo Scale": InlineGeolayoutObjConfig("Geo Scale", ScaleNode, can_have_dl=True, uses_scale=True),
     "Geo Displaylist": InlineGeolayoutObjConfig("Geo Displaylist", DisplayListNode, must_have_dl=True),
-    "Custom Geo Command": InlineGeolayoutObjConfig("Custom Geo Command", CustomNode),
+    "Custom": InlineGeolayoutObjConfig("Custom", "CustomCmd"),
 }
 
 # When adding new types related to geolayout,
 # Make sure to add exceptions to enumSM64EmptyWithGeolayout
 enumObjectType = [
-    ("None", "None", "None"),
-    ("Level Root", "Level Root", "Level Root"),
-    ("Area Root", "Area Root", "Area Root"),
-    ("Object", "Object", "Object"),
-    ("Macro", "Macro", "Macro"),
-    ("Special", "Special", "Special"),
-    ("Mario Start", "Mario Start", "Mario Start"),
-    ("Whirlpool", "Whirlpool", "Whirlpool"),
-    ("Water Box", "Water Box", "Water Box"),
-    ("Camera Volume", "Camera Volume", "Camera Volume"),
-    ("Switch", "Switch Node", "Switch Node"),
-    ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume"),
-    ("", "Inline Geolayout Commands", ""),  # This displays as a column header for the next set of options
-    *[(key, key, key) for key in inlineGeoLayoutObjects.keys()],
+    ("None", "None", "None", 0),
+    ("Level Root", "Level Root", "Level Root", 1),
+    ("Area Root", "Area Root", "Area Root", 2),
+    ("Object", "Object", "Object", 3),
+    ("Macro", "Macro", "Macro", 4),
+    ("Special", "Special", "Special", 5),
+    ("Mario Start", "Mario Start", "Mario Start", 6),
+    ("Whirlpool", "Whirlpool", "Whirlpool", 7),
+    ("Water Box", "Water Box", "Water Box", 8),
+    ("Camera Volume", "Camera Volume", "Camera Volume", 9),
+    ("Switch", "Switch Node", "Switch Node", 10),
+    ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume", 11),
+    ("", "Inline Geolayout Commands", "", 12),  # This displays as a column header for the next set of options
+    *[(key, key, key, i) for i, key in enumerate(list(inlineGeoLayoutObjects.keys())[:-1], start=13)],  # exclude custom
+    ("", "", "", 12),
+    ("Custom", "Custom", "Custom level script command", 21),
 ]
 
 enumPuppycamMode = [
@@ -289,7 +309,7 @@ class SM64_Object:
         self.rotation = rotation
         self.name = name  # to sort by when exporting
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.acts == 0x1F:
             return (
                 "OBJECT("
@@ -346,7 +366,7 @@ class SM64_Whirpool:
         self.position = position
         self.name = "whirlpool"  # for sorting
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         return (
             "WHIRPOOL("
             + str(self.index)
@@ -371,7 +391,7 @@ class SM64_Macro_Object:
         self.position = position
         self.rotation = rotation
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.bparam is None:
             return (
                 "MACRO_OBJECT("
@@ -423,7 +443,7 @@ class SM64_Special_Object:
                 data.extend(int(self.bparam).to_bytes(2, "big"))
         return data
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.rotation is None:
             return (
                 "SPECIAL_OBJECT("
@@ -434,7 +454,7 @@ class SM64_Special_Object:
                 + str(int(round(self.position[1])))
                 + ", "
                 + str(int(round(self.position[2])))
-                + "),\n"
+                + ")"
             )
         elif self.bparam is None:
             return (
@@ -448,7 +468,7 @@ class SM64_Special_Object:
                 + str(int(round(self.position[2])))
                 + ", "
                 + str(int(round(math.degrees(self.rotation[1]))))
-                + "),\n"
+                + ")"
             )
         else:
             return (
@@ -464,7 +484,7 @@ class SM64_Special_Object:
                 + str(int(round(math.degrees(self.rotation[1]))))
                 + ", "
                 + str(self.bparam)
-                + "),\n"
+                + ")"
             )
 
 
@@ -475,7 +495,7 @@ class SM64_Mario_Start:
         self.rotation = rotation
         self.name = "Mario"  # for sorting
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         return (
             "MARIO_POS("
             + str(self.area)
@@ -512,6 +532,7 @@ class SM64_Area:
         self.mario_start = None
         self.splines = []
         self.startDialog = startDialog
+        self.custom_cmds = []
 
     def macros_name(self):
         return self.name + "_macro_objs"
@@ -523,7 +544,7 @@ class SM64_Area:
             data += "\t\t" + warpNode + ",\n"
         # export objects in name order
         for obj in sorted(self.objects, key=(lambda obj: obj.name)):
-            data += "\t\t" + obj.to_c() + ",\n"
+            data += "\t\t" + obj.to_c(2) + ",\n"
         data += "\t\tTERRAIN(" + self.collision.name + "),\n"
         if includeRooms:
             data += "\t\tROOMS(" + self.collision.rooms_name() + "),\n"
@@ -544,7 +565,7 @@ class SM64_Area:
         data.header = "extern const MacroObject " + self.macros_name() + "[];\n"
         data.source += "const MacroObject " + self.macros_name() + "[] = {\n"
         for macro in self.macros:
-            data.source += "\t" + macro.to_c() + ",\n"
+            data.source += "\t" + macro.to_c(1) + ",\n"
         data.source += "\tMACRO_OBJECT_END(),\n};\n\n"
 
         return data
@@ -552,13 +573,13 @@ class SM64_Area:
     def to_c_camera_volumes(self):
         data = ""
         for camVolume in self.cameraVolumes:
-            data += "\t" + camVolume.to_c() + "\n"
+            data += "\t" + camVolume.to_c(1) + ",\n"
         return data
 
     def to_c_puppycam_volumes(self):
         data = ""
         for puppycamVolume in self.puppycamVolumes:
-            data += "\t" + puppycamVolume.to_c() + "\n"
+            data += "\t" + puppycamVolume.to_c(1) + ",\n"
         return data
 
     def hasCutsceneSpline(self):
@@ -595,7 +616,7 @@ class CollisionWaterBox:
         data.extend(int(round(self.height)).to_bytes(2, "big", signed=True))
         return data
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         data = (
             "COL_WATER_BOX("
             + ("0x00" if self.waterBoxType == "Water" else "0x32")
@@ -609,7 +630,7 @@ class CollisionWaterBox:
             + str(int(round(self.high[1])))
             + ", "
             + str(int(round(self.height)))
-            + "),\n"
+            + ")"
         )
         return data
 
@@ -627,7 +648,7 @@ class CameraVolume:
     def to_binary(self):
         raise PluginError("Binary exporting not implemented for camera volumens.")
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         data = (
             "{"
             + str(self.area)
@@ -647,7 +668,7 @@ class CameraVolume:
             + str(int(round(self.scale[2])))
             + ", "
             + str(convertRadiansToS16(self.rotation[1]))
-            + "},"
+            + "}"
         )
         return data
 
@@ -680,7 +701,7 @@ class PuppycamVolume:
     def to_binary(self):
         raise PluginError("Binary exporting not implemented for puppycam volumes.")
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         data = (
             "{"
             + str(self.level)
@@ -716,14 +737,13 @@ class PuppycamVolume:
             + str(int(round(self.camFocus[1])))
             + ", "
             + str(int(round(self.camFocus[2])))
-            + "},"
+            + "}"
         )
         return data
 
 
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
-    bpy.ops.object.select_all(action="DESELECT")
-    areaObj.select_set(True)
+    selectSingleObject(areaObj)
 
     if not areaObj.noMusic:
         if areaObj.musicSeqEnum != "Custom":
@@ -792,12 +812,40 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
     )
 
     # Hacky solution to handle Z-up to Y-up conversion
-    rotation = (originalRotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))).to_euler("ZXY")
+    rotation = (originalRotation @ y_up_to_z_up).to_euler("ZXY")
 
     if obj.type == "EMPTY":
         if obj.sm64_obj_type == "Area Root" and obj.areaIndex != area.index:
             return
-        if specialsOnly:
+        obj_props: SM64_ObjectProperties = obj.fast64.sm64
+        if obj.sm64_obj_type == "Custom" and (
+            (obj_props.custom.cmd_type == "Collision" and specialsOnly)
+            or ((obj_props.custom.cmd_type == "Level") and not specialsOnly)
+        ):
+            # HACK: alternatively we could just ignore transformMatrix since it only has the blender to sm64 scale
+            sm64_scale = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+            reverse = mathutils.Matrix.Diagonal((sm64_scale,) * 3).to_4x4().inverted()
+            local_matrix = reverse @ final_transform @ yUpToZUp
+            cmd = obj_props.custom.get_final_cmd(
+                obj,
+                bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+                reverse @ (transformMatrix @ obj.matrix_world) @ yUpToZUp,
+                local_matrix,
+                name=obj.name,
+            )
+            if specialsOnly:
+                area.specials.append(cmd)
+            else:
+                if obj_props.custom.preset != "NONE":
+                    if obj_props.custom.section == "FORCE_LEVEL":
+                        area.custom_cmds.append(cmd)
+                        return
+                    elif obj_props.custom.section == "LEVEL":
+                        raise PluginError(
+                            f"Object {obj.name} is parented to an area but should be parented to the level root instead."
+                        )
+                area.objects.append(cmd)
+        elif specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
                 area.specials.append(
@@ -818,7 +866,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 modelID = obj.sm64_model_enum if obj.sm64_model_enum != "Custom" else obj.sm64_obj_model
                 modelID = handleRefreshDiffModelIDs(modelID)
                 behaviour = (
-                    func_map[bpy.context.scene.fast64.sm64.refresh_version][obj.sm64_behaviour_enum]
+                    convert_addr_to_func(obj.sm64_behaviour_enum)
                     if obj.sm64_behaviour_enum != "Custom"
                     else obj.sm64_obj_behaviour
                 )
@@ -854,7 +902,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     SM64_Whirpool(obj.whirlpool_index, obj.whirpool_condition, obj.whirpool_strength, translation)
                 )
             elif obj.sm64_obj_type == "Camera Volume":
-                checkIdentityRotation(obj, rotation, True)
+                checkIdentityRotation(obj, rotation.to_quaternion(), True)
                 if obj.cameraVolumeGlobal:
                     triggerIndex = -1
                 else:
@@ -871,7 +919,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 )
 
             elif obj.sm64_obj_type == "Puppycam Volume":
-                checkIdentityRotation(obj, rotation, False)
+                checkIdentityRotation(obj, rotation.to_quaternion(), False)
 
                 triggerIndex = area.index
                 puppycamProp = obj.puppycamProp
@@ -933,7 +981,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 area.puppycamVolumes.append(
                     PuppycamVolume(
                         triggerIndex,
-                        levelIDNames[bpy.data.scenes["Scene"].levelOption],
+                        levelIDNames[bpy.context.scene.fast64.sm64.export_level_name],
                         puppycamProp.puppycamVolumePermaswap,
                         puppycamProp.puppycamVolumeFunction,
                         translation,
@@ -1018,11 +1066,7 @@ class SearchBehaviourEnumOperator(bpy.types.Operator):
     def execute(self, context):
         context.object.sm64_behaviour_enum = self.sm64_behaviour_enum
         bpy.context.region.tag_redraw()
-        name = (
-            func_map[context.scene.fast64.sm64.refresh_version][self.sm64_behaviour_enum]
-            if self.sm64_behaviour_enum != "Custom"
-            else "Custom"
-        )
+        name = convert_addr_to_func(self.sm64_behaviour_enum) if self.sm64_behaviour_enum != "Custom" else "Custom"
         self.report({"INFO"}, "Selected: " + name)
         return {"FINISHED"}
 
@@ -1114,11 +1158,6 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj.fast64.sm64.geo_asm, "param", "Parameter")
             return
 
-        elif obj.sm64_obj_type == "Custom Geo Command":
-            prop_split(box, obj, "customGeoCommand", "Geo Macro")
-            prop_split(box, obj, "customGeoCommandArgs", "Parameters")
-            return
-
         if obj_details.can_have_dl:
             prop_split(box, obj, "draw_layer_static", "Draw Layer")
 
@@ -1143,7 +1182,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                 info_box.label(text="Scale", icon="DOT")
 
         if len(obj.children):
-            if checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type):
+            if checkIsSM64PreInlineGeoLayout(obj):
                 box.box().label(text="Children of this object will just be the following geo commands.")
             else:
                 box.box().label(text="Children of this object will be wrapped in GEO_OPEN_NODE and GEO_CLOSE_NODE.")
@@ -1172,11 +1211,15 @@ class SM64ObjectPanel(bpy.types.Panel):
             parent_box.separator()
 
     def draw(self, context):
+        sm64_props = context.scene.fast64.sm64
+
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         box = self.layout.box().column()
         column = self.layout.box().column()  # added just for puppycam trigger importing
         box.box().label(text="SM64 Object Inspector")
         obj = context.object
+        obj_props: SM64_ObjectProperties = obj.fast64.sm64
+
         prop_split(box, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
             prop_split(box, obj, "sm64_model_enum", "Model")
@@ -1246,18 +1289,18 @@ class SM64ObjectPanel(bpy.types.Panel):
                     prop_split(box, levelObj, "backgroundSegment", "Custom Background Segment")
                     segmentExportBox = box.box()
                     segmentExportBox.label(
-                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{context.scene.fast64.sm64.compression_format}SegmentRomStart"
+                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{sm64_props.compression_format}SegmentRomStart"
                     )
                 box.prop(obj, "useBackgroundColor")
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
             box.prop(obj, "actSelectorIgnore")
             box.prop(obj, "setAsStartLevel")
-            grid = box.grid_flow(columns=2)
-            obj.fast64.sm64.segment_loads.draw(grid)
+            obj.fast64.sm64.segment_loads.draw_props(box)
             prop_split(box, obj, "acousticReach", "Acoustic Reach")
             obj.starGetCutscenes.draw(box)
 
         elif obj.sm64_obj_type == "Area Root":
+            area_props = obj_props.area
             # Code that used to be in area inspector
             prop_split(box, obj, "areaIndex", "Area Index")
             box.prop(obj, "noMusic", text="Disable Music")
@@ -1280,13 +1323,21 @@ class SM64ObjectPanel(bpy.types.Panel):
             camBox.label(text="Warning: Camera modes can be overriden by area specific camera code.")
             camBox.label(text="Check the switch statment in camera_course_processing() in src/game/camera.c.")
 
-            fogBox = box.box()
-            fogInfoBox = fogBox.box()
-            fogInfoBox.label(text="Warning: Fog only applies to materials that:")
-            fogInfoBox.label(text="- use fog")
-            fogInfoBox.label(text="- have global fog enabled.")
-            prop_split(fogBox, obj, "area_fog_color", "Area Fog Color")
-            prop_split(fogBox, obj, "area_fog_position", "Area Fog Position")
+            fog_box = box.box().column()
+            fog_box.prop(area_props, "set_fog")
+            fog_props = fog_box.column()
+            fog_props.enabled = area_props.set_fog
+            multilineLabel(
+                fog_props,
+                "All materials in the area with fog and\n"
+                '"Use Area\'s Fog" enabled will use these fog\n'
+                "settings.\n"
+                "Each material will have its own fog\n"
+                "applied as vanilla SM64 has no fog system.",
+                icon="INFO",
+            )
+            prop_split(fog_props, obj, "area_fog_color", "Color")
+            prop_split(fog_props, obj, "area_fog_position", "Position")
 
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
                 prop_split(box, obj, "echoLevel", "Echo Level")
@@ -1294,7 +1345,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
                 box.prop(obj, "zoomOutOnPause")
 
-            box.prop(obj.fast64.sm64.area, "disable_background")
+            box.prop(area_props, "disable_background")
 
             areaLayout = box.box()
             areaLayout.enabled = not obj.fast64.sm64.area.disable_background
@@ -1372,11 +1423,18 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj, "switchParam", "Parameter")
             box.box().label(text="Children will ordered alphabetically.")
 
+        elif obj.sm64_obj_type == "Custom":
+            custom_props: SM64_CustomCmdProperties = obj_props.custom
+            custom_props.draw_props(box, sm64_props.binary_export, obj, blender_scale=sm64_props.blender_to_sm64_scale)
+
         elif obj.sm64_obj_type in inlineGeoLayoutObjects:
             self.draw_inline_obj(box, obj)
 
         elif obj.sm64_obj_type == "None":
             box.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+
+        else:
+            multilineLabel(box, "Unknown object type: " + obj.sm64_obj_type)
 
     def draw_acts(self, obj, layout):
         layout.label(text="Acts")
@@ -1444,6 +1502,8 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     _inheritable_macros = {
         "LOAD_COLLISION_DATA",
         "SET_MODEL",
+        "LOAD_ANIMATIONS",
+        "ANIMATE"
         # add support later maybe
         # "SET_HITBOX_WITH_OFFSET",
         # "SET_HITBOX",
@@ -1497,6 +1557,18 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
             if not props.export_col:
                 raise PluginError("Can't inherit collision without exporting collision data")
             return props.collision_name
+        if self.macro == "LOAD_ANIMATIONS":
+            if not props.export_anim:
+                raise PluginError("Can't inherit animation table without exporting animation data")
+            if not props.anims_name:
+                raise PluginError("No animation name to inherit in behavior script")
+            return f"oAnimations, {props.anims_name}"
+        if self.macro == "ANIMATE":
+            if not props.export_anim:
+                raise PluginError("Can't inherit animation table without exporting animation data")
+            if not props.anim_object:
+                raise PluginError("No animation properties to inherit in behavior script")
+            return f"oAnimations, {props.anim_object.fast64.sm64.animation.beginning_animation}"
         return self.macro_args
 
     def get_args(self, context, props):
@@ -1549,12 +1621,16 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # exports the model ID load into the appropriate script.c location
     def export_script_load(self, context, props):
-        # check if model_ids.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if props.export_header_type == "Level":
-            script_path = decomp_path / "levels" / f"{props.export_level_name}" / "script.c"
+            # for some reason full_level_path doesn't work here
+            if props.non_decomp_level:
+                levels_path = Path(props.full_level_path)
+            else:
+                levels_path = decomp_path / "levels" / props.export_level_name
+            script_path = levels_path / "script.c"
             self.export_level_specific_load(script_path, props)
-        else:
+        elif props.export_header_type == "Actor":
             script_path = decomp_path / "levels" / "scripts.c"
             self.export_group_script_load(script_path, props)
 
@@ -1572,13 +1648,14 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         for j, line in enumerate(file_lines):
             if start_delim and start_delim in line:
                 search_sig = True
+                insert_line = j
                 continue
             if search_sig and match_str and match_str in line:
                 match_line = j
                 break
             if search_sig and fast64_signature and fast64_signature in line:
                 insert_line = j
-            if search_sig and alt_condition is not None and alt_condition in line:
+            if alt_condition is not None and alt_condition in line:
                 alt_insert_line = j
             if end_delim and end_delim in line:
                 search_sig = False
@@ -1586,8 +1663,11 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # export the model ID to /include/model_ids.h
     def export_model_id(self, context, props, offset):
+        # won't find model_ids.h
+        if props.non_decomp_level:
+            return
         # check if model_ids.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         model_ids = decomp_path / "include" / "model_ids.h"
         if not model_ids.exists():
             PluginError("Could not find model_ids.h")
@@ -1626,25 +1706,34 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         script_lines = open(script_path, "r").readlines()
         script_load = f"    LOAD_MODEL_FROM_GEO({props.model_id_define}, {props.geo_name}),\n"
 
-        if props.group_name != "group0":
-            script_start = f"const LevelScript script_func_global_{props.group_num}[]"
+        if props.group_num == 0:
+            script = "level_main_scripts_entry"
         else:
-            script_start = f"const LevelScript level_main_scripts_entry[]"
+            script = f"script_func_global_{props.group_num}"
 
         match_line, sig_insert_line, default_line = self.find_export_lines(
             script_lines,
             match_str=f"{props.model_id_define},",
-            alt_condition="LOAD_MODEL_FROM_GEO",
-            start_delim=script_start,
+            start_delim=f"const LevelScript {script}[]",
             end_delim="};",
         )
 
         if match_line:
             script_lines[match_line] = script_load
-        elif default_line:
-            script_lines.insert(default_line + 1, script_load)
+        elif sig_insert_line and props.group_num == 0:
+            for i, line in enumerate(script_lines[sig_insert_line:]):
+                if "ALLOC_LEVEL_POOL()" in line:
+                    script_lines.insert(sig_insert_line + i + 1, script_load)
+                    break
+                elif "FREE_LEVEL_POOL()" in line:
+                    script_lines.insert(sig_insert_line + i, script_load)
+                    break
+                elif "};" in line:
+                    raise PluginError(f"Could not find FREE_LEVEL_POOL() or ALLOC_LEVEL_POOL() in {script}")
+        elif sig_insert_line:
+            script_lines.insert(sig_insert_line + 1, script_load)
         else:
-            PluginError(f"Could not find {script_start} in {script_path}")
+            raise PluginError(f"Could not find {script} in {script_path}")
 
         self.write_file_lines(script_path, script_lines)
 
@@ -1662,6 +1751,8 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             match_str=f"{props.model_id_define},",
             fast64_signature=f"const LevelScript {fast64_level_script}[]",
             alt_condition="#include ",
+            start_delim=f"const LevelScript {fast64_level_script}[]",
+            end_delim="RETURN()",
         )
 
         if match_line:
@@ -1672,14 +1763,14 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             export_line = default_line + 1 if default_line else len(script_lines)
             script_lines.insert(export_line, f"\nconst LevelScript {fast64_level_script}[] = {{\n")
             script_lines.insert(export_line + 1, script_load)
-            script_lines.insert(export_line + 2, "};\n")
+            script_lines.insert(export_line + 2, "\tRETURN(),\n")
+            script_lines.insert(export_line + 3, "};\n")
 
         # jump to custom level script array
         match_line, sig_insert_line, default_line = self.find_export_lines(
             script_lines,
             match_str=f"JUMP_LINK({fast64_level_script})",
             fast64_signature="JUMP_LINK(",
-            alt_condition="",
             start_delim="ALLOC_LEVEL_POOL(",
             end_delim="AREA(",
         )
@@ -1693,7 +1784,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def export_behavior_header(self, context, props):
         # check if behavior_header.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_header = decomp_path / "include" / "behavior_data.h"
         if not behavior_header.exists():
             PluginError("Could not find behavior_data.h")
@@ -1727,13 +1818,31 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Behavior must have more than 0 cmds to export")
 
         # export the behavior script itself
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_data = decomp_path / "data" / "behavior_data.c"
         if not behavior_data.exists():
             PluginError("Could not find behavior_data.c")
 
         # add at top of bhvs, 3 lines after this is found
         bhv_data_lines = open(behavior_data, "r").readlines()
+
+        if props.export_header_type == "Actor":
+            include = f'#include "actors/{toAlnum(props.actor_group_name)}.h"\n'
+        elif props.export_header_type == "Level" and not props.non_decomp_level:
+            include = f'#include "levels/{toAlnum(props.export_level_name)}/header.h"\n'
+        match_line, sig_insert_line, default_line = self.find_export_lines(
+            bhv_data_lines,
+            match_str=include,
+            alt_condition='#include "',
+        )
+        if match_line:
+            bhv_data_lines[match_line] = include
+        elif sig_insert_line:
+            bhv_data_lines.insert(sig_insert_line + 1, include)
+        else:
+            export_line = default_line + 1 if default_line else len(bhv_data_lines)
+            bhv_data_lines.insert(export_line, include)
+
         export_bhv_name = f"const BehaviorScript {props.bhv_name}[] = {{\n"
         last_bhv_define = "#define SPAWN_WATER_DROPLET(dropletParams)"
         fast64_sig = "/* fast64 object exports get inserted here */"
@@ -1776,7 +1885,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Operator can only be used in object mode.")
         if context.scene.fast64.sm64.export_type != "C":
             raise PluginError("Combined Object Export only supports C exporting")
-        if not props.col_object and not props.gfx_object and not props.bhv_object:
+        if not props.col_object and not props.gfx_object and not props.anim_object and not props.bhv_object:
             raise PluginError("No export object selected")
         if (
             context.active_object
@@ -1787,7 +1896,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def get_export_objects(self, context, props):
         if not props.export_all_selected:
-            return {props.col_object, props.gfx_object, props.bhv_object}.difference({None})
+            return {props.col_object, props.gfx_object, props.anim_object, props.bhv_object}.difference({None})
 
         def obj_root(object, context):
             while object.parent and object.parent in context.selected_objects:
@@ -1816,7 +1925,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 bpy.ops.object.sm64_export_collision(export_obj=obj.name)
         except Exception as exc:
             # pass on multiple export, throw on singular
-            if not props.export_all_selected:
+            if not props.export_all_selected or not PluginError.check_exc_warn(exc):
                 raise Exception(exc) from exc
 
     # writes model.inc.c, geo.inc.c file, geo_header.h
@@ -1827,7 +1936,6 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
     # var name is: const GeoLayout <props.gfx_obj>_geo[]
     def execute_gfx(self, props, context, obj, index):
         try:
-            print(props.context_obj)
             if props.export_gfx and props.obj_name_gfx and obj is props.gfx_object:
                 if obj.type == "ARMATURE":
                     bpy.ops.object.sm64_export_geolayout_armature(export_obj=obj.name)
@@ -1837,10 +1945,26 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 if props.export_script_loads and props.model_id != 0:
                     self.export_model_id(context, props, index)
                     self.export_script_load(context, props)
-        except Exception as e:
+        except Exception as exc:
+            # pass on multiple export, throw on singular
+            if not props.export_all_selected or not PluginError.check_exc_warn(exc):
+                raise Exception(exc)
+
+    # writes table.inc.c file, anim_header.h
+    # writes include into aggregate file in export location (leveldata.c/<group>.c)
+    # writes name to header in aggregate file location (actor/level)
+    # var name is: static const struct Animation *const <props.anim_obj>_anims[] (or custom name)
+    def execute_anim(self, props, context, obj):
+        try:
+            if props.export_anim and obj is props.anim_object:
+                if props.export_single_action:
+                    export_animation(context, obj)
+                else:
+                    export_animation_table(context, obj)
+        except Exception as exc:
             # pass on multiple export, throw on singular
             if not props.export_all_selected:
-                raise Exception(e)
+                raise Exception(exc) from exc
 
     def execute(self, context):
         props = context.scene.fast64.sm64.combined_export
@@ -1852,6 +1976,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 props.context_obj = obj
                 self.execute_col(props, obj)
                 self.execute_gfx(props, context, obj, index)
+                self.execute_anim(props, context, obj)
                 # do not export behaviors with multiple selection
                 if props.export_bhv and props.obj_name_bhv and not props.export_all_selected:
                     self.export_behavior_script(context, props)
@@ -1863,6 +1988,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         props.context_obj = None
         # you've done it!~
         self.report({"INFO"}, "Success!")
+
         return {"FINISHED"}
 
 
@@ -1898,13 +2024,18 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     )
     # level export header
     level_name: bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
+    custom_level_name: bpy.props.StringProperty(name="custom")
+    non_decomp_level: bpy.props.BoolProperty(name="Custom Export Path")
+    custom_level_path: bpy.props.StringProperty(name="Custom Path", subtype="FILE_PATH")
+
     # actor export header
     group_name: bpy.props.EnumProperty(name="Group Name", default="group0", items=groups_obj_export)
     # custom export path, no headers written
     custom_export_path: bpy.props.StringProperty(name="Custom Path", subtype="FILE_PATH")
+    custom_include_directory: bpy.props.StringProperty(name="Include directory", subtype="FILE_PATH")
 
     # common export opts
-    custom_export_name: bpy.props.StringProperty(name="custom")  # for custom level or custom group
+    custom_group_name: bpy.props.StringProperty(name="custom")  # for custom group
     model_id: bpy.props.IntProperty(
         name="Model ID Num", default=0xE2, min=0, description="Export model ID number. A model ID of 0 exports nothing"
     )
@@ -1920,6 +2051,16 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         name="Export Rooms", description="Collision export will generate rooms.inc.c file"
     )
 
+    # anim export options
+    quick_anim_read: bpy.props.BoolProperty(
+        name="Quick Data Read", description="Read fcurves directly, should work with the majority of rigs", default=True
+    )
+    export_single_action: bpy.props.BoolProperty(
+        name="Selected Action",
+        description="Animation export will only export the armature's current action like in older versions of fast64",
+    )
+    insertable_directory: bpy.props.StringProperty(name="Directory Path", subtype="FILE_PATH")
+
     # export options
     export_bhv: bpy.props.BoolProperty(
         name="Export Behavior", default=False, description="Export behavior with given object name"
@@ -1930,6 +2071,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     export_gfx: bpy.props.BoolProperty(
         name="Export Graphics", description="Export geo layouts for linked or selected mesh that have collision data"
     )
+    export_anim: bpy.props.BoolProperty(name="Export Animations", description="Export animation table of an armature")
     export_script_loads: bpy.props.BoolProperty(
         name="Export Script Loads",
         description="Exports the Model ID and adds a level script load in the appropriate place",
@@ -1952,6 +2094,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     collision_object: bpy.props.PointerProperty(type=bpy.types.Object)
     graphics_object: bpy.props.PointerProperty(type=bpy.types.Object)
+    animation_object: bpy.props.PointerProperty(type=bpy.types.Object, poll=lambda self, obj: is_obj_animatable(obj))
 
     # is this abuse of properties?
     @property
@@ -1973,17 +2116,31 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return self.graphics_object or self.context_obj or bpy.context.active_object
 
     @property
-    def bhv_object(self):
-        if not self.export_bhv:
+    def anim_object(self):
+        if not self.export_anim:
             return None
+        obj = get_anim_obj(bpy.context)
+        context_obj = self.context_obj if self.context_obj and is_obj_animatable(self.context_obj) else None
         if self.export_all_selected:
-            return self.context_obj or bpy.context.active_object
+            return context_obj or obj
+        else:
+            assert not self.animation_object or is_obj_animatable(self.animation_object)
+            return self.animation_object or context_obj or obj
+
+    @property
+    def bhv_object(self):
+        if not self.export_bhv or self.export_all_selected:
+            return None
         else:
             return self.col_object or self.gfx_object or self.context_obj or bpy.context.active_object
 
     @property
     def group_num(self):
-        if self.group_name == "common0":
+        """0 represents script_func_global"""
+        assert self.group_name != "Custom", "Cannot know the group level script num if the group is custom"
+        if self.group_name in {"common1", "group0"}:
+            return 0
+        elif self.group_name == "common0":
             return 1
         else:
             return int(self.group_name.removeprefix("group")) + 1
@@ -2008,12 +2165,19 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def obj_name_bhv(self):
-        if self.export_all_selected:
-            return self.filter_name(self.bhv_object.name)
-        if not self.object_name and not self.bhv_object:
+        if not self.bhv_object:
             return ""
         else:
             return self.filter_name(self.object_name or self.bhv_object.name)
+
+    @property
+    def obj_name_anim(self):
+        if self.export_all_selected and self.anim_object:
+            return self.filter_name(self.anim_object.name)
+        if not self.object_name and not self.anim_object:
+            return ""
+        else:
+            return self.filter_name(self.object_name or self.anim_object.name)
 
     @property
     def bhv_name(self):
@@ -2032,23 +2196,80 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return f"MODEL_{toAlnum(self.obj_name_gfx)}".upper()
 
     @property
+    def anims_name(self):
+        if not self.anim_object:
+            return ""
+        return self.anim_object.fast64.sm64.animation.get_table_name(self.obj_name_anim)
+
+    @property
     def export_level_name(self):
-        if self.level_name == "Custom":
-            return self.custom_export_name
+        if self.level_name == "Custom" or self.non_decomp_level:
+            return self.custom_level_name
         return self.level_name
 
     @property
-    def export_group_name(self):
+    def actor_group_name(self):
         if self.group_name == "Custom":
-            return self.custom_export_name
-        return self.group_name
+            return self.custom_group_name
+        else:
+            return self.group_name
+
+    @property
+    def is_custom_level(self):
+        return self.non_decomp_level or self.level_name == "Custom"
+
+    @property
+    def is_actor_custom_export(self):
+        if self.non_decomp_level and self.export_header_type == "Level":
+            return True
+        elif self.export_header_type == "Custom":
+            return True
+        else:
+            return False
+
+    @property
+    def actor_custom_path(self):
+        if self.export_header_type == "Level":
+            return self.full_level_path
+        else:
+            return self.custom_export_path
+
+    @property
+    def level_directory(self) -> Path:
+        if self.non_decomp_level:
+            return Path(self.custom_level_name)
+        level_name = self.custom_level_name if self.level_name == "Custom" else self.level_name
+        return Path("levels") / level_name
+
+    @property
+    def base_level_path(self):
+        if self.non_decomp_level:
+            return Path(bpy.path.abspath(self.custom_level_path))
+        return bpy.context.scene.fast64.sm64.abs_decomp_path
+
+    @property
+    def full_level_path(self):
+        return self.base_level_path / self.level_directory
 
     # remove user prefixes/naming that I will be adding, such as _col, _geo etc.
-    def filter_name(self, name):
-        if self.use_name_filtering:
+    def filter_name(self, name, force_filtering=False):
+        if self.use_name_filtering or force_filtering:
             return sub("(_col)?(_geo)?(_bhv)?(lision)?", "", name)
         else:
             return name
+
+    def draw_anim_props(self, layout: UILayout, export_type="C", is_dma=False):
+        col = layout.column()
+        col.prop(self, "quick_anim_read")
+        if self.quick_anim_read:
+            col.label(text="May Break!", icon="INFO")
+        if not is_dma and export_type == "C":
+            col.prop(self, "export_single_action")
+        if export_type == "Binary":
+            if not is_dma:
+                prop_split(col, self, "level_name", "Level")
+        elif export_type == "Insertable Binary":
+            prop_split(col, self, "insertable_directory", "Directory")
 
     def draw_export_options(self, layout):
         split = layout.row(align=True)
@@ -2064,11 +2285,22 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         box = split.box()
         box.prop(self, "export_gfx", toggle=1)
         if self.export_gfx:
-            box.prop(self, "export_script_loads")
+            if self.export_header_type != "Custom" and not (
+                self.export_header_type == "Actor" and self.group_name == "Custom"
+            ):
+                box.prop(self, "export_script_loads")
             if not self.export_all_selected:
                 box.prop(self, "graphics_object", icon_only=True)
             if self.export_script_loads:
                 box.prop(self, "model_id", text="Model ID")
+
+        box = split.box().column()
+        box.prop(self, "export_anim", toggle=1)
+        if self.export_anim:
+            self.draw_anim_props(box)
+            if not self.export_all_selected:
+                box.prop(self, "animation_object", icon_only=True)
+
         col = layout.column()
         col.prop(self, "export_all_selected")
         col.prop(self, "use_name_filtering")
@@ -2076,30 +2308,73 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             col.prop(self, "export_bhv")
             self.draw_obj_name(layout)
 
+    @property
+    def actor_names(self) -> list:
+        return list(dict.fromkeys(filter(None, [self.obj_name_col, self.obj_name_gfx, self.obj_name_anim])).keys())
+
+    @property
+    def export_locations(self) -> str | None:
+        names = self.actor_names
+        if len(names) > 1:
+            return f"({'/'.join(names)})"
+        elif len(names) == 1:
+            return names[0]
+        return None
+
+    @property
+    def export_locations(self) -> str | None:
+        names = self.actor_names
+        if len(names) > 1:
+            return f"{{{','.join(names)}}}"
+        elif len(names) == 1:
+            return names[0]
+        return None
+
     def draw_level_path(self, layout):
-        if self.export_header_type == "Custom":
-            export_path = f"{toAlnum(self.custom_export_path)}/"
+        if not directory_ui_warnings(layout, self.base_level_path):
+            return
+        if self.non_decomp_level:
+            layout.label(text=f"Level export path: {self.full_level_path}")
         else:
-            export_path = f"/levels/{toAlnum(self.level_name)}/"
-        layout.label(text=f"Level export path: {export_path}")
+            layout.label(text=f"Level export directory: {self.level_directory}")
+        return True
+
+    def draw_actor_path(self, layout):
+        if self.export_locations is None:
+            return False
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
+        if self.export_header_type == "Actor":
+            actor_path = decomp_path / "actors"
+            if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
+                return False
+            layout.label(text=f"Actor export path: actors/{self.export_locations}/")
+        elif self.export_header_type == "Level":
+            if not directory_ui_warnings(layout, self.full_level_path):
+                return False
+            level_path = self.full_level_path if self.non_decomp_level else self.level_directory
+            layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
+        elif self.export_header_type == "Custom":
+            custom_path = Path(bpy.path.abspath(self.custom_export_path))
+            if not directory_ui_warnings(layout, custom_path):
+                return False
+            layout.label(text=f"Actor export path: {custom_path / self.export_locations}/")
+        return True
 
     def draw_col_names(self, layout):
-        if self.export_header_type == "Actor":
-            layout.label(text=f"Collision path: /actors/{toAlnum(self.obj_name_col)}(.c, .h)")
-        else:
-            self.draw_level_path(layout)
         layout.label(text=f"Collision name: {self.collision_name}")
         if self.export_rooms:
             layout.label(text=f"Rooms name: {self.collision_name}_rooms")
 
     def draw_gfx_names(self, layout):
-        if self.export_header_type == "Actor":
-            layout.label(text=f"Geolayout path: /actors/{toAlnum(self.obj_name_gfx)}(.c, .h, _geo.c)")
-        else:
-            self.draw_level_path(layout)
         layout.label(text=f"GeoLayout name: {self.geo_name}")
         if self.export_script_loads:
             layout.label(text=f"Model ID: {self.model_id_define}")
+
+    def draw_anim_names(self, layout):
+        anim_props = self.anim_object.fast64.sm64.animation
+        if anim_props.is_dma:
+            layout.label(text=f"Animation path: {anim_props.dma_folder}(.c)")
+        layout.label(text=f"Animation table name: {self.anims_name}")
 
     def draw_obj_name(self, layout):
         split_1 = layout.split(factor=0.45)
@@ -2122,16 +2397,21 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     def draw_props(self, layout):
         # level exports
         col = layout.column()
-        box = col.box()
+        box = col.box().column()
         box.operator("object.sm64_export_level", text="Export Level")
-        prop_split(box, self, "level_name", "Level")
-        if self.level_name == "Custom":
-            prop_split(box, self, "custom_export_name", "Level Name")
+
+        box.prop(self, "non_decomp_level")
+        if self.non_decomp_level:
+            prop_split(box, self, "custom_level_path", "Custom Path")
+        else:
+            prop_split(box, self, "level_name", "Level")
+        if self.is_custom_level:
+            prop_split(box, self, "custom_level_name", "Name")
         self.draw_level_path(box.box())
         col.separator()
         # object exports
-        box = col.box()
-        if not self.export_col and not self.export_bhv and not self.export_gfx:
+        box = col.box().column()
+        if not self.export_col and not self.export_bhv and not self.export_gfx and not self.export_anim:
             col = box.column()
             col.operator("object.sm64_export_combined_object", text="Export Object")
             col.enabled = False
@@ -2143,7 +2423,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             self.draw_export_options(box)
 
         # bhv export only, so enable bhv draw only
-        if not self.export_col and not self.export_gfx:
+        if not self.export_col and not self.export_gfx and not self.export_anim:
             return self.draw_bhv_options(col)
 
         # pathing for gfx/col exports
@@ -2151,14 +2431,15 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
         if self.export_header_type == "Custom":
             prop_split(box, self, "custom_export_path", "Custom Path")
+            if bpy.context.scene.saveTextures:
+                prop_split(box, self, "custom_include_directory", "Texture Include Directory")
 
         elif self.export_header_type == "Actor":
             prop_split(box, self, "group_name", "Group")
             if self.group_name == "Custom":
-                prop_split(box, self, "custom_export_name", "Group Name")
+                prop_split(box, self, "custom_group_name", "Group Name")
         else:
             box.label(text="Destination level selection is shared with level export dropdown", icon="PINNED")
-            prop_split(box, self, "level_name", "Level")
         # behavior options
         if self.export_bhv and not self.export_all_selected:
             self.draw_bhv_options(col)
@@ -2166,7 +2447,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         # info/warnings
         if self.export_header_type == "Custom":
             info_box = box.box()
-            info_box.label(text="Export will not write any headers or dependencies", icon="ERROR")
+            info_box.label(text="Export will not write headers, dependencies or script loads", icon="ERROR")
 
         if self.export_all_selected:
             info_box = box.box()
@@ -2176,18 +2457,36 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
                 "Objects will export based on root of parenting hierarchy.\n"
                 "Model IDs will export in order starting from chosen Model ID Num.\n"
                 "Behaviors will not export\n"
-                "Duplicates objects will be exported! Use with Caution.\n",
+                "Duplicates objects will be exported! Use with Caution.",
                 icon="ERROR",
             )
+            return
 
         info_box = box.box()
         info_box.scale_y = 0.5
+
+        if not self.draw_actor_path(info_box):
+            return
+
+        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
+            if self.custom_include_directory:
+                info_box.label(text=f'Include directory "{self.custom_include_directory}"')
+            else:
+                actor_names = self.actor_names
+                joined = ",".join(self.actor_names)
+                if len(actor_names) > 1:
+                    joined = "{" f"{joined}" "}"
+                directory = f"{Path(bpy.path.abspath(self.custom_export_path)).name}/{joined}"
+                info_box.label(text=f'Empty include directory, defaults to "{directory}"')
 
         if self.obj_name_gfx and self.export_gfx:
             self.draw_gfx_names(info_box)
 
         if self.obj_name_col and self.export_col:
             self.draw_col_names(info_box)
+
+        if self.anim_object is not None and self.export_anim:
+            self.draw_anim_names(info_box)
 
         if self.obj_name_bhv:
             info_box.label(text=f"Behavior name: {self.bhv_name}")
@@ -2230,6 +2529,8 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
     expand: bpy.props.BoolProperty()
 
     def uses_area_nodes(self):
+        if self.instantWarpObject1 is None or self.instantWarpObject2 is None:
+            raise PluginError(f"Warp Start and Warp End in Warp Node {self.warpID} must have objects selected.")
         return (
             self.instantWarpObject1.sm64_obj_type == "Area Root"
             and self.instantWarpObject2.sm64_obj_type == "Area Root"
@@ -2251,7 +2552,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
         ret.z = int(round(-difference.y * bpy.context.scene.blenderF3DScale))
         return ret
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.warpType == "Instant":
             offset = Vector()
 
@@ -2553,6 +2854,11 @@ class SM64_AreaProperties(bpy.types.PropertyGroup):
         default=False,
         description="Disable rendering background. Ideal for interiors or areas that should never see a background.",
     )
+    set_fog: bpy.props.BoolProperty(
+        name="Set Fog Settings",
+        default=True,
+        description='All materials in the area with fog and "Use Area\'s Fog" enabled will use these fog settings. Each material will have its own fog applied as vanilla SM64 has no fog system',
+    )
 
 
 class SM64_LevelProperties(bpy.types.PropertyGroup):
@@ -2626,28 +2932,35 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
 
 
 class SM64_SegmentProperties(bpy.types.PropertyGroup):
+    write_actor_loads: bpy.props.BoolProperty(name="Write Actor Loads")
     seg5_load_custom: bpy.props.StringProperty(name="Segment 5 Seg")
     seg5_group_custom: bpy.props.StringProperty(name="Segment 5 Group")
     seg6_load_custom: bpy.props.StringProperty(name="Segment 6 Seg")
     seg6_group_custom: bpy.props.StringProperty(name="Segment 6 Group")
-    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
-    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
+    seg8_load_custom: bpy.props.StringProperty(name="Segment 8 Seg")
+    seg8_group_custom: bpy.props.StringProperty(name="Segment 8 Group")
+    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="None", items=groupsSeg5)
+    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="None", items=groupsSeg6)
+    seg8_enum: bpy.props.EnumProperty(name="Segment 8 Group", default="None", items=groups_seg8)
 
-    def draw(self, layout):
+    def draw_props(self, layout):
         col = layout.column()
-        prop_split(col, self, "seg5_enum", "Segment 5 Select")
-        if self.seg5_enum == "Custom":
-            prop_split(col, self, "seg5_load_custom", "Segment 5 Seg")
-            prop_split(col, self, "seg5_group_custom", "Segment 5 Group")
-        col = layout.column()
-        prop_split(col, self, "seg6_enum", "Segment 6 Select")
-        if self.seg6_enum == "Custom":
-            prop_split(col, self, "seg6_load_custom", "Segment 6 Seg")
-            prop_split(col, self, "seg6_group_custom", "Segment 6 Group")
+        col.prop(self, "write_actor_loads")
+        if not self.write_actor_loads:
+            return
+
+        for seg in (5, 6, 8):
+            prop_split(col, self, f"seg{seg}_enum", f"Segment {seg} Select")
+            if getattr(self, f"seg{seg}_enum") == "Custom":
+                prop_split(col, self, f"seg{seg}_load_custom", "Segment")
+                prop_split(col, self, f"seg{seg}_group_custom", "Group")
+                col.separator()
 
     def jump_link_from_enum(self, grp):
-        if grp == "Do Not Write":
-            return grp
+        if grp == "None":
+            return None
+        elif grp == "common0":
+            return "script_func_global_1"
         num = int(grp.removeprefix("group")) + 1
         return f"script_func_global_{num}"
 
@@ -2666,6 +2979,13 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.seg6_enum
 
     @property
+    def seg8(self):
+        if self.seg8_enum == "Custom":
+            return self.seg8_load_custom
+        else:
+            return self.seg8_enum
+
+    @property
     def group5(self):
         if self.seg5_enum == "Custom":
             return self.seg5_group_custom
@@ -2679,16 +2999,26 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
         else:
             return self.jump_link_from_enum(self.seg6_enum)
 
+    @property
+    def group8(self):
+        if self.seg8_enum == "Custom":
+            return self.seg8_group_custom
+        else:
+            return self.jump_link_from_enum(self.seg8_enum)
+
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-    cur_version = 3  # version after property migration
+    cur_version = 4  # version after property migration
 
     geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
     level: bpy.props.PointerProperty(type=SM64_LevelProperties)
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
     segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
+    custom: bpy.props.PointerProperty(type=SM64_CustomCmdProperties)
+
+    animation: bpy.props.PointerProperty(type=SM64_ArmatureAnimProperties)
 
     @staticmethod
     def upgrade_changed_props():
@@ -2697,6 +3027,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
                 SM64_GeoASMProperties.upgrade_object(obj)
             if obj.fast64.sm64.version < 3:
                 SM64_GameObjectProperties.upgrade_object(obj)
+            obj.fast64.sm64.custom.upgrade_object(obj)
             obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 
@@ -2841,6 +3172,7 @@ def sm64_obj_register():
         size=2,
         min=0,
         max=0x7FFFFFFF,
+        step=100,
         default=(985, 1000),
         update=sm64_on_update_area_render_settings,
     )
@@ -2909,9 +3241,6 @@ def sm64_obj_register():
     bpy.types.Object.dlReference = bpy.props.StringProperty(name="Displaylist variable name or hex address for binary.")
 
     bpy.types.Object.geoReference = bpy.props.StringProperty(name="Geolayout variable name or hex address for binary")
-
-    bpy.types.Object.customGeoCommand = bpy.props.StringProperty(name="Geolayout macro command", default="")
-    bpy.types.Object.customGeoCommandArgs = bpy.props.StringProperty(name="Geolayout macro arguments", default="")
 
     bpy.types.Object.enableRoomSwitch = bpy.props.BoolProperty(name="Enable Room System")
 

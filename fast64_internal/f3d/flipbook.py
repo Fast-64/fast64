@@ -256,7 +256,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 # we use a handler since update functions are not called when a property is animated.
 @persistent
 def flipbookAnimHandler(dummy):
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
         for obj in bpy.data.objects:
             if obj.type == "ARMATURE":
                 # we only want to update texture on keyframed armatures.
@@ -291,7 +291,7 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
         mat = context.material
         col = layout.column()
 
-        if context.scene.gameEditorMode == "OOT":
+        if context.scene.gameEditorMode in {"OOT", "MM"}:
             checkFlipbookReference = ootFlipbookReferenceIsValid
             drawFlipbookRequirementMessage = ootFlipbookRequirementMessage
         else:

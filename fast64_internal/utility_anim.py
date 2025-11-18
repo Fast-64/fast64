@@ -1,5 +1,10 @@
 import bpy, math, mathutils
+from bpy.types import Object, Action, AnimData
 from bpy.utils import register_class, unregister_class
+from bpy.props import StringProperty
+
+from .operators import OperatorBase
+from .utility import attemptModifierApply, raisePluginError, PluginError
 
 from typing import TYPE_CHECKING
 
@@ -23,8 +28,6 @@ class ArmatureApplyWithMeshOperator(bpy.types.Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        from .utility import PluginError, raisePluginError
-
         try:
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
@@ -46,6 +49,51 @@ class ArmatureApplyWithMeshOperator(bpy.types.Operator):
         return {"FINISHED"}  # must return a set
 
 
+class CreateAnimData(OperatorBase):
+    bl_idname = "scene.fast64_create_anim_data"
+    bl_label = "Create Animation Data"
+    bl_description = "Create animation data"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
+    icon = "ANIM"
+
+    def execute_operator(self, context):
+        obj = context.object
+        if obj is None:
+            raise PluginError("No selected object")
+        if obj.animation_data is None:
+            obj.animation_data_create()
+
+
+class AddBasicAction(OperatorBase):
+    bl_idname = "scene.fast64_add_basic_action"
+    bl_label = "Add Basic Action"
+    bl_description = "Create animation data and add basic action"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
+    icon = "ACTION"
+
+    def execute_operator(self, context):
+        if context.object is None:
+            raise PluginError("No selected object")
+        create_basic_action(context.object)
+
+
+class StashAction(OperatorBase):
+    bl_idname = "scene.fast64_stash_action"
+    bl_label = "Stash Action"
+    bl_description = "Stash an action in an object's nla tracks if not already stashed"
+    context_mode = "OBJECT"
+    icon = "NLA"
+
+    action: StringProperty()
+
+    def execute_operator(self, context):
+        if context.object is None:
+            raise PluginError("No selected object")
+        stashActionInArmature(context.object, get_action(self.action))
+
+
 # This code only handles root bone with no parent, which is the only bone that translates.
 def getTranslationRelativeToRest(bone: bpy.types.Bone, inputVector: mathutils.Vector) -> mathutils.Vector:
     zUpToYUp = mathutils.Quaternion((1, 0, 0), math.radians(-90.0)).to_matrix().to_4x4()
@@ -63,14 +111,9 @@ def getRotationRelativeToRest(bone: bpy.types.Bone, inputEuler: mathutils.Euler)
     return (restRotation.inverted() @ inputEuler.to_matrix().to_4x4()).to_euler("XYZ", inputEuler)
 
 
-def attemptModifierApply(modifier):
-    try:
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-    except Exception as e:
-        print("Skipping modifier " + str(modifier.name))
-
-
 def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Context):
+    from .utility import selectSingleObject
+
     for child in armatureObj.children:
         if child.type != "MESH":
             continue
@@ -81,14 +124,12 @@ def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Cont
         if armatureModifier is None:
             continue
 
-        bpy.ops.object.select_all(action="DESELECT")
-        context.view_layer.objects.active = child
+        selectSingleObject(child)
         bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
         print(len(child.modifiers))
         attemptModifierApply(armatureModifier)
 
-    bpy.ops.object.select_all(action="DESELECT")
-    context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.mode_set(mode="POSE")
     bpy.ops.pose.armature_apply()
     if context.mode != "OBJECT":
@@ -179,28 +220,61 @@ def getFrameInterval(action: bpy.types.Action):
     return range_get_by_choice[anim_range_choice]()
 
 
-def stashActionInArmature(armatureObj: bpy.types.Object, action: bpy.types.Action):
+def is_action_stashed(obj: Object, action: Action):
+    animation_data: AnimData | None = obj.animation_data
+    if animation_data is None:
+        return False
+    for track in animation_data.nla_tracks:
+        for strip in track.strips:
+            if strip.action is None:
+                continue
+            if strip.action.name == action.name:
+                return True
+    return False
+
+
+def stashActionInArmature(obj: Object, action: Action):
     """
     Stashes an animation (action) into an armature´s nla tracks.
     This prevents animations from being deleted by blender or
     purged by the user on accident.
     """
 
-    for track in armatureObj.animation_data.nla_tracks:
-        for strip in track.strips:
-            if strip.action is None:
-                continue
+    if is_action_stashed(obj, action):
+        return
 
-            if strip.action.name == action.name:
-                return
-
-    print(f'Stashing "{action.name}" in the object "{armatureObj.name}".')
-
-    track = armatureObj.animation_data.nla_tracks.new()
+    print(f'Stashing "{action.name}" in the object "{obj.name}".')
+    if obj.animation_data is None:
+        obj.animation_data_create()
+    track = obj.animation_data.nla_tracks.new()
+    track.name = action.name
     track.strips.new(action.name, int(action.frame_range[0]), action)
 
 
-classes = (ArmatureApplyWithMeshOperator,)
+def create_basic_action(obj: Object, name=""):
+    if obj.animation_data is None:
+        obj.animation_data_create()
+    name = name or "Action"
+    action = bpy.data.actions.new(name)
+    stashActionInArmature(obj, action)
+    obj.animation_data.action = action
+    return action
+
+
+def get_action(name: str):
+    if name == "":
+        raise ValueError("Empty action name.")
+    if not name in bpy.data.actions:
+        raise IndexError(f"Action ({name}) is not in this file´s action data.")
+    return bpy.data.actions[name]
+
+
+classes = (
+    ArmatureApplyWithMeshOperator,
+    CreateAnimData,
+    AddBasicAction,
+    StashAction,
+)
 
 
 def utility_anim_register():
