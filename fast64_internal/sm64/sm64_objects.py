@@ -1,8 +1,12 @@
-import math, bpy, mathutils
-from bpy.utils import register_class, unregister_class
-from bpy.types import UILayout
+import math
+import typing
 from re import findall, sub
 from pathlib import Path
+
+import bpy
+import mathutils
+from bpy.utils import register_class, unregister_class
+from bpy.types import UILayout
 
 from bpy.utils import register_class, unregister_class
 
@@ -28,6 +32,7 @@ from ..utility import (
     raisePluginError,
     enumExportHeaderType,
     selectSingleObject,
+    as_posix,
 )
 
 from ..f3d.f3d_gbi import (
@@ -80,6 +85,9 @@ from .animation import (
 )
 
 from .custom_cmd.properties import SM64_CustomCmdProperties
+
+if typing.TYPE_CHECKING:
+    from .settings.properties import SM64_Properties
 
 enumTerrain = [
     ("Custom", "Custom", "Custom"),
@@ -1621,17 +1629,17 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # exports the model ID load into the appropriate script.c location
     def export_script_load(self, context, props):
-        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
+        decomp_path = sm64_props.abs_decomp_path
         if props.export_header_type == "Level":
-            # for some reason full_level_path doesn't work here
             if props.non_decomp_level:
-                levels_path = Path(props.full_level_path)
+                levels_path = props.get_full_level_path(sm64_props.levels_folder)
             else:
-                levels_path = decomp_path / "levels" / props.export_level_name
+                levels_path = decomp_path / sm64_props.levels_folder / props.export_level_name
             script_path = levels_path / "script.c"
             self.export_level_specific_load(script_path, props)
         elif props.export_header_type == "Actor":
-            script_path = decomp_path / "levels" / "scripts.c"
+            script_path = decomp_path / sm64_props.levels_folder / "scripts.c"
             self.export_group_script_load(script_path, props)
 
     # delims to notify for when to start and end for sig/alt
@@ -1826,22 +1834,27 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         # add at top of bhvs, 3 lines after this is found
         bhv_data_lines = open(behavior_data, "r").readlines()
 
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
+        include = None
         if props.export_header_type == "Actor":
-            include = f'#include "actors/{toAlnum(props.actor_group_name)}.h"\n'
+            path = Path(sm64_props.actors_folder) / f"{toAlnum(props.actor_group_name)}.h"
+            include = f'#include "{as_posix(path)}"\n'
         elif props.export_header_type == "Level" and not props.non_decomp_level:
-            include = f'#include "levels/{toAlnum(props.export_level_name)}/header.h"\n'
-        match_line, sig_insert_line, default_line = self.find_export_lines(
-            bhv_data_lines,
-            match_str=include,
-            alt_condition='#include "',
-        )
-        if match_line:
-            bhv_data_lines[match_line] = include
-        elif sig_insert_line:
-            bhv_data_lines.insert(sig_insert_line + 1, include)
-        else:
-            export_line = default_line + 1 if default_line else len(bhv_data_lines)
-            bhv_data_lines.insert(export_line, include)
+            path = Path(sm64_props.levels_folder) / f"{toAlnum(props.export_level_name)}" / "header.h"
+            include = f'#include "{as_posix(path)}"\n'
+        if include is not None:
+            match_line, sig_insert_line, default_line = self.find_export_lines(
+                bhv_data_lines,
+                match_str=include,
+                alt_condition='#include "',
+            )
+            if match_line:
+                bhv_data_lines[match_line] = include
+            elif sig_insert_line:
+                bhv_data_lines.insert(sig_insert_line + 1, include)
+            else:
+                export_line = default_line + 1 if default_line else len(bhv_data_lines)
+                bhv_data_lines.insert(export_line, include)
 
         export_bhv_name = f"const BehaviorScript {props.bhv_name}[] = {{\n"
         last_bhv_define = "#define SPAWN_WATER_DROPLET(dropletParams)"
@@ -2227,19 +2240,17 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         else:
             return False
 
-    @property
-    def actor_custom_path(self):
+    def get_actor_custom_path(self, levels_folder: str):
         if self.export_header_type == "Level":
-            return self.full_level_path
+            return self.get_full_level_path(levels_folder)
         else:
             return self.custom_export_path
 
-    @property
-    def level_directory(self) -> Path:
+    def get_level_directory(self, levels_folder: str) -> Path:
         if self.non_decomp_level:
             return Path(self.custom_level_name)
         level_name = self.custom_level_name if self.level_name == "Custom" else self.level_name
-        return Path("levels") / level_name
+        return Path(levels_folder) / level_name
 
     @property
     def base_level_path(self):
@@ -2247,9 +2258,20 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return Path(bpy.path.abspath(self.custom_level_path))
         return bpy.context.scene.fast64.sm64.abs_decomp_path
 
-    @property
-    def full_level_path(self):
-        return self.base_level_path / self.level_directory
+    def get_full_level_path(self, levels_folder: str):
+        return self.base_level_path / self.get_level_directory(levels_folder)
+
+    def get_path_and_level(self, sm64_props: "SM64_Properties"):
+        if self.is_actor_custom_export:
+            export_path = bpy.path.abspath(str(self.get_actor_custom_path(sm64_props.levels_folder)))
+            level_name = self.export_level_name
+        else:
+            export_path = str(sm64_props.abs_decomp_path)
+            if self.level_name == "Custom":
+                level_name = self.export_level_name
+            else:
+                level_name = self.level_name
+        return export_path, level_name
 
     # remove user prefixes/naming that I will be adding, such as _col, _geo etc.
     def filter_name(self, name, force_filtering=False):
@@ -2331,27 +2353,33 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return None
 
     def draw_level_path(self, layout):
+        sm64_props: SM64_Properties = bpy.context.scene.fast64.sm64
         if not directory_ui_warnings(layout, self.base_level_path):
             return
         if self.non_decomp_level:
-            layout.label(text=f"Level export path: {self.full_level_path}")
+            layout.label(text=f"Level export path: {self.get_full_level_path(sm64_props.levels_folder)}")
         else:
-            layout.label(text=f"Level export directory: {self.level_directory}")
+            layout.label(text=f"Level export directory: {self.get_level_directory(sm64_props.levels_folder)}")
         return True
 
     def draw_actor_path(self, layout):
         if self.export_locations is None:
             return False
-        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
+        sm64_props: SM64_Properties = bpy.context.scene.fast64.sm64
+        decomp_path = sm64_props.abs_decomp_path
         if self.export_header_type == "Actor":
-            actor_path = decomp_path / "actors"
+            actor_path = decomp_path / sm64_props.actors_folder
             if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
                 return False
-            layout.label(text=f"Actor export path: actors/{self.export_locations}/")
+            exports_locations = Path(sm64_props.actors_folder) / self.export_locations
+            layout.label(text=f"Actor export directory: {as_posix(exports_locations)}")
         elif self.export_header_type == "Level":
-            if not directory_ui_warnings(layout, self.full_level_path):
+            full_level_path = self.get_full_level_path(sm64_props.levels_folder)
+            if not directory_ui_warnings(layout, full_level_path):
                 return False
-            level_path = self.full_level_path if self.non_decomp_level else self.level_directory
+            level_path = (
+                full_level_path if self.non_decomp_level else self.get_level_directory(sm64_props.levels_folder)
+            )
             layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
         elif self.export_header_type == "Custom":
             custom_path = Path(bpy.path.abspath(self.custom_export_path))

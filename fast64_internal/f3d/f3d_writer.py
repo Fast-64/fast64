@@ -1831,17 +1831,6 @@ def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix, texDir, savePNG, texSe
 
     if DLFormat == DLFormat.Static:
         staticData.append(dynamicData)
-    else:
-        geoString = writeMaterialFiles(
-            dirPath,
-            modelDirPath,
-            '#include "actors/' + toAlnum(name) + '/header.h"',
-            '#include "actors/' + toAlnum(name) + '/material.inc.h"',
-            dynamicData.header,
-            dynamicData.source,
-            "",
-            True,
-        )
 
     if texSeparate:
         texCFile = open(os.path.join(modelDirPath, "texture.inc.c"), "w", newline="\n")

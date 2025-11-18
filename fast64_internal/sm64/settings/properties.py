@@ -18,10 +18,12 @@ from ...render_settings import on_update_render_settings
 from ...utility import (
     directory_path_checks,
     directory_ui_warnings,
+    draw_directory,
     prop_split,
     set_prop_if_in_data,
     upgrade_old_prop,
     get_first_set_prop,
+    draw_and_check_tab,
 )
 from ..sm64_constants import defaultExtendSegment4, OLD_BINARY_LEVEL_ENUMS
 from ..sm64_objects import SM64_CombinedObjectProperties
@@ -112,6 +114,16 @@ class SM64_Properties(PropertyGroup):
         name="Designated Initialization for Animation Tables",
         description="Extremely recommended but must be off when compiling with IDO. Included in Repo Setting file",
     )
+
+    folders_tab: BoolProperty(default=True, name="Export Folders")
+    actors_folder: StringProperty(name="Actors Folder", default="actors")
+    levels_folder: StringProperty(name="Levels Folder", default="levels")
+    dma_anims_folder: StringProperty(name="DMA Animations Folder", default="assets/anims")
+
+    vanilla_folders_tab: BoolProperty(default=True, name="Vanilla Folders")
+    vanilla_actors_folder: StringProperty(name="Vanilla Actors Folder", default="actors")
+    vanilla_levels_folder: StringProperty(name="Vanilla Levels Folder", default="levels")
+    vanilla_dma_anims_folder: StringProperty(name="Vanilla DMA Animations Folder", default="assets/anims")
 
     @property
     def binary_export(self):
@@ -207,6 +219,14 @@ class SM64_Properties(PropertyGroup):
         data["write_all"] = self.write_all
         if not self.hackersm64:
             data["designated"] = self.designated_prop
+        folders = {}
+        for is_vanilla in (False, True):
+            prefix = "vanilla_" if is_vanilla else ""
+            sub_categories = {}
+            for name in ("actors", "levels", "dma_anims"):
+                sub_categories[name] = getattr(self, f"{prefix}{name}_folder")
+            folders["vanilla" if is_vanilla else "export"] = sub_categories
+        data["folders"] = folders
         if self.custom_cmds:
             data["custom_cmds"] = [preset.to_dict("PRESET_EDIT") for preset in self.custom_cmds]
         return data
@@ -219,6 +239,12 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "write_all", data, "write_all")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
+        folders = data.get("folders", {})
+        for is_vanilla in (False, True):
+            sub_categories = folders.get("vanilla" if is_vanilla else "export", {})
+            prefix = "vanilla_" if is_vanilla else ""
+            for name in ("actors", "levels", "dma_anims"):
+                set_prop_if_in_data(self, f"{prefix}{name}_folder", sub_categories, name)
         if "custom_cmds" in data:
             self.custom_cmds.clear()
             for preset_data in data.get("custom_cmds", []):
@@ -236,6 +262,23 @@ class SM64_Properties(PropertyGroup):
         if self.matstack_fix:
             col.prop(self, "lighting_engine_presets")
         col.prop(self, "write_all")
+        for vanilla in (False, True):
+            prefix = "vanilla_" if vanilla else ""
+            if draw_and_check_tab(col, self, f"{prefix}folders_tab"):
+                name_prefix = "Vanilla" if vanilla else ""
+                draw_directory(
+                    col, self, f"{prefix}actors_folder", name=f"{name_prefix} Actors", base_dir=self.abs_decomp_path
+                )
+                draw_directory(
+                    col, self, f"{prefix}levels_folder", name=f"{name_prefix} Levels", base_dir=self.abs_decomp_path
+                )
+                draw_directory(
+                    col,
+                    self,
+                    f"{prefix}dma_anims_folder",
+                    name=f"{name_prefix} DMA Anims",
+                    base_dir=self.abs_decomp_path,
+                )
         draw_custom_cmd_presets(self, col.box())
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):

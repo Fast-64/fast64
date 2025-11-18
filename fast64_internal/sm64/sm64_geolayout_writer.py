@@ -1,10 +1,17 @@
 from __future__ import annotations
 from pathlib import Path
-import typing
-
-import bpy, mathutils, math, copy, os, shutil, re
-from bpy.utils import register_class, unregister_class
 from io import BytesIO
+import typing
+import math
+import copy
+import os
+import shutil
+import re
+
+import bpy
+import mathutils
+
+from bpy.utils import register_class, unregister_class
 
 from ..operators import ObjectDataExporter
 from ..panels import SM64_Panel
@@ -15,7 +22,13 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, write_material_headers
+from .sm64_utility import (
+    export_rom_checks,
+    starSelectWarning,
+    update_actor_includes,
+    write_material_headers,
+    get_export_dirs,
+)
 
 from ..utility import (
     PluginError,
@@ -26,7 +39,6 @@ from ..utility import (
     findStartBones,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
-    getExportDir,
     toAlnum,
     writeMaterialFiles,
     get64bitAlignedAddr,
@@ -47,7 +59,6 @@ from ..utility import (
     getFMeshName,
     checkUniqueBoneNames,
     applyRotation,
-    getPathAndLevel,
     applyBasicTweaks,
     tempName,
     getAddressFromRAMAddress,
@@ -55,6 +66,7 @@ from ..utility import (
     geoNodeRotateOrder,
     deselectAllObjects,
     selectSingleObject,
+    as_posix,
 )
 
 from ..f3d.f3d_bleed import (
@@ -127,6 +139,7 @@ from .sm64_constants import insertableBinaryTypes, bank0Segment, defaultExtendSe
 
 if typing.TYPE_CHECKING:
     from .sm64_geolayout_bone import SM64_BoneProperties
+    from .settings.properties import SM64_Properties
 
 
 def get_custom_cmd_with_transform(node: "CustomNode", parentTransformNode: TransformNode, translate, rotate, scale):
@@ -460,7 +473,7 @@ def add_overrides_to_fmodel(f_model: SM64Model):
 def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera, name, DLFormat, convertTextureData):
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
-        name,
+        toAlnum(name),
         DLFormat,
         bpy.context.scene.fast64.sm64.gfx_write_method,
     )
@@ -536,7 +549,7 @@ def convertObjectToGeolayout(
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
         fModel = SM64Model(
-            name,
+            toAlnum(name),
             DLFormat,
             bpy.context.scene.fast64.sm64.gfx_write_method,
         )
@@ -605,6 +618,7 @@ def convertObjectToGeolayout(
 
 # C Export
 def exportGeolayoutArmatureC(
+    sm64_props: "SM64_Properties",
     armatureObj,
     obj,
     convertTransformMatrix,
@@ -626,6 +640,7 @@ def exportGeolayoutArmatureC(
     )
 
     return saveGeolayoutC(
+        sm64_props,
         geoName,
         dirName,
         geolayoutGraph,
@@ -643,6 +658,7 @@ def exportGeolayoutArmatureC(
 
 
 def exportGeolayoutObjectC(
+    sm64_props: "SM64_Properties",
     obj,
     convertTransformMatrix,
     dirPath,
@@ -662,6 +678,7 @@ def exportGeolayoutObjectC(
     )
 
     return saveGeolayoutC(
+        sm64_props,
         geoName,
         dirName,
         geolayoutGraph,
@@ -679,6 +696,7 @@ def exportGeolayoutObjectC(
 
 
 def saveGeolayoutC(
+    sm64_props: "SM64_Properties",
     geoName,
     dirName,
     geolayoutGraph: GeolayoutGraph,
@@ -693,7 +711,7 @@ def saveGeolayoutC(
     customExport,
     DLFormat,
 ):
-    dirPath, texDir = getExportDir(customExport, exportDir, headerType, levelName, texDir, dirName)
+    dirPath, texDir = get_export_dirs(sm64_props, customExport, exportDir, headerType, levelName, texDir, dirName)
 
     dirName = toAlnum(dirName)
     groupName = toAlnum(groupName)
@@ -738,13 +756,14 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = Path("actors", dirName, "material.inc.c")
-        matHInclude = Path("actors", dirName, "material.inc.h")
-        headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
+        actor_folder = Path(sm64_props.actors_folder, dirName)
+    elif headerType == "Level":
+        actor_folder = Path(sm64_props.levels_folder, levelName, dirName)
     else:
-        matCInclude = Path("levels", levelName, dirName, "material.inc.c")
-        matHInclude = Path("levels", levelName, dirName, "material.inc.h")
-        headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
+        actor_folder = Path(dirName)
+    matCInclude = actor_folder / "material.inc.c"
+    matHInclude = actor_folder / "material.inc.h"
+    headerInclude = f'#include "{as_posix(actor_folder / "geo_header.h")}"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
 
@@ -790,6 +809,7 @@ def saveGeolayoutC(
 
     fileStatus = None
     update_actor_includes(
+        sm64_props,
         headerType,
         groupName,
         Path(dirPath),
@@ -850,18 +870,19 @@ def saveGeolayoutC(
 				appendSecondaryGeolayout(geoDirPath, 'bully', 'bully_boss', 'GEO_SCALE(0x00, 0x2000), GEO_NODE_OPEN(),')
 			"""
 
-            texscrollIncludeC = '#include "actors/' + dirName + '/texscroll.inc.c"'
-            texscrollIncludeH = '#include "actors/' + dirName + '/texscroll.inc.h"'
             texscrollGroup = groupName
-            texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
+            texscrollGroupInclude = f'#include "{as_posix(Path(sm64_props.actors_folder, f"{groupName}.h"))}"'
 
         elif headerType == "Level":
-            texscrollIncludeC = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.c"'
-            texscrollIncludeH = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.h"'
             texscrollGroup = levelName
-            texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
+            texscrollGroupInclude = f'#include "{as_posix(Path(sm64_props.levels_folder, levelName, "header.h"))}"'
+        else:
+            raise PluginError(f"Unknown header type: {headerType}")
+        include_c, include_h = actor_folder / "texscroll.inc.c", actor_folder / "texscroll.inc.h"
+        texscrollIncludeC, texscrollIncludeH = f'#include "{as_posix(include_c)}"', f'#include "{as_posix(include_h)}"'
 
         fileStatus = modifyTexScrollHeadersGroup(
+            sm64_props,
             exportDir,
             texscrollIncludeC,
             texscrollIncludeH,
@@ -2874,7 +2895,8 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
     def execute(self, context):
         romfileOutput = None
         tempROM = None
-        props = context.scene.fast64.sm64.combined_export
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
+        props = sm64_props.combined_export
         try:
             obj = None
             if context.mode != "OBJECT":
@@ -2901,15 +2923,11 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             save_textures = bpy.context.scene.saveTextures
 
             if context.scene.fast64.sm64.export_type == "C":
-                export_path, level_name = getPathAndLevel(
-                    props.is_actor_custom_export,
-                    props.actor_custom_path,
-                    props.export_level_name,
-                    props.level_name,
-                )
+                export_path, level_name = props.get_path_and_level(sm64_props)
                 if not props.is_actor_custom_export:
                     applyBasicTweaks(export_path)
                 exportGeolayoutObjectC(
+                    sm64_props,
                     obj,
                     final_transform,
                     export_path,
@@ -3041,7 +3059,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
     def execute(self, context):
         romfileOutput = None
         tempROM = None
-        props = context.scene.fast64.sm64.combined_export
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
+        props = sm64_props.combined_export
         try:
             armatureObj = None
             if context.mode != "OBJECT":
@@ -3092,17 +3111,13 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
             if context.scene.fast64.sm64.export_type == "C":
-                export_path, level_name = getPathAndLevel(
-                    props.is_actor_custom_export,
-                    props.actor_custom_path,
-                    props.export_level_name,
-                    props.level_name,
-                )
+                export_path, level_name = props.get_path_and_level(sm64_props)
 
                 save_textures = bpy.context.scene.saveTextures
                 if not props.is_actor_custom_export:
                     applyBasicTweaks(export_path)
                 header, fileStatus = exportGeolayoutArmatureC(
+                    sm64_props,
                     armatureObj,
                     obj,
                     final_transform,

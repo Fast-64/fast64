@@ -1,9 +1,22 @@
 from pathlib import Path
-import bpy, shutil, os, math, mathutils
-from bpy.utils import register_class, unregister_class
 from io import BytesIO
+import shutil
+import os
+import math
+import typing
+
+import bpy
+import mathutils
+from bpy.utils import register_class, unregister_class
+
 from .sm64_constants import insertableBinaryTypes, defaultExtendSegment4
-from .sm64_utility import export_rom_checks, to_include_descriptor, update_actor_includes, write_or_delete_if_found
+from .sm64_utility import (
+    export_rom_checks,
+    to_include_descriptor,
+    update_actor_includes,
+    write_or_delete_if_found,
+    get_export_dirs,
+)
 from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
@@ -17,18 +30,19 @@ from ..utility import (
     encodeSegmentedAddr,
     get64bitAlignedAddr,
     prop_split,
-    getExportDir,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
     writeInsertableFile,
     applyRotation,
-    getPathAndLevel,
     applyBasicTweaks,
     tempName,
     bytesToHex,
     applyRotation,
     selectSingleObject,
 )
+
+if typing.TYPE_CHECKING:
+    from .settings.properties import SM64_Properties
 
 
 class CollisionVertex:
@@ -278,6 +292,7 @@ def exportCollisionBinary(obj, transformMatrix, romfile, startAddress, endAddres
 
 
 def exportCollisionC(
+    sm64_props: "SM64_Properties",
     obj,
     transformMatrix,
     dirPath,
@@ -290,7 +305,7 @@ def exportCollisionC(
     groupName,
     levelName,
 ):
-    dirPath, texDir = getExportDir(customExport, dirPath, headerType, levelName, "", name)
+    dirPath, texDir = get_export_dirs(sm64_props, customExport, dirPath, headerType, levelName, "", name)
 
     name = toAlnum(name)
     colDirPath = os.path.join(dirPath, toAlnum(name))
@@ -324,7 +339,7 @@ def exportCollisionC(
     if writeRoomsFile:
         data_includes.append(Path("rooms.inc.c"))
     update_actor_includes(
-        headerType, groupName, Path(dirPath), name, levelName, data_includes, [Path("collision_header.h")]
+        sm64_props, headerType, groupName, Path(dirPath), name, levelName, data_includes, [Path("collision_header.h")]
     )
     if not writeRoomsFile:  # TODO: Could be done better
         if headerType == "Actor":
@@ -335,7 +350,9 @@ def exportCollisionC(
             write_or_delete_if_found(
                 group_path_c,
                 to_remove=[
-                    to_include_descriptor(Path(name, "rooms.inc.c"), Path("levels", levelName, name, "rooms.inc.c")),
+                    to_include_descriptor(
+                        Path(name, "rooms.inc.c"), Path(sm64_props.levels_folder, levelName, name, "rooms.inc.c")
+                    ),
                 ],
             )
 
@@ -461,7 +478,8 @@ class SM64_ExportCollision(bpy.types.Operator):
     def execute(self, context):
         romfileOutput = None
         tempROM = None
-        props = context.scene.fast64.sm64.combined_export
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
+        props = sm64_props.combined_export
         try:
             obj = None
             if context.mode != "OBJECT":
@@ -479,15 +497,11 @@ class SM64_ExportCollision(bpy.types.Operator):
         try:
             applyRotation([obj], math.radians(90), "X")
             if context.scene.fast64.sm64.export_type == "C":
-                export_path, level_name = getPathAndLevel(
-                    props.is_actor_custom_export,
-                    props.actor_custom_path,
-                    props.export_level_name,
-                    props.level_name,
-                )
+                export_path, level_name = props.get_path_and_level(sm64_props)
                 if not props.is_actor_custom_export:
                     applyBasicTweaks(export_path)
                 exportCollisionC(
+                    sm64_props,
                     obj,
                     final_transform,
                     export_path,
