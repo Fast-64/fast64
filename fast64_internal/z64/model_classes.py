@@ -317,9 +317,14 @@ class OOTModel(FModel):
 
         for i in range(8, 14):
             if getattr(matDrawLayer, f"segment{i:X}"):
+                is_animated_material = False
+
+                if self.draw_config is not None and "mat_anim" in self.draw_config:
+                    is_animated_material = True
+
                 gfxList.commands.append(
                     DynamicMaterialDL(
-                        GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), "mat_anim" in self.draw_config
+                        GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), is_animated_material
                     )
                 )
 
