@@ -80,6 +80,7 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=Fal
 
     if scene.gameEditorMode == "SM64":
         load_sm64_repo_settings(scene, data.get("sm64", {}))
+    scene.fast64.settings.glTF.from_dict(data.get("glTF", {}))
 
 
 def save_repo_settings(scene: Scene, path: os.PathLike):
@@ -96,9 +97,10 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
 
     if scene.gameEditorMode == "SM64":
         data["sm64"] = save_sm64_repo_settings(scene)
+    data["glTF"] = scene.fast64.settings.glTF.to_dict()
 
     with open(abspath(path), "w", encoding="utf-8") as json_file:
-        json.dump(data, json_file, indent=2)
+        json.dump(data, json_file, indent="\t")
 
 
 def draw_repo_settings(layout: UILayout, context: Context):
@@ -115,6 +117,8 @@ def draw_repo_settings(layout: UILayout, context: Context):
 
     col.prop(fast64_settings, "auto_repo_load_settings")
     prop_split(col, scene, "f3d_type", "Microcode")
+    if scene.f3d_type in {"F3DEX3", "T3D"}:
+        prop_split(col, scene, "packed_normals_algorithm", "Packed normals alg")
     col.prop(scene, "saveTextures")
     col.prop(fast64_settings, "auto_pick_texture_format")
     if fast64_settings.auto_pick_texture_format:

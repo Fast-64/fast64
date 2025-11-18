@@ -1,4 +1,6 @@
 from __future__ import annotations
+from pathlib import Path
+import typing
 
 import bpy, mathutils, math, copy, os, shutil, re
 from bpy.utils import register_class, unregister_class
@@ -7,17 +9,18 @@ from io import BytesIO
 from ..operators import ObjectDataExporter
 from ..panels import SM64_Panel
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
+from .sm64_geolayout_bone import getSwitchOptionBone
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, write_material_headers
 
 from ..utility import (
     PluginError,
     VertexWeightError,
+    z_up_to_y_up_matrix,
     setOrigin,
     raisePluginError,
     findStartBones,
@@ -26,10 +29,8 @@ from ..utility import (
     getExportDir,
     toAlnum,
     writeMaterialFiles,
-    writeIfNotFound,
     get64bitAlignedAddr,
     encodeSegmentedAddr,
-    writeMaterialHeaders,
     writeInsertableFile,
     bytesToHex,
     checkSM64EmptyUsesGeoLayout,
@@ -51,12 +52,9 @@ from ..utility import (
     tempName,
     getAddressFromRAMAddress,
     prop_split,
-    customExportWarning,
-    decompFolderMessage,
-    makeWriteInfoBox,
-    writeBoxExportType,
-    enumExportHeaderType,
     geoNodeRotateOrder,
+    deselectAllObjects,
+    selectSingleObject,
 )
 
 from ..f3d.f3d_bleed import (
@@ -99,10 +97,10 @@ from ..f3d.f3d_gbi import (
     DLFormat,
     SPEndDisplayList,
     SPDisplayList,
-    FMaterial,
 )
 
 from .sm64_geolayout_classes import (
+    BaseDisplayListNode,
     DisplayListNode,
     TransformNode,
     StartNode,
@@ -116,25 +114,32 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
     RenderRangeNode,
     ShadowNode,
     DisplayListWithOffsetNode,
-    CustomAnimatedNode,
     HeldObjectNode,
     Geolayout,
 )
 
-from .sm64_constants import (
-    insertableBinaryTypes,
-    bank0Segment,
-    level_pointers,
-    defaultExtendSegment4,
-    level_enums,
-    enumLevelNames,
-)
+from .sm64_constants import insertableBinaryTypes, bank0Segment, defaultExtendSegment4
+
+if typing.TYPE_CHECKING:
+    from .sm64_geolayout_bone import SM64_BoneProperties
+
+
+def get_custom_cmd_with_transform(node: "CustomNode", parentTransformNode: TransformNode, translate, rotate, scale):
+    types = {a["arg_type"] for a in node.data["args"]}
+    has_translation, has_rotation, has_scale = "TRANSLATION" in types, "ROTATION" in types, "SCALE" in types
+    if (not has_translation and not isZeroTranslation(translate)) or (not has_rotation and not isZeroRotation(rotate)):
+        field = 0 if not (has_translation or has_rotation) else (1 if has_rotation else 2)
+        parentTransformNode = addParentNode(
+            parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
+        )
+    if not has_scale and not isZeroScaleChange(scale):
+        parentTransformNode = addParentNode(parentTransformNode, ScaleNode(node.drawLayer, scale[0], False))
+    return node, parentTransformNode, has_translation, has_rotation, has_scale
 
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode=""):
@@ -293,12 +298,10 @@ def replaceDLReferenceInGeo(geoPath, pattern, replacement):
 
 def prepareGeolayoutExport(armatureObj, obj):
     # Make object and armature space the same.
-    setOrigin(armatureObj, obj)
+    setOrigin(obj, armatureObj.location)
 
     # Apply armature scale.
-    bpy.ops.object.select_all(action="DESELECT")
-    armatureObj.select_set(True)
-    bpy.context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
 
 
@@ -335,56 +338,122 @@ def getCameraObj(camera):
     raise PluginError("The level camera " + camera.name + " is no longer in the scene.")
 
 
-def appendRevertToGeolayout(geolayoutGraph, fModel):
-    materialRevert = GfxList(
-        fModel.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, fModel.DLFormat
+DrawLayerDict = dict[int, list[TransformNode]]
+
+
+def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
+    material_revert = GfxList(
+        f_model.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, f_model.DLFormat
     )
-    revertMatAndEndDraw(materialRevert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
+    revertMatAndEndDraw(material_revert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
 
     # walk the geo layout graph to find the last used DL for each layer
     # each switch child will be considered a last used DL, unless subsequent
     # DL is drawn outside switch root
-    def walk(node, last_gfx_list: list[dict]):
+    def walk(node, draw_layer_dict: DrawLayerDict) -> DrawLayerDict:
         base_node = node.node
         if type(base_node) == JumpNode:
             if base_node.geolayout:
                 for node in base_node.geolayout.nodes:
-                    last_gfx_list = walk(node, last_gfx_list)
+                    draw_layer_dict = walk(node, draw_layer_dict.copy())
         fMesh = getattr(base_node, "fMesh", None)
         if fMesh:
-            cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-            for draw_layer_dict in last_gfx_list:
-                draw_layer_dict[base_node.drawLayer] = cmd_list
-        switch_gfx_lists = []
+            draw_layer_dict[base_node.drawLayer] = [node]
+
+        start_draw_layer_dict = draw_layer_dict.copy()
         for child in node.children:
             if type(base_node) == SwitchNode:
-                switch_gfx_lists.extend(walk(child, [dict()]))
+                option_resets = walk(child, {})
+                for (
+                    draw_layer,
+                    nodes,
+                ) in option_resets.items():  # add draw layers that are not already in draw_layer_dict
+                    if draw_layer not in start_draw_layer_dict:
+                        if draw_layer not in draw_layer_dict:
+                            draw_layer_dict[draw_layer] = []
+                        draw_layer_dict[draw_layer].extend(nodes)
+                for draw_layer, nodes in start_draw_layer_dict.items():
+                    if draw_layer in option_resets:  # option overrides a previous draw layer
+                        nodes.clear()
+                        nodes.extend(option_resets[draw_layer])
             else:
-                last_gfx_list = walk(child, last_gfx_list)
-        # update the non switch nodes with the last switch node of each layer drawn
-        # that node will be overridden by at least one of the switch nodes
-        # for that layer, later items in the list will cover unique switch nodes
-        if switch_gfx_lists:
-            for draw_layer_dict in last_gfx_list:
-                draw_layer_dict.update(switch_gfx_lists[-1])
-            last_gfx_list.extend(switch_gfx_lists)
-        return last_gfx_list
+                draw_layer_dict = walk(child, draw_layer_dict.copy())
+        return draw_layer_dict
 
-    for node in geolayoutGraph.startGeolayout.nodes:
-        last_gfx_list = walk(node, [dict()])
+    draw_layer_dict: DrawLayerDict = {}
+    for node in graph.startGeolayout.nodes:
+        draw_layer_dict = walk(node, draw_layer_dict.copy())
+
+    def create_revert_node(draw_layer, node: DisplayListNode | None = None):
+        f_mesh = f_model.addMesh("final_revert", f_model.name, draw_layer, False, None, dedup=True)
+        f_mesh.draw = gfx_list = GfxList(f_mesh.name, GfxListTag.Draw, f_model.DLFormat)
+        gfx_list.commands.extend(material_revert.commands)
+        revert_node = DisplayListNode(draw_layer)
+        revert_node.DLmicrocode = gfx_list
+        revert_node.fMesh = f_mesh
+        if node is None:
+            graph.startGeolayout.nodes.append(TransformNode(revert_node))
+        else:
+            addParentNode(node, revert_node)
 
     # Revert settings in each unique draw layer
-    reverted_gfx_lists = set()
-    for draw_layer_dict in last_gfx_list:
-        for gfx_list in draw_layer_dict.values():
-            if gfx_list in reverted_gfx_lists:
-                continue
-            # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
-            while SPEndDisplayList() in gfx_list.commands:
-                gfx_list.commands.remove(SPEndDisplayList())
+    for draw_layer, nodes in draw_layer_dict.items():
+        if len(nodes) == 0:
+            create_revert_node(draw_layer)
+        for transform_node in nodes:
+            node = transform_node.node
+            f_mesh: FMesh = node.fMesh
+            cmd_list: GfxList = node.DLmicrocode
+            if f_mesh.cullVertexList:
+                create_revert_node(draw_layer, transform_node)
+            else:
+                if (hasattr(f_mesh, "override_layer") and f_mesh.override_layer) or node.override_hash:
+                    draw_overrides = f_model.draw_overrides.setdefault(f_mesh, {})
+                    if node.override_hash is None:
+                        node.override_hash = (5, node.drawLayer)
+                    else:
+                        node.override_hash = (5, *node.override_hash)
+                    existing_cmd_list, existing_nodes = draw_overrides.get(node.override_hash, (None, []))
+                    if existing_cmd_list is not None:
+                        node.DLmicrocode = existing_cmd_list
+                        existing_nodes.append(node)
+                        continue
+                    else:
+                        node.DLmicrocode = cmd_list = copy.copy(cmd_list)
+                        if node.override_hash not in draw_overrides:
+                            cmd_list.name += f"_with_layer_{node.drawLayer}_revert"
+                        else:
+                            cmd_list.name += "_with_revert"
+                        cmd_list.commands = cmd_list.commands.copy()
+                        draw_overrides[node.override_hash] = (cmd_list, [node])
+                # remove SPEndDisplayList from gfx_list, material_revert has its own SPEndDisplayList cmd
+                while SPEndDisplayList() in cmd_list.commands:
+                    cmd_list.commands.remove(SPEndDisplayList())
+                cmd_list.commands.extend(material_revert.commands)
 
-            gfx_list.commands.extend(materialRevert.commands)
-            reverted_gfx_lists.add(gfx_list)
+
+def add_overrides_to_fmodel(f_model: SM64Model):
+    for f_mesh, draw_overrides in f_model.draw_overrides.items():
+        nodes = [node for _, nodes in draw_overrides.items() for node in nodes]
+        if all(node.override_hash is not None for _, (_, nodes) in draw_overrides.items() for node in nodes):
+            # all nodes use an override, make the first override the main draw
+            override_hash, cmd_list, nodes = next(
+                (override_hash, cmd_list, nodes)
+                for override_hash, (cmd_list, nodes) in draw_overrides.items()
+                if override_hash is not None and any(node.override_hash == override_hash for node in nodes)
+            )
+            for node in nodes:
+                if node.override_hash == override_hash:
+                    node.DLmicrocode = cmd_list
+                    node.override_hash = None
+            f_mesh.draw = cmd_list
+            draw_overrides.pop(override_hash)
+        for override_hash, (cmd_list, nodes) in draw_overrides.items():
+            # remove no longer used overrides
+            if all(node.override_hash is None or node.override_hash != override_hash for node in nodes):
+                continue
+            if cmd_list not in f_mesh.draw_overrides:
+                f_mesh.draw_overrides.append(cmd_list)
 
 
 # Convert to Geolayout
@@ -393,7 +462,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
     fModel = SM64Model(
         name,
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        bpy.context.scene.fast64.sm64.gfx_write_method,
     )
 
     if len(armatureObj.children) == 0:
@@ -433,6 +502,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             None,
             None,
             None,
+            None,
             meshGeolayout.nodes[i],
             [],
             name,
@@ -441,8 +511,16 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             infoDict,
             convertTextureData,
         )
-    generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
-    appendRevertToGeolayout(geolayoutGraph, fModel)
+
+    children = meshGeolayout.nodes
+    meshGeolayout.nodes = []
+    for node in children:
+        node = copy.copy(node)
+        node.node = copy.copy(node.node)
+        meshGeolayout.nodes.append(generate_overrides(fModel, node, [], meshGeolayout, geolayoutGraph))
+
+    append_revert_to_geolayout(geolayoutGraph, fModel)
+    add_overrides_to_fmodel(fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -452,16 +530,15 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
     return geolayoutGraph, fModel
 
 
-# Camera is unused here
 def convertObjectToGeolayout(
-    obj, convertTransformMatrix, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
+    obj, convertTransformMatrix, is_actor: bool, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
         fModel = SM64Model(
             name,
             DLFormat,
-            GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+            bpy.context.scene.fast64.sm64.gfx_write_method,
         )
 
     # convertTransformMatrix = convertTransformMatrix @ \
@@ -473,9 +550,11 @@ def convertObjectToGeolayout(
         # cameraObj = getCameraObj(camera)
         meshGeolayout = saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, obj, name + "_geo")
         rootObj = areaObj
-        fModel.global_data.addAreaData(
-            areaObj.areaIndex, FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color))
-        )
+        if areaObj.fast64.sm64.area.set_fog:
+            fog_data = FFogData(areaObj.area_fog_position, areaObj.area_fog_color)
+        else:
+            fog_data = None
+        fModel.global_data.addAreaData(areaObj.areaIndex, FAreaData(fog_data))
 
     else:
         geolayoutGraph = GeolayoutGraph(name + "_geo")
@@ -502,8 +581,8 @@ def convertObjectToGeolayout(
             True,
             convertTextureData,
         )
-        if not meshGeolayout.has_data():
-            raise PluginError("No gfx data to export, gfx export cancelled")
+        if is_actor and not meshGeolayout.has_data():
+            raise PluginError("No gfx data to export, gfx export cancelled", PluginError.exc_warn)
     except Exception as e:
         raise Exception(str(e))
     finally:
@@ -511,7 +590,8 @@ def convertObjectToGeolayout(
         rootObj.select_set(True)
         bpy.context.view_layer.objects.active = rootObj
 
-    appendRevertToGeolayout(geolayoutGraph, fModel)
+    append_revert_to_geolayout(geolayoutGraph, fModel)
+    add_overrides_to_fmodel(fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -569,7 +649,6 @@ def exportGeolayoutObjectC(
     texDir,
     savePNG,
     texSeparate,
-    camera,
     groupName,
     headerType,
     dirName,
@@ -579,7 +658,7 @@ def exportGeolayoutObjectC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, dirName, None, None, DLFormat, not savePNG
+        obj, convertTransformMatrix, True, dirName, None, None, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -659,38 +738,12 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = '#include "actors/' + dirName + '/material.inc.c"'
-        matHInclude = '#include "actors/' + dirName + '/material.inc.h"'
+        matCInclude = Path("actors", dirName, "material.inc.c")
+        matHInclude = Path("actors", dirName, "material.inc.h")
         headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
-
-        if not customExport:
-            # Group name checking, before anything is exported to prevent invalid state on error.
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            if not os.path.exists(groupPathC):
-                raise PluginError(
-                    groupPathC + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathGeoC):
-                raise PluginError(
-                    groupPathGeoC
-                    + ' not found.\n Most likely issue is that "'
-                    + groupName
-                    + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathH):
-                raise PluginError(
-                    groupPathH + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-
     else:
-        matCInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.c"'
-        matHInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.h"'
+        matCInclude = Path("levels", levelName, dirName, "material.inc.c")
+        matHInclude = Path("levels", levelName, dirName, "material.inc.h")
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
@@ -736,6 +789,16 @@ def saveGeolayoutC(
     cDefFile.close()
 
     fileStatus = None
+    update_actor_includes(
+        headerType,
+        groupName,
+        Path(dirPath),
+        dirName,
+        levelName,
+        [Path("model.inc.c")],
+        [Path("geo_header.h")],
+        [Path("geo.inc.c")],
+    )
     if not customExport:
         if headerType == "Actor":
             if dirName == "star" and bpy.context.scene.replaceStarRefs:
@@ -787,31 +850,12 @@ def saveGeolayoutC(
 				appendSecondaryGeolayout(geoDirPath, 'bully', 'bully_boss', 'GEO_SCALE(0x00, 0x2000), GEO_NODE_OPEN(),')
 			"""
 
-            # Write to group files
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "' + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + dirName + '/geo_header.h"', "\n#endif")
-
             texscrollIncludeC = '#include "actors/' + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "actors/' + dirName + '/texscroll.inc.h"'
             texscrollGroup = groupName
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathGeoC = os.path.join(dirPath, "geo.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "levels/' + levelName + "/" + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + dirName + '/geo_header.h"', "\n#endif"
-            )
-
             texscrollIncludeC = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.h"'
             texscrollGroup = levelName
@@ -828,7 +872,7 @@ def saveGeolayoutC(
         )
 
         if DLFormat != DLFormat.Static:  # Change this
-            writeMaterialHeaders(exportDir, matCInclude, matHInclude)
+            write_material_headers(Path(exportDir), matCInclude, matHInclude)
 
     return staticData.header, fileStatus
 
@@ -842,9 +886,9 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj, convertTransformMa
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
 
 
-def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath, camera):
+def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
@@ -892,10 +936,9 @@ def exportGeolayoutObjectBinaryBank0(
     modelID,
     textDumpFilePath,
     RAMAddr,
-    camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinaryBank0(
@@ -975,10 +1018,9 @@ def exportGeolayoutObjectBinary(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinary(
@@ -1028,190 +1070,80 @@ def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
         openfile.close()
 
 
-# Switch Handling Process
-# When convert armature to geolayout node hierarchy, mesh switch options
-# are converted to switch node children, but material/draw layer options
-# are converted to SwitchOverrideNodes. During this process, any material
-# override geometry will be generated as well.
-
-
-# Afterward, the node hierarchy is traversed again, and any SwitchOverride
-# nodes are converted to actual geolayout node hierarchies.
-def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
-    if isinstance(transformNode.node, JumpNode):
-        for node in transformNode.node.geolayout.nodes:
-            generateSwitchOptions(node, transformNode.node.geolayout, geolayoutGraph, prefix)
-    overrideNodes = []
-    if isinstance(transformNode.node, SwitchNode):
-        switchName = transformNode.node.name
-        prefix += "_" + switchName
-        # prefix = switchName
-
-        materialOverrideTexDimensions = None
-
-        i = 0
-        while i < len(transformNode.children):
-            prefixName = prefix + "_opt" + str(i)
-            childNode = transformNode.children[i]
-            if isinstance(childNode.node, SwitchOverrideNode):
-                drawLayer = childNode.node.drawLayer
-                material = childNode.node.material
-                specificMat = childNode.node.specificMat
-                overrideType = childNode.node.overrideType
-                texDimensions = childNode.node.texDimensions
-                if (
-                    texDimensions is not None
-                    and materialOverrideTexDimensions is not None
-                    and materialOverrideTexDimensions != tuple(texDimensions)
-                ):
-                    raise PluginError(
-                        'In switch bone "'
-                        + switchName
-                        + '", some material '
-                        + "overrides \nhave textures with dimensions differing from the original material.\n"
-                        + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
-                        + "Make sure that all overrides have the same texture dimensions as the original material.\n"
-                        + "Note that materials with no textures default to dimensions of 32x32."
-                    )
-
-                if texDimensions is not None:
-                    materialOverrideTexDimensions = tuple(texDimensions)
-
-                # This should be a 0xB node
-                # copyNode = duplicateNode(transformNode.children[0],
-                # 	transformNode, transformNode.children.index(childNode))
-                index = transformNode.children.index(childNode)
-                transformNode.children.remove(childNode)
-
-                # Switch option bones should have unique names across all
-                # armatures.
-                optionGeolayout = geolayoutGraph.addGeolayout(childNode, prefixName)
-                geolayoutGraph.addJumpNode(transformNode, geolayout, optionGeolayout, index)
-                optionGeolayout.nodes.append(TransformNode(StartNode()))
-                copyNode = optionGeolayout.nodes[0]
-
-                # i -= 1
-                # Assumes first child is a start node, where option 0 is
-                # assumes overrideChild starts with a Start node
-                option0Nodes = [transformNode.children[0]]
-                if len(option0Nodes) == 1 and isinstance(option0Nodes[0].node, StartNode):
-                    for startChild in option0Nodes[0].children:
-                        generateOverrideHierarchy(
-                            copyNode,
-                            startChild,
-                            material,
-                            specificMat,
-                            overrideType,
-                            drawLayer,
-                            option0Nodes[0].children.index(startChild),
-                            optionGeolayout,
-                            geolayoutGraph,
-                            optionGeolayout.name,
-                        )
-                else:
-                    for overrideChild in option0Nodes:
-                        generateOverrideHierarchy(
-                            copyNode,
-                            overrideChild,
-                            material,
-                            specificMat,
-                            overrideType,
-                            drawLayer,
-                            option0Nodes.index(overrideChild),
-                            optionGeolayout,
-                            geolayoutGraph,
-                            optionGeolayout.name,
-                        )
-                if material is not None:
-                    overrideNodes.append(copyNode)
-            i += 1
-    for i in range(len(transformNode.children)):
-        childNode = transformNode.children[i]
-        if isinstance(transformNode.node, SwitchNode):
-            prefixName = prefix + "_opt" + str(i)
-        else:
-            prefixName = prefix
-
-        if childNode not in overrideNodes:
-            generateSwitchOptions(childNode, geolayout, geolayoutGraph, prefixName)
-
-
-def generateOverrideHierarchy(
-    parentCopyNode,
-    transformNode,
-    material,
-    specificMat,
-    overrideType,
-    drawLayer,
-    index,
-    geolayout,
-    geolayoutGraph,
-    switchOptionName,
+def generate_overrides(
+    fModel: SM64Model,
+    transform_node: TransformNode,
+    switch_stack: list[SwitchOverrideNode],
+    geolayout: Geolayout,
+    graph: GeolayoutGraph,
+    name: str = "",
 ):
-    # print(transformNode.node)
-    if isinstance(transformNode.node, SwitchOverrideNode) and material is not None:
-        return
-
-    copyNode = TransformNode(copy.copy(transformNode.node))
-    copyNode.parent = parentCopyNode
-    parentCopyNode.children.insert(index, copyNode)
-    if isinstance(transformNode.node, JumpNode):
-        jumpName = switchOptionName + "_jump_" + transformNode.node.geolayout.name
-        jumpGeolayout = geolayoutGraph.addGeolayout(transformNode, jumpName)
-        oldGeolayout = copyNode.node.geolayout
-        copyNode.node.geolayout = jumpGeolayout
-        geolayoutGraph.addGeolayoutCall(geolayout, jumpGeolayout)
-        startNode = TransformNode(StartNode())
-        jumpGeolayout.nodes.append(startNode)
-        if len(oldGeolayout.nodes) == 1 and isinstance(oldGeolayout.nodes[0].node, StartNode):
-            for node in oldGeolayout.nodes[0].children:
-                generateOverrideHierarchy(
-                    startNode,
-                    node,
-                    material,
-                    specificMat,
-                    overrideType,
-                    drawLayer,
-                    oldGeolayout.nodes[0].children.index(node),
-                    jumpGeolayout,
-                    geolayoutGraph,
-                    jumpName,
-                )
+    node = transform_node.node
+    children = transform_node.children
+    transform_node.children = []
+    if isinstance(node, JumpNode):
+        start_nodes, new_name = node.geolayout.nodes, name
+        if switch_stack:
+            new_name = f"{node.geolayout.name}{name}"
+            new_geolayout = graph.addGeolayout(transform_node, new_name)
+            node.geolayout = new_geolayout
+            graph.addGeolayoutCall(geolayout, new_geolayout)
         else:
-            for node in oldGeolayout.nodes:
-                generateOverrideHierarchy(
-                    startNode,
+            node.geolayout.nodes = []
+        for child in start_nodes:
+            child = copy.copy(child)
+            child.node = copy.copy(child.node)
+            node.geolayout.nodes.append(generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name))
+    elif node.hasDL or hasattr(node, "drawLayer"):
+        for i, override_node in enumerate(switch_stack):
+            if node.hasDL:
+                dl, override_hash = save_override_draw(
+                    fModel,
+                    node.DLmicrocode,
+                    name,
+                    node.override_hash,
+                    override_node.material,
+                    override_node.specificMat,
+                    override_node.drawLayer,
+                    override_node.overrideType,
+                    node.fMesh,
                     node,
-                    material,
-                    specificMat,
-                    overrideType,
-                    drawLayer,
-                    oldGeolayout.nodes.index(node),
-                    jumpGeolayout,
-                    geolayoutGraph,
-                    jumpName,
+                    node.drawLayer,
+                    True,
                 )
-
-    elif not isinstance(copyNode.node, SwitchOverrideNode) and copyNode.node.hasDL:
-        if material is not None:
-            copyNode.node.DLmicrocode = copyNode.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
-            copyNode.node.override_hash = (material, specificMat, overrideType)
-        if drawLayer is not None:
-            copyNode.node.drawLayer = drawLayer
-
-    for child in transformNode.children:
-        generateOverrideHierarchy(
-            copyNode,
-            child,
-            material,
-            specificMat,
-            overrideType,
-            drawLayer,
-            transformNode.children.index(child),
-            geolayout,
-            geolayoutGraph,
-            switchOptionName,
-        )
+                if dl is not None and override_hash is not None:
+                    node.DLmicrocode = dl
+                    node.override_hash = override_hash
+            if override_node.drawLayer is not None and node.drawLayer != override_node.drawLayer:
+                node.drawLayer = override_node.drawLayer
+                if node.fMesh is not None:
+                    node.fMesh.override_layer = True
+        if node.hasDL:
+            draw_overrides = fModel.draw_overrides.setdefault(node.fMesh, {})
+            _, nodes = draw_overrides.setdefault(node.override_hash, (node.DLmicrocode, []))
+            nodes.append(node)
+    for i, child in enumerate(children):
+        child = copy.copy(child)
+        child_node = child.node = copy.copy(child.node)
+        if isinstance(child_node, SwitchOverrideNode):
+            child.parent = None
+            assert i != 0, "Switch override must not be the first child of its parent"
+            override_switch_stack = [*switch_stack, child_node]
+            option0 = copy.copy(children[0])
+            new_name = toAlnum(f"{name}_opt_{i}")
+            new_geolayout = graph.addGeolayout(transform_node, geolayout.name + new_name)
+            graph.addGeolayoutCall(geolayout, new_geolayout)
+            new_geolayout.nodes.append(
+                generate_overrides(fModel, option0, override_switch_stack.copy(), new_geolayout, graph, new_name)
+            )
+            option_child = TransformNode(JumpNode(True, new_geolayout))
+            transform_node.children.append(option_child)
+            option_child.parent = transform_node
+        else:
+            child = generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name)
+            transform_node.children.append(child)
+            child.parent = transform_node
+    return transform_node
 
 
 def addParentNode(parentTransformNode: TransformNode, geoNode):
@@ -1229,7 +1161,7 @@ def duplicateNode(transformNode, parentNode, index):
 
 
 def partOfGeolayout(obj):
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     return obj.type == "MESH" or useGeoEmpty
 
@@ -1300,8 +1232,6 @@ def processPreInlineGeo(
         node = JumpNode(True, None, obj.geoReference)
     elif inlineGeoConfig.name == "Geo Displaylist":
         node = DisplayListNode(int(obj.draw_layer_static), obj.dlReference)
-    elif inlineGeoConfig.name == "Custom Geo Command":
-        node = CustomNode(obj.customGeoCommand, obj.customGeoCommandArgs)
     addParentNode(parentTransformNode, node)  # Allow this node to be translated/rotated
 
 
@@ -1323,7 +1253,25 @@ def processInlineGeoNode(
     elif inlineGeoConfig.name == "Geo Rotation Node":
         node = RotateNode(obj.draw_layer_static, obj.useDLReference, rotate, obj.dlReference)
     elif inlineGeoConfig.name == "Geo Scale":
-        node = ScaleNode(obj.draw_layer_static, scale, obj.useDLReference, obj.dlReference)
+        node = ScaleNode(obj.draw_layer_static, scale[0], obj.useDLReference, obj.dlReference)
+    elif inlineGeoConfig.name == "Custom":
+        local_matrix = (
+            mathutils.Matrix.Translation(translate)
+            @ rotate.to_matrix().to_4x4()
+            @ mathutils.Matrix.Diagonal(scale).to_4x4()
+        )
+        node = obj.fast64.sm64.custom.get_final_cmd(
+            obj,
+            bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+            z_up_to_y_up_matrix @ mathutils.Matrix(obj.get("original_mtx_world")) @ z_up_to_y_up_matrix.inverted(),
+            local_matrix,
+            obj.draw_layer_static,
+            obj.useDLReference,
+            obj.dlReference,
+        )
+        node, parentTransformNode, _, _, _ = get_custom_cmd_with_transform(
+            node, parentTransformNode, translate, rotate, scale
+        )
     else:
         raise PluginError(f"Ooops! Didnt implement inline geo exporting for {inlineGeoConfig.name}")
 
@@ -1344,11 +1292,11 @@ def processMesh(
 ):
     # final_transform = copy.deepcopy(transformMatrix)
 
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     useSwitchNode = obj.type == "EMPTY" and obj.sm64_obj_type == "Switch"
 
-    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj.sm64_obj_type)
+    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj)
 
     addRooms = isRoot and obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.enableRoomSwitch
 
@@ -1358,7 +1306,7 @@ def processMesh(
     inlineGeoConfig: InlineGeolayoutObjConfig = inlineGeoLayoutObjects.get(obj.sm64_obj_type)
     processed_inline_geo = False
 
-    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type)
+    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj)
     if useInlineGeo and isPreInlineGeoLayout:
         processed_inline_geo = True
         processPreInlineGeo(inlineGeoConfig, obj, parentTransformNode)
@@ -1437,7 +1385,7 @@ def processMesh(
     else:
         if useInlineGeo and not processed_inline_geo:
             node, parentTransformNode = processInlineGeoNode(
-                inlineGeoConfig, obj, parentTransformNode, translate, rotate, scale[0]
+                inlineGeoConfig, obj, parentTransformNode, translate, rotate, scale
             )
             processed_inline_geo = True
 
@@ -1536,19 +1484,29 @@ def processMesh(
 
             if len(src_meshes):
                 fMeshes = {}
-                node.dlRef = src_meshes[0]["name"]
+                # find dl
+                draw, name = None, src_meshes[0]["dl_name"]
+                for fmesh in fModel.meshes.values():
+                    for fmesh_draw in [fmesh.draw] + fmesh.draw_overrides:
+                        if fmesh_draw.name == name:
+                            draw = fmesh_draw
+                            break
+                node.dlRef = draw
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
                 for src_mesh in src_meshes[1:]:
                     additionalNode = (
-                        DisplayListNode(src_mesh["layer"], src_mesh["name"])
+                        DisplayListNode(src_mesh["layer"], src_mesh["dl_name"])
                         if not isinstance(node, BillboardNode)
-                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["name"])
+                        else BillboardNode(src_mesh["layer"], True, [0, 0, 0], src_mesh["dl_name"])
                     )
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode
+                    additionalTransformNode.revert_previous_mat = (
+                        additionalTransformNode.revert_after_mat
+                    ) = obj.bleed_independently
 
             else:
                 triConverterInfo = TriangleConverterInfo(
@@ -1559,9 +1517,9 @@ def processMesh(
                 )
                 if fMeshes:
                     temp_obj["src_meshes"] = [
-                        ({"name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
+                        ({"dl_name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    node.dlRef = temp_obj["src_meshes"][0]["name"]
+                    node.dlRef = temp_obj["src_meshes"][0]["dl_name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
@@ -1577,11 +1535,11 @@ def processMesh(
                 node.hasDL = False
         else:
             firstNodeProcessed = False
+            node: BaseDisplayListNode
             for drawLayer, fMesh in fMeshes.items():
                 if not firstNodeProcessed:
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh
-                    node.bleed_independently = obj.bleed_independently
                     node.drawLayer = drawLayer  # previous drawLayer assigments useless?
                     firstNodeProcessed = True
                 else:
@@ -1592,13 +1550,16 @@ def processMesh(
                     )
                     additionalNode.DLmicrocode = fMesh.draw
                     additionalNode.fMesh = fMesh
-                    additionalNode.bleed_independently = obj.bleed_independently
                     additionalTransformNode = TransformNode(additionalNode)
+                    additionalTransformNode.revert_previous_mat = (
+                        additionalTransformNode.revert_after_mat
+                    ) = obj.bleed_independently
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode
 
         parentTransformNode.children.append(transformNode)
         transformNode.parent = parentTransformNode
+        transformNode.revert_previous_mat = transformNode.revert_after_mat = obj.bleed_independently
 
         alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
         for childObj in alphabeticalChildren:
@@ -1631,6 +1592,7 @@ def processBone(
     transformMatrix,
     lastTranslateName,
     lastRotateName,
+    last_scale_name,
     lastDeformName,
     parentTransformNode,
     materialOverrides,
@@ -1641,6 +1603,8 @@ def processBone(
     convertTextureData,
 ):
     bone = armatureObj.data.bones[boneName]
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+
     poseBone = armatureObj.pose.bones[boneName]
     final_transform = copy.deepcopy(transformMatrix)
     materialOverrides = copy.copy(materialOverrides)
@@ -1664,40 +1628,38 @@ def processBone(
         rotateParent = None
         rotate = bone.matrix_local.decompose()[1]
 
+    # Get scale
+    if last_scale_name is not None:
+        scaleParent = armatureObj.data.bones[last_scale_name]
+        scale = (scaleParent.matrix_local.inverted() @ bone.matrix_local).decompose()[2]
+    else:
+        scaleParent = None
+        scale = bone.matrix_local.decompose()[2]
+
     translation = mathutils.Matrix.Translation(translate)
     rotation = rotate.to_matrix().to_4x4()
     zeroTranslation = isZeroTranslation(translate)
     zeroRotation = isZeroRotation(rotate)
+    zero_scale = isZeroScaleChange(scale)
 
     # hasDL = bone.use_deform
     hasDL = True
-    if bone.geo_cmd in animatableBoneTypes:
-        if bone.geo_cmd == "CustomAnimated":
-            if not bone.fast64.sm64.custom_geo_cmd_macro:
-                raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-            node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
+    if bone.geo_cmd == "DisplayListWithOffset":
+        if not zeroRotation:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
+
+            parentTransformNode = addParentNode(
+                parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
+            )
+
             lastTranslateName = boneName
             lastRotateName = boneName
-        else:  # DisplayListWithOffset
-            if not zeroRotation:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
-
-                parentTransformNode = addParentNode(
-                    parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
-                )
-
-                lastTranslateName = boneName
-                lastRotateName = boneName
-            else:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
-                lastTranslateName = boneName
+        else:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
+            lastTranslateName = boneName
 
         final_transform = transformMatrix @ translation
 
-    elif bone.geo_cmd == "CustomNonAnimated":
-        if bone.fast64.sm64.custom_geo_cmd_macro == "":
-            raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-        node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
     elif bone.geo_cmd == "Function":
         if bone.geo_func == "":
             raise PluginError("Function bone " + boneName + " function value is empty.")
@@ -1770,6 +1732,21 @@ def processBone(
             final_transform = transformMatrix @ mathutils.Matrix.Scale(node.scaleValue, 4)
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
+        elif bone.geo_cmd == "Custom":
+            local_matrix = mathutils.Matrix.LocRotScale(translate, rotate, scale)
+            world_matrix = z_up_to_y_up_matrix @ bone.matrix_local @ z_up_to_y_up_matrix.inverted()
+            node = bone_props.custom.get_final_cmd(
+                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, world_matrix, local_matrix, None, hasDL
+            )
+            node, parentTransformNode, has_translation, has_rotation, has_scale = get_custom_cmd_with_transform(
+                node, parentTransformNode, translate, rotate, scale
+            )
+            if has_translation:
+                lastTranslateName = boneName
+            elif has_rotation:
+                lastRotateName = boneName
+            elif has_scale:
+                last_scale_name = boneName
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 
@@ -1862,15 +1839,19 @@ def processBone(
         parentTransformNode.children.append(transformNode)
         transformNode.parent = parentTransformNode
 
+    new_node: TransformNode
+    for new_node in additionalNodes + [transformNode]:
+        new_node.revert_previous_mat = (
+            bone_props.revert_before_func
+            if bone.geo_cmd in {"Function", "HeldObject"}
+            else bone_props.revert_previous_mat
+        )
+        if isinstance(new_node.node, BaseDisplayListNode):
+            new_node.revert_after_mat = bone_props.revert_after_mat
+
     if not isinstance(transformNode.node, SwitchNode):
         # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
-            # print("\tHas Children")
-            if bone.geo_cmd == "Function":
-                raise PluginError(
-                    "Function bones cannot have children. They instead affect the next sibling bone in alphabetical order."
-                )
-
             # Handle child nodes
             # nonDeformTransformData should be modified to be sent to children,
             # otherwise it should not be modified for parent.
@@ -1885,6 +1866,7 @@ def processBone(
                     final_transform,
                     lastTranslateName,
                     lastRotateName,
+                    last_scale_name,
                     lastDeformName,
                     transformNode,
                     materialOverrides,
@@ -1897,7 +1879,6 @@ def processBone(
                 # transformNode.children.append(childNode)
                 # childNode.parent = transformNode
 
-    # see generateSwitchOptions() for explanation.
     else:
         # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
@@ -1921,6 +1902,7 @@ def processBone(
                     final_transform,
                     lastTranslateName,
                     lastRotateName,
+                    last_scale_name,
                     lastDeformName,
                     nextStartNode,
                     materialOverrides,
@@ -1956,8 +1938,8 @@ def processBone(
                         + str(switchIndex)
                         + ", the object provided is not an armature."
                     )
-                elif optionArmature in geolayoutGraph.secondaryGeolayouts:
-                    optionGeolayout = geolayoutGraph.secondaryGeolayouts[optionArmature]
+                elif optionArmature in geolayoutGraph.secondary_geolayouts_dict:
+                    optionGeolayout = geolayoutGraph.secondary_geolayouts_dict[optionArmature]
                     geolayoutGraph.addJumpNode(transformNode, geolayout, optionGeolayout)
                     continue
 
@@ -2012,6 +1994,7 @@ def processBone(
                         optionBone.name,
                         optionBone.name,
                         optionBone.name,
+                        optionBone.name,
                         startNode,
                         materialOverrides,
                         namePrefix + "_" + optionBone.name,
@@ -2033,7 +2016,7 @@ def processBone(
                         specificMat = tuple([matPtr.material for matPtr in switchOption.specificIgnoreArray])
                 else:
                     material = None
-                    specificMat = None
+                    specificMat = tuple()
                     drawLayer = int(switchOption.drawLayer)
 
                 texDimensions = getTexDimensions(material) if material is not None else None
@@ -2076,8 +2059,11 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
                             + " has a material ignore field that is None."
                         )
                 specificMat = tuple([matPtr.material for matPtr in switchOption.specificIgnoreArray])
-
-            materialOverrides.append((switchOption.materialOverride, specificMat, switchOption.materialOverrideType))
+            materialOverrides.append(
+                (switchOption.materialOverride, specificMat, None, switchOption.materialOverrideType)
+            )
+        elif switchOption.switchType == "Draw Layer":
+            materialOverrides.append((None, (), int(switchOption.drawLayer), "All"))
 
 
 def getGroupIndex(vert, armatureObj, obj):
@@ -2167,10 +2153,15 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 
     # Get skinned node
     bone = armatureObj.data.bones[boneName]
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
     skinnedNode = DisplayListNode(drawLayer)
     skinnedNode.fMesh = skinnedMesh
     skinnedNode.DLmicrocode = skinnedMesh.draw
     skinnedTransformNode = TransformNode(skinnedNode)
+    skinnedTransformNode.revert_previous_mat, skinnedTransformNode.revert_after_mat = (
+        bone_props.revert_previous_mat,
+        bone_props.revert_after_mat,
+    )
 
     # Ascend heirarchy until reaching first node before a deform parent.
     # We duplicate the hierarchy along the way to possibly use later.
@@ -2439,7 +2430,7 @@ def saveModelGivenVertexGroup(
             fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayer, False, None)
             fMeshes[drawLayer] = fMesh
 
-        for material_index, bFaces in materialFaces.items():
+        for material_index, bFaces in sorted(materialFaces.items()):
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2480,82 +2471,134 @@ def saveModelGivenVertexGroup(
             ]
         )
 
-    # Must be done after all geometry saved
-    for material, specificMat, overrideType in materialOverrides:
-        for drawLayer, fMesh in fMeshes.items():
-            saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
-        for drawLayer, fMesh in fSkinnedMeshes.items():
-            saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
-
     return fMeshes, fSkinnedMeshes, usedDrawLayers
 
 
-def saveOverrideDraw(
-    obj: bpy.types.Object,
-    fModel: FModel,
-    material: bpy.types.Material,
-    specificMat: tuple[bpy.types.Material],
-    overrideType: str,
+def save_override_draw(
+    f_model: SM64Model,
+    draw: GfxList,
+    prefix: str,
+    existing_hash,
+    override_mat: bpy.types.Material | None,
+    specific_mats: tuple[bpy.types.Material] | None,
+    override_layer: int | None,
+    override_type: str,
     fMesh: FMesh,
-    drawLayer: int,
-    convertTextureData: bool,
+    obj: object,
+    draw_layer: int,
+    convert_texture_data: bool,
 ):
-    fOverrideMat, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-    overrideIndex = str(len(fMesh.drawMatOverrides))
-    if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
-        overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
-    meshMatOverride = GfxList(
-        fMesh.name + "_mat_override_" + toAlnum(material.name) + "_" + overrideIndex, GfxListTag.Draw, fModel.DLFormat
-    )
-    meshMatOverride.commands = [copy.copy(cmd) for cmd in fMesh.draw.commands]
-    fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
+    draw_overrides = f_model.draw_overrides.setdefault(fMesh, {})
+    specific_mats = specific_mats or tuple()
+    f_override_mat = override_tex_dimensions = None
+    new_layer = draw_layer if override_layer is None else override_layer
+    material_hash = override_mat, new_layer, convert_texture_data
+    g_tex_gen = False
+
+    if override_mat is not None:
+        f_override_mat, override_tex_dimensions = saveOrGetF3DMaterial(
+            override_mat, f_model, None, new_layer, convert_texture_data
+        )
+        g_tex_gen = override_mat.f3d_mat.rdp_settings.g_tex_gen
+
+    name = f"{fMesh.name}{prefix}"
+    new_name = name
+    override_index = -1
+    while new_name in [x.name for x, _ in draw_overrides.values()]:
+        override_index += 1
+        new_name = f"{name}_{override_index}"
+    name = new_name
+
+    new_dl_override = GfxList(name, GfxListTag.Draw, f_model.DLFormat)
+    new_dl_override.commands = [copy.copy(cmd) for cmd in draw.commands]
+    save_mesh_override = False
     prev_material = None
     last_replaced = None
     command_index = 0
 
-    while command_index < len(meshMatOverride.commands):
-        command = meshMatOverride.commands[command_index]
+    new_hash = [] if existing_hash is None else [*existing_hash]
+    while command_index < len(new_dl_override.commands):
+        command = new_dl_override.commands[command_index]
         if not isinstance(command, SPDisplayList):
             command_index += 1
             continue
         # get the material referenced, and then check if it should be overriden
         # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
-        bpy_material, fmaterial = find_material_from_jump_cmd(fModel.getAllMaterials().items(), command)
-        shouldModify = (overrideType == "Specific" and bpy_material in specificMat) or (
-            overrideType == "All" and bpy_material not in specificMat
+        bpy_material, fmaterial = find_material_from_jump_cmd(f_model.getAllMaterials().items(), command)
+        should_modify = override_mat is not None and (
+            (override_type == "Specific" and bpy_material in specific_mats)
+            or (override_type == "All" and bpy_material not in specific_mats)
         )
+
+        if should_modify and bpy_material is not None and override_tex_dimensions is not None and not g_tex_gen:
+            _, tex_dimensions = saveOrGetF3DMaterial(bpy_material, f_model, None, new_layer, convert_texture_data)
+            if tex_dimensions != override_tex_dimensions:
+                raise PluginError(
+                    f'Material "{bpy_material.name}" has a texture with dimensions of {tex_dimensions}\n'
+                    f'but is being overriden by material "{override_mat.name}" with dimensions of {override_tex_dimensions}.\n'
+                    + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
+                    + "Make sure that all overrides have the same texture dimensions as the original material.\n"
+                    + "Note that materials with no textures default to dimensions of 32x32."
+                )
+
+        new_mat: FMaterial = f_override_mat if should_modify else None
+        cur_bpy_material = override_mat if should_modify else bpy_material
+        if cur_bpy_material is not None:
+            material_hash = (cur_bpy_material, new_layer, convert_texture_data)
+            # generate a new material for the specific layer if rendermode is set
+            if material_hash not in f_model.layer_adapted_fmats:
+                f_model.layer_adapted_fmats[material_hash] = None
+                rdp = cur_bpy_material.f3d_mat.rdp_settings
+                preset = (rdp.rendermode_preset_cycle_1, rdp.rendermode_preset_cycle_2)
+                cur_preset = f_model.getRenderMode(new_layer)
+                if rdp.set_rendermode and (rdp.rendermode_advanced_enabled or preset != cur_preset):
+                    new_mat: FMaterial = saveOrGetF3DMaterial(
+                        cur_bpy_material, f_model, None, new_layer, convert_texture_data
+                    )[0]
+                    if override_mat is None:
+                        new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
+                        new_mat.material.tag |= GfxListTag.NoExport
+                    f_model.layer_adapted_fmats[material_hash] = new_mat
+            new_mat = f_model.layer_adapted_fmats.get(material_hash) or new_mat
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
         if command.displayList.tag & GfxListTag.Material:
             curMaterial = fmaterial
-            if shouldModify:
+            # if layer ever changes the main material use new_mat here
+            if should_modify:
+                save_mesh_override = True
+                new_hash.append((0, f_override_mat))
                 last_replaced = fmaterial
-                curMaterial = fOverrideMat
-                command.displayList = fOverrideMat.material
+                curMaterial = f_override_mat
+                command.displayList = f_override_mat.material
             # remove cmd if it is a repeat load
-            if prev_material == curMaterial:
-                meshMatOverride.commands.pop(command_index)
+            if prev_material is not None and prev_material == curMaterial:
+                save_mesh_override = True
+                new_hash.append((1, curMaterial))
+                new_dl_override.commands.pop(command_index)
                 command_index -= 1
                 # if we added a revert for our material redundant load, remove that as well
                 prevIndex = command_index - 1
-                prev_command = meshMatOverride.commands[prevIndex]
+                prev_command = new_dl_override.commands[prevIndex]
                 if (
                     prevIndex > 0
                     and isinstance(prev_command, SPDisplayList)
                     and prev_command.displayList == curMaterial.revert
                 ):
-                    meshMatOverride.commands.pop(prevIndex)
+                    new_dl_override.commands.pop(prevIndex)
                     command_index -= 1
             # update the last loaded material
             prev_material = curMaterial
 
         # replace the revert if the override has a revert, otherwise remove the command
-        if command.displayList.tag & GfxListTag.MaterialRevert and shouldModify:
-            if fOverrideMat.revert is not None:
-                command.displayList = fOverrideMat.revert
+        if command.displayList.tag & GfxListTag.MaterialRevert and new_mat is not None:
+            new_hash.append((2, new_mat))
+            save_mesh_override = True
+            if new_mat.revert is not None:
+                command.displayList = new_mat.revert
             else:
-                meshMatOverride.commands.pop(command_index)
+                new_dl_override.commands.pop(command_index)
                 command_index -= 1
 
         if not command.displayList.tag & GfxListTag.Geometry:
@@ -2563,13 +2606,15 @@ def saveOverrideDraw(
             continue
         # If the previous command was a revert we added, remove it. All reverts must be followed by a load
         prev_index = command_index - 1
-        prev_command = meshMatOverride.commands[prev_index]
+        prev_command = new_dl_override.commands[prev_index]
         if (
             prev_index > 0
             and isinstance(prev_command, SPDisplayList)
-            and prev_command.displayList == fOverrideMat.revert
+            and (new_mat is not None and prev_command.displayList == new_mat.revert)
         ):
-            meshMatOverride.commands.pop(prev_index)
+            new_hash.append((3, new_mat))
+            save_mesh_override = True
+            new_dl_override.commands.pop(prev_index)
             command_index -= 1
         # If the override material has a revert and the original material didn't, insert a revert after this command.
         # This is needed to ensure that override materials that need a revert get them.
@@ -2577,19 +2622,29 @@ def saveOverrideDraw(
         if (
             last_replaced
             and last_replaced.revert is None
-            and fOverrideMat.revert is not None
-            and prev_material == fOverrideMat
+            and new_mat is not None
+            and new_mat.revert is not None
+            and prev_material == new_mat
         ):
-            next_command = meshMatOverride.commands[command_index + 1]
+            next_command = new_dl_override.commands[command_index + 1]
             if (
                 isinstance(next_command, SPDisplayList)
                 and next_command.displayList.tag & GfxListTag.Material
                 and next_command.displayList != prev_material.material
             ) or (isinstance(next_command, SPEndDisplayList)):
-                meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
+                new_hash.append((4, new_mat))
+                save_mesh_override = True
+                new_dl_override.commands.insert(command_index + 1, SPDisplayList(new_mat.revert))
                 command_index += 1
         # iterate to the next cmd
         command_index += 1
+
+    new_hash = tuple(new_hash)
+    if save_mesh_override:
+        new_dl_override, nodes = draw_overrides.setdefault(new_hash, (new_dl_override, []))
+        nodes.append(obj)
+        return new_dl_override, new_hash
+    return None, None
 
 
 def findVertIndexInBuffer(loop, buffer, loopDict):
@@ -2622,7 +2677,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
     # For selecting on error
     notInGroupBlenderVerts = []
     loopDict = {}
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         # These MUST be arrays (not dicts) as order is important
         inGroupVerts = []
         inGroupVertArray.append([material_index, inGroupVerts])
@@ -2708,7 +2763,7 @@ def saveSkinnedMeshByMaterial(
     # It seems like material setup must be done BEFORE triangles are drawn.
     # Because of this we cannot share verts between materials (?)
     curIndex = 0
-    for material_index, vertData in notInGroupVertArray:
+    for material_index, vertData in sorted(notInGroupVertArray, key=lambda x: x[0]):
         material = obj.material_slots[material_index].material
         checkForF3dMaterialInFaces(obj, material)
         f3dMat = material.f3d_mat if material.mat_ver > 3 else material
@@ -2751,7 +2806,7 @@ def saveSkinnedMeshByMaterial(
     # Load current group vertices, then draw commands by material
     existingVertData, matRegionDict = convertVertDictToArray(notInGroupVertArray)
 
-    for material_index, skinnedFaceArray in skinnedFaces.items():
+    for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
@@ -2861,7 +2916,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     props.custom_include_directory,
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
-                    None,
                     props.actor_group_name,
                     props.export_header_type,
                     props.obj_name_gfx,
@@ -2876,7 +2930,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     obj,
                     final_transform,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
-                    None,
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
@@ -2887,7 +2940,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -2911,7 +2964,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         *modelLoadInfo,
                         textDumpFilePath,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
-                        None,
                     )
                 else:
                     addrRange, segPointer = exportGeolayoutObjectBinary(
@@ -2922,13 +2974,10 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        None,
                     )
 
                 romfileOutput.close()
-                bpy.ops.object.select_all(action="DESELECT")
-                obj.select_set(True)
-                context.view_layer.objects.active = obj
+                selectSingleObject(obj)
 
                 if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
                     os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
@@ -3036,7 +3085,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             applyRotation([armatureObj] + linkedArmatures, math.radians(90), "X")
 
             # You must ALSO apply object rotation after armature rotation.
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             for linkedArmature, linkedMesh in linkedArmatureDict.items():
                 linkedMesh.select_set(True)
             obj.select_set(True)
@@ -3089,7 +3138,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3130,9 +3179,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     )
 
                 romfileOutput.close()
-                bpy.ops.object.select_all(action="DESELECT")
-                armatureObj.select_set(True)
-                context.view_layer.objects.active = armatureObj
+                selectSingleObject(armatureObj)
 
                 if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
                     os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
@@ -3195,6 +3242,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
+        props = context.scene.fast64.sm64.combined_export
         if context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
@@ -3205,7 +3253,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
             if context.scene.geoUseBank0:
                 prop_split(col, context.scene, "geoRAMAddr", "RAM Address")
             else:
-                col.prop(context.scene, "levelGeoExport")
+                prop_split(col, props, "level_name", "Level")
 
             col.prop(context.scene, "overwriteModelLoad")
             if context.scene.overwriteModelLoad:
@@ -3238,7 +3286,6 @@ def sm64_geo_writer_register():
     for cls in sm64_geo_writer_classes:
         register_class(cls)
 
-    bpy.types.Scene.levelGeoExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
     bpy.types.Scene.geoExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.geoExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
 
@@ -3271,7 +3318,6 @@ def sm64_geo_writer_unregister():
     for cls in reversed(sm64_geo_writer_classes):
         unregister_class(cls)
 
-    del bpy.types.Scene.levelGeoExport
     del bpy.types.Scene.geoExportStart
     del bpy.types.Scene.geoExportEnd
     del bpy.types.Scene.overwriteModelLoad

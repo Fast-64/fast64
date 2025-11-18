@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "N64 Color",
+    "type": "array",
+    "description": "The color (not including alpha) is linear instead of sRGB so it must be converted for N64.",
+    "items": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+    },
+    "minItems": 4,
+    "maxItems": 4,
+    "default": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+    ]
+}
