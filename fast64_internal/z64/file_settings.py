@@ -28,9 +28,9 @@ class OOT_FileSettingsPanel(OOT_Panel):
 
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
 
-        is_decomp = context.scene.fast64.oot.feature_set == "decomp"
+        is_decomp = context.scene.fast64.oot.feature_set == "default"
         if game_data.z64.is_oot():
-            col.prop(context.scene.fast64.oot, "feature_set")
+            prop_split(col, context.scene.fast64.oot, "feature_set", "Feature Set")
 
             if is_decomp:
                 col.prop(context.scene.fast64.oot, "mm_features")

@@ -8,7 +8,7 @@ class HackerOoTSettingsPanel(OOT_Panel):
     bl_label = "HackerOoT Settings"
 
     def draw(self, context):
-        if context.scene.fast64.oot.feature_set == "hacker_oot":
+        if context.scene.fast64.oot.feature_set == "hackeroot":
             context.scene.fast64.oot.hackeroot_settings.draw_props(context, self.layout)
         else:
             self.layout.label(text="HackerOoT features are disabled.", icon="QUESTION")
