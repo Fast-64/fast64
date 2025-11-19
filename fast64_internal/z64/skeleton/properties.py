@@ -117,7 +117,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
     isCustom: BoolProperty(name="Use Custom Path")
     removeDoubles: BoolProperty(name="Remove Doubles On Import", default=True)
     importNormals: BoolProperty(name="Import Normals", default=True)
-    importAnimations: BoolProperty(name="Import Animations", default=False)
+    import_animations: BoolProperty(name="Import Animations", default=False)
     drawLayer: EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
     actorOverlayName: StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
@@ -129,7 +129,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
         prop_split(layout, self, "drawLayer", "Import Draw Layer")
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
-        layout.prop(self, "importAnimations")
+        layout.prop(self, "import_animations")
         layout.prop(self, "isCustom")
         if self.isCustom:
             prop_split(layout, self, "name", "Skeleton")
