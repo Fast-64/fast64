@@ -171,6 +171,16 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
     )
 
 
+def get_anim_names(skeleton_data: str, is_link: bool):
+    """Extracts all animation names that start with 'AnimationHeader' from the given skeleton data."""
+    struct_name = "AnimationHeader"
+
+    if is_link:
+        struct_name = f"Link{struct_name}"
+
+    return re.findall(rf"{struct_name}\s+(\w+)", skeleton_data)
+
+
 def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
     actualGroups = []
     nonBoneGroups = []
