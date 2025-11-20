@@ -722,13 +722,13 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
     assert obj.type == "MESH", "Object is not a mesh"
     mesh: bpy.types.Mesh = obj.data
 
-    original_mat = obj.matrix_world.copy()
+    original_mat = obj.matrix_local.copy()
     mesh.transform(original_mat)
 
     target_mat = original_mat.copy()
     target_mat.translation = target_loc
     mesh.transform(target_mat.inverted())
-    obj.matrix_world = target_mat
+    obj.matrix_local = target_mat
 
 
 def checkIfPathExists(filePath):
