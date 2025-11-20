@@ -9,6 +9,7 @@ from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
 
+from ....game_data import game_data
 from ....utility import PluginError, CData, toAlnum, unhideAllAndGetHiddenState, restoreHiddenState, indent
 from ...utility import (
     OOTObjectCategorizer,
@@ -175,14 +176,14 @@ class CollisionUtility:
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
-                        Utility.getPropValue(colProp, "floorProperty"),
+                        game_data.z64.get_enum_value("floor_type", Utility.getPropValue(colProp, "floorProperty")),
                         0,  # unused?
-                        Utility.getPropValue(colProp, "wallSetting"),
-                        Utility.getPropValue(colProp, "floorSetting"),
+                        game_data.z64.get_enum_value("wall_type", Utility.getPropValue(colProp, "wallSetting")),
+                        game_data.z64.get_enum_value("floor_property", Utility.getPropValue(colProp, "floorSetting")),
                         colProp.decreaseHeight,
                         colProp.eponaBlock,
-                        Utility.getPropValue(colProp, "sound"),
-                        Utility.getPropValue(colProp, "terrain"),
+                        game_data.z64.get_enum_value("surface_material", Utility.getPropValue(colProp, "sound")),
+                        game_data.z64.get_enum_value("floor_effect", Utility.getPropValue(colProp, "terrain")),
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,

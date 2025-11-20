@@ -135,7 +135,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
     bl_property = "csDestination"
     bl_options = {"REGISTER", "UNDO"}
 
-    csDestination: EnumProperty(items=game_data.z64.enums.enum_cs_destination, default="cutscene_map_ganon_horse")
+    csDestination: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_destination"), default=1)
     objName: StringProperty()
 
     def execute(self, context):
@@ -157,7 +157,7 @@ class OOT_SearchCSSeqOperator(Operator):
     bl_property = "seqId"
     bl_options = {"REGISTER", "UNDO"}
 
-    seqId: EnumProperty(items=game_data.z64.enums.enum_seq_id, default="general_sfx")
+    seqId: EnumProperty(items=lambda self, context: game_data.z64.get_enum("seq_id"), default=1)
     itemIndex: IntProperty()
     listType: StringProperty()
 

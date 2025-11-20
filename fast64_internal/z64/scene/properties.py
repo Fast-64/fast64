@@ -23,7 +23,6 @@ from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
 from ..animated_mats.properties import Z64_AnimatedMaterial
 
 from ..constants import (
-    ootEnumMusicSeq,
     ootEnumSceneID,
     ootEnumGlobalObject,
     ootEnumNaviHints,
@@ -271,7 +270,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
-    globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
+    globalObject: EnumProperty(
+        name="Global Object", default=2, items=lambda self, context: game_data.z64.get_enum("globalObject")
+    )
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
     naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
@@ -297,7 +298,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
     cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
     cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
 
-    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    musicSeq: EnumProperty(
+        name="Music Sequence", items=lambda self, context: game_data.z64.get_enum("seq_id"), default=1
+    )
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
     nightSeq: EnumProperty(
         name="Nighttime SFX", items=lambda self, context: game_data.z64.get_enum("nature_id"), default=1

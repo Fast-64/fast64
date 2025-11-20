@@ -9,6 +9,7 @@ class Z64_ItemElement(Z64_BaseElement):
     parentKey: str
     game: str
     desc: str
+    enum_index: int
 
     def __post_init__(self):
         # generate the name from the id
@@ -35,14 +36,8 @@ class Z64_ItemElement(Z64_BaseElement):
                 "ocarina_song_action_id": "OCARINA_ACTION",
                 "seq_id": "NA_BGM",
                 "draw_config": ("SCENE_DRAW_CFG" if self.game == "MM" else "SDC"),
-                "surface_material": "SURFACE_MATERIAL",
                 "global_object": "OBJECT",
-                "floor_type": "",
-                "wall_type": "",
-                "floor_property": "",
-                "surface_sfx_offset": "",
-                "floor_effect": "",
-                "conveyor_speed": "",
+                "surface_sfx_offset": "SURFACE_SFX_OFFSET",
             }
 
             self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
@@ -65,6 +60,7 @@ class Z64_EnumElement(Z64_BaseElement):
     item_by_id: dict[int, Z64_ItemElement] = field(default_factory=dict)
 
     def __post_init__(self):
+        self.items.sort(key=lambda item: item.enum_index)
         self.item_by_key = {item.key: item for item in self.items}
         self.item_by_index = {item.index: item for item in self.items}
         self.item_by_id = {item.id: item for item in self.items}
@@ -98,15 +94,14 @@ class Z64_EnumData:
                             enum.attrib["Key"],
                             game,
                             item.attrib.get("Description", "Unset"),
+                            int(item.attrib.get("EnumIndex", str(i))),
                         )
-                        for item in enum
+                        for i, item in enumerate(enum)
                     ],
                 )
             )
 
         # create list of tuples used by Blender's enum properties
-        self.deletedEntry = ("None", "(Deleted from the XML)", "None")
-
         self.enum_cs_cmd: list[tuple[str, str, str]] = []
         self.enum_cs_misc_type: list[tuple[str, str, str]] = []
         self.enum_cs_text_type: list[tuple[str, str, str]] = []
@@ -127,7 +122,6 @@ class Z64_EnumData:
         self.enum_ocarina_song_action_id: list[tuple[str, str, str]] = []
         self.enum_seq_id: list[tuple[str, str, str]] = []
         self.enum_draw_config: list[tuple[str, str, str]] = []
-        self.enum_surface_material: list[tuple[str, str, str]] = []
         self.enum_global_object: list[tuple[str, str, str]] = []
         self.enum_floor_type: list[tuple[str, str, str]] = []
         self.enum_wall_type: list[tuple[str, str, str]] = []
@@ -143,27 +137,23 @@ class Z64_EnumData:
         for key in self.enumByKey.keys():
             setattr(self, f"enum_{key}", self.get_enum_data(key))
 
+        # Note: `CS_CMD_UNIMPLEMENTED_16` is an unused actor cue
         self.enum_cs_actor_cue_list_cmd_type = [
-            item for item in self.enum_cs_cmd if "actor_cue" in item[0] or "player_cue" in item[0]
+            (item[0], item[1], item[2])
+            for item in self.enum_cs_cmd
+            if "actor_cue" in item[0] or "player_cue" in item[0] or item[0] == "unimplemented_16"
         ]
         self.enum_cs_actor_cue_list_cmd_type.sort()
         self.enum_cs_actor_cue_list_cmd_type.insert(0, ("Custom", "Custom", "Custom"))
 
     def get_enum_data(self, enumKey: str):
         enum = self.enumByKey[enumKey]
-        firstIndex = min(1, *(item.index for item in enum.items))
-        lastIndex = max(1, *(item.index for item in enum.items)) + 1
-        enumData = [self.deletedEntry] * lastIndex
-        custom = ("Custom", "Custom", "Custom")
+        enumData = [("None", "(Deleted from the XML)", "None", i + 1) for i in range(len(enum.items))]
 
         for item in enum.items:
-            if item.index < lastIndex:
+            if item.enum_index < len(enum.items):
                 identifier = item.key
-                enumData[item.index] = (identifier, item.name, item.id)
+                enumData[item.enum_index] = (identifier, item.name, item.id, item.enum_index + 1)
 
-        if firstIndex > 0:
-            enumData[0] = custom
-        else:
-            enumData.insert(0, custom)
-
+        enumData.insert(0, ("Custom", "Custom", "Custom", 0))
         return enumData

@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from bpy.types import Object
 
+from ....game_data import game_data
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, hexOrDecInt, indent
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTLightGroupProperty
 from ...utility import getEvalParamsInt
@@ -261,7 +262,7 @@ class SceneInfos:
             Utility.getPropValue(props, "title_card_name"),
             Utility.getPropValue(props, "skyboxID"),
             Utility.getPropValue(props, "skyboxCloudiness"),
-            Utility.getPropValue(props, "musicSeq"),
+            game_data.z64.get_enum_value("seq_id", Utility.getPropValue(props, "musicSeq")),
             Utility.getPropValue(props, "nightSeq"),
             Utility.getPropValue(props, "audioSessionPreset"),
             Utility.getPropValue(props, "mapLocation"),
