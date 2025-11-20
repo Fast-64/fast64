@@ -694,11 +694,10 @@ def createConnectBone(armatureObj, childName, parentName):
 
 
 def createBone(armatureObj, parentBoneName, boneName, currentTransform, boneGroup, loadDL):
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-    selectSingleObject(armatureObj)
-    bpy.ops.object.mode_set(mode="EDIT")
+    if bpy.context.mode != "EDIT":
+        bpy.ops.object.mode_set(mode="EDIT")
     edit_bone: bpy.types.EditBone = armatureObj.data.edit_bones.new(boneName)
+    boneName = edit_bone.name
     edit_bone.use_connect = False
     if parentBoneName is not None:
         edit_bone.parent = armatureObj.data.edit_bones[parentBoneName]
@@ -721,7 +720,7 @@ def createBone(armatureObj, parentBoneName, boneName, currentTransform, boneGrou
         elif edit_bone.head == edit_bone.parent.head and edit_bone.tail == edit_bone.parent.tail:
             edit_bone.tail += currentTransform.to_quaternion() @ mathutils.Vector((0, 1, 0)) * 0.02
 
-    boneName = edit_bone.name
+    bpy.ops.object.mode_set(mode="OBJECT")
     bone: bpy.types.Bone = armatureObj.data.bones[boneName]
     bone.geo_cmd = boneGroup if boneGroup is not None else "DisplayListWithOffset"
     addBoneToGroup(armatureObj, boneName)
