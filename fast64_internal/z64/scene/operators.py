@@ -6,8 +6,9 @@ from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
+
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..utility import ExportInfo, RemoveInfo, sceneNameFromID
+from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_hackeroot
 from ..constants import ootEnumMusicSeq, ootEnumSceneID
 from ..importer import parseScene
 
@@ -142,7 +143,7 @@ class OOT_ExportScene(Operator):
             option = settings.option
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
-            hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
+            is_hackeroot_features = is_hackeroot()
 
             if settings.customExport:
                 isCustomExport = True
@@ -165,8 +166,8 @@ class OOT_ExportScene(Operator):
                 option,
                 bpy.context.scene.saveTextures,
                 settings.singleFile,
-                context.scene.fast64.oot.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
-                bootOptions if hackerFeaturesEnabled else None,
+                context.scene.fast64.oot.useDecompFeatures if not is_hackeroot_features else is_hackeroot_features,
+                bootOptions if is_hackeroot_features else None,
                 settings.auto_add_room_objects,
             )
 

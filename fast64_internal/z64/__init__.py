@@ -77,6 +77,13 @@ from .tools import (
     oot_operator_unregister,
 )
 
+
+feature_set_enum = (
+    ("default", "Default", "Default"),
+    ("hackeroot", "HackerOoT", "HackerOoT"),
+)
+
+
 oot_versions_items = [
     ("Custom", "Custom", "Custom", 0),
     ("ntsc-1.0", "ntsc-1.0", "ntsc-1.0", 11),
@@ -108,7 +115,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
-    hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    feature_set: bpy.props.EnumProperty(name="Feature Set", default=0, items=feature_set_enum)
     headerTabAffectsVisibility: bpy.props.BoolProperty(
         default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
@@ -166,6 +173,14 @@ class OOT_Properties(bpy.types.PropertyGroup):
         description="Use the new actor panel which provides detailed informations to set actor parameters.",
         default=True,
     )
+
+    @staticmethod
+    def upgrade_changed_props():
+        if "hackerFeaturesEnabled" in bpy.context.scene.fast64.oot:
+            bpy.context.scene.fast64.oot.feature_set = (
+                "hackeroot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "default"
+            )
+            del bpy.context.scene.fast64.oot["hackerFeaturesEnabled"]
 
 
 oot_classes = (OOT_Properties,)

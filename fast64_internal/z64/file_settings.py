@@ -21,24 +21,27 @@ class OOT_FileSettingsPanel(OOT_Panel):
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
 
-        version = "oot_version" if game_data.z64.is_oot() else "mm_version"
+        is_oot = game_data.z64.is_oot()
+        version = "oot_version" if is_oot else "mm_version"
         prop_split(col, context.scene.fast64.oot, version, "Game Version")
         if context.scene.fast64.oot.oot_version == "Custom":
             prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
 
+        is_decomp = context.scene.fast64.oot.feature_set == "default"
+        if is_oot:
+            prop_split(col, context.scene.fast64.oot, "feature_set", "Feature Set")
+
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
 
-        if game_data.z64.is_oot():
-            col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
+        if is_oot and is_decomp:
+            col.prop(context.scene.fast64.oot, "mm_features")
 
-            if not context.scene.fast64.oot.hackerFeaturesEnabled:
-                col.prop(context.scene.fast64.oot, "mm_features")
-
-        if game_data.z64.is_mm() or not context.scene.fast64.oot.hackerFeaturesEnabled:
+        if game_data.z64.is_mm() or is_decomp:
             col.prop(context.scene.fast64.oot, "useDecompFeatures")
+
         col.prop(context.scene.fast64.oot, "exportMotionOnly")
 
-        if game_data.z64.is_oot():
+        if is_oot:
             col.prop(context.scene.fast64.oot, "use_new_actor_panel")
 
 

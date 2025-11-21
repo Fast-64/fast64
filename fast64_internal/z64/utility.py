@@ -1054,9 +1054,9 @@ def is_oot_features():
     return (
         game_data.z64.is_oot()
         and not bpy.context.scene.fast64.oot.mm_features
-        and not bpy.context.scene.fast64.oot.hackerFeaturesEnabled
+        and bpy.context.scene.fast64.oot.feature_set == "default"
     )
 
 
 def is_hackeroot():
-    return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.hackerFeaturesEnabled
+    return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.feature_set == "hackeroot"
