@@ -582,10 +582,10 @@ class Z64_AnimatedMaterial(PropertyGroup):
     cam_type: EnumProperty(
         items=lambda self, context: game_data.z64.get_enum("anim_mats_cam_type"),
         default=1,
-        description="Optional camera/screen effect to apply.",
+        description="Optional camera/screen effect to apply",
     )
     cam_type_custom: StringProperty()
-    cam_on_event: BoolProperty(default=False)
+    cam_on_event: BoolProperty(default=False, description="Trigger the camera/screen behavior when the events are completed")
 
     # ui only props
     show_list: BoolProperty(default=True)
@@ -608,7 +608,9 @@ class Z64_AnimatedMaterial(PropertyGroup):
         prop_split(layout, self, "cam_type", "Camera Type")
         if self.cam_type == "Custom":
             prop_split(layout, self, "cam_type_custom", "Camera Type Custom")
-        layout.prop(self, "cam_on_event", text="Camera On Event")
+
+        if self.cam_type != "anim_mat_camera_type_none":
+            layout.prop(self, "cam_on_event", text="Camera On Event")
 
         if index is not None:
             layout.prop(

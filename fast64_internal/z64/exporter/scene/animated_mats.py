@@ -557,7 +557,7 @@ class AnimatedMaterial:
             if props.cam_type != "Custom"
             else props.cam_type_custom
         )
-        self.cam_on_event = "true" if props.cam_on_event else "false"
+        self.cam_on_event = "true" if props.cam_on_event and self.cam_type != "anim_mat_camera_type_none" else "false"
 
         if len(props.entries) == 0:
             return
