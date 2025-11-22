@@ -828,53 +828,53 @@
   </Enum>
   <!-- For mods -->
   <Enum Key="anim_mats_cam_type" ID="AnimatedMatCameraType">
-      <Item Key="anim_mat_camera_type_none" ID="ANIM_MAT_CAMERA_TYPE_NONE" Index="0"/>
-      <Item Key="anim_mat_camera_type_shake" ID="ANIM_MAT_CAMERA_TYPE_SHAKE" Index="1"/>
-      <Item Key="anim_mat_camera_type_distortion" ID="ANIM_MAT_CAMERA_TYPE_DISTORTION" Index="2"/>
+      <Item Key="anim_mat_camera_type_none" ID="ANIM_MAT_CAMERA_TYPE_NONE" Name="Default Camera Behavior" Index="0"/>
+      <Item Key="anim_mat_camera_type_shake" ID="ANIM_MAT_CAMERA_TYPE_SHAKE" Name="Shake" Index="1"/>
+      <Item Key="anim_mat_camera_type_distortion" ID="ANIM_MAT_CAMERA_TYPE_DISTORTION" Name="Camera Distortion" Index="2"/>
   </Enum>
   <Enum Key="event_condition" ID="EventCondition">
-    <Item Key="event_cond_none" ID="EVENT_COND_NONE" Index="0"/>
-    <Item Key="event_cond_equal" ID="EVENT_COND_EQUAL" Index="1"/>
-    <Item Key="event_cond_diff" ID="EVENT_COND_DIFF" Index="2"/>
-    <Item Key="event_cond_less" ID="EVENT_COND_LESS" Index="3"/>
-    <Item Key="event_cond_superior" ID="EVENT_COND_SUPERIOR" Index="4"/>
-    <Item Key="event_cond_less_t" ID="EVENT_COND_LESS_T" Index="5"/>
-    <Item Key="event_cond_superior_t" ID="EVENT_COND_SUPERIOR_T" Index="6"/>
+    <Item Key="event_cond_none" ID="EVENT_COND_NONE" Name="No Condition" Index="0"/>
+    <Item Key="event_cond_equal" ID="EVENT_COND_EQUAL" Name="Must be equal (==)" Index="1"/>
+    <Item Key="event_cond_diff" ID="EVENT_COND_DIFF" Name="Must be different (!=)" Index="2"/>
+    <Item Key="event_cond_inferior" ID="EVENT_COND_INFERIOR" Name="Strictly inferior (&lt;)" Index="3"/>
+    <Item Key="event_cond_superior" ID="EVENT_COND_SUPERIOR" Name="Strictly superior (&gt;)" Index="4"/>
+    <Item Key="event_cond_inferior_eq" ID="EVENT_COND_INFERIOR_EQ" Name="Inferior or equal (&lt;=)" Index="5"/>
+    <Item Key="event_cond_superior_eq" ID="EVENT_COND_SUPERIOR_EQ" Name="Superior or equal (&gt;=)" Index="6"/>
   </Enum>
   <Enum Key="event_flag_type" ID="EventFlagType">
-    <Item Key="event_flag_type_switch_flag" ID="EVENT_FLAG_TYPE_SWITCH_FLAG" Index="0"/>
-    <Item Key="event_flag_type_eventchkinf_flag" ID="EVENT_FLAG_TYPE_EVENTCHKINF_FLAG" Index="1"/>
-    <Item Key="event_flag_type_inf_flag" ID="EVENT_FLAG_TYPE_INF_FLAG" Index="2"/>
-    <Item Key="event_flag_type_collectible_flag" ID="EVENT_FLAG_TYPE_COLLECTIBLE_FLAG" Index="3"/>
-    <Item Key="event_flag_type_treasure_flag" ID="EVENT_FLAG_TYPE_TREASURE_FLAG" Index="4"/>
-    <Item Key="event_flag_type_tempclear_flag" ID="EVENT_FLAG_TYPE_TEMPCLEAR_FLAG" Index="5"/>
-    <Item Key="event_flag_type_clear_flag" ID="EVENT_FLAG_TYPE_CLEAR_FLAG" Index="6"/>
+    <Item Key="event_flag_type_switch_flag" ID="EVENT_FLAG_TYPE_SWITCH_FLAG" Name="Switch Flag" Index="0"/>
+    <Item Key="event_flag_type_eventchkinf_flag" ID="EVENT_FLAG_TYPE_EVENTCHKINF_FLAG" Name="EventChkInf Flag" Index="1"/>
+    <Item Key="event_flag_type_inf_flag" ID="EVENT_FLAG_TYPE_INF_FLAG" Name="Inf Flag" Index="2"/>
+    <Item Key="event_flag_type_collectible_flag" ID="EVENT_FLAG_TYPE_COLLECTIBLE_FLAG" Name="Collectible Flag" Index="3"/>
+    <Item Key="event_flag_type_treasure_flag" ID="EVENT_FLAG_TYPE_TREASURE_FLAG" Name="Treasure Flag" Index="4"/>
+    <Item Key="event_flag_type_tempclear_flag" ID="EVENT_FLAG_TYPE_TEMPCLEAR_FLAG" Name="Temp Clear Flag" Index="5"/>
+    <Item Key="event_flag_type_clear_flag" ID="EVENT_FLAG_TYPE_CLEAR_FLAG" Name="Clear Flag" Index="6"/>
   </Enum>
   <Enum Key="event_inv_type" ID="EventInvType">
-    <Item Key="event_inv_type_items" ID="EVENT_INV_TYPE_ITEMS" Index="0"/>
-    <Item Key="event_inv_type_equipment" ID="EVENT_INV_TYPE_EQUIPMENT" Index="1"/>
-    <Item Key="event_inv_type_quest" ID="EVENT_INV_TYPE_QUEST" Index="2"/>
-    <Item Key="event_inv_type_dungeon_items" ID="EVENT_INV_TYPE_DUNGEON_ITEMS" Index="3"/>
-    <Item Key="event_inv_type_dungeon_keys" ID="EVENT_INV_TYPE_DUNGEON_KEYS" Index="4"/>
-    <Item Key="event_inv_type_gs_tokens" ID="EVENT_INV_TYPE_GS_TOKENS" Index="5"/>
+    <Item Key="event_inv_type_items" ID="EVENT_INV_TYPE_ITEMS" Name="Inventory Items" Index="0"/>
+    <Item Key="event_inv_type_equipment" ID="EVENT_INV_TYPE_EQUIPMENT" Name="Equipment Items" Index="1"/>
+    <Item Key="event_inv_type_quest" ID="EVENT_INV_TYPE_QUEST" Name="Quest Items" Index="2"/>
+    <Item Key="event_inv_type_dungeon_items" ID="EVENT_INV_TYPE_DUNGEON_ITEMS" Name="Dungeon Items" Index="3"/>
+    <Item Key="event_inv_type_dungeon_keys" ID="EVENT_INV_TYPE_DUNGEON_KEYS" Name="Dungeon Keys" Index="4"/>
+    <Item Key="event_inv_type_gs_tokens" ID="EVENT_INV_TYPE_GS_TOKENS" Name="Gold Skulltula Tokens" Index="5"/>
   </Enum>
   <Enum Key="event_game_type" ID="EventGameType">
-    <Item Key="event_game_type_age" ID="EVENT_GAME_TYPE_AGE" Index="0"/>
-    <Item Key="event_game_type_health" ID="EVENT_GAME_TYPE_HEALTH" Index="1"/>
-    <Item Key="event_game_type_rupees" ID="EVENT_GAME_TYPE_RUPEES" Index="2"/>
-    <Item Key="event_game_type_magic" ID="EVENT_GAME_TYPE_MAGIC" Index="3"/>
-    <Item Key="event_game_type_inventory" ID="EVENT_GAME_TYPE_INVENTORY" Index="4"/>
+    <Item Key="event_game_type_age" ID="EVENT_GAME_TYPE_AGE" Name="Age" Index="0"/>
+    <Item Key="event_game_type_health" ID="EVENT_GAME_TYPE_HEALTH" Name="Health Amount" Index="1"/>
+    <Item Key="event_game_type_rupees" ID="EVENT_GAME_TYPE_RUPEES" Name="Rupee Amount" Index="2"/>
+    <Item Key="event_game_type_magic" ID="EVENT_GAME_TYPE_MAGIC" Name="Magic Meter Amount" Index="3"/>
+    <Item Key="event_game_type_inventory" ID="EVENT_GAME_TYPE_INVENTORY" Name="Inventory Data" Index="4"/>
   </Enum>
   <Enum Key="event_time_type" ID="EventTimeType">
-    <Item Key="event_time_type_clock" ID="EVENT_TIME_TYPE_CLOCK" Index="0"/>
-    <Item Key="event_time_type_conditional" ID="EVENT_TIME_TYPE_CONDITIONAL" Index="1"/>
-    <Item Key="event_time_type_day" ID="EVENT_TIME_TYPE_DAY" Index="2"/>
-    <Item Key="event_time_type_night" ID="EVENT_TIME_TYPE_NIGHT" Index="3"/>
+    <Item Key="event_time_type_clock" ID="EVENT_TIME_TYPE_CLOCK" Name="On Clock" Index="0"/>
+    <Item Key="event_time_type_conditional" ID="EVENT_TIME_TYPE_CONDITIONAL" Name="On Conditional Clock" Index="1"/>
+    <Item Key="event_time_type_day" ID="EVENT_TIME_TYPE_DAY" Name="On Daytime" Index="2"/>
+    <Item Key="event_time_type_night" ID="EVENT_TIME_TYPE_NIGHT" Name="On Nighttime" Index="3"/>
   </Enum>
   <Enum Key="event_action_type" ID="EventActionType">
-    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Index="0"/>
-    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Index="1"/>
-    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Index="2"/>
+    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Namme="Default behavior" Index="0"/>
+    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Namme="Inverted behavior" Index="1"/>
+    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Namme="Inverted behavior (let loops end)" Index="2"/>
   </Enum>
   <Enum Key="event_type" ID="EventType">
     <Item Key="event_type_none" ID="EVENT_TYPE_NONE" Index="0"/>

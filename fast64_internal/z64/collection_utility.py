@@ -319,6 +319,10 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
         collection = obj.ootSceneHeader.extraCutscenes
     elif collectionType == "BgImage":
         collection = obj.ootRoomHeader.bgImageList
+    elif collectionType == "EventManager (Embed)":
+        header = ootGetSceneOrRoomHeader(obj, subIndex, False)
+        props = header.animated_material
+        collection = props.entries[collection_index].events.entries
     else:
         raise PluginError("Invalid collection type: " + collectionType)
 

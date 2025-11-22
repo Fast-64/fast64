@@ -18,7 +18,8 @@ from ...game_data import game_data
 from ...utility import prop_split
 from ..collection_utility import drawCollectionOps, draw_utility_ops
 from ..collision.properties import OOTMaterialCollisionProperty
-from ..utility import get_list_tab_text, getEnumIndex, is_hackeroot
+from ..hackeroot.properties import HackerOoT_EventProperty
+from ..utility import get_list_tab_text, getEnumIndex, is_oot_features, is_hackeroot
 from .operators import Z64_ExportAnimatedMaterials, Z64_ImportAnimatedMaterials
 
 
@@ -491,6 +492,8 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
     multitexture_params: PointerProperty(type=Z64_AnimatedMatMultiTextureParams)
     surface_params: PointerProperty(type=Z64_AnimatedMatSurfaceSwapParams)
 
+    events: PointerProperty(type=HackerOoT_EventProperty)
+
     # ui only props
     show_item: BoolProperty(default=False)
 
@@ -525,8 +528,11 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
             layout_type = layout.column()
             prop_split(layout_type, self, "user_type", "Draw Handler Type")
 
-            if self.type not in vanilla_types:
-                layout_type.label(text="Note: this is not one of the original types.", icon="QUESTION")
+            if self.type not in vanilla_types and not is_hackeroot():
+                layout_type.label(text="This requires HackerOoT features.", icon="ERROR")
+                return
+
+            self.events.draw_props(layout.column(), owner, "EventManager (Embed)", header_index, index)
 
             if self.type == "Custom":
                 layout_type.label(
@@ -571,6 +577,10 @@ class Z64_AnimatedMaterial(PropertyGroup):
         sub_index: Optional[int] = None,
         is_scene: bool = True,
     ):
+        if is_oot_features() and not is_hackeroot():
+            layout.label(text="This requires MM features.", icon="ERROR")
+            return
+
         if index is not None:
             layout.prop(
                 self, "show_list", text=f"List No.{index + 1}", icon="TRIA_DOWN" if self.show_list else "TRIA_RIGHT"
@@ -621,6 +631,10 @@ class Z64_AnimatedMaterialProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, owner: Object):
         layout = layout.column()
+
+        if is_oot_features() and not is_hackeroot():
+            layout.label(text="This requires MM features.", icon="ERROR")
+            return
 
         prop_text = get_list_tab_text("Animated Materials List", len(self.items))
         layout_entries = layout.column()

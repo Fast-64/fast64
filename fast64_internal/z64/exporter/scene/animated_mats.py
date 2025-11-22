@@ -549,6 +549,7 @@ class AnimatedMaterial:
     ):
         self.name = base_name
         self.entries = []
+        self.event_map: dict[int, tuple[str, str, CData]] = {}  # type_num to event data
 
         if len(props.entries) == 0:
             return
@@ -577,12 +578,25 @@ class AnimatedMaterial:
                 self.entries.append(
                     class_def(props, item.segment_num, type_num, base_name, i, type, use_macros, col_header, suffix)
                 )
+                script_data = item.events.export(base_name, i)
+                if script_data is not None:
+                    data_name, script_name = item.events.get_symbols(base_name, i)
+                    self.event_map[type_num] = (data_name, script_name, script_data)
 
     def to_c(self, all_externs: bool = True):
         data = CData()
 
+        is_extended = is_hackeroot()
+
         for entry in self.entries:
             data.append(entry.to_c(all_externs))
+
+            if is_extended and len(self.event_map) > 0:
+                _, _, event_data = self.event_map[entry.type_num]
+                if all_externs:
+                    data.header += event_data.header
+
+                data.source += event_data.source
 
         array_name = f"AnimatedMaterial {self.name}[]"
 
@@ -593,17 +607,26 @@ class AnimatedMaterial:
         data.source += array_name + " = {\n" + indent
 
         if len(self.entries) > 0:
-            entries = [
-                f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
-                + f"{entry.type_num}, "
-                + (
-                    f"{'&' if entry.type_num not in {0, 1, 7} else ''}{entry.name}, "
-                    if entry.type_num != 11
-                    else "NULL, "
+            entries = []
+            for entry in self.entries:
+                if not is_extended:
+                    script_name = ""
+                elif len(self.event_map) > 0:
+                    _, script_name, _ = self.event_map[entry.type_num]
+                    script_name = f" &{script_name},"
+                else:
+                    script_name = " NULL,"
+
+                entries.append(
+                    f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
+                    + f"{entry.type_num}, "
+                    + (
+                        f"{'&' if entry.type_num not in {0, 1, 7} else ''}{entry.name},"
+                        if entry.type_num != 11
+                        else "NULL,"
+                    )
+                    + script_name
                 )
-                + "NULL,"
-                for entry in self.entries
-            ]
 
             # the last entry's segment need to be negative
             if len(self.entries) > 0 and self.entries[-1].segment_num > 0:
@@ -611,7 +634,7 @@ class AnimatedMaterial:
 
             data.source += f"\n{indent}".join("{ " + entry + " }," for entry in entries)
         else:
-            data.source += "{ 0, 6, NULL },"
+            data.source += "{ 0, 6, NULL, NULL }," if is_extended else "{ 0, 6, NULL },"
 
         data.source += "\n};\n"
         return data

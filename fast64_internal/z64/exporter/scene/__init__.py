@@ -403,7 +403,13 @@ class Scene:
             ]
 
         if is_hackeroot():
-            includes.append('#include "animated_materials.h"')
+            includes.extend(
+                [
+                    '#include "event_manager.h"',
+                    '#include "animated_materials.h"',
+                    '#include "save.h"',
+                ]
+            )
 
         backwards_compatibility = [
             "// For older decomp versions",
