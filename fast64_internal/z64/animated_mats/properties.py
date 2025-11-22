@@ -31,6 +31,7 @@ enum_mode = [
 
 
 class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
+    duration: IntProperty(min=0)
     frame_num: IntProperty(
         name="Frame No.",
         min=0,
@@ -97,7 +98,10 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
 
         # "draw color" type don't need this
         if not is_draw_color or color_type == "anim_mat_type_color_cycle":
-            prop_split(layout, self, "frame_num", "Duration" if is_draw_color else "Frame No.")
+            if is_draw_color:
+                prop_split(layout, self, "duration", "Duration")
+            else:
+                prop_split(layout, self, "frame_num", "Frame No.")
 
         prop_split(layout, self, "prim_lod_frac", "Primitive LOD Frac")
         prop_split(layout, self, "prim_color", "Primitive Color")
@@ -437,6 +441,7 @@ class Z64_AnimatedMatSurfaceSwapParams(PropertyGroup):
         return True
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
+        layout.label(text="The segment number will be used for multitexture (if applicable).", icon="QUESTION")
         self.col_settings.draw_props(layout.box().column())
 
         tri_box = layout.box().column()
@@ -464,7 +469,6 @@ class Z64_AnimatedMatSurfaceSwapParams(PropertyGroup):
         multi_box = layout.box().column()
         multi_box.prop(self, "use_multitexture", text="Use Multi-Texture")
         if self.use_multitexture:
-            multi_box.label(text="The above segment number will be used for this.", icon="QUESTION")
             self.multitexture_params.draw_props(multi_box)
 
 

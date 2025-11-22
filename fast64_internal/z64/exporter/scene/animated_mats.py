@@ -63,7 +63,7 @@ class AnimatedMatColorParams:
                 self.env_colors.append(tuple(exportColor(keyframe.env_color[0:3]) + [scaleToU8(keyframe.env_color[3])]))
 
             if not is_draw_color:
-                self.frames.append(keyframe.frame_num)
+                self.frames.append(keyframe.duration if is_draw_color_cycle else keyframe.frame_num)
 
             if not is_col_or_cycle and keyframe.frame_num > self.frame_length:
                 raise PluginError("ERROR: the frame number cannot be higher than the total frame count!")
@@ -620,7 +620,7 @@ class AnimatedMaterial:
                     script_name = " NULL,"
 
                 entries.append(
-                    f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
+                    f"MATERIAL_SEGMENT_NUM(0x{entry.segment_num:02X}), "
                     + f"{game_data.z64.get_enum_value('anim_mats_type', entry.type)}, "
                     + (
                         f"{'&' if 'tex_scroll' not in entry.type else ''}{entry.name},"
