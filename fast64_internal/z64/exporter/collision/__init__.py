@@ -100,8 +100,9 @@ class CollisionUtility:
                     raise PluginError(f"'{meshObj.name}' must have a material associated with it.")
 
                 meshObj.data.calc_loop_triangles()
-                for face in meshObj.data.loop_triangles:
-                    colProp = meshObj.material_slots[face.material_index].material.ootCollisionProperty
+                for i, face in enumerate(meshObj.data.loop_triangles):
+                    material = meshObj.material_slots[face.material_index].material
+                    colProp = material.ootCollisionProperty
 
                     # get bounds and vertices data
                     planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
@@ -161,52 +162,23 @@ class CollisionUtility:
                         indices[1], indices[2] = indices[2], indices[1]
 
                     # get surface type and collision poly data
-                    useConveyor = colProp.conveyorOption != "None"
-                    if useConveyor:
-                        if colProp.conveyorSpeed == "Custom":
-                            conveyorSpeed = colProp.conveyorSpeedCustom
-                        else:
-                            conveyorSpeed = int(colProp.conveyorSpeed, base=16) + (
-                                4 if colProp.conveyorKeepMomentum else 0
-                            )
-                    else:
-                        conveyorSpeed = 0
-
-                    surfaceType = SurfaceType(
-                        colProp.cameraID,
-                        colProp.exitID,
-                        Utility.getPropValue(colProp, "floorProperty"),
-                        0,  # unused?
-                        Utility.getPropValue(colProp, "wallSetting"),
-                        Utility.getPropValue(colProp, "floorSetting"),
-                        colProp.decreaseHeight,
-                        colProp.eponaBlock,
-                        Utility.getPropValue(colProp, "sound"),
-                        Utility.getPropValue(colProp, "terrain"),
-                        colProp.lightingSetting,
-                        int(colProp.echo, base=16),
-                        colProp.hookshotable,
-                        conveyorSpeed,
-                        int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
-                        colProp.isWallDamage,
-                        useMacros,
-                    )
+                    surfaceType = SurfaceType.new(colProp, useMacros, material)
 
                     if surfaceType not in colPolyFromSurfaceType:
                         colPolyFromSurfaceType[surfaceType] = []
 
-                    colPolyFromSurfaceType[surfaceType].append(
-                        CollisionPoly(
-                            indices,
-                            colProp.ignoreCameraCollision,
-                            colProp.ignoreActorCollision,
-                            colProp.ignoreProjectileCollision,
-                            colProp.conveyorOption == "Land",
-                            normal,
-                            ctypes.c_short(distance).value,
-                            useMacros,
-                        )
+                    new_col_poly = CollisionPoly(
+                        indices,
+                        colProp.ignoreCameraCollision,
+                        colProp.ignoreActorCollision,
+                        colProp.ignoreProjectileCollision,
+                        colProp.conveyorOption == "Land",
+                        normal,
+                        ctypes.c_short(distance).value,
+                        useMacros,
                     )
+                    new_col_poly.index_to_obj = {i: meshObj}
+                    colPolyFromSurfaceType[surfaceType].append(new_col_poly)
 
         count = 0
         for surface, colPolyList in colPolyFromSurfaceType.items():

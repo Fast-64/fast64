@@ -1,9 +1,14 @@
 import bpy
+import math
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from bpy.types import Material
+from typing import Optional
 
 from ....utility import CData, indent
 from ....game_data import game_data
+from ...collision.properties import OOTMaterialCollisionProperty
+from ..utility import Utility
 
 
 @dataclass(unsafe_hash=True)
@@ -31,6 +36,41 @@ class SurfaceType:
     isWallDamage: bool  # unk27
 
     useMacros: bool
+    data_material: Optional[Material] = field(init=False, default=None)
+
+    @staticmethod
+    def new(col_props: OOTMaterialCollisionProperty, use_macros: bool, material: Optional[Material] = None):
+        use_conveyor = col_props.conveyorOption != "None"
+        if use_conveyor:
+            if col_props.conveyorSpeed == "Custom":
+                conveyor_speed = col_props.conveyorSpeedCustom
+            else:
+                conveyor_speed = int(col_props.conveyorSpeed, base=16) + (4 if col_props.conveyorKeepMomentum else 0)
+        else:
+            conveyor_speed = 0
+
+        new_type = SurfaceType(
+            col_props.cameraID,
+            col_props.exitID,
+            Utility.getPropValue(col_props, "floorProperty"),
+            0,  # unused?
+            Utility.getPropValue(col_props, "wallSetting"),
+            Utility.getPropValue(col_props, "floorSetting"),
+            col_props.decreaseHeight,
+            col_props.eponaBlock,
+            Utility.getPropValue(col_props, "sound"),
+            Utility.getPropValue(col_props, "terrain"),
+            col_props.lightingSetting,
+            int(col_props.echo, base=16),
+            col_props.hookshotable,
+            conveyor_speed,
+            int(col_props.conveyorRotation / (2 * math.pi) * 0x3F) if use_conveyor else 0,
+            col_props.isWallDamage,
+            use_macros,
+        )
+
+        new_type.data_material = material
+        return new_type
 
     @staticmethod
     def from_hex(surface0: int, surface1: int):

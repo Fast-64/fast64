@@ -20,7 +20,7 @@ from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
 from .scene_collision import parseCollisionHeader
 from .scene_pathways import parsePathList
-from ..animated_mats.properties import Z64_AnimatedMaterial, enum_anim_mat_type
+from ..animated_mats.properties import Z64_AnimatedMaterial
 
 from ..constants import (
     ootEnumAudioSessionPreset,
@@ -348,8 +348,8 @@ def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, lis
 
         entry = anim_mat.entries.add()
         entry.segment_num = segment
-        enum_type = entry.user_type = enum_anim_mat_type[type_num + 1][0]
-        entry.on_type_set(getEnumIndex(enum_anim_mat_type, enum_type))
+        enum_type = entry.user_type = game_data.z64.enums.enum_anim_mats_type[type_num + 1][0]
+        entry.on_type_set(getEnumIndex(game_data.z64.get_enum("anim_mats_type"), enum_type))
 
         if struct_name == "AnimatedMatTexScrollParams":
             entry.tex_scroll_params.texture_1.set_from_data(params_data[0])

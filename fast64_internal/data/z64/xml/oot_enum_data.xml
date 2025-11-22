@@ -797,7 +797,7 @@
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L143-L155 -->
       <Item Key="credits_destination" ID="CS_CREDITS_DESTINATION" Index="1"/>
   </Enum>
-    <Enum Key="cs_modify_seq_type" ID="CsModifySeqType">
+  <Enum Key="cs_modify_seq_type" ID="CsModifySeqType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L109-L118 -->
       <Item Key="mod_seq_0" ID="CS_MOD_SEQ_0" Index="1"/>
       <Item Key="mod_seq_1" ID="CS_MOD_SEQ_1" Index="2"/>
@@ -807,5 +807,79 @@
       <Item Key="mod_ambience_2" ID="CS_MOD_AMBIENCE_2" Index="6"/>
       <Item Key="mod_seq_store" ID="CS_MOD_SEQ_STORE" Index="7"/>
       <Item Key="mod_seq_restore" ID="CS_MOD_SEQ_RESTORE" Index="8"/>
+  </Enum>
+  <Enum Key="anim_mats_type" ID="AnimatedMatType">
+      <!-- see `sMatAnimDrawHandlers` in `z_scene_proc.c` -->
+      <Item Key="anim_mat_type_tex_scroll" ID="ANIM_MAT_TYPE_TEX_SCROLL" Name="Draw Texture Scroll" Index="0"/>
+      <Item Key="anim_mat_type_two_tex_scroll" ID="ANIM_MAT_TYPE_TWO_TEX_SCROLL" Name="Draw Two Texture Scroll" Index="1"/>
+      <Item Key="anim_mat_type_color" ID="ANIM_MAT_TYPE_COLOR" Name="Draw Color" Index="2"/>
+      <Item Key="anim_mat_type_color_lerp" ID="ANIM_MAT_TYPE_COLOR_LERP" Name="Draw Color Lerp" Index="3"/>
+      <Item Key="anim_mat_type_color_nonlinear_interp" ID="ANIM_MAT_TYPE_COLOR_NON_LINEAR_INTERP" Name="Draw Color Non-Linear Interp" Index="4"/>
+      <Item Key="anim_mat_type_tex_cycle" ID="ANIM_MAT_TYPE_TEX_CYCLE" Name="Draw Texture Cycle" Index="5"/>
+      <Item Key="anim_mat_type_none" ID="ANIM_MAT_TYPE_NONE" Index="6"/>
+      <!-- For mods -->
+      <Item Key="anim_mat_type_color_cycle" ID="ANIM_MAT_TYPE_COLOR_CYCLE" Index="7"/>
+      <Item Key="anim_mat_type_tex_timed_cycle" ID="ANIM_MAT_TYPE_TEX_TIMED_CYCLE" Index="8"/>
+      <Item Key="anim_mat_type_texture" ID="ANIM_MAT_TYPE_TEXTURE" Index="9"/>
+      <Item Key="anim_mat_type_multitexture" ID="ANIM_MAT_TYPE_MULTITEXTURE" Index="10"/>
+      <Item Key="anim_mat_type_event" ID="ANIM_MAT_TYPE_EVENT" Index="11"/>
+      <Item Key="anim_mat_type_surface_swap" ID="ANIM_MAT_TYPE_SURFACE_SWAP" Index="12"/>
+      <Item Key="anim_mat_type_oscillating_two_tex" ID="ANIM_MAT_TYPE_OSCILLATING_TWO_TEX" Index="13"/>
+  </Enum>
+  <!-- For mods -->
+  <Enum Key="anim_mats_cam_type" ID="AnimatedMatCameraType">
+      <Item Key="anim_mat_camera_type_none" ID="ANIM_MAT_CAMERA_TYPE_NONE" Name="Default Camera Behavior" Index="0"/>
+      <Item Key="anim_mat_camera_type_shake" ID="ANIM_MAT_CAMERA_TYPE_SHAKE" Name="Shake" Index="1"/>
+      <Item Key="anim_mat_camera_type_distortion" ID="ANIM_MAT_CAMERA_TYPE_DISTORTION" Name="Camera Distortion" Index="2"/>
+  </Enum>
+  <Enum Key="event_condition" ID="EventCondition">
+    <Item Key="event_cond_none" ID="EVENT_COND_NONE" Name="No Condition" Index="0"/>
+    <Item Key="event_cond_equal" ID="EVENT_COND_EQUAL" Name="Must be equal (==)" Index="1"/>
+    <Item Key="event_cond_diff" ID="EVENT_COND_DIFF" Name="Must be different (!=)" Index="2"/>
+    <Item Key="event_cond_inferior" ID="EVENT_COND_INFERIOR" Name="Strictly inferior (&lt;)" Index="3"/>
+    <Item Key="event_cond_superior" ID="EVENT_COND_SUPERIOR" Name="Strictly superior (&gt;)" Index="4"/>
+    <Item Key="event_cond_inferior_eq" ID="EVENT_COND_INFERIOR_EQ" Name="Inferior or equal (&lt;=)" Index="5"/>
+    <Item Key="event_cond_superior_eq" ID="EVENT_COND_SUPERIOR_EQ" Name="Superior or equal (&gt;=)" Index="6"/>
+  </Enum>
+  <Enum Key="event_flag_type" ID="EventFlagType">
+    <Item Key="event_flag_type_switch_flag" ID="EVENT_FLAG_TYPE_SWITCH_FLAG" Name="Switch Flag" Index="0"/>
+    <Item Key="event_flag_type_eventchkinf_flag" ID="EVENT_FLAG_TYPE_EVENTCHKINF_FLAG" Name="EventChkInf Flag" Index="1"/>
+    <Item Key="event_flag_type_inf_flag" ID="EVENT_FLAG_TYPE_INF_FLAG" Name="Inf Flag" Index="2"/>
+    <Item Key="event_flag_type_collectible_flag" ID="EVENT_FLAG_TYPE_COLLECTIBLE_FLAG" Name="Collectible Flag" Index="3"/>
+    <Item Key="event_flag_type_treasure_flag" ID="EVENT_FLAG_TYPE_TREASURE_FLAG" Name="Treasure Flag" Index="4"/>
+    <Item Key="event_flag_type_tempclear_flag" ID="EVENT_FLAG_TYPE_TEMPCLEAR_FLAG" Name="Temp Clear Flag" Index="5"/>
+    <Item Key="event_flag_type_clear_flag" ID="EVENT_FLAG_TYPE_CLEAR_FLAG" Name="Clear Flag" Index="6"/>
+  </Enum>
+  <Enum Key="event_inv_type" ID="EventInvType">
+    <Item Key="event_inv_type_items" ID="EVENT_INV_TYPE_ITEMS" Name="Inventory Items" Index="0"/>
+    <Item Key="event_inv_type_equipment" ID="EVENT_INV_TYPE_EQUIPMENT" Name="Equipment Items" Index="1"/>
+    <Item Key="event_inv_type_quest" ID="EVENT_INV_TYPE_QUEST" Name="Quest Items" Index="2"/>
+    <Item Key="event_inv_type_dungeon_items" ID="EVENT_INV_TYPE_DUNGEON_ITEMS" Name="Dungeon Items" Index="3"/>
+    <Item Key="event_inv_type_dungeon_keys" ID="EVENT_INV_TYPE_DUNGEON_KEYS" Name="Dungeon Keys" Index="4"/>
+    <Item Key="event_inv_type_gs_tokens" ID="EVENT_INV_TYPE_GS_TOKENS" Name="Gold Skulltula Tokens" Index="5"/>
+  </Enum>
+  <Enum Key="event_game_type" ID="EventGameType">
+    <Item Key="event_game_type_age" ID="EVENT_GAME_TYPE_AGE" Name="Age" Index="0"/>
+    <Item Key="event_game_type_health" ID="EVENT_GAME_TYPE_HEALTH" Name="Health Amount" Index="1"/>
+    <Item Key="event_game_type_rupees" ID="EVENT_GAME_TYPE_RUPEES" Name="Rupee Amount" Index="2"/>
+    <Item Key="event_game_type_magic" ID="EVENT_GAME_TYPE_MAGIC" Name="Magic Meter Amount" Index="3"/>
+    <Item Key="event_game_type_inventory" ID="EVENT_GAME_TYPE_INVENTORY" Name="Inventory Data" Index="4"/>
+  </Enum>
+  <Enum Key="event_time_type" ID="EventTimeType">
+    <Item Key="event_time_type_clock" ID="EVENT_TIME_TYPE_CLOCK" Name="On Clock" Index="0"/>
+    <Item Key="event_time_type_conditional" ID="EVENT_TIME_TYPE_CONDITIONAL" Name="On Conditional Clock" Index="1"/>
+    <Item Key="event_time_type_day" ID="EVENT_TIME_TYPE_DAY" Name="On Daytime" Index="2"/>
+    <Item Key="event_time_type_night" ID="EVENT_TIME_TYPE_NIGHT" Name="On Nighttime" Index="3"/>
+  </Enum>
+  <Enum Key="event_action_type" ID="EventActionType">
+    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Namme="Default behavior" Index="0"/>
+    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Namme="Inverted behavior" Index="1"/>
+    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Namme="Inverted behavior (let loops end)" Index="2"/>
+  </Enum>
+  <Enum Key="event_type" ID="EventType">
+    <Item Key="event_type_none" ID="EVENT_TYPE_NONE" Index="0"/>
+    <Item Key="event_type_flag" ID="EVENT_TYPE_FLAG" Index="1"/>
+    <Item Key="event_type_game" ID="EVENT_TYPE_GAME" Index="2"/>
+    <Item Key="event_type_time" ID="EVENT_TYPE_TIME" Index="3"/>
   </Enum>
 </Table>

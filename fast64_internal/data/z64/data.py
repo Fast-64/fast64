@@ -921,6 +921,15 @@ class Z64_Data:
             "blur_type": self.enums.enum_cs_motion_blur_type,
             "credits_scene_type": self.enums.enum_cs_credits_scene_type,
             "mod_seq_type": self.enums.enum_cs_modify_seq_type,
+            "anim_mats_type": self.enums.enum_anim_mats_type,
+            "anim_mats_cam_type": self.enums.enum_anim_mats_cam_type,
+            "event_condition": self.enums.enum_event_condition,
+            "event_flag_type": self.enums.enum_event_flag_type,
+            "event_inv_type": self.enums.enum_event_inv_type,
+            "event_game_type": self.enums.enum_event_game_type,
+            "event_time_type": self.enums.enum_event_time_type,
+            "event_action_type": self.enums.enum_event_action_type,
+            "event_type": self.enums.enum_event_type,
             "objectKey": self.objects.ootEnumObjectKey,
             "actor_id": self.actors.ootEnumActorID,
             "chest_content": self.actors.ootEnumChestContent,
@@ -941,3 +950,11 @@ class Z64_Data:
     def get_enum(self, prop_name: str):
         self.update(bpy.context, None)
         return self.enum_map[prop_name]
+
+    def get_enum_value(self, enum_key: str, item_key: str):
+        enum = self.enums.enumByKey[enum_key]
+
+        if bpy.context.scene.fast64.oot.useDecompFeatures:
+            return enum.item_by_key[item_key].id
+        else:
+            return str(enum.item_by_key[item_key].index)
