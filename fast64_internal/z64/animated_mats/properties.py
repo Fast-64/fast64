@@ -463,6 +463,7 @@ class Z64_AnimatedMatSurfaceSwapParams(PropertyGroup):
         multi_box = layout.box().column()
         multi_box.prop(self, "use_multitexture", text="Use Multi-Texture")
         if self.use_multitexture:
+            multi_box.label(text="The above segment number will be used for this.", icon="QUESTION")
             self.multitexture_params.draw_props(multi_box)
 
 
