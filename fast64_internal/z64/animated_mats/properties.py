@@ -585,7 +585,9 @@ class Z64_AnimatedMaterial(PropertyGroup):
         description="Optional camera/screen effect to apply",
     )
     cam_type_custom: StringProperty()
-    cam_on_event: BoolProperty(default=False, description="Trigger the camera/screen behavior when the events are completed")
+    cam_on_event: BoolProperty(
+        default=False, description="Trigger the camera/screen behavior when the events are completed"
+    )
 
     # ui only props
     show_list: BoolProperty(default=True)

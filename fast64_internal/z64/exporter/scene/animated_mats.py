@@ -34,10 +34,9 @@ class AnimatedMatColorParams:
         self,
         props: Z64_AnimatedMatColorParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
@@ -46,8 +45,9 @@ class AnimatedMatColorParams:
         is_draw_color_cycle = type == "anim_mat_type_color_cycle"
         is_col_or_cycle = is_draw_color or is_draw_color_cycle
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
+        self.use_macros = use_macros
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}ColorParams{self.header_suffix}"
         self.frame_length = len(props.keyframes) if is_draw_color else props.keyframe_length
@@ -105,6 +105,7 @@ class AnimatedMatColorParams:
             )
 
         # .c
+        length = f"ARRAY_COUNT({frames_array_name})" if self.use_macros else self.frame_count
         data.source = (
             (
                 (f"F3DPrimColor {prim_array_name}[]" + " = {\n" + indent)
@@ -137,7 +138,7 @@ class AnimatedMatColorParams:
             + (
                 (params_name + " = {\n")
                 + (indent + f"{self.frame_length},\n")
-                + (indent + f"{self.frame_count},\n")
+                + (indent + f"{length},\n")
                 + (indent + f"{prim_array_name},\n")
                 + (indent + f"{env_array_name},\n")
                 + (indent + f"{frames_array_name},\n")
@@ -153,16 +154,15 @@ class AnimatedMatTexScrollParams:
         self,
         props: Z64_AnimatedMatTexScrollParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
         self.texture_1 = (
@@ -206,17 +206,17 @@ class AnimatedMatTexCycleParams:
         self,
         props: Z64_AnimatedMatTexCycleParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
+        self.use_macros = use_macros
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}TexCycleParams{self.header_suffix}"
         self.textures: list[str] = []
@@ -277,16 +277,15 @@ class AnimatedMatTexTimedCycleParams:
         self,
         props: Z64_AnimatedMatTexTimedCycleParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}TexTimedCycleParams{self.header_suffix}"
@@ -324,16 +323,15 @@ class AnimatedMatTextureParams:
         self,
         props: Z64_AnimatedMatTextureParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}TextureParams{self.header_suffix}"
@@ -361,16 +359,15 @@ class AnimatedMatMultiTextureParams:
         self,
         props: Z64_AnimatedMatMultiTextureParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}TextureParams{self.header_suffix}"
@@ -420,16 +417,15 @@ class AnimatedMatEventParams:
         self,
         props,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
 
     def to_c(self, all_externs: bool = True):
         return CData()
@@ -440,16 +436,15 @@ class AnimatedMatSurfaceSwapParams:
         self,
         props: Z64_AnimatedMatSurfaceSwapParams,
         segment_num: int,
-        type_num: int,
+        type: str,
         base_name: str,
         index: int,
-        type: str,
         use_macros: bool,
         col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
-        self.type_num = type_num
+        self.type = type
         self.base_name = base_name
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}SurfaceSwapParams{self.header_suffix}"
@@ -477,10 +472,9 @@ class AnimatedMatSurfaceSwapParams:
             self.multitexture = AnimatedMatMultiTextureParams(
                 props.multitexture_params,
                 self.segment_num,
-                10,
                 self.base_name,
+                "anim_mat_type_multitexture",
                 index,
-                type,
                 use_macros,
                 col_header,
                 suffix,
@@ -551,7 +545,7 @@ class AnimatedMaterial:
     ):
         self.name = base_name
         self.entries = []
-        self.event_map: dict[int, tuple[str, str, CData]] = {}  # type_num to event data
+        self.event_map: dict[str, tuple[str, str, CData]] = {}  # type to event data
         self.cam_type = (
             game_data.z64.get_enum_value("anim_mats_cam_type", props.cam_type)
             if props.cam_type != "Custom"
@@ -562,34 +556,34 @@ class AnimatedMaterial:
         if len(props.entries) == 0:
             return
 
-        type_list_map: dict[str, tuple[Any, Optional[str], int]] = {
-            "anim_mat_type_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 0),
-            "anim_mat_type_two_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 1),
-            "anim_mat_type_color": (AnimatedMatColorParams, "color_params", 2),
-            "anim_mat_type_color_lerp": (AnimatedMatColorParams, "color_params", 3),
-            "anim_mat_type_color_nonlinear_interp": (AnimatedMatColorParams, "color_params", 4),
-            "anim_mat_type_tex_cycle": (AnimatedMatTexCycleParams, "tex_cycle_params", 5),
-            "anim_mat_type_color_cycle": (AnimatedMatColorParams, "color_params", 7),
-            "anim_mat_type_tex_timed_cycle": (AnimatedMatTexTimedCycleParams, "tex_timed_cycle_params", 8),
-            "anim_mat_type_texture": (AnimatedMatTextureParams, "texture_params", 9),
-            "anim_mat_type_multitexture": (AnimatedMatMultiTextureParams, "multitexture_params", 10),
-            "anim_mat_type_event": (AnimatedMatEventParams, None, 11),
-            "anim_mat_type_surface_swap": (AnimatedMatSurfaceSwapParams, "surface_params", 12),
-            "anim_mat_type_oscillating_two_tex": (AnimatedMatTexScrollParams, "tex_scroll_params", 13),
+        type_list_map: dict[str, tuple[Any, Optional[str]]] = {
+            "anim_mat_type_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params"),
+            "anim_mat_type_two_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params"),
+            "anim_mat_type_color": (AnimatedMatColorParams, "color_params"),
+            "anim_mat_type_color_lerp": (AnimatedMatColorParams, "color_params"),
+            "anim_mat_type_color_nonlinear_interp": (AnimatedMatColorParams, "color_params"),
+            "anim_mat_type_tex_cycle": (AnimatedMatTexCycleParams, "tex_cycle_params"),
+            "anim_mat_type_color_cycle": (AnimatedMatColorParams, "color_params"),
+            "anim_mat_type_tex_timed_cycle": (AnimatedMatTexTimedCycleParams, "tex_timed_cycle_params"),
+            "anim_mat_type_texture": (AnimatedMatTextureParams, "texture_params"),
+            "anim_mat_type_multitexture": (AnimatedMatMultiTextureParams, "multitexture_params"),
+            "anim_mat_type_event": (AnimatedMatEventParams, None),
+            "anim_mat_type_surface_swap": (AnimatedMatSurfaceSwapParams, "surface_params"),
+            "anim_mat_type_oscillating_two_tex": (AnimatedMatTexScrollParams, "tex_scroll_params"),
         }
 
         for i, item in enumerate(props.entries):
             type = item.type if item.type != "Custom" else item.type_custom
             if type != "Custom" and type != "anim_mat_type_none":
-                class_def, prop_name, type_num = type_list_map[type]
+                class_def, prop_name = type_list_map[type]
                 props = getattr(item, prop_name) if type != "anim_mat_type_event" else None
                 self.entries.append(
-                    class_def(props, item.segment_num, type_num, base_name, i, type, use_macros, col_header, suffix)
+                    class_def(props, item.segment_num, type, base_name, i, use_macros, col_header, suffix)
                 )
                 script_data = item.events.export(base_name, i)
                 if script_data is not None:
                     data_name, script_name = item.events.get_symbols(base_name, i)
-                    self.event_map[type_num] = (data_name, script_name, script_data)
+                    self.event_map[type] = (data_name, script_name, script_data)
 
     def to_c(self, all_externs: bool = True):
         data = CData()
@@ -600,7 +594,7 @@ class AnimatedMaterial:
             data.append(entry.to_c(all_externs))
 
             if is_extended and len(self.event_map) > 0:
-                _, _, event_data = self.event_map[entry.type_num]
+                _, _, event_data = self.event_map[entry.type]
                 if all_externs:
                     data.header += event_data.header
 
@@ -620,17 +614,17 @@ class AnimatedMaterial:
                 if not is_extended:
                     script_name = ""
                 elif len(self.event_map) > 0:
-                    _, script_name, _ = self.event_map[entry.type_num]
+                    _, script_name, _ = self.event_map[entry.type]
                     script_name = f" &{script_name},"
                 else:
                     script_name = " NULL,"
 
                 entries.append(
                     f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
-                    + f"{entry.type_num}, "
+                    + f"{game_data.z64.get_enum_value('anim_mats_type', entry.type)}, "
                     + (
-                        f"{'&' if entry.type_num not in {0, 1} else ''}{entry.name},"
-                        if entry.type_num != 11
+                        f"{'&' if 'tex_scroll' not in entry.type else ''}{entry.name},"
+                        if entry.type != "anim_mat_type_event"
                         else "NULL,"
                     )
                     + script_name
