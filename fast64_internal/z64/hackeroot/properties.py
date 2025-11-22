@@ -381,7 +381,7 @@ class HackerOoT_EventProperty(PropertyGroup):
         return data_name, script_name
 
     def export(self, base_name: str, index: int):
-        if len(self.entries) == 0 or is_hackeroot():
+        if len(self.entries) == 0 or not is_hackeroot():
             return None
 
         data = CData()

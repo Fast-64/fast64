@@ -545,7 +545,7 @@ class AnimatedMaterial:
     ):
         self.name = base_name
         self.entries = []
-        self.event_map: dict[str, tuple[str, str, CData]] = {}  # type to event data
+        self.event_map: dict[int, tuple[str, str, CData]] = {}  # type index to event data
         self.cam_type = (
             game_data.z64.get_enum_value("anim_mats_cam_type", props.cam_type)
             if props.cam_type != "Custom"
@@ -583,18 +583,18 @@ class AnimatedMaterial:
                 script_data = item.events.export(base_name, i)
                 if script_data is not None:
                     data_name, script_name = item.events.get_symbols(base_name, i)
-                    self.event_map[type] = (data_name, script_name, script_data)
+                    self.event_map[i] = (data_name, script_name, script_data)
 
     def to_c(self, all_externs: bool = True):
         data = CData()
 
         is_extended = is_hackeroot()
 
-        for entry in self.entries:
+        for i, entry in enumerate(self.entries):
             data.append(entry.to_c(all_externs))
 
-            if is_extended and len(self.event_map) > 0:
-                _, _, event_data = self.event_map[entry.type]
+            if is_extended and len(self.event_map) > 0 and i in self.event_map:
+                _, _, event_data = self.event_map[i]
                 if all_externs:
                     data.header += event_data.header
 
@@ -610,11 +610,11 @@ class AnimatedMaterial:
 
         if len(self.entries) > 0:
             entries = []
-            for entry in self.entries:
+            for i, entry in enumerate(self.entries):
                 if not is_extended:
                     script_name = ""
-                elif len(self.event_map) > 0:
-                    _, script_name, _ = self.event_map[entry.type]
+                elif len(self.event_map) > 0 and i in self.event_map:
+                    _, script_name, _ = self.event_map[i]
                     script_name = f" &{script_name},"
                 else:
                     script_name = " NULL,"
