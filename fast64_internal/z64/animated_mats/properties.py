@@ -478,7 +478,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
         items=lambda self, context: game_data.z64.get_enum("anim_mats_type"),
         default=2,
         description="Index to `sMatAnimDrawHandlers`",
-        get=lambda self: getEnumIndex(game_data.z64.get_enum("anim_mats_type"), self.type),
+        get=lambda self: self.on_type_get(),
         set=lambda self, value: self.on_type_set(value),
     )
     type: StringProperty(default=game_data.z64.enums.enum_anim_mats_type[2][0])
@@ -505,6 +505,21 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
         elif "color" in self.type:
             self.color_params.internal_color_type = self.type
 
+    def on_type_get(self):
+        enum = game_data.z64.get_enum("anim_mats_type")
+        value = getEnumIndex(enum, self.type)
+
+        if value is None:
+            print("WARNING: value is None, assuming old version!")
+            enum_value = f"anim_mat_type_{self.type}"
+            value = getEnumIndex(enum, enum_value)
+
+            if enum_value != self.type:
+                self.user_type = enum_value
+
+        assert value is not None, "ERROR: wrong get value on an animated material item."
+        return value
+
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, index: int):
         layout.prop(
             self, "show_item", text=f"Item No.{index + 1}", icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT"
@@ -515,7 +530,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
             "anim_mat_type_two_tex_scroll",
             "anim_mat_type_color",
             "anim_mat_type_color_lerp",
-            "anim_mat_type_color_non_linear_interp",
+            "anim_mat_type_color_nonlinear_interp",
             "anim_mat_type_tex_cycle",
             "anim_mat_type_none",
         ]

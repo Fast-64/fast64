@@ -814,7 +814,7 @@
       <Item Key="anim_mat_type_two_tex_scroll" ID="ANIM_MAT_TYPE_TWO_TEX_SCROLL" Name="Draw Two Texture Scroll" Index="1"/>
       <Item Key="anim_mat_type_color" ID="ANIM_MAT_TYPE_COLOR" Name="Draw Color" Index="2"/>
       <Item Key="anim_mat_type_color_lerp" ID="ANIM_MAT_TYPE_COLOR_LERP" Name="Draw Color Lerp" Index="3"/>
-      <Item Key="anim_mat_type_color_non_linear_interp" ID="ANIM_MAT_TYPE_COLOR_NON_LINEAR_INTERP" Name="Draw Color Non-Linear Interp" Index="4"/>
+      <Item Key="anim_mat_type_color_nonlinear_interp" ID="ANIM_MAT_TYPE_COLOR_NON_LINEAR_INTERP" Name="Draw Color Non-Linear Interp" Index="4"/>
       <Item Key="anim_mat_type_tex_cycle" ID="ANIM_MAT_TYPE_TEX_CYCLE" Name="Draw Texture Cycle" Index="5"/>
       <Item Key="anim_mat_type_none" ID="ANIM_MAT_TYPE_NONE" Index="6"/>
       <!-- For mods -->

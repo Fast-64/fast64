@@ -43,6 +43,7 @@ class AnimatedMatColorParams:
     ):
         is_draw_color = type == "anim_mat_type_color"
         is_draw_color_cycle = type == "anim_mat_type_color_cycle"
+        is_col_or_cycle = is_draw_color or is_draw_color_cycle
         self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
@@ -57,18 +58,18 @@ class AnimatedMatColorParams:
             prim = exportColor(keyframe.prim_color[0:3]) + [scaleToU8(keyframe.prim_color[3])]
             self.prim_colors.append((prim[0], prim[1], prim[2], prim[3], keyframe.prim_lod_frac))
 
-            if not is_draw_color and props.use_env_color:
+            if not is_col_or_cycle or props.use_env_color:
                 self.env_colors.append(tuple(exportColor(keyframe.env_color[0:3]) + [scaleToU8(keyframe.env_color[3])]))
 
             if not is_draw_color:
                 self.frames.append(keyframe.frame_num)
 
-            if not is_draw_color and not is_draw_color_cycle and keyframe.frame_num > self.frame_length:
+            if not is_col_or_cycle and keyframe.frame_num > self.frame_length:
                 raise PluginError("ERROR: the frame number cannot be higher than the total frame count!")
 
         self.frame_count = len(self.frames)
 
-        if not is_draw_color and not is_draw_color_cycle:
+        if not is_col_or_cycle:
             assert len(self.frames) == len(self.prim_colors) == len(self.env_colors)
 
         if is_draw_color and props.use_env_color:
@@ -559,7 +560,7 @@ class AnimatedMaterial:
             "anim_mat_type_two_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 1),
             "anim_mat_type_color": (AnimatedMatColorParams, "color_params", 2),
             "anim_mat_type_color_lerp": (AnimatedMatColorParams, "color_params", 3),
-            "anim_mat_type_color_non_linear_interp": (AnimatedMatColorParams, "color_params", 4),
+            "anim_mat_type_color_nonlinear_interp": (AnimatedMatColorParams, "color_params", 4),
             "anim_mat_type_tex_cycle": (AnimatedMatTexCycleParams, "tex_cycle_params", 5),
             "anim_mat_type_color_cycle": (AnimatedMatColorParams, "color_params", 7),
             "anim_mat_type_tex_timed_cycle": (AnimatedMatTexTimedCycleParams, "tex_timed_cycle_params", 8),
@@ -621,7 +622,7 @@ class AnimatedMaterial:
                     f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
                     + f"{entry.type_num}, "
                     + (
-                        f"{'&' if entry.type_num not in {0, 1, 7} else ''}{entry.name},"
+                        f"{'&' if entry.type_num not in {0, 1} else ''}{entry.name},"
                         if entry.type_num != 11
                         else "NULL,"
                     )

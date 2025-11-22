@@ -328,7 +328,7 @@ class Z64_AddAnimatedMaterial(Operator):
             am_props = new_obj.fast64.oot.animated_materials
             new_am = am_props.items.add()
             new_am_item = new_am.entries.add()
-            new_am_item.type = "anim_mat_type_color_non_linear_interp"
+            new_am_item.type = "anim_mat_type_color_nonlinear_interp"
             new_am_item.color_params.keyframe_length = 60
 
             keyframe_1 = new_am_item.color_params.keyframes.add()
