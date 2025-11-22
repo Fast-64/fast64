@@ -37,15 +37,9 @@ class Z64_ItemElement(Z64_BaseElement):
                 "draw_config": ("SCENE_DRAW_CFG" if self.game == "MM" else "SDC"),
                 "surface_material": "SURFACE_MATERIAL",
                 "global_object": "OBJECT",
-                "floor_type": "",
-                "wall_type": "",
-                "floor_property": "",
-                "surface_sfx_offset": "",
-                "floor_effect": "",
-                "conveyor_speed": "",
             }
 
-            self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
+            self.name = self.id.removeprefix(f"{keyToPrefix.get(self.parentKey, '')}_")
 
             if self.parentKey in ["cs_cmd", "cs_player_cue_id"]:
                 split = self.name.split("_")
@@ -136,6 +130,14 @@ class Z64_EnumData:
         self.enum_surface_material: list[tuple[str, str, str]] = []
         self.enum_floor_effect: list[tuple[str, str, str]] = []
         self.enum_conveyor_speed: list[tuple[str, str, str]] = []
+        self.enum_anim_mats_type: list[tuple[str, str, str]] = []
+        self.enum_event_condition: list[tuple[str, str, str]] = []
+        self.enum_event_flag_type: list[tuple[str, str, str]] = []
+        self.enum_event_inv_type: list[tuple[str, str, str]] = []
+        self.enum_event_game_type: list[tuple[str, str, str]] = []
+        self.enum_event_time_type: list[tuple[str, str, str]] = []
+        self.enum_event_action_type: list[tuple[str, str, str]] = []
+        self.enum_event_type: list[tuple[str, str, str]] = []
 
         self.enumByID = {enum.id: enum for enum in self.enumDataList}
         self.enumByKey = {enum.key: enum for enum in self.enumDataList}

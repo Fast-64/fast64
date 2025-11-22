@@ -292,6 +292,10 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
             collection = props.entries[collection_index].tex_cycle_params.keyframes
         elif collectionType == "Animated Mat. Cycle (Texture)":
             collection = props.entries[collection_index].tex_cycle_params.textures
+        elif collectionType == "Animated Mat. Timed Cycle":
+            collection = props.entries[collection_index].tex_timed_cycle_params.keyframes
+        elif collectionType == "Animated Mat. Surface":
+            collection = props.entries[collection_index].surface_params.meshes
     elif collectionType == "Curve":
         collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):

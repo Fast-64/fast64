@@ -3,16 +3,23 @@ import re
 
 from dataclasses import dataclass
 from bpy.types import Object
-from typing import Optional
+from typing import Optional, Any
 from pathlib import Path
 
 from ....utility import CData, PluginError, exportColor, scaleToU8, toAlnum, get_new_empty_object, indent
 from ...utility import getObjectList, is_hackeroot
 from ...scene.properties import OOTSceneHeaderProperty
+from ..collision.surface import SurfaceType
+from ..collision import CollisionHeader
+
 from ...animated_mats.properties import (
     Z64_AnimatedMatColorParams,
     Z64_AnimatedMatTexScrollParams,
     Z64_AnimatedMatTexCycleParams,
+    Z64_AnimatedMatTexTimedCycleParams,
+    Z64_AnimatedMatTextureParams,
+    Z64_AnimatedMatMultiTextureParams,
+    Z64_AnimatedMatSurfaceSwapParams,
     Z64_AnimatedMaterial,
     Z64_AnimatedMaterialExportSettings,
     Z64_AnimatedMaterialImportSettings,
@@ -30,9 +37,12 @@ class AnimatedMatColorParams:
         base_name: str,
         index: int,
         type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
         suffix: str = "",
     ):
-        is_draw_color = type == "color"
+        is_draw_color = type == "anim_mat_type_color"
+        is_draw_color_cycle = type == "anim_mat_type_color_cycle"
         self.segment_num = segment_num
         self.type_num = type_num
         self.base_name = base_name
@@ -47,22 +57,28 @@ class AnimatedMatColorParams:
             prim = exportColor(keyframe.prim_color[0:3]) + [scaleToU8(keyframe.prim_color[3])]
             self.prim_colors.append((prim[0], prim[1], prim[2], prim[3], keyframe.prim_lod_frac))
 
-            if not is_draw_color or props.use_env_color:
+            if not is_draw_color and props.use_env_color:
                 self.env_colors.append(tuple(exportColor(keyframe.env_color[0:3]) + [scaleToU8(keyframe.env_color[3])]))
 
             if not is_draw_color:
                 self.frames.append(keyframe.frame_num)
 
-            if not is_draw_color and keyframe.frame_num > self.frame_length:
+            if not is_draw_color and not is_draw_color_cycle and keyframe.frame_num > self.frame_length:
                 raise PluginError("ERROR: the frame number cannot be higher than the total frame count!")
 
         self.frame_count = len(self.frames)
 
-        if not is_draw_color:
+        if not is_draw_color and not is_draw_color_cycle:
             assert len(self.frames) == len(self.prim_colors) == len(self.env_colors)
 
         if is_draw_color and props.use_env_color:
             assert len(self.prim_colors) == len(self.env_colors)
+
+        if is_draw_color_cycle:
+            assert len(self.frames) == len(self.prim_colors)
+
+            if props.use_env_color:
+                assert len(self.frames) == len(self.prim_colors) == len(self.env_colors)
 
     def to_c(self, all_externs: bool = True):
         data = CData()
@@ -90,8 +106,8 @@ class AnimatedMatColorParams:
         data.source = (
             (
                 (f"F3DPrimColor {prim_array_name}[]" + " = {\n" + indent)
-                + f",\n{indent}".join(
-                    "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}, {entry[4]}" + " }"
+                + f"\n{indent}".join(
+                    "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}, {entry[4]}" + " },"
                     for entry in self.prim_colors
                 )
                 + "\n};\n\n"
@@ -99,8 +115,8 @@ class AnimatedMatColorParams:
             + (
                 (
                     (f"F3DEnvColor {env_array_name}[]" + " = {\n" + indent)
-                    + f",\n{indent}".join(
-                        "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }" for entry in self.env_colors
+                    + f"\n{indent}".join(
+                        "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }," for entry in self.env_colors
                     )
                     + "\n};\n\n"
                 )
@@ -110,7 +126,7 @@ class AnimatedMatColorParams:
             + (
                 (
                     (f"u16 {frames_array_name}[]" + " = {\n" + indent)
-                    + f",\n{indent}".join(f"{entry}" for entry in self.frames)
+                    + f"\n{indent}".join(f"{entry}," for entry in self.frames)
                     + "\n};\n\n"
                 )
                 if len(self.frames) > 0
@@ -139,6 +155,8 @@ class AnimatedMatTexScrollParams:
         base_name: str,
         index: int,
         type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
@@ -152,7 +170,7 @@ class AnimatedMatTexScrollParams:
         )
         self.texture_2: Optional[str] = None
 
-        if type == "two_tex_scroll":
+        if "two_tex" in type:
             self.name = f"{self.base_name}{suffix}TwoTexScrollParams{self.header_suffix}"
             self.texture_2 = (
                 "{ "
@@ -190,6 +208,8 @@ class AnimatedMatTexCycleParams:
         base_name: str,
         index: int,
         type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
         suffix: str = "",
     ):
         self.segment_num = segment_num
@@ -250,31 +270,312 @@ class AnimatedMatTexCycleParams:
         return data
 
 
+class AnimatedMatTexTimedCycleParams:
+    def __init__(
+        self,
+        props: Z64_AnimatedMatTexTimedCycleParams,
+        segment_num: int,
+        type_num: int,
+        base_name: str,
+        index: int,
+        type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
+        self.segment_num = segment_num
+        self.type_num = type_num
+        self.base_name = base_name
+        self.header_suffix = f"_{index:02}"
+        self.name = f"{self.base_name}{suffix}TexTimedCycleParams{self.header_suffix}"
+        self.use_macros = use_macros
+        self.entries: dict[str, int] = {}  # entries["texture_symbol"] = duration
+
+        for keyframe in props.keyframes:
+            self.entries[keyframe.symbol] = keyframe.duration
+
+        assert len(self.entries) > 1, "ERROR: this type requires at least two entries"
+
+    def to_c(self, all_externs: bool = True):
+        data = CData()
+        array_name = f"{self.base_name}TexTimedCycleKeyframes{self.header_suffix}"
+        params_name = f"AnimatedMatTexTimedCycleParams {self.name}"
+
+        # .h
+        if all_externs:
+            data.header = f"extern AnimatedMatTexTimedCycleKeyframe {array_name}[];\n" + f"extern {params_name};\n"
+
+        # .c
+        length = f"ARRAY_COUNT({array_name})" if self.use_macros else f"{len(self.entries)}"
+        data.source = (
+            (f"AnimatedMatTexTimedCycleKeyframe {array_name}[]" + " = {\n")
+            + indent
+            + f"\n{indent}".join("{ " + f"{symbol}, {duration}" + " }," for symbol, duration in self.entries.items())
+            + "\n};\n\n"
+        ) + ((params_name + " = {\n") + indent + f"{length}, {array_name}" + "\n};\n\n")
+
+        return data
+
+
+class AnimatedMatTextureParams:
+    def __init__(
+        self,
+        props: Z64_AnimatedMatTextureParams,
+        segment_num: int,
+        type_num: int,
+        base_name: str,
+        index: int,
+        type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
+        self.segment_num = segment_num
+        self.type_num = type_num
+        self.base_name = base_name
+        self.header_suffix = f"_{index:02}"
+        self.name = f"{self.base_name}{suffix}TextureParams{self.header_suffix}"
+        self.texture_1 = props.texture_1
+        self.texture_2 = props.texture_2
+        assert len(self.texture_1) > 0
+        assert len(self.texture_2) > 0
+
+    def to_c(self, all_externs: bool = True):
+        data = CData()
+        params_name = f"AnimatedMatTextureParams {self.name}"
+
+        # .h
+        if all_externs:
+            data.header = f"extern {params_name};\n"
+
+        # .c
+        data.source = params_name + " = {\n" + indent + "{ " + f"{self.texture_1}, {self.texture_2}" + " }" + "\n};\n\n"
+
+        return data
+
+
+class AnimatedMatMultiTextureParams:
+    def __init__(
+        self,
+        props: Z64_AnimatedMatMultiTextureParams,
+        segment_num: int,
+        type_num: int,
+        base_name: str,
+        index: int,
+        type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
+        self.segment_num = segment_num
+        self.type_num = type_num
+        self.base_name = base_name
+        self.header_suffix = f"_{index:02}"
+        self.name = f"{self.base_name}{suffix}TextureParams{self.header_suffix}"
+
+        self.min_prim_alpha: int = props.min_prim_alpha
+        self.max_prim_alpha: int = props.max_prim_alpha
+        self.min_env_alpha: int = props.min_env_alpha
+        self.max_env_alpha: int = props.max_env_alpha
+        self.speed: int = props.speed
+        self.use_texture_refs: bool = props.use_texture_refs
+        self.texture_1: str = props.texture_1
+        self.texture_2: str = props.texture_2
+        self.segment_1: int = props.segment_1
+        self.segment_2: int = props.segment_2
+
+    def to_c(self, all_externs: bool = True):
+        data = CData()
+        params_name = f"AnimatedMatMultiTextureParams {self.name}"
+
+        # .h
+        if all_externs:
+            data.header = f"extern {params_name};\n"
+
+        # .c
+        data.source = (
+            params_name
+            + " = {\n"
+            + indent
+            + f"{self.min_prim_alpha}, "
+            + f"{self.max_prim_alpha}, "
+            + f"{self.min_env_alpha}, "
+            + f"{self.max_env_alpha}, "
+            + f"{self.speed}, "
+            + (
+                f"{self.texture_1}, {self.texture_2}, {self.segment_1}, {self.segment_2},"
+                if self.use_texture_refs
+                else "NULL, NULL, 0, 0"
+            )
+            + "\n};\n\n"
+        )
+
+        return data
+
+
+class AnimatedMatEventParams:
+    def __init__(
+        self,
+        props,
+        segment_num: int,
+        type_num: int,
+        base_name: str,
+        index: int,
+        type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
+        self.segment_num = segment_num
+        self.type_num = type_num
+
+    def to_c(self, all_externs: bool = True):
+        return CData()
+
+
+class AnimatedMatSurfaceSwapParams:
+    def __init__(
+        self,
+        props: Z64_AnimatedMatSurfaceSwapParams,
+        segment_num: int,
+        type_num: int,
+        base_name: str,
+        index: int,
+        type: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
+        self.segment_num = segment_num
+        self.type_num = type_num
+        self.base_name = base_name
+        self.header_suffix = f"_{index:02}"
+        self.name = f"{self.base_name}{suffix}SurfaceSwapParams{self.header_suffix}"
+        self.surface_type = SurfaceType.new(props.col_settings, use_macros)
+
+        ignore_cam = props.col_settings.ignoreCameraCollision
+        ignore_entity = props.col_settings.ignoreActorCollision
+        ignore_proj = props.col_settings.ignoreProjectileCollision
+
+        if ignore_proj or ignore_entity or ignore_cam:
+            flag1 = ("COLPOLY_IGNORE_PROJECTILES" if use_macros else "(1 << 2)") if ignore_proj else ""
+            flag2 = ("COLPOLY_IGNORE_ENTITY" if use_macros else "(1 << 1)") if ignore_entity else ""
+            flag3 = ("COLPOLY_IGNORE_CAMERA" if use_macros else "(1 << 0)") if ignore_cam else ""
+            self.flags_a = "(" + " | ".join(flag for flag in [flag1, flag2, flag3] if len(flag) > 0) + ")"
+        else:
+            self.flags_a = "COLPOLY_IGNORE_NONE" if use_macros else "0"
+
+        if props.col_settings.conveyorOption == "Land":
+            self.flags_b = "COLPOLY_IS_FLOOR_CONVEYOR" if use_macros else "(1 << 0)"
+        else:
+            self.flags_b = "COLPOLY_IGNORE_NONE" if use_macros else "0"
+
+        self.multitexture: Optional[AnimatedMatMultiTextureParams] = None
+        if props.use_multitexture:
+            self.multitexture = AnimatedMatMultiTextureParams(
+                props.multitexture_params,
+                self.segment_num,
+                10,
+                self.base_name,
+                index,
+                type,
+                use_macros,
+                col_header,
+                suffix,
+            )
+
+        self.meshes: list[int] = []
+        self.surface_index = -1
+
+        if props.use_tris:
+            assert len(props.meshes) > 0, "ERROR: this context requires at least one entry"
+
+            # TODO: find a less dumb way to get the index
+            for entry in col_header.collisionPoly.polyList:
+                if entry.index_to_obj is not None:
+                    index = list(entry.index_to_obj.keys())[-1]
+                    mesh_obj = list(entry.index_to_obj.values())[-1]
+
+                    for item in props.meshes:
+                        if mesh_obj is item.mesh_obj:
+                            self.meshes.append(index)
+                            break
+        else:
+            assert props.material is not None, "ERROR: this context requires a material to be set"
+
+            # TODO: find a less dumb way to get the index
+            for i, entry in enumerate(col_header.surfaceType.surfaceTypeList):
+                if entry.data_material is props.material:
+                    self.surface_index = i
+                    break
+
+            assert self.surface_index >= 0, "ERROR: surface index not found, is the selected material assigned?"
+
+    def to_c(self, all_externs: bool = True):
+        data = CData()
+
+        params_name = f"AnimatedMatSurfaceSwapParams {self.name}"
+        data.append(self.multitexture.to_c() if self.multitexture is not None else CData())
+
+        # .h
+        if all_externs:
+            data.header += f"extern {params_name};\n"
+
+        # .c
+        indices = (", ".join(f"{index}" for index in self.meshes) + ", ") if len(self.meshes) > 0 else ""
+        data.source += (
+            params_name
+            + " = {\n"
+            + f"{self.surface_type.getEntryC()}\n"
+            + (indent + f"{self.surface_index},\n")
+            + (indent + f"{self.flags_a},\n")
+            + (indent + f"{self.flags_b},\n")
+            + (indent + f"{'&' + self.multitexture.name if self.multitexture is not None else 'NULL'},\n")
+            + (indent + "{ " f"{indices}" + "-1" + " },")
+            + "\n};\n\n"
+        )
+
+        return data
+
+
 class AnimatedMaterial:
-    def __init__(self, props: Z64_AnimatedMaterial, base_name: str, suffix: str = ""):
+    def __init__(
+        self,
+        props: Z64_AnimatedMaterial,
+        base_name: str,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
         self.name = base_name
-        self.entries: list[AnimatedMatColorParams | AnimatedMatTexScrollParams | AnimatedMatTexCycleParams] = []
+        self.entries = []
 
         if len(props.entries) == 0:
             return
 
-        type_list_map: dict[
-            str, tuple[AnimatedMatColorParams | AnimatedMatTexScrollParams | AnimatedMatTexCycleParams, str, int]
-        ] = {
-            "tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 0),
-            "two_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 1),
-            "color": (AnimatedMatColorParams, "color_params", 2),
-            "color_lerp": (AnimatedMatColorParams, "color_params", 3),
-            "color_nonlinear_interp": (AnimatedMatColorParams, "color_params", 4),
-            "tex_cycle": (AnimatedMatTexCycleParams, "tex_cycle_params", 5),
+        type_list_map: dict[str, tuple[Any, Optional[str], int]] = {
+            "anim_mat_type_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 0),
+            "anim_mat_type_two_tex_scroll": (AnimatedMatTexScrollParams, "tex_scroll_params", 1),
+            "anim_mat_type_color": (AnimatedMatColorParams, "color_params", 2),
+            "anim_mat_type_color_lerp": (AnimatedMatColorParams, "color_params", 3),
+            "anim_mat_type_color_non_linear_interp": (AnimatedMatColorParams, "color_params", 4),
+            "anim_mat_type_tex_cycle": (AnimatedMatTexCycleParams, "tex_cycle_params", 5),
+            "anim_mat_type_color_cycle": (AnimatedMatColorParams, "color_params", 7),
+            "anim_mat_type_tex_timed_cycle": (AnimatedMatTexTimedCycleParams, "tex_timed_cycle_params", 8),
+            "anim_mat_type_texture": (AnimatedMatTextureParams, "texture_params", 9),
+            "anim_mat_type_multitexture": (AnimatedMatMultiTextureParams, "multitexture_params", 10),
+            "anim_mat_type_event": (AnimatedMatEventParams, None, 11),
+            "anim_mat_type_surface_swap": (AnimatedMatSurfaceSwapParams, "surface_params", 12),
+            "anim_mat_type_oscillating_two_tex": (AnimatedMatTexScrollParams, "tex_scroll_params", 13),
         }
 
         for i, item in enumerate(props.entries):
-            type = item.type if item.type != "Custom" else item.typeCustom
-            if type != "Custom":
+            type = item.type if item.type != "Custom" else item.type_custom
+            if type != "Custom" and type != "anim_mat_type_none":
                 class_def, prop_name, type_num = type_list_map[type]
+                props = getattr(item, prop_name) if type != "anim_mat_type_event" else None
                 self.entries.append(
-                    class_def(getattr(item, prop_name), item.segment_num, type_num, base_name, i, type, suffix)
+                    class_def(props, item.segment_num, type_num, base_name, i, type, use_macros, col_header, suffix)
                 )
 
     def to_c(self, all_externs: bool = True):
@@ -295,7 +596,12 @@ class AnimatedMaterial:
             entries = [
                 f"MATERIAL_SEGMENT_NUM({entry.segment_num}), "
                 + f"{entry.type_num}, "
-                + f"{'&' if entry.type_num in {2, 3, 4, 5} else ''}{entry.name}"
+                + (
+                    f"{'&' if entry.type_num not in {0, 1, 7} else ''}{entry.name}, "
+                    if entry.type_num != 11
+                    else "NULL, "
+                )
+                + "NULL,"
                 for entry in self.entries
             ]
 
@@ -303,9 +609,9 @@ class AnimatedMaterial:
             if len(self.entries) > 0 and self.entries[-1].segment_num > 0:
                 entries[-1] = f"LAST_{entries[-1]}"
 
-            data.source += f",\n{indent}".join("{ " + entry + " }" for entry in entries)
+            data.source += f"\n{indent}".join("{ " + entry + " }," for entry in entries)
         else:
-            data.source += "{ 0, 6, NULL }"
+            data.source += "{ 0, 6, NULL },"
 
         data.source += "\n};\n"
         return data
@@ -333,8 +639,10 @@ class SceneAnimatedMaterial:
     )
 
     @staticmethod
-    def new(name: str, props: OOTSceneHeaderProperty, is_reuse: bool):
-        return SceneAnimatedMaterial(name, AnimatedMaterial(props.animated_material, name) if not is_reuse else None)
+    def new(name: str, props: OOTSceneHeaderProperty, is_reuse: bool, use_macros: bool, col_header: CollisionHeader):
+        return SceneAnimatedMaterial(
+            name, AnimatedMaterial(props.animated_material, name, use_macros, col_header) if not is_reuse else None
+        )
 
     @staticmethod
     def export():

@@ -1,7 +1,7 @@
 import bpy
 
 from bpy.utils import register_class, unregister_class
-from bpy.types import PropertyGroup, UILayout, Object
+from bpy.types import PropertyGroup, UILayout, Object, Material
 from bpy.props import (
     IntProperty,
     PointerProperty,
@@ -14,8 +14,10 @@ from bpy.props import (
 
 from typing import Optional
 
+from ...game_data import game_data
 from ...utility import prop_split
 from ..collection_utility import drawCollectionOps, draw_utility_ops
+from ..collision.properties import OOTMaterialCollisionProperty
 from ..utility import get_list_tab_text, getEnumIndex, is_hackeroot
 from .operators import Z64_ExportAnimatedMaterials, Z64_ImportAnimatedMaterials
 
@@ -24,17 +26,6 @@ from .operators import Z64_ExportAnimatedMaterials, Z64_ImportAnimatedMaterials
 enum_mode = [
     ("Scene", "Scene", "Scene"),
     ("Actor", "Actor", "Actor"),
-]
-
-# see `sMatAnimDrawHandlers` in `z_scene_proc.c`
-enum_anim_mat_type = [
-    ("Custom", "Custom", "Custom"),
-    ("tex_scroll", "Draw Texture Scroll", "Draw Texture Scroll"),
-    ("two_tex_scroll", "Draw Two Texture Scroll", "Draw Two Texture Scroll"),
-    ("color", "Draw Color", "Draw Color"),
-    ("color_lerp", "Draw Color Lerp", "Draw Color Lerp"),
-    ("color_nonlinear_interp", "Draw Color Non-Linear Interp", "Draw Color Non-Linear Interp"),
-    ("tex_cycle", "Draw Texture Cycle", "Draw Texture Cycle"),
 ]
 
 
@@ -87,7 +78,7 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
         header_index: int,
         parent_index: int,
         index: int,
-        is_draw_color: bool,
+        color_type: str,
         use_env_color: bool,
     ):
         drawCollectionOps(
@@ -101,9 +92,11 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
             ask_for_amount=True,
         )
 
+        is_draw_color = color_type in {"anim_mat_type_color", "anim_mat_type_color_cycle"}
+
         # "draw color" type don't need this
-        if not is_draw_color:
-            prop_split(layout, self, "frame_num", "Frame No.")
+        if not is_draw_color or color_type == "anim_mat_type_color_cycle":
+            prop_split(layout, self, "frame_num", "Duration" if is_draw_color else "Frame No.")
 
         prop_split(layout, self, "prim_lod_frac", "Primitive LOD Frac")
         prop_split(layout, self, "prim_color", "Primitive Color")
@@ -142,7 +135,7 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
         return self.internal_keyframe_length
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
-        is_draw_color = self.internal_color_type == "color"
+        is_draw_color = self.internal_color_type in {"anim_mat_type_color", "anim_mat_type_color_cycle"}
 
         if not is_draw_color:
             prop_split(layout, self, "keyframe_length", "Keyframe Length")
@@ -156,7 +149,13 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
         if self.show_entries:
             for i, keyframe in enumerate(self.keyframes):
                 keyframe.draw_props(
-                    layout, owner, header_index, parent_index, i, is_draw_color, not is_draw_color or self.use_env_color
+                    layout,
+                    owner,
+                    header_index,
+                    parent_index,
+                    i,
+                    self.internal_color_type,
+                    not is_draw_color or self.use_env_color,
                 )
 
             draw_utility_ops(
@@ -196,14 +195,14 @@ class Z64_AnimatedMatTexScrollParams(PropertyGroup):
     # ui only props
     show_entries: BoolProperty(default=False)
 
-    internal_scroll_type: StringProperty(default="two_tex_scroll")
+    internal_scroll_type: StringProperty(default="anim_mat_type_two_tex_scroll")
 
     def draw_props(self, layout: UILayout):
-        tab_text = "Two-Texture Scroll" if self.internal_scroll_type == "two_tex_scroll" else "Texture Scroll"
+        tab_text = "Two-Texture Scroll" if "two_tex" in self.internal_scroll_type else "Texture Scroll"
         layout.prop(self, "show_entries", text=tab_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
 
         if self.show_entries:
-            if self.internal_scroll_type == "two_tex_scroll":
+            if self.internal_scroll_type == "anim_mat_type_two_tex_scroll":
                 tex1_box = layout.box().column()
                 tex1_box.label(text="Texture 1")
                 self.texture_1.draw_props(tex1_box)
@@ -293,6 +292,180 @@ class Z64_AnimatedMatTexCycleParams(PropertyGroup):
             )
 
 
+class Z64_AnimatedMatTexTimedCycleKeyFrame(PropertyGroup):
+    symbol: StringProperty()
+    duration: IntProperty(min=0)
+
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int, index: int):
+        drawCollectionOps(
+            layout,
+            index,
+            "Animated Mat. Timed Cycle",
+            header_index,
+            owner.name,
+            collection_index=parent_index,
+            ask_for_copy=True,
+            ask_for_amount=True,
+        )
+        prop_split(layout, self, "symbol", "Texture Symbol")
+        prop_split(layout, self, "duration", "Duration")
+
+
+class Z64_AnimatedMatTexTimedCycleParams(PropertyGroup):
+    keyframes: CollectionProperty(type=Z64_AnimatedMatTexTimedCycleKeyFrame)
+
+    # ui only props
+    show_entries: BoolProperty(default=False)
+
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
+        index_box = layout.box()
+        prop_text = get_list_tab_text("Keyframes", len(self.keyframes))
+        index_box.prop(self, "show_entries", text=prop_text, icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
+        if self.show_entries:
+            for i, keyframe in enumerate(self.keyframes):
+                keyframe.draw_props(index_box.column(), owner, header_index, parent_index, i)
+            draw_utility_ops(
+                index_box.row(),
+                len(self.keyframes),
+                "Animated Mat. Timed Cycle",
+                header_index,
+                owner.name,
+                parent_index,
+                ask_for_amount=True,
+            )
+
+
+class Z64_AnimatedMatTextureParams(PropertyGroup):
+    texture_1: StringProperty(description="Default Texture")
+    texture_2: StringProperty(description="Texture to draw when the event script is completed")
+
+    # ui only props
+    show_entries: BoolProperty(default=False)
+
+    def draw_props(self, layout: UILayout):
+        layout.prop(self, "show_entries", text="Texture", icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
+
+        if self.show_entries:
+            texture_box = layout.box().column()
+            prop_split(texture_box, self, "texture_1", "Texture 1")
+            prop_split(texture_box, self, "texture_2", "Texture 2")
+
+
+class Z64_AnimatedMatMultiTextureParams(PropertyGroup):
+    min_prim_alpha: IntProperty(min=0, max=255)
+    max_prim_alpha: IntProperty(min=0, max=255)
+    min_env_alpha: IntProperty(min=0, max=255)
+    max_env_alpha: IntProperty(min=0, max=255)
+    speed: IntProperty(min=0, description="Transition or blending speed, can be 0 to disable blending.")
+
+    use_texture_refs: BoolProperty(
+        default=False,
+        description="Optionally, you can use texture references, you'll need to provide symbols and segment numbers.",
+    )
+    texture_1: StringProperty(description="Symbol for Texture Reference No. 1")
+    texture_2: StringProperty(description="Symbol for Texture Reference No. 2")
+    segment_1: IntProperty(min=8, max=13, default=8, description="Segment corresponding to the Texture Reference No. 1")
+    segment_2: IntProperty(min=8, max=13, default=8, description="Segment corresponding to the Texture Reference No. 2")
+
+    def draw_props(self, layout: UILayout):
+        prop_split(layout, self, "min_prim_alpha", "Min. Primitive Alpha")
+        prop_split(layout, self, "max_prim_alpha", "Max. Primitive Alpha")
+        prop_split(layout, self, "min_env_alpha", "Min. Environment Alpha")
+        prop_split(layout, self, "max_env_alpha", "Max. Environment Alpha")
+        prop_split(layout, self, "speed", "Transition Speed")
+
+        tex_box = layout.box().column()
+        tex_box.prop(self, "use_texture_refs", text="Use Texture References")
+        if self.use_texture_refs:
+            prop_split(tex_box, self, "texture_1", "Texture Symbol 1")
+            prop_split(tex_box, self, "segment_1", "Segment Number 1")
+
+            prop_split(tex_box, self, "texture_2", "Texture Symbol 2")
+            prop_split(tex_box, self, "segment_2", "Segment Number 2")
+
+
+class Z64_AnimatedMatTriIndexItem(PropertyGroup):
+    mesh_obj: PointerProperty(type=Object, poll=lambda self, obj: self.on_poll(obj))
+
+    def on_poll(self, obj: Object):
+        active_obj = bpy.context.view_layer.objects.active
+        assert active_obj is not None
+        return (
+            active_obj.type == "EMPTY"
+            and active_obj.ootEmptyType == "Scene"
+            and obj.type == "MESH"
+            and obj in active_obj.children_recursive
+        )
+
+    def draw_props(self, layout: UILayout, owner: Object, index: int, header_index: int, parent_index: int):
+        layout.prop(self, "mesh_obj", text="")
+
+        drawCollectionOps(
+            layout,
+            index,
+            "Animated Mat. Surface",
+            header_index,
+            owner.name,
+            compact=True,
+            collection_index=parent_index,
+            ask_for_copy=True,
+            ask_for_amount=True,
+        )
+
+
+class Z64_AnimatedMatSurfaceSwapParams(PropertyGroup):
+    col_settings: PointerProperty(type=OOTMaterialCollisionProperty)
+
+    use_tris: BoolProperty(default=False)
+    material: PointerProperty(
+        type=Material, poll=lambda self, obj: self.on_poll(obj), description="Can be left empty if using tri indices"
+    )
+    meshes: CollectionProperty(type=Z64_AnimatedMatTriIndexItem)
+
+    use_multitexture: BoolProperty(default=False)
+    multitexture_params: PointerProperty(
+        type=Z64_AnimatedMatMultiTextureParams,
+        description="Can be left empty if you just want to swap the surface type",
+    )
+
+    # ui only props
+    show_entries: BoolProperty(default=False)
+
+    def on_poll(self, obj: Material):
+        # TODO
+        return True
+
+    def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
+        self.col_settings.draw_props(layout.box().column())
+
+        tri_box = layout.box().column()
+        tri_box.prop(self, "use_tris", text="Use Triangle Indices")
+
+        if self.use_tris:
+            tri_box.prop(self, "show_entries", text="Meshes", icon="TRIA_DOWN" if self.show_entries else "TRIA_RIGHT")
+
+            if self.show_entries:
+                for i, entry in enumerate(self.meshes):
+                    entry.draw_props(tri_box.row(align=True), owner, i, header_index, parent_index)
+
+                draw_utility_ops(
+                    tri_box.row(),
+                    len(self.meshes),
+                    "Animated Mat. Surface",
+                    header_index,
+                    owner.name,
+                    parent_index,
+                    ask_for_amount=True,
+                )
+        else:
+            prop_split(tri_box, self, "material", "Replace Surface Type from")
+
+        multi_box = layout.box().column()
+        multi_box.prop(self, "use_multitexture", text="Use Multi-Texture")
+        if self.use_multitexture:
+            self.multitexture_params.draw_props(multi_box)
+
+
 class Z64_AnimatedMaterialItem(PropertyGroup):
     """see the `AnimatedMaterial` struct from `z64scene.h`"""
 
@@ -300,24 +473,28 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
 
     user_type: EnumProperty(
         name="Draw Handler Type",
-        items=enum_anim_mat_type,
+        items=lambda self, context: game_data.z64.get_enum("anim_mats_type"),
         default=2,
         description="Index to `sMatAnimDrawHandlers`",
-        get=lambda self: getEnumIndex(enum_anim_mat_type, self.type),
+        get=lambda self: getEnumIndex(game_data.z64.get_enum("anim_mats_type"), self.type),
         set=lambda self, value: self.on_type_set(value),
     )
-    type: StringProperty(default=enum_anim_mat_type[2][0])
+    type: StringProperty(default=game_data.z64.enums.enum_anim_mats_type[2][0])
     type_custom: StringProperty(name="Custom Draw Handler Index", default="2")
 
     color_params: PointerProperty(type=Z64_AnimatedMatColorParams)
     tex_scroll_params: PointerProperty(type=Z64_AnimatedMatTexScrollParams)
     tex_cycle_params: PointerProperty(type=Z64_AnimatedMatTexCycleParams)
+    tex_timed_cycle_params: PointerProperty(type=Z64_AnimatedMatTexTimedCycleParams)
+    texture_params: PointerProperty(type=Z64_AnimatedMatTextureParams)
+    multitexture_params: PointerProperty(type=Z64_AnimatedMatMultiTextureParams)
+    surface_params: PointerProperty(type=Z64_AnimatedMatSurfaceSwapParams)
 
     # ui only props
     show_item: BoolProperty(default=False)
 
     def on_type_set(self, value: int):
-        self.type = enum_anim_mat_type[value][0]
+        self.type = game_data.z64.enums.enum_anim_mats_type[value][0]
 
         if "tex_scroll" in self.type:
             self.tex_scroll_params.internal_scroll_type = self.type
@@ -329,6 +506,16 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
             self, "show_item", text=f"Item No.{index + 1}", icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT"
         )
 
+        vanilla_types = [
+            "anim_mat_type_tex_scroll",
+            "anim_mat_type_two_tex_scroll",
+            "anim_mat_type_color",
+            "anim_mat_type_color_lerp",
+            "anim_mat_type_color_non_linear_interp",
+            "anim_mat_type_tex_cycle",
+            "anim_mat_type_none",
+        ]
+
         if self.show_item:
             drawCollectionOps(layout, index, "Animated Mat.", header_index, owner.name, ask_for_amount=True)
 
@@ -337,17 +524,33 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
             layout_type = layout.column()
             prop_split(layout_type, self, "user_type", "Draw Handler Type")
 
+            if self.type not in vanilla_types:
+                layout_type.label(text="Note: this is not one of the original types.", icon="QUESTION")
+
             if self.type == "Custom":
                 layout_type.label(
                     text="This only allows you to choose a custom index for the function handler.", icon="ERROR"
                 )
                 prop_split(layout_type, self, "type_custom", "Custom Draw Handler Index")
-            elif self.type in {"tex_scroll", "two_tex_scroll"}:
+            elif "tex_scroll" in self.type or self.type == "anim_mat_type_oscillating_two_tex":
                 self.tex_scroll_params.draw_props(layout_type)
-            elif self.type in {"color", "color_lerp", "color_nonlinear_interp"}:
+            elif "color" in self.type:
                 self.color_params.draw_props(layout_type, owner, header_index, index)
-            elif self.type == "tex_cycle":
+            elif self.type == "anim_mat_type_tex_cycle":
                 self.tex_cycle_params.draw_props(layout_type, owner, header_index, index)
+            elif self.type == "anim_mat_type_tex_timed_cycle":
+                self.tex_timed_cycle_params.draw_props(layout_type, owner, header_index, index)
+            elif self.type == "anim_mat_type_texture":
+                self.texture_params.draw_props(layout_type)
+            elif self.type == "anim_mat_type_multitexture":
+                self.multitexture_params.draw_props(layout_type)
+            elif self.type == "anim_mat_type_event":
+                layout_type.label(text="This don't use parameters.")
+                layout_type.label(text="It will draw/hide based on the event.")
+            elif self.type == "anim_mat_type_surface_swap":
+                self.surface_params.draw_props(layout_type, owner, header_index, index)
+            elif self.type == "anim_mat_type_none":
+                layout_type.label(text="This won't be exported.", icon="ERROR")
 
 
 class Z64_AnimatedMaterial(PropertyGroup):
@@ -498,6 +701,12 @@ classes = (
     Z64_AnimatedMatTexCycleTexture,
     Z64_AnimatedMatTexCycleKeyFrame,
     Z64_AnimatedMatTexCycleParams,
+    Z64_AnimatedMatTexTimedCycleKeyFrame,
+    Z64_AnimatedMatTexTimedCycleParams,
+    Z64_AnimatedMatTextureParams,
+    Z64_AnimatedMatMultiTextureParams,
+    Z64_AnimatedMatTriIndexItem,
+    Z64_AnimatedMatSurfaceSwapParams,
     Z64_AnimatedMaterialItem,
     Z64_AnimatedMaterial,
     Z64_AnimatedMaterialProperty,
