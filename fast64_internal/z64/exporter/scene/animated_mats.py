@@ -6,6 +6,7 @@ from bpy.types import Object
 from typing import Optional, Any
 from pathlib import Path
 
+from ....game_data import game_data
 from ....utility import CData, PluginError, exportColor, scaleToU8, toAlnum, get_new_empty_object, indent
 from ...utility import getObjectList, is_hackeroot
 from ...scene.properties import OOTSceneHeaderProperty
@@ -551,6 +552,12 @@ class AnimatedMaterial:
         self.name = base_name
         self.entries = []
         self.event_map: dict[int, tuple[str, str, CData]] = {}  # type_num to event data
+        self.cam_type = (
+            game_data.z64.get_enum_value("anim_mats_cam_type", props.cam_type)
+            if props.cam_type != "Custom"
+            else props.cam_type_custom
+        )
+        self.cam_on_event = "true" if props.cam_on_event else "false"
 
         if len(props.entries) == 0:
             return
@@ -768,15 +775,17 @@ class SceneAnimatedMaterial:
     def get_cmd(self):
         """Returns the animated material scene command"""
 
-        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
-            return (
-                "#if ENABLE_ANIMATED_MATERIALS\n"
-                + indent
-                + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
-                + "#endif\n"
-            )
+        if is_hackeroot():
+            am = self.animated_material
+            assert am is not None
+            cmd = f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}, MATERIAL_CAM_PARAMS({am.cam_type}, {am.cam_on_event})),\n"
         else:
-            return indent + f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
+            cmd = f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"
+
+        if is_hackeroot() and bpy.context.scene.fast64.oot.hackeroot_settings.export_ifdefs:
+            return "#if ENABLE_ANIMATED_MATERIALS\n" + indent + cmd + "#endif\n"
+        else:
+            return indent + cmd
 
     def to_c(self, is_scene: bool = True):
         data = CData()

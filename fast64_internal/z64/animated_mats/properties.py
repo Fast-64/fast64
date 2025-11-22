@@ -579,6 +579,13 @@ class Z64_AnimatedMaterial(PropertyGroup):
     """Defines an Animated Material array"""
 
     entries: CollectionProperty(type=Z64_AnimatedMaterialItem)
+    cam_type: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum("anim_mats_cam_type"),
+        default=1,
+        description="Optional camera/screen effect to apply.",
+    )
+    cam_type_custom: StringProperty()
+    cam_on_event: BoolProperty(default=False)
 
     # ui only props
     show_list: BoolProperty(default=True)
@@ -592,9 +599,16 @@ class Z64_AnimatedMaterial(PropertyGroup):
         sub_index: Optional[int] = None,
         is_scene: bool = True,
     ):
+        layout = layout.column()
+
         if is_oot_features() and not is_hackeroot():
             layout.label(text="This requires MM features.", icon="ERROR")
             return
+
+        prop_split(layout, self, "cam_type", "Camera Type")
+        if self.cam_type == "Custom":
+            prop_split(layout, self, "cam_type_custom", "Camera Type Custom")
+        layout.prop(self, "cam_on_event", text="Camera On Event")
 
         if index is not None:
             layout.prop(

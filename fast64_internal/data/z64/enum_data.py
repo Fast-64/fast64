@@ -131,6 +131,7 @@ class Z64_EnumData:
         self.enum_floor_effect: list[tuple[str, str, str]] = []
         self.enum_conveyor_speed: list[tuple[str, str, str]] = []
         self.enum_anim_mats_type: list[tuple[str, str, str]] = []
+        self.enum_anim_mats_cam_type: list[tuple[str, str, str]] = []
         self.enum_event_condition: list[tuple[str, str, str]] = []
         self.enum_event_flag_type: list[tuple[str, str, str]] = []
         self.enum_event_inv_type: list[tuple[str, str, str]] = []

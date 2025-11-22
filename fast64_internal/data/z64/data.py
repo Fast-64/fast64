@@ -922,6 +922,7 @@ class Z64_Data:
             "credits_scene_type": self.enums.enum_cs_credits_scene_type,
             "mod_seq_type": self.enums.enum_cs_modify_seq_type,
             "anim_mats_type": self.enums.enum_anim_mats_type,
+            "anim_mats_cam_type": self.enums.enum_anim_mats_cam_type,
             "event_condition": self.enums.enum_event_condition,
             "event_flag_type": self.enums.enum_event_flag_type,
             "event_inv_type": self.enums.enum_event_inv_type,
