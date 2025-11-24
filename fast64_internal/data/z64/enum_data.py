@@ -139,6 +139,10 @@ class Z64_EnumData:
         self.enum_event_time_type: list[tuple[str, str, str]] = []
         self.enum_event_action_type: list[tuple[str, str, str]] = []
         self.enum_event_type: list[tuple[str, str, str]] = []
+        self.enum_inventory_items: list[tuple[str, str, str]] = []
+        self.enum_equipment_items: list[tuple[str, str, str]] = []
+        self.enum_quest_items: list[tuple[str, str, str]] = []
+        self.enum_upgrade_type: list[tuple[str, str, str]] = []
 
         self.enumByID = {enum.id: enum for enum in self.enumDataList}
         self.enumByKey = {enum.key: enum for enum in self.enumDataList}

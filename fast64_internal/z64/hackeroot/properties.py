@@ -67,10 +67,15 @@ class HackerOoT_EventFlagProperty(PropertyGroup):
 class HackerOoT_EventInventoryProperty(PropertyGroup):
     type: EnumProperty(items=lambda self, context: game_data.z64.get_enum("event_inv_type"), default=1)
 
-    item_id: StringProperty()
-    upgrade_type: StringProperty()
+    item_id: EnumProperty(items=lambda self, context: game_data.z64.get_enum("inventory_items"), default=1)
+    upgrade_type: EnumProperty(items=lambda self, context: game_data.z64.get_enum("upgrade_type"), default=1)
+    quest_item: EnumProperty(items=lambda self, context: game_data.z64.get_enum("quest_items"), default=1)
+    equipment_item: EnumProperty(items=lambda self, context: game_data.z64.get_enum("equipment_items"), default=1)
+    item_id_custom: StringProperty()
+    upgrade_type_custom: StringProperty()
+    quest_item_custom: StringProperty()
+    equipment_item_custom: StringProperty()
     scene_id: StringProperty()
-    quest_item: StringProperty()
 
     is_upgrade: BoolProperty()
     obtained: BoolProperty(name="Must be obtained")
@@ -88,31 +93,47 @@ class HackerOoT_EventInventoryProperty(PropertyGroup):
             layout.label(text="Custom type is not supported yet.")
             return
 
-        if self.type in {"event_inv_type_items", "event_inv_type_equipment"}:
+        if self.type == "event_inv_type_items":
+            layout.prop(self, "obtained")
+
+            prop_split(layout, self, "item_id", "Item ID")
+
+            if self.item_id == "Custom":
+                prop_split(layout, self, f"item_id_custom", "Item ID Custom")
+
+            layout.prop(self, "check_ammo", text="Check Amount")
+
+            if self.check_ammo:
+                prop_split(layout, self, "amount", "Amount")
+        elif self.type == "event_inv_type_equipment":
             layout.prop(self, "obtained")
 
             if not self.is_upgrade and not self.check_sword_health:
-                prop_split(layout, self, "item_id", "Item ID")
+                prop_split(layout, self, "equipment_item", "Item ID")
 
-            if self.type == "event_inv_type_items":
-                layout.prop(self, "check_ammo", text="Check Amount")
+                if self.equipment_item == "Custom":
+                    prop_split(layout, self, f"equipment_item_custom", "Item ID Custom")
 
-                if self.check_ammo:
-                    prop_split(layout, self, "amount", "Amount")
+            layout.prop(self, "is_upgrade", text="Upgrade Item")
+
+            if self.is_upgrade:
+                prop_split(layout, self, "upgrade_type", "Upgrade Type")
+
+                if self.upgrade_type == "Custom":
+                    prop_split(layout, self, f"upgrade_type_custom", "Upgrade Type Custom")
+
+                prop_split(layout, self, "upgrade_value", "Upgrade Value")
             else:
-                layout.prop(self, "is_upgrade", text="Upgrade Item")
+                layout.prop(self, "check_sword_health", text="Check Sword Health")
 
-                if self.is_upgrade:
-                    prop_split(layout, self, "upgrade_type", "Upgrade Type")
-                    prop_split(layout, self, "upgrade_value", "Upgrade Value")
-                else:
-                    layout.prop(self, "check_sword_health", text="Check Sword Health")
-
-                    if self.check_sword_health:
-                        prop_split(layout, self, "sword_health", "Sword Health")
+                if self.check_sword_health:
+                    prop_split(layout, self, "sword_health", "Sword Health")
         elif self.type == "event_inv_type_quest":
             layout.prop(self, "obtained")
             prop_split(layout, self, "quest_item", "Quest Item")
+
+            if self.quest_item == "Custom":
+                prop_split(layout, self, f"quest_item_custom", "Quest Item Custom")
         elif self.type == "event_inv_type_gs_tokens":
             prop_split(layout, self, "gs_tokens", "Gold Skulltula Tokens")
         else:
@@ -129,10 +150,18 @@ class HackerOoT_EventInventoryProperty(PropertyGroup):
         cmd = type_to_cmd[self.type]
 
         if self.type in {"event_inv_type_items", "event_inv_type_equipment"}:
+            prop_name = "item_id" if self.type == "event_inv_type_items" else "equipment_item"
+            enum_name = "inventory_items" if self.type == "event_inv_type_items" else "equipment_items"
+
+            if getattr(self, prop_name) == "Custom":
+                item_id = getattr(self, f"{prop_name}_custom")
+            else:
+                item_id = game_data.z64.get_enum_value(enum_name, getattr(self, prop_name))
+
             if self.type == "event_inv_type_items":
                 if self.check_ammo:
                     assert "none" not in cond.lower(), "ERROR: item amount events must have a condition"
-                    return f"{cmd}_AMMO({cond}, {self.item_id}, {self.amount})"
+                    return f"{cmd}_AMMO({cond}, {item_id}, {self.amount})"
             else:
                 if self.check_sword_health:
                     assert "none" not in cond.lower(), "ERROR: sword health events must have a condition"
@@ -140,11 +169,19 @@ class HackerOoT_EventInventoryProperty(PropertyGroup):
 
                 if self.is_upgrade:
                     assert "none" not in cond.lower(), "ERROR: upgrade events must have a condition"
-                    return f"{cmd}_UPG({cond}, {self.upgrade_type}, {self.upgrade_value})"
+                    if self.upgrade_type == "Custom":
+                        item_id = self.upgrade_type_custom
+                    else:
+                        item_id = game_data.z64.get_enum_value("upgrade_type", self.upgrade_type)
+                    return f"{cmd}_UPG({cond}, {item_id}, {self.upgrade_value})"
 
-            return f"{cmd}({self.item_id}, {bool_to_c(self.obtained)})"
+            return f"{cmd}({item_id}, {bool_to_c(self.obtained)})"
         elif self.type == "event_inv_type_quest":
-            return f"{cmd}({self.quest_item}, {bool_to_c(self.obtained)})"
+            if self.quest_item == "Custom":
+                item_id = self.quest_item_custom
+            else:
+                item_id = game_data.z64.get_enum_value("quest_items", self.quest_item)
+            return f"{cmd}({item_id}, {bool_to_c(self.obtained)})"
         elif self.type == "event_inv_type_gs_tokens":
             assert "none" not in cond.lower(), "ERROR: tokens events must have a condition"
             return f"{cmd}({cond}, {self.gs_tokens})"

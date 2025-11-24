@@ -882,4 +882,114 @@
     <Item Key="event_type_game" ID="EVENT_TYPE_GAME" Index="2"/>
     <Item Key="event_type_time" ID="EVENT_TYPE_TIME" Index="3"/>
   </Enum>
+  <Enum Key="inventory_items" ID="InventoryItems">
+    <Item Key="item_deku_stick" ID="ITEM_DEKU_STICK" Name="Deku Sticks" Index="0"/>
+    <Item Key="item_deku_nut" ID="ITEM_DEKU_NUT" Name="Deku Nuts" Index="1"/>
+    <Item Key="item_bomb" ID="ITEM_BOMB" Name="Bombs" Index="2"/>
+    <Item Key="item_bow" ID="ITEM_BOW" Name="Bow" Index="3"/>
+    <Item Key="item_arrow_fire" ID="ITEM_ARROW_FIRE" Name="Fire Arrows" Index="4"/>
+    <Item Key="item_dins_fire" ID="ITEM_DINS_FIRE" Name="Din's Fire" Index="5"/>
+    <Item Key="item_slingshot" ID="ITEM_SLINGSHOT" Name="Slingshot" Index="6"/>
+    <Item Key="item_ocarina_fairy" ID="ITEM_OCARINA_FAIRY" Name="Fairy Ocarina" Index="7"/>
+    <Item Key="item_ocarina_of_time" ID="ITEM_OCARINA_OF_TIME" Name="Ocarina of Time" Index="8"/>
+    <Item Key="item_bombchu" ID="ITEM_BOMBCHU" Name="Bombchus" Index="9"/>
+    <Item Key="item_hookshot" ID="ITEM_HOOKSHOT" Name="Hookshot" Index="10"/>
+    <Item Key="item_longshot" ID="ITEM_LONGSHOT" Name="Longshot" Index="11"/>
+    <Item Key="item_arrow_ice" ID="ITEM_ARROW_ICE" Name="Ice Arrows" Index="12"/>
+    <Item Key="item_farores_wind" ID="ITEM_FARORES_WIND" Name="Farore's Wind" Index="13"/>
+    <Item Key="item_boomerang" ID="ITEM_BOOMERANG" Name="Boomerang" Index="14"/>
+    <Item Key="item_lens_of_truth" ID="ITEM_LENS_OF_TRUTH" Name="Lens of Truth" Index="15"/>
+    <Item Key="item_magic_bean" ID="ITEM_MAGIC_BEAN" Name="Magic Beans" Index="16"/>
+    <Item Key="item_hammer" ID="ITEM_HAMMER" Name="Hammer" Index="17"/>
+    <Item Key="item_arrow_light" ID="ITEM_ARROW_LIGHT" Name="Light Arrows" Index="18"/>
+    <Item Key="item_nayrus_love" ID="ITEM_NAYRUS_LOVE" Name="Nayru's Love" Index="19"/>
+    <Item Key="item_bottle_empty" ID="ITEM_BOTTLE_EMPTY" Name="Empty Bottle" Index="20"/>
+    <Item Key="item_bottle_potion_red" ID="ITEM_BOTTLE_POTION_RED" Name="Red Potion" Index="21"/>
+    <Item Key="item_bottle_potion_green" ID="ITEM_BOTTLE_POTION_GREEN" Name="Green Potion" Index="22"/>
+    <Item Key="item_bottle_potion_blue" ID="ITEM_BOTTLE_POTION_BLUE" Name="Blue Potion" Index="23"/>
+    <Item Key="item_bottle_fairy" ID="ITEM_BOTTLE_FAIRY" Name="Bottled Fairy" Index="24"/>
+    <Item Key="item_bottle_fish" ID="ITEM_BOTTLE_FISH" Name="Bottled Fish" Index="25"/>
+    <Item Key="item_bottle_milk_full" ID="ITEM_BOTTLE_MILK_FULL" Name="Milk" Index="26"/>
+    <Item Key="item_bottle_rutos_letter" ID="ITEM_BOTTLE_RUTOS_LETTER" Name="Ruto's Letter" Index="27"/>
+    <Item Key="item_bottle_blue_fire" ID="ITEM_BOTTLE_BLUE_FIRE" Name="Blue Fire" Index="28"/>
+    <Item Key="item_bottle_bug" ID="ITEM_BOTTLE_BUG" Name="Bottled Bug" Index="29"/>
+    <Item Key="item_bottle_big_poe" ID="ITEM_BOTTLE_BIG_POE" Name="Bottled Big Poe" Index="30"/>
+    <Item Key="item_bottle_milk_half" ID="ITEM_BOTTLE_MILK_HALF" Name="Half Milk" Index="31"/>
+    <Item Key="item_bottle_poe" ID="ITEM_BOTTLE_POE" Name="Bottled Poe" Index="32"/>
+    <Item Key="item_weird_egg" ID="ITEM_WEIRD_EGG" Name="Weird Egg" Index="33"/>
+    <Item Key="item_chicken" ID="ITEM_CHICKEN" Name="Chicken" Index="34"/>
+    <Item Key="item_zeldas_letter" ID="ITEM_ZELDAS_LETTER" Name="Zeldas Letter" Index="35"/>
+    <Item Key="item_mask_keaton" ID="ITEM_MASK_KEATON" Name="Keaton Mask" Index="36"/>
+    <Item Key="item_mask_skull" ID="ITEM_MASK_SKULL" Name="Skull Mask" Index="37"/>
+    <Item Key="item_mask_spooky" ID="ITEM_MASK_SPOOKY" Name="Spooky Mask" Index="38"/>
+    <Item Key="item_mask_bunny_hood" ID="ITEM_MASK_BUNNY_HOOD" Name="Bunny Hood" Index="39"/>
+    <Item Key="item_mask_goron" ID="ITEM_MASK_GORON" Name="Goron Mask" Index="40"/>
+    <Item Key="item_mask_zora" ID="ITEM_MASK_ZORA" Name="Zora Mask" Index="41"/>
+    <Item Key="item_mask_gerudo" ID="ITEM_MASK_GERUDO" Name="Gerudo Mask" Index="42"/>
+    <Item Key="item_mask_truth" ID="ITEM_MASK_TRUTH" Name="Mask of Truth" Index="43"/>
+    <Item Key="item_sold_out" ID="ITEM_SOLD_OUT" Name="Sold Out" Index="44"/>
+    <Item Key="item_pocket_egg" ID="ITEM_POCKET_EGG" Name="Pocket Egg" Index="45"/>
+    <Item Key="item_pocket_cucco" ID="ITEM_POCKET_CUCCO" Name="Pocket Cucco" Index="46"/>
+    <Item Key="item_cojiro" ID="ITEM_COJIRO" Name="Cojiro" Index="47"/>
+    <Item Key="item_odd_mushroom" ID="ITEM_ODD_MUSHROOM" Name="Odd Mushroom" Index="48"/>
+    <Item Key="item_odd_potion" ID="ITEM_ODD_POTION" Name="Odd Potion" Index="49"/>
+    <Item Key="item_poachers_saw" ID="ITEM_POACHERS_SAW" Name="Poacher's Saw" Index="50"/>
+    <Item Key="item_broken_gorons_sword" ID="ITEM_BROKEN_GORONS_SWORD" Name="Broken Goron's Sword" Index="51"/>
+    <Item Key="item_prescription" ID="ITEM_PRESCRIPTION" Name="Prescription" Index="52"/>
+    <Item Key="item_eyeball_frog" ID="ITEM_EYEBALL_FROG" Name="Eyeball Frog" Index="53"/>
+    <Item Key="item_eye_drops" ID="ITEM_EYE_DROPS" Name="Eye Drops" Index="54"/>
+    <Item Key="item_claim_check" ID="ITEM_CLAIM_CHECK" Name="Claim Check" Index="55"/>
+    <Item Key="item_bow_fire" ID="ITEM_BOW_FIRE" Name="Bow Fire" Index="56"/>
+    <Item Key="item_bow_ice" ID="ITEM_BOW_ICE" Name="Bow Ice" Index="57"/>
+    <Item Key="item_bow_light" ID="ITEM_BOW_LIGHT" Name="Bow Light" Index="58"/>
+  </Enum>
+  <Enum Key="equipment_items" ID="EquipmentItems">
+    <Item Key="item_sword_kokiri" ID="ITEM_SWORD_KOKIRI" Name="Kokiri Sword" Index="0"/>
+    <Item Key="item_sword_master" ID="ITEM_SWORD_MASTER" Name="Master Sword" Index="1"/>
+    <Item Key="item_sword_biggoron" ID="ITEM_SWORD_BIGGORON" Name="Biggoron's Sword" Index="2"/>
+    <Item Key="item_shield_deku" ID="ITEM_SHIELD_DEKU" Name="Deku Shield" Index="3"/>
+    <Item Key="item_shield_hylian" ID="ITEM_SHIELD_HYLIAN" Name="Hylian Shield" Index="4"/>
+    <Item Key="item_shield_mirror" ID="ITEM_SHIELD_MIRROR" Name="Mirror Shield" Index="5"/>
+    <Item Key="item_tunic_kokiri" ID="ITEM_TUNIC_KOKIRI" Name="Kokiri Tunic" Index="6"/>
+    <Item Key="item_tunic_goron" ID="ITEM_TUNIC_GORON" Name="Goron Tunic" Index="7"/>
+    <Item Key="item_tunic_zora" ID="ITEM_TUNIC_ZORA" Name="Zora Tunic" Index="8"/>
+    <Item Key="item_boots_kokiri" ID="ITEM_BOOTS_KOKIRI" Name="Kokiri Boots" Index="9"/>
+    <Item Key="item_boots_iron" ID="ITEM_BOOTS_IRON" Name="Iron Boots" Index="10"/>
+    <Item Key="item_boots_hover" ID="ITEM_BOOTS_HOVER" Name="Hover Boots" Index="11"/>
+  </Enum>
+  <Enum Key="quest_items" ID="QuestItems">
+    <Item Key="item_song_minuet" ID="ITEM_SONG_MINUET" Name="Minuet of Forest" Index="0"/>
+    <Item Key="item_song_bolero" ID="ITEM_SONG_BOLERO" Name="Bolero of Fire" Index="1"/>
+    <Item Key="item_song_serenade" ID="ITEM_SONG_SERENADE" Name="Serenade of Water" Index="2"/>
+    <Item Key="item_song_requiem" ID="ITEM_SONG_REQUIEM" Name="Requiem of Spirit" Index="3"/>
+    <Item Key="item_song_nocturne" ID="ITEM_SONG_NOCTURNE" Name="Nocturne of Shadow" Index="4"/>
+    <Item Key="item_song_prelude" ID="ITEM_SONG_PRELUDE" Name="Prelude of Light" Index="5"/>
+    <Item Key="item_song_lullaby" ID="ITEM_SONG_LULLABY" Name="Zelda's Lullaby" Index="6"/>
+    <Item Key="item_song_epona" ID="ITEM_SONG_EPONA" Name="Epona's Song" Index="7"/>
+    <Item Key="item_song_saria" ID="ITEM_SONG_SARIA" Name="Saria's Song" Index="8"/>
+    <Item Key="item_song_sun" ID="ITEM_SONG_SUN" Name="Sun's Song" Index="9"/>
+    <Item Key="item_song_time" ID="ITEM_SONG_TIME" Name="Song of Time" Index="10"/>
+    <Item Key="item_song_storms" ID="ITEM_SONG_STORMS" Name="Song of Storms" Index="11"/>
+    <Item Key="item_medallion_forest" ID="ITEM_MEDALLION_FOREST" Name="Forest Medallion" Index="12"/>
+    <Item Key="item_medallion_fire" ID="ITEM_MEDALLION_FIRE" Name="Fire Medallion" Index="13"/>
+    <Item Key="item_medallion_water" ID="ITEM_MEDALLION_WATER" Name="Water Medallion" Index="14"/>
+    <Item Key="item_medallion_spirit" ID="ITEM_MEDALLION_SPIRIT" Name="Spirit Medallion" Index="15"/>
+    <Item Key="item_medallion_shadow" ID="ITEM_MEDALLION_SHADOW" Name="Shadow Medallion" Index="16"/>
+    <Item Key="item_medallion_light" ID="ITEM_MEDALLION_LIGHT" Name="Light Medallion" Index="17"/>
+    <Item Key="item_kokiri_emerald" ID="ITEM_KOKIRI_EMERALD" Name="Kokiri Emerald" Index="18"/>
+    <Item Key="item_goron_ruby" ID="ITEM_GORON_RUBY" Name="Goron Ruby" Index="19"/>
+    <Item Key="item_zora_sapphire" ID="ITEM_ZORA_SAPPHIRE" Name="Zora Sapphire" Index="20"/>
+    <Item Key="item_stone_of_agony" ID="ITEM_STONE_OF_AGONY" Name="Stone Of Agony" Index="21"/>
+    <Item Key="item_gerudos_card" ID="ITEM_GERUDOS_CARD" Name="Gerudo's Card" Index="22"/>
+  </Enum>
+  <Enum Key="upgrade_type" ID="UpgradeType">
+    <Item Key="upg_quiver" ID="UPG_QUIVER" Name="Upgrade Quiver" Index="0"/>
+    <Item Key="upg_bomb_bag" ID="UPG_BOMB_BAG" Name="Upgrade Bomb Bag" Index="1"/>
+    <Item Key="upg_strength" ID="UPG_STRENGTH" Name="Upgrade Strength" Index="2"/>
+    <Item Key="upg_scale" ID="UPG_SCALE" Name="Upgrade Scale" Index="3"/>
+    <Item Key="upg_wallet" ID="UPG_WALLET" Name="Upgrade Wallet" Index="4"/>
+    <Item Key="upg_bullet_bag" ID="UPG_BULLET_BAG" Name="Upgrade Bullet Bag" Index="5"/>
+    <Item Key="upg_deku_sticks" ID="UPG_DEKU_STICKS" Name="Upgrade Deku Sticks" Index="6"/>
+    <Item Key="upg_deku_nuts" ID="UPG_DEKU_NUTS" Name="Upgrade Deku Nuts" Index="7"/>
+  </Enum>
 </Table>
