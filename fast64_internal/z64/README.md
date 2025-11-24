@@ -223,7 +223,7 @@ You can pick the segment number with the `Segment Number` field (make sure to us
 - `7` (`ANIM_MAT_TYPE_COLOR_CYCLE`): like `ANIM_MAT_TYPE_COLOR` except this takes a keyframe array to set duration values for each colors
 - `8` (`ANIM_MAT_TYPE_TEX_TIMED_CYCLE`): displays a texture for a set amount of time then it goes to the next one until the end then it starts back at the beginning (requires texture reference)
 - `9` (`ANIM_MAT_TYPE_TEXTURE`):  displays a texture depending on the trigger event state, this can only take two textures (requires texture reference)
-- `10` (`ANIM_MAT_TYPE_MULTITEXTURE`): displays two textures and allows you to transition from one to another and also make both transparent (optional: you can use texture reference)
+- `10` (`ANIM_MAT_TYPE_MULTITEXTURE`): displays two textures and allows you to transition from one to another and also make both transparent (optional: you can use texture reference), note: this may require the "Shaded Multitexture Lerp Transparent" preset (also you might need to uncheck "Environment Color", enabling "Cull Back" may help in some situations (example: reproducing the Kokiri Forest grass env alpha change))
 - `11` (`ANIM_MAT_TYPE_EVENT`): will hide the texture until the trigger event is completed
 - `12` (`ANIM_MAT_TYPE_SURFACE_SWAP`): can change one or several surface types along with collision flags, if linking mesh objects it will change any surface type related to the triangles of the mesh
 - `13` (`ANIM_MAT_TYPE_OSCILLATING_TWO_TEX`): exactly like `ANIM_MAT_TYPE_TWO_TEX_SCROLL` except the scroll is oscillating instead of going forever in the same direction
