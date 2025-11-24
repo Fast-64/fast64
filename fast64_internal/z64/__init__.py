@@ -134,6 +134,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
     hackeroot_settings: bpy.props.PointerProperty(type=HackerOoTSettings)
     anim_mats_export_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialExportSettings)
     anim_mats_import_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialImportSettings)
+    export_cutscene_obj: bpy.props.PointerProperty(
+        type=bpy.types.Object, poll=lambda self, obj: obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene"
+    )
 
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version

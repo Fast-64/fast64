@@ -77,7 +77,10 @@ class OOT_ExportCutscene(Operator):
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
 
-            cs_obj = context.view_layer.objects.active
+            if context.scene.fast64.oot.export_cutscene_obj is not None:
+                cs_obj = context.scene.fast64.oot.export_cutscene_obj
+            else:
+                cs_obj = context.view_layer.objects.active
 
             if cs_obj is None or cs_obj.type != "EMPTY" or cs_obj.ootEmptyType != "Cutscene":
                 raise PluginError("You must select a cutscene object")
