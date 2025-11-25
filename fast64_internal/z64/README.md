@@ -212,7 +212,13 @@ For scenes it's integrated as a tab in the scene header properties panel.
 
 For non-scene export, click on `Add Item` to add a new animated material list.
 
-You can pick the segment number with the `Segment Number` field (make sure to use the same number on the material you want this to be used on), for convenience the exporter will add a macro to make it more readable. `Draw Handler Type` lets you choose what kind of animated material you want, it can be one of:
+You can pick the segment number with the `Segment Number` field (make sure to use the same number on the material you want this to be used on), for convenience the exporter will add a macro to make it more readable.
+
+**Important**: when using texture references:
+1. make sure to use a dedicated segment otherwise it will crash (for example, texture reference on segment 8 and having the checkbox for segment 8 enabled will crash, but if they are different it won't)
+2. always use the segment address as the texture symbol (for example, `0x08000000` for segment 8)
+
+`Draw Handler Type` lets you choose what kind of animated material you want, it can be one of:
 - `0` (`ANIM_MAT_TYPE_TEX_SCROLL`): Texture Scroll
 - `1` (`ANIM_MAT_TYPE_TWO_TEX_SCROLL`): Two-textures Scroll
 - `2` (`ANIM_MAT_TYPE_COLOR`): Color
