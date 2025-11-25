@@ -1190,15 +1190,19 @@ def applyRotation(objs: list[Object], angle: float, axis: str):
     rot_mat = Matrix.Rotation(angle, 4, rot_axis)
 
     for obj in objs:
-        # apply rotation/scale matrix to mesh
-        if obj.type == "MESH" and obj.data is not None:
-            matrix = obj.matrix_world.copy()
-            matrix.translation = (0.0, 0.0, 0.0)
-            obj.data.transform(rot_mat @ matrix)
-            obj.data.update()
-            obj.matrix_world = Matrix.Translation(obj.matrix_world.translation)
-        else:
-            obj.matrix_world = rot_mat @ obj.matrix_world
+        # rotate object
+        obj.matrix_basis = rot_mat @ obj.matrix_basis
+        # apply rotation/scale matrix to object
+        original_matrix = obj.matrix_basis.copy()
+        matrix = original_matrix.copy()
+        matrix.translation = (0, 0, 0)  # remove translation
+        if hasattr(obj, "transform"):
+            obj.transform(matrix)
+        if hasattr(obj, "update"):
+            obj.update()
+        for child in obj.children:
+            child.matrix_local = matrix @ child.matrix_local
+        obj.matrix_basis = Matrix.Translation(obj.location)
 
 
 def doRotation(angle, axis):
