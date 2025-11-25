@@ -873,9 +873,9 @@
     <Item Key="event_time_type_night" ID="EVENT_TIME_TYPE_NIGHT" Name="On Nighttime" Index="3"/>
   </Enum>
   <Enum Key="event_action_type" ID="EventActionType">
-    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Name="Default behavior" Index="0"/>
-    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Name="Inverted behavior" Index="1"/>
-    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Name="Inverted behavior (let loops end)" Index="2"/>
+    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Name="Trigger Events are completed (default)" Index="0"/>
+    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Name="Trigger Events are not completed" Index="1"/>
+    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Name="Trigger Events are not completed but let loops end" Index="2"/>
   </Enum>
   <Enum Key="event_type" ID="EventType">
     <Item Key="event_type_none" ID="EVENT_TYPE_NONE" Name="Nothing (will be ignored)" Index="0"/>

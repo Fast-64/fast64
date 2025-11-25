@@ -390,10 +390,10 @@ class HackerOoT_EventProperty(PropertyGroup):
                 layout.label(text="This requires HackerOoT features.", icon="ERROR")
                 return
 
-            prop_split(layout, self, "action_type", "Action Type")
+            prop_split(layout, self, "action_type", "Draw When")
 
             if self.action_type == "Custom":
-                prop_split(layout, self, "action_type_custom", "Action Type Custom")
+                prop_split(layout, self, "action_type_custom", "Draw When Custom")
 
             for i, entry in enumerate(self.entries):
                 entry.draw_props(layout.box().column(), owner, collec_type, i, header_index, collection_index)
