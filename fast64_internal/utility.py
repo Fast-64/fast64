@@ -4,7 +4,7 @@ from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
-from bpy.types import UILayout, Scene, World
+from bpy.types import UILayout, Scene, World, Object
 from bpy.props import FloatVectorProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -1184,20 +1184,19 @@ def getDirectionGivenAppVersion():
         return 1
 
 
-def applyRotation(objList, angle, axis):
-    bpy.context.scene.tool_settings.use_transform_data_origin = False
-    bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
-    bpy.context.scene.tool_settings.use_transform_skip_children = False
+def applyRotation(objs: list[Object], angle: float, axis: str):
+    axes = {"X": Vector((-1.0, 0.0, 0.0)), "Y": Vector((0.0, -1.0, 0.0)), "Z": Vector((0.0, 0.0, -1.0))}
+    rot_axis = axes[axis]
+    rot_mat = Matrix.Rotation(angle, 4, rot_axis)
 
-    deselectAllObjects()
-    for obj in objList:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = objList[0]
-
-    direction = getDirectionGivenAppVersion()
-
-    bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+    for obj in objs:
+        # apply rotation/scale matrix to mesh
+        current_matrix = obj.matrix_world.copy()
+        current_matrix.translation = (0.0, 0.0, 0.0)
+        if obj.type == "MESH" and obj.data is not None:
+            obj.data.transform(rot_mat @ current_matrix)
+            obj.data.update()
+        obj.matrix_world = Matrix.Translation(obj.matrix_world.translation)
 
 
 def doRotation(angle, axis):
