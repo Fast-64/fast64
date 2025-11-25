@@ -1196,10 +1196,10 @@ def applyRotation(objs: list[Object], angle: float, axis: str):
         original_matrix = obj.matrix_basis.copy()
         matrix = original_matrix.copy()
         matrix.translation = (0, 0, 0)  # remove translation
-        if hasattr(obj, "transform"):
-            obj.transform(matrix)
-        if hasattr(obj, "update"):
-            obj.update()
+        if hasattr(obj.data, "transform"):
+            obj.data.transform(matrix)
+        if hasattr(obj.data, "update"):
+            obj.data.update()
         for child in obj.children:
             child.matrix_local = matrix @ child.matrix_local
         obj.matrix_basis = Matrix.Translation(obj.location)
