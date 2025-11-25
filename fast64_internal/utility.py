@@ -730,6 +730,10 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
     mesh.transform(target_mat.inverted())
     obj.matrix_world = target_mat
 
+    delta = original_mat.translation - target_mat.translation
+    for child in obj.children_recursive:
+        child.location += delta
+
 
 def checkIfPathExists(filePath):
     if not os.path.exists(filePath):
