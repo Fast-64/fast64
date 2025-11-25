@@ -1191,12 +1191,14 @@ def applyRotation(objs: list[Object], angle: float, axis: str):
 
     for obj in objs:
         # apply rotation/scale matrix to mesh
-        current_matrix = obj.matrix_world.copy()
-        current_matrix.translation = (0.0, 0.0, 0.0)
         if obj.type == "MESH" and obj.data is not None:
-            obj.data.transform(rot_mat @ current_matrix)
+            matrix = obj.matrix_world.copy()
+            matrix.translation = (0.0, 0.0, 0.0)
+            obj.data.transform(rot_mat @ matrix)
             obj.data.update()
-        obj.matrix_world = Matrix.Translation(obj.matrix_world.translation)
+            obj.matrix_world = Matrix.Translation(obj.matrix_world.translation)
+        else:
+            obj.matrix_world = rot_mat @ obj.matrix_world
 
 
 def doRotation(angle, axis):
