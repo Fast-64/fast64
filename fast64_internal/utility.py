@@ -1185,9 +1185,7 @@ def getDirectionGivenAppVersion():
 
 
 def applyRotation(objs: list[Object], angle: float, axis: str):
-    axes = {"X": Vector((-1.0, 0.0, 0.0)), "Y": Vector((0.0, -1.0, 0.0)), "Z": Vector((0.0, 0.0, -1.0))}
-    rot_axis = axes[axis]
-    rot_mat = Matrix.Rotation(angle, 4, rot_axis)
+    rot_mat = Matrix.Rotation(angle, 4, axis)
 
     for obj in objs:
         # rotate object
@@ -1201,7 +1199,7 @@ def applyRotation(objs: list[Object], angle: float, axis: str):
         if hasattr(obj.data, "update"):
             obj.data.update()
         for child in obj.children:
-            child.matrix_local = matrix @ child.matrix_local
+            child.matrix_world = matrix.inverted() @ child.matrix_world
         obj.matrix_basis = Matrix.Translation(obj.location)
 
 
