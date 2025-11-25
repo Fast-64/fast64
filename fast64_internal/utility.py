@@ -1185,22 +1185,29 @@ def getDirectionGivenAppVersion():
 
 
 def applyRotation(objs: list[Object], angle: float, axis: str):
-    rot_mat = Matrix.Rotation(angle, 4, axis)
+    rot_mat = Matrix.Rotation(angle, 4, axis).inverted()
 
     for obj in objs:
         # rotate object
-        obj.matrix_basis = rot_mat @ obj.matrix_basis
-        # apply rotation/scale matrix to object
-        original_matrix = obj.matrix_basis.copy()
-        matrix = original_matrix.copy()
-        matrix.translation = (0, 0, 0)  # remove translation
-        if hasattr(obj.data, "transform"):
-            obj.data.transform(matrix)
-        if hasattr(obj.data, "update"):
+        obj.matrix_world = rot_mat @ obj.matrix_world
+        bpy.context.view_layer.update()
+
+        original_basis = obj.matrix_basis.copy()
+        local_loc = original_basis.translation.copy()
+
+        bake_matrix = original_basis.copy()
+        # don´t apply translation to the mesh
+        bake_matrix.translation = (0, 0, 0)
+        obj.matrix_basis = Matrix.Translation(local_loc)
+
+        # apply transformations
+        if obj.data is not None and hasattr(obj.data, "transform"):
+            obj.data.transform(bake_matrix)
             obj.data.update()
-        for child in obj.children:
-            child.matrix_world = matrix.inverted() @ child.matrix_world
-        obj.matrix_basis = Matrix.Translation(obj.location)
+
+        for child in obj.children:  # apply the same matrix we applied to the mesh to the children's transforms
+            child.matrix_local = bake_matrix @ child.matrix_local
+        bpy.context.view_layer.update()
 
 
 def doRotation(angle, axis):
