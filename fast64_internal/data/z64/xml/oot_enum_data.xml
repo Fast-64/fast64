@@ -816,15 +816,16 @@
       <Item Key="anim_mat_type_color_lerp" ID="ANIM_MAT_TYPE_COLOR_LERP" Name="Draw Color Lerp" Index="3"/>
       <Item Key="anim_mat_type_color_nonlinear_interp" ID="ANIM_MAT_TYPE_COLOR_NON_LINEAR_INTERP" Name="Draw Color Non-Linear Interp" Index="4"/>
       <Item Key="anim_mat_type_tex_cycle" ID="ANIM_MAT_TYPE_TEX_CYCLE" Name="Draw Texture Cycle" Index="5"/>
-      <Item Key="anim_mat_type_none" ID="ANIM_MAT_TYPE_NONE" Index="6"/>
+      <Item Key="anim_mat_type_none" ID="ANIM_MAT_TYPE_NONE" Name="Nothing" Index="6"/>
       <!-- For mods -->
-      <Item Key="anim_mat_type_color_cycle" ID="ANIM_MAT_TYPE_COLOR_CYCLE" Index="7"/>
-      <Item Key="anim_mat_type_tex_timed_cycle" ID="ANIM_MAT_TYPE_TEX_TIMED_CYCLE" Index="8"/>
-      <Item Key="anim_mat_type_texture" ID="ANIM_MAT_TYPE_TEXTURE" Index="9"/>
-      <Item Key="anim_mat_type_multitexture" ID="ANIM_MAT_TYPE_MULTITEXTURE" Index="10"/>
-      <Item Key="anim_mat_type_event" ID="ANIM_MAT_TYPE_EVENT" Index="11"/>
-      <Item Key="anim_mat_type_surface_swap" ID="ANIM_MAT_TYPE_SURFACE_SWAP" Index="12"/>
-      <Item Key="anim_mat_type_oscillating_two_tex" ID="ANIM_MAT_TYPE_OSCILLATING_TWO_TEX" Index="13"/>
+      <Item Key="anim_mat_type_color_cycle" ID="ANIM_MAT_TYPE_COLOR_CYCLE" Name="Draw Color Cycle" Index="7"/>
+      <Item Key="anim_mat_type_tex_timed_cycle" ID="ANIM_MAT_TYPE_TEX_TIMED_CYCLE" Name="Draw Timed Texture Cycle" Index="8"/>
+      <Item Key="anim_mat_type_texture" ID="ANIM_MAT_TYPE_TEXTURE" Name="Draw Texture Switch" Index="9"/>
+      <Item Key="anim_mat_type_multitexture" ID="ANIM_MAT_TYPE_MULTITEXTURE" Name="Draw Multi-Texture" Index="10"/>
+      <Item Key="anim_mat_type_event" ID="ANIM_MAT_TYPE_EVENT" Name="Draw On Event" Index="11"/>
+      <Item Key="anim_mat_type_surface_swap" ID="ANIM_MAT_TYPE_SURFACE_SWAP" Name="Draw Surface and Poly Flags Swap" Index="12"/>
+      <Item Key="anim_mat_type_oscillating_two_tex" ID="ANIM_MAT_TYPE_OSCILLATING_TWO_TEX" Name="Draw Two Texture Oscillating Scroll" Index="13"/>
+      <Item Key="anim_mat_type_color_switch" ID="ANIM_MAT_TYPE_COLOR_SWITCH" Name="Draw Color Switch" Index="14"/>
   </Enum>
   <!-- For mods -->
   <Enum Key="anim_mats_cam_type" ID="AnimatedMatCameraType">
@@ -872,15 +873,15 @@
     <Item Key="event_time_type_night" ID="EVENT_TIME_TYPE_NIGHT" Name="On Nighttime" Index="3"/>
   </Enum>
   <Enum Key="event_action_type" ID="EventActionType">
-    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Namme="Default behavior" Index="0"/>
-    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Namme="Inverted behavior" Index="1"/>
-    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Namme="Inverted behavior (let loops end)" Index="2"/>
+    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Name="Default behavior" Index="0"/>
+    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Name="Inverted behavior" Index="1"/>
+    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Name="Inverted behavior (let loops end)" Index="2"/>
   </Enum>
   <Enum Key="event_type" ID="EventType">
-    <Item Key="event_type_none" ID="EVENT_TYPE_NONE" Index="0"/>
-    <Item Key="event_type_flag" ID="EVENT_TYPE_FLAG" Index="1"/>
-    <Item Key="event_type_game" ID="EVENT_TYPE_GAME" Index="2"/>
-    <Item Key="event_type_time" ID="EVENT_TYPE_TIME" Index="3"/>
+    <Item Key="event_type_none" ID="EVENT_TYPE_NONE" Name="Nothing (will be ignored)" Index="0"/>
+    <Item Key="event_type_flag" ID="EVENT_TYPE_FLAG" Name="Flag Event" Index="1"/>
+    <Item Key="event_type_game" ID="EVENT_TYPE_GAME" Name="Game Event" Index="2"/>
+    <Item Key="event_type_time" ID="EVENT_TYPE_TIME" Name="Time Event" Index="3"/>
   </Enum>
   <Enum Key="inventory_items" ID="InventoryItems">
     <Item Key="item_deku_stick" ID="ITEM_DEKU_STICK" Name="Deku Sticks" Index="0"/>

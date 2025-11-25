@@ -472,6 +472,47 @@ class Z64_AnimatedMatSurfaceSwapParams(PropertyGroup):
             self.multitexture_params.draw_props(multi_box)
 
 
+class Z64_AnimatedMatColorSwitchItem(PropertyGroup):
+    prim_lod_frac: IntProperty(name="Primitive LOD Frac", min=0, max=255, default=128)
+    prim_color: FloatVectorProperty(
+        name="Primitive Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(1, 1, 1, 1),
+    )
+
+    use_env_color: BoolProperty()
+    env_color: FloatVectorProperty(
+        name="Environment Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(1, 1, 1, 1),
+    )
+
+    def draw_props(self, layout: UILayout, number: int):
+        layout.label(text=f"Color {number}")
+        layout.prop(self, "use_env_color", text="Use Environment Color")
+
+        prop_split(layout, self, "prim_lod_frac", "Primitive LOD Frac")
+        prop_split(layout, self, "prim_color", "Primitive Color")
+
+        if self.use_env_color:
+            prop_split(layout, self, "env_color", "Environment Color")
+
+
+class Z64_AnimatedMatColorSwitchParams(PropertyGroup):
+    color_1: PointerProperty(type=Z64_AnimatedMatColorSwitchItem)
+    color_2: PointerProperty(type=Z64_AnimatedMatColorSwitchItem)
+
+    def draw_props(self, layout: UILayout):
+        self.color_1.draw_props(layout.box().column(), "1")
+        self.color_2.draw_props(layout.box().column(), "2")
+
+
 class Z64_AnimatedMaterialItem(PropertyGroup):
     """see the `AnimatedMaterial` struct from `z64scene.h`"""
 
@@ -495,6 +536,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
     texture_params: PointerProperty(type=Z64_AnimatedMatTextureParams)
     multitexture_params: PointerProperty(type=Z64_AnimatedMatMultiTextureParams)
     surface_params: PointerProperty(type=Z64_AnimatedMatSurfaceSwapParams)
+    color_switch_params: PointerProperty(type=Z64_AnimatedMatColorSwitchParams)
 
     events: PointerProperty(type=HackerOoT_EventProperty)
 
@@ -506,7 +548,7 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
 
         if "tex_scroll" in self.type:
             self.tex_scroll_params.internal_scroll_type = self.type
-        elif "color" in self.type:
+        elif "color" in self.type and self.type != "anim_mat_type_color_switch":
             self.color_params.internal_color_type = self.type
 
     def on_type_get(self):
@@ -560,7 +602,9 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
                 prop_split(layout_type, self, "type_custom", "Custom Draw Handler Index")
             elif "tex_scroll" in self.type or self.type == "anim_mat_type_oscillating_two_tex":
                 self.tex_scroll_params.draw_props(layout_type)
-            elif "color" in self.type:
+            elif self.type == "anim_mat_type_color_switch":
+                self.color_switch_params.draw_props(layout_type)
+            elif "color" in self.type and self.type != "anim_mat_type_color_switch":
                 self.color_params.draw_props(layout_type, owner, header_index, index)
             elif self.type == "anim_mat_type_tex_cycle":
                 self.tex_cycle_params.draw_props(layout_type, owner, header_index, index)
@@ -759,6 +803,8 @@ classes = (
     Z64_AnimatedMatMultiTextureParams,
     Z64_AnimatedMatTriIndexItem,
     Z64_AnimatedMatSurfaceSwapParams,
+    Z64_AnimatedMatColorSwitchItem,
+    Z64_AnimatedMatColorSwitchParams,
     Z64_AnimatedMaterialItem,
     Z64_AnimatedMaterial,
     Z64_AnimatedMaterialProperty,

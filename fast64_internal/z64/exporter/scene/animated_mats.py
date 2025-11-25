@@ -21,6 +21,7 @@ from ...animated_mats.properties import (
     Z64_AnimatedMatTextureParams,
     Z64_AnimatedMatMultiTextureParams,
     Z64_AnimatedMatSurfaceSwapParams,
+    Z64_AnimatedMatColorSwitchParams,
     Z64_AnimatedMaterial,
     Z64_AnimatedMaterialExportSettings,
     Z64_AnimatedMaterialImportSettings,
@@ -534,6 +535,77 @@ class AnimatedMatSurfaceSwapParams:
         return data
 
 
+class AnimatedMatColorSwitchParams:
+    def __init__(
+        self,
+        props: Z64_AnimatedMatColorSwitchParams,
+        segment_num: int,
+        type: str,
+        base_name: str,
+        index: int,
+        use_macros: bool,
+        col_header: CollisionHeader,
+        suffix: str = "",
+    ):
+        color_1 = props.color_1
+        color_2 = props.color_2
+        self.segment_num = segment_num
+        self.type = type
+        self.base_name = base_name
+        self.use_macros = use_macros
+        self.header_suffix = f"_{index:02}"
+        self.name = f"{self.base_name}{suffix}ColorSwitchParams{self.header_suffix}"
+        self.prim_colors: list[tuple[int, int, int, int, int]] = []
+        self.env_colors: list[tuple[int, int, int, int]] = [(-1, -1, -1, -1), (-1, -1, -1, -1)]
+        self.use_env_colors: list[bool] = [self.bool_to_c(color_1.use_env_color), self.bool_to_c(color_2.use_env_color)]
+
+        prim = exportColor(color_1.prim_color[0:3]) + [scaleToU8(color_1.prim_color[3])]
+        self.prim_colors.append((prim[0], prim[1], prim[2], prim[3], color_1.prim_lod_frac))
+        if color_1.use_env_color:
+            self.env_colors[0] = tuple(exportColor(color_1.env_color[0:3]) + [scaleToU8(color_1.env_color[3])])
+
+        prim = exportColor(color_2.prim_color[0:3]) + [scaleToU8(color_2.prim_color[3])]
+        self.prim_colors.append((prim[0], prim[1], prim[2], prim[3], color_2.prim_lod_frac))
+        if color_2.use_env_color:
+            self.env_colors[1] = tuple(exportColor(color_2.env_color[0:3]) + [scaleToU8(color_2.env_color[3])])
+
+        assert len(self.prim_colors) == 2, "ERROR: unexpected prim color list length"
+
+    def bool_to_c(self, value: bool):
+        return "true" if value else "false"
+
+    def to_c(self, all_externs: bool = True):
+        data = CData()
+        params_name = f"AnimatedMatColorSwitchParams {self.name}"
+
+        # .h
+        if all_externs:
+            data.header = f"extern {params_name};\n"
+
+        # .c
+        data.source = (
+            (params_name + " = {\n")
+            + indent
+            + "{ "
+            + f", ".join(
+                "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}, {entry[4]}" + " }"
+                for entry in self.prim_colors
+            )
+            + " },\n"
+            + indent
+            + "{ "
+            + f", ".join("{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }" for entry in self.env_colors)
+            + " },\n"
+            + indent
+            + "{ "
+            + f"{self.use_env_colors[0]}, {self.use_env_colors[1]}"
+            + " },\n"
+            + "};\n\n"
+        )
+
+        return data
+
+
 class AnimatedMaterial:
     def __init__(
         self,
@@ -570,6 +642,7 @@ class AnimatedMaterial:
             "anim_mat_type_event": (AnimatedMatEventParams, None),
             "anim_mat_type_surface_swap": (AnimatedMatSurfaceSwapParams, "surface_params"),
             "anim_mat_type_oscillating_two_tex": (AnimatedMatTexScrollParams, "tex_scroll_params"),
+            "anim_mat_type_color_switch": (AnimatedMatColorSwitchParams, "color_switch_params"),
         }
 
         for i, item in enumerate(props.entries):
