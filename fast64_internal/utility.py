@@ -4,7 +4,7 @@ from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
-from bpy.types import UILayout, Scene, World
+from bpy.types import UILayout, Scene, World, Object
 from bpy.props import FloatVectorProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -1188,20 +1188,32 @@ def getDirectionGivenAppVersion():
         return 1
 
 
-def applyRotation(objList, angle, axis):
-    bpy.context.scene.tool_settings.use_transform_data_origin = False
-    bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
-    bpy.context.scene.tool_settings.use_transform_skip_children = False
+def applyRotation(objs: list[Object], angle: float, axis: str):
+    rot_mat = Matrix.Rotation(angle, 4, axis).inverted()
 
-    deselectAllObjects()
-    for obj in objList:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = objList[0]
+    for obj in objs:
+        # rotate object
+        obj.matrix_world = rot_mat @ obj.matrix_world
+        bpy.context.view_layer.update()
 
-    direction = getDirectionGivenAppVersion()
+        original_basis = obj.matrix_basis.copy()
+        local_loc = original_basis.translation.copy()
 
-    bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        bake_matrix = original_basis.copy()
+        # don´t apply translation to the mesh
+        bake_matrix.translation = (0, 0, 0)
+        obj.matrix_basis = Matrix.Translation(local_loc)
+
+        # apply transformations
+        if obj.data is not None:
+            if hasattr(obj.data, "transform"):
+                obj.data.transform(bake_matrix)
+            if hasattr(obj.data, "update"):
+                obj.data.update()
+
+        for child in obj.children:  # apply the same matrix we applied to the mesh to the children's transforms
+            child.matrix_local = bake_matrix @ child.matrix_local
+        bpy.context.view_layer.update()
 
 
 def doRotation(angle, axis):
