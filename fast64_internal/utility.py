@@ -1406,7 +1406,7 @@ def exportColor(lightColor):
 def get_clean_color(color: list, include_alpha=False, round_color=True, srgb_to_linear=False) -> list:
     color = list(color)
     if srgb_to_linear:
-        color = gammaInverse(color[:3]) + color[3:]
+        color = gammaCorrect(color[:3]) + color[3:]
     color = color[: 4 if include_alpha else 3]
     if include_alpha and len(color) < 4:
         color = color + [1.0]
