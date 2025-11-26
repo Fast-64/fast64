@@ -23,37 +23,42 @@ class OOT_CutscenePanel(OOT_Panel):
     def draw(self, context):
         layout = self.layout
 
-        exportBox = layout.box()
-        exportBox.label(text="Cutscene Exporter")
+        export_box = layout.box().column()
+        export_box.label(text="Cutscene Exporter")
 
-        prop_split(exportBox, context.scene, "ootCutsceneExportPath", "Export To")
+        prop_split(export_box, context.scene, "ootCutsceneExportPath", "Export To")
+        prop_split(export_box, context.scene.fast64.oot, "export_cutscene_obj", "CS Object")
 
-        activeObj = context.view_layer.objects.active
+        cs_obj = context.scene.fast64.oot.export_cutscene_obj
+
+        if cs_obj is None:
+            cs_obj = context.view_layer.objects.active
+
         label = None
-        col = exportBox.column()
-        colcol = col.column()
-        if activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene":
+        if cs_obj is None or cs_obj.type != "EMPTY" or cs_obj.ootEmptyType != "Cutscene":
             label = "Select a cutscene object"
 
-        if activeObj is not None and activeObj.parent is not None:
+        if cs_obj is not None and cs_obj.parent is not None:
             label = "Cutscene object must not be parented to anything"
 
+        export_op_layout = export_box.column()
+
         if label is not None:
-            col.label(text=label)
-            colcol.enabled = False
+            export_box.label(text=label)
+            export_op_layout.enabled = False
 
-        colcol.operator(OOT_ExportCutscene.bl_idname)
-        col.operator(OOT_ExportAllCutscenes.bl_idname)
+        export_op_layout.operator(OOT_ExportCutscene.bl_idname)
+        export_box.operator(OOT_ExportAllCutscenes.bl_idname)
 
-        importBox = layout.box()
-        importBox.label(text="Cutscene Importer")
-        prop_split(importBox, context.scene, "ootCSImportName", "Import")
-        prop_split(importBox, context.scene, "ootCutsceneImportPath", "From")
+        import_box = layout.box().column()
+        import_box.label(text="Cutscene Importer")
+        prop_split(import_box, context.scene, "ootCSImportName", "Import")
+        prop_split(import_box, context.scene, "ootCutsceneImportPath", "From")
 
-        col = importBox.column()
         if len(context.scene.ootCSImportName) == 0:
-            col.label(text="All Cutscenes will be imported.")
-        col.operator(OOT_ImportCutscene.bl_idname)
+            import_box.label(text="All Cutscenes will be imported.")
+
+        import_box.operator(OOT_ImportCutscene.bl_idname)
 
 
 oot_cutscene_panel_classes = (
