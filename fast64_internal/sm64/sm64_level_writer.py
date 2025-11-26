@@ -936,7 +936,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
                 echoLevels[area_root.areaIndex - 1] = area_root.echoLevel
 
         # write area specific files
-        level_data, fModel, uses_env_fx = export_area_c(
+        level_data, fModel, area_uses_env_fx = export_area_c(
             obj,
             level_data,
             area_root,
@@ -948,6 +948,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             DLFormat,
             savePNG,
         )
+        uses_env_fx |= area_uses_env_fx
 
     level_data.camera_data += "\tNULL_TRIGGER\n};"
 
