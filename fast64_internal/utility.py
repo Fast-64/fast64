@@ -1205,9 +1205,11 @@ def applyRotation(objs: list[Object], angle: float, axis: str):
         obj.matrix_basis = Matrix.Translation(local_loc)
 
         # apply transformations
-        if obj.data is not None and hasattr(obj.data, "transform"):
-            obj.data.transform(bake_matrix)
-            obj.data.update()
+        if obj.data is not None:
+            if hasattr(obj.data, "transform"):
+                obj.data.transform(bake_matrix)
+            if hasattr(obj.data, "update"):
+                obj.data.update()
 
         for child in obj.children:  # apply the same matrix we applied to the mesh to the children's transforms
             child.matrix_local = bake_matrix @ child.matrix_local
