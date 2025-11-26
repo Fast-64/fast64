@@ -111,6 +111,16 @@ class Scene:
             or bpy.context.scene.ootSceneExportSettings.customExport
         )
 
+        # process collisions first so we can use it for animated materials (dumb but works!)
+        colHeader = CollisionHeader.new(
+            f"{name}_collisionHeader",
+            name,
+            sceneObj,
+            transform,
+            exportInfo.useMacros,
+            True,
+        )
+
         try:
             mainHeader = SceneHeader.new(
                 f"{name}_header{i:02}",
@@ -121,6 +131,7 @@ class Scene:
                 exportInfo.useMacros,
                 use_mat_anim,
                 None,
+                colHeader,
             )
 
             if mainHeader.infos is not None:
@@ -153,6 +164,7 @@ class Scene:
                         exportInfo.useMacros,
                         use_mat_anim,
                         target_name,
+                        colHeader,
                     ),
                 )
                 hasAlternateHeaders = True
@@ -174,6 +186,7 @@ class Scene:
                         exportInfo.useMacros,
                         use_mat_anim,
                         target_name,
+                        colHeader,
                     )
                 )
             except Exception as exc:
@@ -187,15 +200,6 @@ class Scene:
             sceneObj,
             transform,
             exportInfo,
-        )
-
-        colHeader = CollisionHeader.new(
-            f"{name}_collisionHeader",
-            name,
-            sceneObj,
-            transform,
-            exportInfo.useMacros,
-            True,
         )
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
@@ -399,7 +403,13 @@ class Scene:
             ]
 
         if is_hackeroot():
-            includes.append('#include "animated_materials.h"')
+            includes.extend(
+                [
+                    '#include "event_manager.h"',
+                    '#include "animated_materials.h"',
+                    '#include "save.h"',
+                ]
+            )
 
         backwards_compatibility = [
             "// For older decomp versions",

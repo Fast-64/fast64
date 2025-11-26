@@ -797,7 +797,7 @@
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L143-L155 -->
       <Item Key="credits_destination" ID="CS_CREDITS_DESTINATION" Index="1"/>
   </Enum>
-    <Enum Key="cs_modify_seq_type" ID="CsModifySeqType">
+  <Enum Key="cs_modify_seq_type" ID="CsModifySeqType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L109-L118 -->
       <Item Key="mod_seq_0" ID="CS_MOD_SEQ_0" Index="1"/>
       <Item Key="mod_seq_1" ID="CS_MOD_SEQ_1" Index="2"/>
@@ -807,5 +807,190 @@
       <Item Key="mod_ambience_2" ID="CS_MOD_AMBIENCE_2" Index="6"/>
       <Item Key="mod_seq_store" ID="CS_MOD_SEQ_STORE" Index="7"/>
       <Item Key="mod_seq_restore" ID="CS_MOD_SEQ_RESTORE" Index="8"/>
+  </Enum>
+  <Enum Key="anim_mats_type" ID="AnimatedMatType">
+      <!-- see `sMatAnimDrawHandlers` in `z_scene_proc.c` -->
+      <Item Key="anim_mat_type_tex_scroll" ID="ANIM_MAT_TYPE_TEX_SCROLL" Name="Draw Texture Scroll" Index="0"/>
+      <Item Key="anim_mat_type_two_tex_scroll" ID="ANIM_MAT_TYPE_TWO_TEX_SCROLL" Name="Draw Two Texture Scroll" Index="1"/>
+      <Item Key="anim_mat_type_color" ID="ANIM_MAT_TYPE_COLOR" Name="Draw Color" Index="2"/>
+      <Item Key="anim_mat_type_color_lerp" ID="ANIM_MAT_TYPE_COLOR_LERP" Name="Draw Color Lerp" Index="3"/>
+      <Item Key="anim_mat_type_color_nonlinear_interp" ID="ANIM_MAT_TYPE_COLOR_NON_LINEAR_INTERP" Name="Draw Color Non-Linear Interp" Index="4"/>
+      <Item Key="anim_mat_type_tex_cycle" ID="ANIM_MAT_TYPE_TEX_CYCLE" Name="Draw Texture Cycle" Index="5"/>
+      <Item Key="anim_mat_type_none" ID="ANIM_MAT_TYPE_NONE" Name="Nothing" Index="6"/>
+      <!-- For mods -->
+      <Item Key="anim_mat_type_color_cycle" ID="ANIM_MAT_TYPE_COLOR_CYCLE" Name="Draw Color Cycle" Index="7"/>
+      <Item Key="anim_mat_type_tex_timed_cycle" ID="ANIM_MAT_TYPE_TEX_TIMED_CYCLE" Name="Draw Timed Texture Cycle" Index="8"/>
+      <Item Key="anim_mat_type_texture" ID="ANIM_MAT_TYPE_TEXTURE" Name="Draw Texture Switch" Index="9"/>
+      <Item Key="anim_mat_type_multitexture" ID="ANIM_MAT_TYPE_MULTITEXTURE" Name="Draw Multi-Texture" Index="10"/>
+      <Item Key="anim_mat_type_event" ID="ANIM_MAT_TYPE_EVENT" Name="Draw On Event" Index="11"/>
+      <Item Key="anim_mat_type_surface_swap" ID="ANIM_MAT_TYPE_SURFACE_SWAP" Name="Draw Surface and Poly Flags Swap" Index="12"/>
+      <Item Key="anim_mat_type_oscillating_two_tex" ID="ANIM_MAT_TYPE_OSCILLATING_TWO_TEX" Name="Draw Two Texture Oscillating Scroll" Index="13"/>
+      <Item Key="anim_mat_type_color_switch" ID="ANIM_MAT_TYPE_COLOR_SWITCH" Name="Draw Color Switch" Index="14"/>
+  </Enum>
+  <!-- For mods -->
+  <Enum Key="anim_mats_cam_type" ID="AnimatedMatCameraType">
+      <Item Key="anim_mat_camera_type_none" ID="ANIM_MAT_CAMERA_TYPE_NONE" Name="Default Camera Behavior" Index="0"/>
+      <Item Key="anim_mat_camera_type_shake" ID="ANIM_MAT_CAMERA_TYPE_SHAKE" Name="Shake" Index="1"/>
+      <Item Key="anim_mat_camera_type_distortion" ID="ANIM_MAT_CAMERA_TYPE_DISTORTION" Name="Camera Distortion" Index="2"/>
+  </Enum>
+  <Enum Key="event_condition" ID="EventCondition">
+    <Item Key="event_cond_none" ID="EVENT_COND_NONE" Name="No Condition" Index="0"/>
+    <Item Key="event_cond_equal" ID="EVENT_COND_EQUAL" Name="Must be equal (==)" Index="1"/>
+    <Item Key="event_cond_diff" ID="EVENT_COND_DIFF" Name="Must be different (!=)" Index="2"/>
+    <Item Key="event_cond_inferior" ID="EVENT_COND_INFERIOR" Name="Strictly inferior (&lt;)" Index="3"/>
+    <Item Key="event_cond_superior" ID="EVENT_COND_SUPERIOR" Name="Strictly superior (&gt;)" Index="4"/>
+    <Item Key="event_cond_inferior_eq" ID="EVENT_COND_INFERIOR_EQ" Name="Inferior or equal (&lt;=)" Index="5"/>
+    <Item Key="event_cond_superior_eq" ID="EVENT_COND_SUPERIOR_EQ" Name="Superior or equal (&gt;=)" Index="6"/>
+  </Enum>
+  <Enum Key="event_flag_type" ID="EventFlagType">
+    <Item Key="event_flag_type_switch_flag" ID="EVENT_FLAG_TYPE_SWITCH_FLAG" Name="Switch Flag" Index="0"/>
+    <Item Key="event_flag_type_eventchkinf_flag" ID="EVENT_FLAG_TYPE_EVENTCHKINF_FLAG" Name="EventChkInf Flag" Index="1"/>
+    <Item Key="event_flag_type_inf_flag" ID="EVENT_FLAG_TYPE_INF_FLAG" Name="Inf Flag" Index="2"/>
+    <Item Key="event_flag_type_collectible_flag" ID="EVENT_FLAG_TYPE_COLLECTIBLE_FLAG" Name="Collectible Flag" Index="3"/>
+    <Item Key="event_flag_type_treasure_flag" ID="EVENT_FLAG_TYPE_TREASURE_FLAG" Name="Treasure Flag" Index="4"/>
+    <Item Key="event_flag_type_tempclear_flag" ID="EVENT_FLAG_TYPE_TEMPCLEAR_FLAG" Name="Temp Clear Flag" Index="5"/>
+    <Item Key="event_flag_type_clear_flag" ID="EVENT_FLAG_TYPE_CLEAR_FLAG" Name="Clear Flag" Index="6"/>
+  </Enum>
+  <Enum Key="event_inv_type" ID="EventInvType">
+    <Item Key="event_inv_type_items" ID="EVENT_INV_TYPE_ITEMS" Name="Inventory Items" Index="0"/>
+    <Item Key="event_inv_type_equipment" ID="EVENT_INV_TYPE_EQUIPMENT" Name="Equipment Items" Index="1"/>
+    <Item Key="event_inv_type_quest" ID="EVENT_INV_TYPE_QUEST" Name="Quest Items" Index="2"/>
+    <Item Key="event_inv_type_dungeon_items" ID="EVENT_INV_TYPE_DUNGEON_ITEMS" Name="Dungeon Items" Index="3"/>
+    <Item Key="event_inv_type_dungeon_keys" ID="EVENT_INV_TYPE_DUNGEON_KEYS" Name="Dungeon Keys" Index="4"/>
+    <Item Key="event_inv_type_gs_tokens" ID="EVENT_INV_TYPE_GS_TOKENS" Name="Gold Skulltula Tokens" Index="5"/>
+  </Enum>
+  <Enum Key="event_game_type" ID="EventGameType">
+    <Item Key="event_game_type_age" ID="EVENT_GAME_TYPE_AGE" Name="Age" Index="0"/>
+    <Item Key="event_game_type_health" ID="EVENT_GAME_TYPE_HEALTH" Name="Health Amount" Index="1"/>
+    <Item Key="event_game_type_rupees" ID="EVENT_GAME_TYPE_RUPEES" Name="Rupee Amount" Index="2"/>
+    <Item Key="event_game_type_magic" ID="EVENT_GAME_TYPE_MAGIC" Name="Magic Meter Amount" Index="3"/>
+    <Item Key="event_game_type_inventory" ID="EVENT_GAME_TYPE_INVENTORY" Name="Inventory Data" Index="4"/>
+  </Enum>
+  <Enum Key="event_time_type" ID="EventTimeType">
+    <Item Key="event_time_type_clock" ID="EVENT_TIME_TYPE_CLOCK" Name="On Clock" Index="0"/>
+    <Item Key="event_time_type_conditional" ID="EVENT_TIME_TYPE_CONDITIONAL" Name="On Conditional Clock" Index="1"/>
+    <Item Key="event_time_type_day" ID="EVENT_TIME_TYPE_DAY" Name="On Daytime" Index="2"/>
+    <Item Key="event_time_type_night" ID="EVENT_TIME_TYPE_NIGHT" Name="On Nighttime" Index="3"/>
+  </Enum>
+  <Enum Key="event_action_type" ID="EventActionType">
+    <Item Key="event_action_type_none" ID="EVENT_ACTION_TYPE_NONE" Name="Trigger Events are completed (default)" Index="0"/>
+    <Item Key="event_action_type_inverted" ID="EVENT_ACTION_TYPE_INVERTED" Name="Trigger Events are not completed" Index="1"/>
+    <Item Key="event_action_type_inverted_keep" ID="EVENT_ACTION_TYPE_INVERTED_KEEP" Name="Trigger Events are not completed but let loops end" Index="2"/>
+  </Enum>
+  <Enum Key="event_type" ID="EventType">
+    <Item Key="event_type_none" ID="EVENT_TYPE_NONE" Name="Nothing (will be ignored)" Index="0"/>
+    <Item Key="event_type_flag" ID="EVENT_TYPE_FLAG" Name="Flag Event" Index="1"/>
+    <Item Key="event_type_game" ID="EVENT_TYPE_GAME" Name="Game Event" Index="2"/>
+    <Item Key="event_type_time" ID="EVENT_TYPE_TIME" Name="Time Event" Index="3"/>
+  </Enum>
+  <Enum Key="inventory_items" ID="InventoryItems">
+    <Item Key="item_deku_stick" ID="ITEM_DEKU_STICK" Name="Deku Sticks" Index="0"/>
+    <Item Key="item_deku_nut" ID="ITEM_DEKU_NUT" Name="Deku Nuts" Index="1"/>
+    <Item Key="item_bomb" ID="ITEM_BOMB" Name="Bombs" Index="2"/>
+    <Item Key="item_bow" ID="ITEM_BOW" Name="Bow" Index="3"/>
+    <Item Key="item_arrow_fire" ID="ITEM_ARROW_FIRE" Name="Fire Arrows" Index="4"/>
+    <Item Key="item_dins_fire" ID="ITEM_DINS_FIRE" Name="Din's Fire" Index="5"/>
+    <Item Key="item_slingshot" ID="ITEM_SLINGSHOT" Name="Slingshot" Index="6"/>
+    <Item Key="item_ocarina_fairy" ID="ITEM_OCARINA_FAIRY" Name="Fairy Ocarina" Index="7"/>
+    <Item Key="item_ocarina_of_time" ID="ITEM_OCARINA_OF_TIME" Name="Ocarina of Time" Index="8"/>
+    <Item Key="item_bombchu" ID="ITEM_BOMBCHU" Name="Bombchus" Index="9"/>
+    <Item Key="item_hookshot" ID="ITEM_HOOKSHOT" Name="Hookshot" Index="10"/>
+    <Item Key="item_longshot" ID="ITEM_LONGSHOT" Name="Longshot" Index="11"/>
+    <Item Key="item_arrow_ice" ID="ITEM_ARROW_ICE" Name="Ice Arrows" Index="12"/>
+    <Item Key="item_farores_wind" ID="ITEM_FARORES_WIND" Name="Farore's Wind" Index="13"/>
+    <Item Key="item_boomerang" ID="ITEM_BOOMERANG" Name="Boomerang" Index="14"/>
+    <Item Key="item_lens_of_truth" ID="ITEM_LENS_OF_TRUTH" Name="Lens of Truth" Index="15"/>
+    <Item Key="item_magic_bean" ID="ITEM_MAGIC_BEAN" Name="Magic Beans" Index="16"/>
+    <Item Key="item_hammer" ID="ITEM_HAMMER" Name="Hammer" Index="17"/>
+    <Item Key="item_arrow_light" ID="ITEM_ARROW_LIGHT" Name="Light Arrows" Index="18"/>
+    <Item Key="item_nayrus_love" ID="ITEM_NAYRUS_LOVE" Name="Nayru's Love" Index="19"/>
+    <Item Key="item_bottle_empty" ID="ITEM_BOTTLE_EMPTY" Name="Empty Bottle" Index="20"/>
+    <Item Key="item_bottle_potion_red" ID="ITEM_BOTTLE_POTION_RED" Name="Red Potion" Index="21"/>
+    <Item Key="item_bottle_potion_green" ID="ITEM_BOTTLE_POTION_GREEN" Name="Green Potion" Index="22"/>
+    <Item Key="item_bottle_potion_blue" ID="ITEM_BOTTLE_POTION_BLUE" Name="Blue Potion" Index="23"/>
+    <Item Key="item_bottle_fairy" ID="ITEM_BOTTLE_FAIRY" Name="Bottled Fairy" Index="24"/>
+    <Item Key="item_bottle_fish" ID="ITEM_BOTTLE_FISH" Name="Bottled Fish" Index="25"/>
+    <Item Key="item_bottle_milk_full" ID="ITEM_BOTTLE_MILK_FULL" Name="Milk" Index="26"/>
+    <Item Key="item_bottle_rutos_letter" ID="ITEM_BOTTLE_RUTOS_LETTER" Name="Ruto's Letter" Index="27"/>
+    <Item Key="item_bottle_blue_fire" ID="ITEM_BOTTLE_BLUE_FIRE" Name="Blue Fire" Index="28"/>
+    <Item Key="item_bottle_bug" ID="ITEM_BOTTLE_BUG" Name="Bottled Bug" Index="29"/>
+    <Item Key="item_bottle_big_poe" ID="ITEM_BOTTLE_BIG_POE" Name="Bottled Big Poe" Index="30"/>
+    <Item Key="item_bottle_milk_half" ID="ITEM_BOTTLE_MILK_HALF" Name="Half Milk" Index="31"/>
+    <Item Key="item_bottle_poe" ID="ITEM_BOTTLE_POE" Name="Bottled Poe" Index="32"/>
+    <Item Key="item_weird_egg" ID="ITEM_WEIRD_EGG" Name="Weird Egg" Index="33"/>
+    <Item Key="item_chicken" ID="ITEM_CHICKEN" Name="Chicken" Index="34"/>
+    <Item Key="item_zeldas_letter" ID="ITEM_ZELDAS_LETTER" Name="Zeldas Letter" Index="35"/>
+    <Item Key="item_mask_keaton" ID="ITEM_MASK_KEATON" Name="Keaton Mask" Index="36"/>
+    <Item Key="item_mask_skull" ID="ITEM_MASK_SKULL" Name="Skull Mask" Index="37"/>
+    <Item Key="item_mask_spooky" ID="ITEM_MASK_SPOOKY" Name="Spooky Mask" Index="38"/>
+    <Item Key="item_mask_bunny_hood" ID="ITEM_MASK_BUNNY_HOOD" Name="Bunny Hood" Index="39"/>
+    <Item Key="item_mask_goron" ID="ITEM_MASK_GORON" Name="Goron Mask" Index="40"/>
+    <Item Key="item_mask_zora" ID="ITEM_MASK_ZORA" Name="Zora Mask" Index="41"/>
+    <Item Key="item_mask_gerudo" ID="ITEM_MASK_GERUDO" Name="Gerudo Mask" Index="42"/>
+    <Item Key="item_mask_truth" ID="ITEM_MASK_TRUTH" Name="Mask of Truth" Index="43"/>
+    <Item Key="item_sold_out" ID="ITEM_SOLD_OUT" Name="Sold Out" Index="44"/>
+    <Item Key="item_pocket_egg" ID="ITEM_POCKET_EGG" Name="Pocket Egg" Index="45"/>
+    <Item Key="item_pocket_cucco" ID="ITEM_POCKET_CUCCO" Name="Pocket Cucco" Index="46"/>
+    <Item Key="item_cojiro" ID="ITEM_COJIRO" Name="Cojiro" Index="47"/>
+    <Item Key="item_odd_mushroom" ID="ITEM_ODD_MUSHROOM" Name="Odd Mushroom" Index="48"/>
+    <Item Key="item_odd_potion" ID="ITEM_ODD_POTION" Name="Odd Potion" Index="49"/>
+    <Item Key="item_poachers_saw" ID="ITEM_POACHERS_SAW" Name="Poacher's Saw" Index="50"/>
+    <Item Key="item_broken_gorons_sword" ID="ITEM_BROKEN_GORONS_SWORD" Name="Broken Goron's Sword" Index="51"/>
+    <Item Key="item_prescription" ID="ITEM_PRESCRIPTION" Name="Prescription" Index="52"/>
+    <Item Key="item_eyeball_frog" ID="ITEM_EYEBALL_FROG" Name="Eyeball Frog" Index="53"/>
+    <Item Key="item_eye_drops" ID="ITEM_EYE_DROPS" Name="Eye Drops" Index="54"/>
+    <Item Key="item_claim_check" ID="ITEM_CLAIM_CHECK" Name="Claim Check" Index="55"/>
+    <Item Key="item_bow_fire" ID="ITEM_BOW_FIRE" Name="Bow Fire" Index="56"/>
+    <Item Key="item_bow_ice" ID="ITEM_BOW_ICE" Name="Bow Ice" Index="57"/>
+    <Item Key="item_bow_light" ID="ITEM_BOW_LIGHT" Name="Bow Light" Index="58"/>
+  </Enum>
+  <Enum Key="equipment_items" ID="EquipmentItems">
+    <Item Key="item_sword_kokiri" ID="ITEM_SWORD_KOKIRI" Name="Kokiri Sword" Index="0"/>
+    <Item Key="item_sword_master" ID="ITEM_SWORD_MASTER" Name="Master Sword" Index="1"/>
+    <Item Key="item_sword_biggoron" ID="ITEM_SWORD_BIGGORON" Name="Biggoron's Sword" Index="2"/>
+    <Item Key="item_shield_deku" ID="ITEM_SHIELD_DEKU" Name="Deku Shield" Index="3"/>
+    <Item Key="item_shield_hylian" ID="ITEM_SHIELD_HYLIAN" Name="Hylian Shield" Index="4"/>
+    <Item Key="item_shield_mirror" ID="ITEM_SHIELD_MIRROR" Name="Mirror Shield" Index="5"/>
+    <Item Key="item_tunic_kokiri" ID="ITEM_TUNIC_KOKIRI" Name="Kokiri Tunic" Index="6"/>
+    <Item Key="item_tunic_goron" ID="ITEM_TUNIC_GORON" Name="Goron Tunic" Index="7"/>
+    <Item Key="item_tunic_zora" ID="ITEM_TUNIC_ZORA" Name="Zora Tunic" Index="8"/>
+    <Item Key="item_boots_kokiri" ID="ITEM_BOOTS_KOKIRI" Name="Kokiri Boots" Index="9"/>
+    <Item Key="item_boots_iron" ID="ITEM_BOOTS_IRON" Name="Iron Boots" Index="10"/>
+    <Item Key="item_boots_hover" ID="ITEM_BOOTS_HOVER" Name="Hover Boots" Index="11"/>
+  </Enum>
+  <Enum Key="quest_items" ID="QuestItems">
+    <Item Key="item_song_minuet" ID="ITEM_SONG_MINUET" Name="Minuet of Forest" Index="0"/>
+    <Item Key="item_song_bolero" ID="ITEM_SONG_BOLERO" Name="Bolero of Fire" Index="1"/>
+    <Item Key="item_song_serenade" ID="ITEM_SONG_SERENADE" Name="Serenade of Water" Index="2"/>
+    <Item Key="item_song_requiem" ID="ITEM_SONG_REQUIEM" Name="Requiem of Spirit" Index="3"/>
+    <Item Key="item_song_nocturne" ID="ITEM_SONG_NOCTURNE" Name="Nocturne of Shadow" Index="4"/>
+    <Item Key="item_song_prelude" ID="ITEM_SONG_PRELUDE" Name="Prelude of Light" Index="5"/>
+    <Item Key="item_song_lullaby" ID="ITEM_SONG_LULLABY" Name="Zelda's Lullaby" Index="6"/>
+    <Item Key="item_song_epona" ID="ITEM_SONG_EPONA" Name="Epona's Song" Index="7"/>
+    <Item Key="item_song_saria" ID="ITEM_SONG_SARIA" Name="Saria's Song" Index="8"/>
+    <Item Key="item_song_sun" ID="ITEM_SONG_SUN" Name="Sun's Song" Index="9"/>
+    <Item Key="item_song_time" ID="ITEM_SONG_TIME" Name="Song of Time" Index="10"/>
+    <Item Key="item_song_storms" ID="ITEM_SONG_STORMS" Name="Song of Storms" Index="11"/>
+    <Item Key="item_medallion_forest" ID="ITEM_MEDALLION_FOREST" Name="Forest Medallion" Index="12"/>
+    <Item Key="item_medallion_fire" ID="ITEM_MEDALLION_FIRE" Name="Fire Medallion" Index="13"/>
+    <Item Key="item_medallion_water" ID="ITEM_MEDALLION_WATER" Name="Water Medallion" Index="14"/>
+    <Item Key="item_medallion_spirit" ID="ITEM_MEDALLION_SPIRIT" Name="Spirit Medallion" Index="15"/>
+    <Item Key="item_medallion_shadow" ID="ITEM_MEDALLION_SHADOW" Name="Shadow Medallion" Index="16"/>
+    <Item Key="item_medallion_light" ID="ITEM_MEDALLION_LIGHT" Name="Light Medallion" Index="17"/>
+    <Item Key="item_kokiri_emerald" ID="ITEM_KOKIRI_EMERALD" Name="Kokiri Emerald" Index="18"/>
+    <Item Key="item_goron_ruby" ID="ITEM_GORON_RUBY" Name="Goron Ruby" Index="19"/>
+    <Item Key="item_zora_sapphire" ID="ITEM_ZORA_SAPPHIRE" Name="Zora Sapphire" Index="20"/>
+    <Item Key="item_stone_of_agony" ID="ITEM_STONE_OF_AGONY" Name="Stone Of Agony" Index="21"/>
+    <Item Key="item_gerudos_card" ID="ITEM_GERUDOS_CARD" Name="Gerudo's Card" Index="22"/>
+  </Enum>
+  <Enum Key="upgrade_type" ID="UpgradeType">
+    <Item Key="upg_quiver" ID="UPG_QUIVER" Name="Upgrade Quiver" Index="0"/>
+    <Item Key="upg_bomb_bag" ID="UPG_BOMB_BAG" Name="Upgrade Bomb Bag" Index="1"/>
+    <Item Key="upg_strength" ID="UPG_STRENGTH" Name="Upgrade Strength" Index="2"/>
+    <Item Key="upg_scale" ID="UPG_SCALE" Name="Upgrade Scale" Index="3"/>
+    <Item Key="upg_wallet" ID="UPG_WALLET" Name="Upgrade Wallet" Index="4"/>
+    <Item Key="upg_bullet_bag" ID="UPG_BULLET_BAG" Name="Upgrade Bullet Bag" Index="5"/>
+    <Item Key="upg_deku_sticks" ID="UPG_DEKU_STICKS" Name="Upgrade Deku Sticks" Index="6"/>
+    <Item Key="upg_deku_nuts" ID="UPG_DEKU_NUTS" Name="Upgrade Deku Nuts" Index="7"/>
   </Enum>
 </Table>
