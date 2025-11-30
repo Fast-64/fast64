@@ -2138,3 +2138,31 @@ def get_new_empty_object(
 ):
     """Creates and returns a new empty object"""
     return get_new_object(name, None, do_select, location, rotation_euler, scale, parent)
+
+
+class ExportUtils:
+    def __init__(self):
+        # get areas that are currently in local view mode
+        self.areas = []
+        for area in bpy.context.screen.areas:
+            if area.type == "VIEW_3D" and area.spaces.active.local_view is not None:
+                self.areas.append(area)
+
+    def __enter__(self):
+        # disable local views if enabled
+        for area in self.areas:
+            with bpy.context.temp_override(area=area):
+                bpy.ops.view3d.localview()
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # restore local views
+        for area in self.areas:
+            with bpy.context.temp_override(area=area):
+                bpy.ops.view3d.localview()
+
+        if exc_value:
+            print("\nExecution type:", exc_type)
+            print("\nExecution value:", exc_value)
+            print("\nTraceback:", traceback)
