@@ -7,7 +7,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
 
-from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
+from ...utility import PluginError, ExportUtils, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_hackeroot
 from ..constants import ootEnumMusicSeq, ootEnumSceneID
 from ..importer import parseScene
@@ -119,87 +119,88 @@ class OOT_ExportScene(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        activeObj = None
-        try:
-            if context.mode != "OBJECT":
-                object.mode_set(mode="OBJECT")
-            activeObj = context.view_layer.objects.active
+        with ExportUtils() as export_utils:
+            activeObj = None
+            try:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
+                activeObj = context.view_layer.objects.active
 
-            obj = context.scene.ootSceneExportObj
-            if obj is None:
-                raise PluginError("Scene object input not set.")
-            elif obj.type != "EMPTY" or obj.ootEmptyType != "Scene":
-                raise PluginError("The input object is not an empty with the Scene type.")
+                obj = context.scene.ootSceneExportObj
+                if obj is None:
+                    raise PluginError("Scene object input not set.")
+                elif obj.type != "EMPTY" or obj.ootEmptyType != "Scene":
+                    raise PluginError("The input object is not an empty with the Scene type.")
 
-            scaleValue = context.scene.ootBlenderScale
-            finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+                scaleValue = context.scene.ootBlenderScale
+                finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-        try:
-            settings = context.scene.ootSceneExportSettings
-            levelName = settings.name
-            option = settings.option
+            except Exception as e:
+                raisePluginError(self, e)
+                return {"CANCELLED"}
+            try:
+                settings = context.scene.ootSceneExportSettings
+                levelName = settings.name
+                option = settings.option
 
-            bootOptions = context.scene.fast64.oot.bootupSceneOptions
-            is_hackeroot_features = is_hackeroot()
+                bootOptions = context.scene.fast64.oot.bootupSceneOptions
+                is_hackeroot_features = is_hackeroot()
 
-            if settings.customExport:
-                isCustomExport = True
-                exportPath = bpy.path.abspath(settings.exportPath)
-                customSubPath = None
-            else:
-                if option == "Custom":
-                    customSubPath = "assets/scenes/" + settings.subFolder + "/"
-                else:
-                    levelName = sceneNameFromID(option)
+                if settings.customExport:
+                    isCustomExport = True
+                    exportPath = bpy.path.abspath(settings.exportPath)
                     customSubPath = None
-                isCustomExport = False
-                exportPath = bpy.path.abspath(context.scene.ootDecompPath)
+                else:
+                    if option == "Custom":
+                        customSubPath = "assets/scenes/" + settings.subFolder + "/"
+                    else:
+                        levelName = sceneNameFromID(option)
+                        customSubPath = None
+                    isCustomExport = False
+                    exportPath = bpy.path.abspath(context.scene.ootDecompPath)
 
-            exportInfo = ExportInfo(
-                isCustomExport,
-                exportPath,
-                customSubPath,
-                levelName,
-                option,
-                bpy.context.scene.saveTextures,
-                settings.singleFile,
-                context.scene.fast64.oot.useDecompFeatures if not is_hackeroot_features else is_hackeroot_features,
-                bootOptions if is_hackeroot_features else None,
-                settings.auto_add_room_objects,
-            )
+                exportInfo = ExportInfo(
+                    isCustomExport,
+                    exportPath,
+                    customSubPath,
+                    levelName,
+                    option,
+                    bpy.context.scene.saveTextures,
+                    settings.singleFile,
+                    context.scene.fast64.oot.useDecompFeatures if not is_hackeroot_features else is_hackeroot_features,
+                    bootOptions if is_hackeroot_features else None,
+                    settings.auto_add_room_objects,
+                )
 
-            SceneExport.export(
-                obj,
-                finalTransform,
-                exportInfo,
-            )
+                SceneExport.export(
+                    obj,
+                    finalTransform,
+                    exportInfo,
+                )
 
-            self.report({"INFO"}, "Success!")
+                self.report({"INFO"}, "Success!")
 
-            # don't select the scene
-            for elem in context.selectable_objects:
-                elem.select_set(False)
+                # don't select the scene
+                for elem in context.selectable_objects:
+                    elem.select_set(False)
 
-            context.view_layer.objects.active = activeObj
-            if activeObj is not None:
-                activeObj.select_set(True)
+                context.view_layer.objects.active = activeObj
+                if activeObj is not None:
+                    activeObj.select_set(True)
 
-            return {"FINISHED"}
+                return {"FINISHED"}
 
-        except Exception as e:
-            if context.mode != "OBJECT":
-                object.mode_set(mode="OBJECT")
-            # don't select the scene
-            for elem in context.selectable_objects:
-                elem.select_set(False)
-            context.view_layer.objects.active = activeObj
-            if activeObj is not None:
-                activeObj.select_set(True)
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+            except Exception as e:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
+                # don't select the scene
+                for elem in context.selectable_objects:
+                    elem.select_set(False)
+                context.view_layer.objects.active = activeObj
+                if activeObj is not None:
+                    activeObj.select_set(True)
+                raisePluginError(self, e)
+                return {"CANCELLED"}
 
 
 class OOT_RemoveScene(Operator):

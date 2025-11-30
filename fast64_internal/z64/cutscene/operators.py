@@ -5,7 +5,7 @@ from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Object
 from bpy.utils import register_class, unregister_class
-from ...utility import PluginError, raisePluginError
+from ...utility import PluginError, ExportUtils, raisePluginError
 from ...game_data import game_data
 from ..collection_utility import getCollection
 from .constants import ootEnumCSTextboxType
@@ -73,28 +73,29 @@ class OOT_ExportCutscene(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                object.mode_set(mode="OBJECT")
+        with ExportUtils() as export_utils:
+            try:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
 
-            if context.scene.fast64.oot.export_cutscene_obj is not None:
-                cs_obj = context.scene.fast64.oot.export_cutscene_obj
-            else:
-                cs_obj = context.view_layer.objects.active
+                if context.scene.fast64.oot.export_cutscene_obj is not None:
+                    cs_obj = context.scene.fast64.oot.export_cutscene_obj
+                else:
+                    cs_obj = context.view_layer.objects.active
 
-            if cs_obj is None or cs_obj.type != "EMPTY" or cs_obj.ootEmptyType != "Cutscene":
-                raise PluginError("You must select a cutscene object")
+                if cs_obj is None or cs_obj.type != "EMPTY" or cs_obj.ootEmptyType != "Cutscene":
+                    raise PluginError("You must select a cutscene object")
 
-            if cs_obj.parent is not None:
-                raise PluginError("Cutscene object must not be parented to anything")
+                if cs_obj.parent is not None:
+                    raise PluginError("Cutscene object must not be parented to anything")
 
-            Cutscene.export(cs_obj)
+                Cutscene.export(cs_obj)
 
-            self.report({"INFO"}, "Successfully exported cutscene")
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+                self.report({"INFO"}, "Successfully exported cutscene")
+                return {"FINISHED"}
+            except Exception as e:
+                raisePluginError(self, e)
+                return {"CANCELLED"}
 
 
 class OOT_ExportAllCutscenes(Operator):
@@ -103,33 +104,34 @@ class OOT_ExportAllCutscenes(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                object.mode_set(mode="OBJECT")
+        with ExportUtils() as export_utils:
+            try:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
 
-            cs_obj_list: list[Object] = []
+                cs_obj_list: list[Object] = []
 
-            for obj in context.view_layer.objects:
-                if obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene":
-                    if obj.parent is not None:
-                        print(f"Parent: {obj.parent.name}, Object: {obj.name}")
-                        raise PluginError("Cutscene object must not be parented to anything")
+                for obj in context.view_layer.objects:
+                    if obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene":
+                        if obj.parent is not None:
+                            print(f"Parent: {obj.parent.name}, Object: {obj.name}")
+                            raise PluginError("Cutscene object must not be parented to anything")
 
-                    cs_obj_list.append(obj)
+                        cs_obj_list.append(obj)
 
-            for count, cs_obj in enumerate(cs_obj_list, 1):
-                # skip the includes if this isn't the first cutscene
-                # skip the #endif directive if this isn't the last cutscene
-                Cutscene.export(cs_obj, count > 1, count < len(cs_obj_list))
+                for count, cs_obj in enumerate(cs_obj_list, 1):
+                    # skip the includes if this isn't the first cutscene
+                    # skip the #endif directive if this isn't the last cutscene
+                    Cutscene.export(cs_obj, count > 1, count < len(cs_obj_list))
 
-            if count == 0:
-                raise PluginError("Could not find any cutscenes to export")
+                if count == 0:
+                    raise PluginError("Could not find any cutscenes to export")
 
-            self.report({"INFO"}, "Successfully exported " + str(count) + " cutscenes")
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+                self.report({"INFO"}, "Successfully exported " + str(count) + " cutscenes")
+                return {"FINISHED"}
+            except Exception as e:
+                raisePluginError(self, e)
+                return {"CANCELLED"}
 
 
 class OOT_SearchCSDestinationEnumOperator(Operator):
