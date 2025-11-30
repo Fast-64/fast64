@@ -170,9 +170,16 @@ class CollisionUtility:
                     def sq(val):
                         return val * val
 
+                    def get_round(val):
+                        if "e" in f"{val}".lower():
+                            return 0.0
+                        return val
+
                     # see https://github.com/zeldaret/oot/blob/eb5dac74d6435baf85ced9158d3ff915ba8872ca/src/code/z_bgcheck.c#L751
-                    normal_xz = math.sqrt(sq(normal[0]) + sq(normal[2]))
-                    if math.fabs(normal_xz) >= 0.008:
+                    nx = get_round(normal[0])
+                    nz = get_round(normal[2])
+                    normal_xz = math.sqrt(sq(nx) + sq(nz))
+                    if math.fabs(normal_xz) >= 0.0:
                         new_col_poly = CollisionPoly(
                             indices,
                             colProp.ignoreCameraCollision,
