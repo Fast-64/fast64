@@ -156,7 +156,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
         return include_file_path.exists()
 
     def is_globalh_present(self):
-        return self.is_include_present("global.h")
+        return self.oot_version == "legacy" or self.is_include_present("global.h")
 
     def is_z64sceneh_present(self):
         return self.is_include_present("z64scene.h")
