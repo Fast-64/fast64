@@ -167,18 +167,35 @@ class CollisionUtility:
                     if surfaceType not in colPolyFromSurfaceType:
                         colPolyFromSurfaceType[surfaceType] = []
 
-                    new_col_poly = CollisionPoly(
-                        indices,
-                        colProp.ignoreCameraCollision,
-                        colProp.ignoreActorCollision,
-                        colProp.ignoreProjectileCollision,
-                        colProp.conveyorOption == "Land",
-                        normal,
-                        ctypes.c_short(distance).value,
-                        useMacros,
-                    )
-                    new_col_poly.index_to_obj = {i: meshObj}
-                    colPolyFromSurfaceType[surfaceType].append(new_col_poly)
+                    def sq(val):
+                        return val * val
+
+                    def get_round(val):
+                        if "e" in f"{val}".lower():
+                            return 0.0
+                        return val
+
+                    # see https://github.com/zeldaret/oot/blob/eb5dac74d6435baf85ced9158d3ff915ba8872ca/src/code/z_bgcheck.c#L751
+                    nx = get_round(normal[0])
+                    nz = get_round(normal[2])
+                    normal_xz = math.sqrt(sq(nx) + sq(nz))
+                    if math.fabs(normal_xz) >= 0.0:
+                        new_col_poly = CollisionPoly(
+                            indices,
+                            colProp.ignoreCameraCollision,
+                            colProp.ignoreActorCollision,
+                            colProp.ignoreProjectileCollision,
+                            colProp.conveyorOption == "Land",
+                            normal,
+                            ctypes.c_short(distance).value,
+                            useMacros,
+                        )
+                        new_col_poly.index_to_obj = {i: meshObj}
+                        colPolyFromSurfaceType[surfaceType].append(new_col_poly)
+                    else:
+                        print(
+                            f"WARNING: skipping degenerate triangle on mesh object '{meshObj.name}' (material name is '{material.name}')"
+                        )
 
         count = 0
         for surface, colPolyList in colPolyFromSurfaceType.items():
