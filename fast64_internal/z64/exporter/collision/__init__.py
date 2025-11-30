@@ -167,18 +167,28 @@ class CollisionUtility:
                     if surfaceType not in colPolyFromSurfaceType:
                         colPolyFromSurfaceType[surfaceType] = []
 
-                    new_col_poly = CollisionPoly(
-                        indices,
-                        colProp.ignoreCameraCollision,
-                        colProp.ignoreActorCollision,
-                        colProp.ignoreProjectileCollision,
-                        colProp.conveyorOption == "Land",
-                        normal,
-                        ctypes.c_short(distance).value,
-                        useMacros,
-                    )
-                    new_col_poly.index_to_obj = {i: meshObj}
-                    colPolyFromSurfaceType[surfaceType].append(new_col_poly)
+                    def sq(val):
+                        return val * val
+
+                    # see https://github.com/zeldaret/oot/blob/eb5dac74d6435baf85ced9158d3ff915ba8872ca/src/code/z_bgcheck.c#L751
+                    normal_xz = math.sqrt(sq(normal[0]) + sq(normal[2]))
+                    if math.fabs(normal_xz) >= 0.008:
+                        new_col_poly = CollisionPoly(
+                            indices,
+                            colProp.ignoreCameraCollision,
+                            colProp.ignoreActorCollision,
+                            colProp.ignoreProjectileCollision,
+                            colProp.conveyorOption == "Land",
+                            normal,
+                            ctypes.c_short(distance).value,
+                            useMacros,
+                        )
+                        new_col_poly.index_to_obj = {i: meshObj}
+                        colPolyFromSurfaceType[surfaceType].append(new_col_poly)
+                    else:
+                        print(
+                            f"WARNING: skipping degenerate triangle on mesh object '{meshObj.name}' (material name is '{material.name}')"
+                        )
 
         count = 0
         for surface, colPolyList in colPolyFromSurfaceType.items():
