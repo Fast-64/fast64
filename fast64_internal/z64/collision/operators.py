@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix
 
-from ...utility import PluginError, raisePluginError
+from ...utility import PluginError, ExportUtils, raisePluginError
 from ..utility import getOOTScale
 from ..exporter.collision import CollisionHeader
 from .properties import OOTCollisionExportSettings
@@ -16,27 +16,28 @@ class OOT_ExportCollision(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("No object selected.")
-        obj = context.active_object
-        if obj.type != "MESH":
-            raise PluginError("No mesh object selected.")
-
-        try:
-            transform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
-            settings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
-            CollisionHeader.export(obj, transform, settings)
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-        except Exception as e:
+        with ExportUtils() as export_utils:
+            obj = None
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
+            if len(context.selected_objects) == 0:
+                raise PluginError("No object selected.")
+            obj = context.active_object
+            if obj.type != "MESH":
+                raise PluginError("No mesh object selected.")
+
+            try:
+                transform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
+                settings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+                CollisionHeader.export(obj, transform, settings)
+
+                self.report({"INFO"}, "Success!")
+                return {"FINISHED"}
+            except Exception as e:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
+                raisePluginError(self, e)
+                return {"CANCELLED"}  # must return a set
 
 
 oot_col_classes = (OOT_ExportCollision,)

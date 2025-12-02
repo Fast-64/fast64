@@ -9,7 +9,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from typing import Optional
 
-from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
+from ...utility import CData, PluginError, ExportUtils, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
@@ -188,41 +188,42 @@ class OOT_ExportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("Mesh not selected.")
-        obj = context.active_object
-        if obj.type != "MESH":
-            raise PluginError("Mesh not selected.")
-
-        finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
-
-        try:
-            # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
-            # 	context.scene.geoExportPath, context.scene.geoLevelName,
-            # 	context.scene.geoLevelOption)
-
-            saveTextures = context.scene.saveTextures
-            exportSettings = context.scene.fast64.oot.DLExportSettings
-
-            ootConvertMeshToC(
-                obj,
-                finalTransform,
-                DLFormat.Static,
-                saveTextures,
-                exportSettings,
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
+        with ExportUtils() as export_utils:
+            obj = None
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
+            if len(context.selected_objects) == 0:
+                raise PluginError("Mesh not selected.")
+            obj = context.active_object
+            if obj.type != "MESH":
+                raise PluginError("Mesh not selected.")
+
+            finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
+
+            try:
+                # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
+                # 	context.scene.geoExportPath, context.scene.geoLevelName,
+                # 	context.scene.geoLevelOption)
+
+                saveTextures = context.scene.saveTextures
+                exportSettings = context.scene.fast64.oot.DLExportSettings
+
+                ootConvertMeshToC(
+                    obj,
+                    finalTransform,
+                    DLFormat.Static,
+                    saveTextures,
+                    exportSettings,
+                )
+
+                self.report({"INFO"}, "Success!")
+                return {"FINISHED"}
+
+            except Exception as e:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
+                raisePluginError(self, e)
+                return {"CANCELLED"}  # must return a set
 
 
 oot_dl_writer_classes = (

@@ -1,7 +1,7 @@
 from bpy.utils import register_class, unregister_class
 from bpy.types import Operator
 
-from ...utility import raisePluginError
+from ...utility import ExportUtils, raisePluginError
 
 
 class Z64_ExportAnimatedMaterials(Operator):
@@ -12,13 +12,14 @@ class Z64_ExportAnimatedMaterials(Operator):
     def execute(self, context):
         from ..exporter.scene.animated_mats import SceneAnimatedMaterial
 
-        try:
-            SceneAnimatedMaterial.export()
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+        with ExportUtils() as export_utils:
+            try:
+                SceneAnimatedMaterial.export()
+                self.report({"INFO"}, "Success!")
+                return {"FINISHED"}
+            except Exception as e:
+                raisePluginError(self, e)
+                return {"CANCELLED"}
 
 
 class Z64_ImportAnimatedMaterials(Operator):
