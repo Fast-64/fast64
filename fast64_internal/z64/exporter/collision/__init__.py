@@ -103,6 +103,7 @@ class CollisionUtility:
                 for i, face in enumerate(meshObj.data.loop_triangles):
                     material = meshObj.material_slots[face.material_index].material
                     colProp = material.ootCollisionProperty
+                    skip = False
 
                     # get bounds and vertices data
                     planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
@@ -119,13 +120,30 @@ class CollisionUtility:
                     )
                     distance = convertIntTo2sComplement(distance, 2, True)
 
+                    def sq(val):
+                        return val * val
+
                     nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)
                     ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2)
                     nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
-                    magSqr = nx * nx + ny * ny + nz * nz
+                    magSqr = sq(nx) + sq(ny) + sq(nz)
                     if magSqr <= 0:
-                        print("INFO: Ignore denormalized triangle.")
+                        skip = True
+
+                    # for walls only, see https://github.com/zeldaret/oot/blob/eb5dac74d6435baf85ced9158d3ff915ba8872ca/src/code/z_bgcheck.c#L751
+                    if normal[1] >= -0.8 and normal[1] <= 0.5:
+                        normal_xz = math.sqrt(sq(normal[0]) + sq(normal[2]))
+                        if math.fabs(normal_xz) < 0.008:
+                            skip = True
+
+                    if skip:
+                        print(
+                            f"WARNING: skipping degenerate triangle on mesh object '{meshObj.name}' (material name is '{material.name}')"
+                        )
                         continue
+
+                    if normal[0] == 0 and normal[2] == 0:
+                        raise PluginError("unexpected degenerate triangle")
 
                     indices: list[int] = []
                     for pos in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
