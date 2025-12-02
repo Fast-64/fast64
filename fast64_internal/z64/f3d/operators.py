@@ -8,12 +8,13 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from typing import Optional
+from pathlib import Path
 
 from ...utility import CData, PluginError, ExportUtils, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
-from ..utility import ootGetObjectPath, ootGetObjectHeaderPath, getOOTScale
+from ..utility import PathUtils, getOOTScale
 from ..model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ..texture_array import ootReadTextureArrays
 from ..model_classes import OOTModel, OOTGfxFormatter
@@ -22,9 +23,9 @@ from .properties import OOTDLImportSettings, OOTDLExportSettings
 
 from ..utility import (
     OOTObjectCategorizer,
+    PathUtils,
     ootDuplicateHierarchy,
     ootCleanupScene,
-    ootGetPath,
     addIncludeFiles,
     getOOTScale,
 )
@@ -47,8 +48,8 @@ def ootConvertMeshToC(
     settings: OOTDLExportSettings,
 ):
     folderName = settings.folder
-    exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
+    export_path = Path(settings.customPath) if isCustomExport else bpy.context.scene.fast64.oot.get_decomp_path()
     removeVanillaData = settings.removeVanillaData
     name = toAlnum(originalObj.name)
     overlayName = settings.actorOverlayName
@@ -87,7 +88,9 @@ def ootConvertMeshToC(
     else:
         data.header += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    with PathUtils(False, export_path, "assets/objects/", folderName, isCustomExport) as path_utils:
+        path = path_utils.get_assets_path(with_decomp_path=True)
+
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
@@ -128,8 +131,10 @@ class OOT_ImportDL(Operator):
             settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
             name = settings.name
             folderName = settings.folder
-            importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
+            importPath = (
+                Path(settings.customPath).resolve() if isCustomImport else context.scene.fast64.oot.get_decomp_path()
+            )
             basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
@@ -138,10 +143,11 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [
-                ootGetObjectPath(isCustomImport, importPath, folderName, True),
-                ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-            ]
+            with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
+                paths = [
+                    path_utils.get_object_header_path(),
+                    path_utils.get_object_source_path(),
+                ]
 
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)

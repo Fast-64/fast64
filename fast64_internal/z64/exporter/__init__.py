@@ -3,6 +3,8 @@ import os
 
 from mathutils import Matrix
 from bpy.types import Object
+from pathlib import Path
+
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..model_classes import OOTModel
 from ..f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
@@ -22,10 +24,10 @@ from ...utility import (
 from ..utility import (
     ExportInfo,
     OOTObjectCategorizer,
+    PathUtils,
     ootDuplicateHierarchy,
     ootCleanupScene,
     getSceneDirFromLevelName,
-    ootGetPath,
 )
 
 
@@ -97,7 +99,7 @@ class SceneExport:
         scene = SceneExport.create_scene(originalSceneObj, transform, exportInfo)
 
         isCustomExport = exportInfo.isCustomExportPath
-        exportPath = exportInfo.exportPath
+        exportPath = Path(exportInfo.exportPath)
         sceneName = exportInfo.name
 
         exportSubdir = ""
@@ -107,7 +109,10 @@ class SceneExport:
             exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
 
         sceneInclude = exportSubdir + "/" + sceneName + "/"
-        path = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
+
+        with PathUtils(False, exportPath, exportSubdir, sceneName, isCustomExport) as path_utils:
+            path = path_utils.get_assets_path(with_decomp_path=True)
+
         textureExportSettings = TextureExportSettings(False, exportInfo.saveTexturesAsPNG, sceneInclude, path)
 
         sceneFile = scene.getNewSceneFile(path, exportInfo.isSingleFile, textureExportSettings)
@@ -129,9 +134,7 @@ class SceneExport:
         hackerootBootOption = exportInfo.hackerootBootOption
         if hackerootBootOption is not None and hackerootBootOption.bootToScene:
             Config.setBootupScene(
-                os.path.join(exportPath, "include/config/config_debug.h")
-                if not isCustomExport
-                else os.path.join(path, "config_bootup.h"),
+                exportPath / "include/config/config_debug.h" if not isCustomExport else path / "config_bootup.h",
                 f"ENTR_{sceneName.upper()}_{hackerootBootOption.spawnIndex}",
                 hackerootBootOption,
             )

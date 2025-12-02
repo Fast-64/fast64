@@ -22,11 +22,11 @@ from ....utility import (
 )
 
 from ...utility import (
+    PathUtils,
     checkEmptyName,
     checkForStartBone,
     getStartBone,
     getSortedChildren,
-    ootGetPath,
     addIncludeFiles,
 )
 
@@ -237,8 +237,8 @@ def ootConvertArmatureToC(
         flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
         isLink = False
 
-    exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
+    export_path = Path(settings.customPath) if isCustomExport else bpy.context.scene.fast64.oot.get_decomp_path()
     removeVanillaData = settings.removeVanillaData
     optimize = settings.optimize
 
@@ -295,7 +295,10 @@ def ootConvertArmatureToC(
     else:
         data.header += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, True, True)
+    with PathUtils(False, export_path, "assets/objects/", folderName, isCustomExport) as path_utils:
+        path = path_utils.get_assets_path(with_decomp_path=True)
+        path_utils.mkdir(path)
+
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)

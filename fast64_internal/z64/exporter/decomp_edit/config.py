@@ -1,9 +1,10 @@
 import os
 import re
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ....utility import PluginError, readFile, writeFile
+from ....utility import PluginError
 
 if TYPE_CHECKING:
     from ...scene.properties import OOTBootupSceneOptions
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 class Config:
     @staticmethod
     def writeBootupSettings(
-        configPath: str,
+        configPath: Path,
         bootMode: str,
         newGameOnly: bool,
         entranceIndex: str,
@@ -21,8 +22,8 @@ class Config:
         cutsceneIndex: str,
         saveFileNameData: str,
     ):
-        if os.path.exists(configPath):
-            originalData = readFile(configPath)
+        if configPath.exists():
+            originalData = configPath.read_text()
             data = originalData
         else:
             originalData = ""
@@ -65,10 +66,10 @@ class Config:
         data = re.sub(r"#define\s*BOOT_PLAYER_NAME\s*[^\n]*", f"#define BOOT_PLAYER_NAME {saveFileNameData}", data)
 
         if data != originalData:
-            writeFile(configPath, data)
+            configPath.write_text(data)
 
     @staticmethod
-    def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
+    def setBootupScene(configPath: Path, entranceIndex: str, options: "OOTBootupSceneOptions"):
         # ``options`` argument type: OOTBootupSceneOptions
         linkAge = "LINK_AGE_CHILD"
         timeOfDay = "NEXT_TIME_NONE"
@@ -99,7 +100,7 @@ class Config:
         )
 
     @staticmethod
-    def clearBootupScene(configPath: str):
+    def clearBootupScene(configPath: Path):
         Config.writeBootupSettings(
             configPath,
             "",

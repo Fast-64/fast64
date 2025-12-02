@@ -146,8 +146,16 @@ class OOT_Properties(bpy.types.PropertyGroup):
         else:
             return f"extracted/{version if version != 'Custom' else self.oot_version_custom}"
 
-    def is_include_present(self, include_file: str):
+    def get_decomp_path(self):
         decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
+
+        if not decomp_path.exists():
+            raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
+
+        return decomp_path
+
+    def is_include_present(self, include_file: str):
+        decomp_path = self.get_decomp_path()
 
         if not decomp_path.exists():
             raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")

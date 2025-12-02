@@ -6,25 +6,17 @@ import math
 from pathlib import Path
 from typing import List
 
-from ....f3d.f3d_gbi import F3D, get_F3D_GBI
+from ....f3d.f3d_gbi import get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import (
-    PluginError,
-    hexOrDecInt,
-    applyRotation,
-    deselectAllObjects,
-    selectSingleObject,
-    get_include_data,
-    removeComments,
-)
+from ....utility import PluginError, hexOrDecInt, applyRotation, deselectAllObjects, selectSingleObject
 from ...f3d_writer import ootReadActorScale
 from ...model_classes import OOTF3DContext, ootGetIncludedAssetData
-from ...utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
+from ...utility import OOTEnum, PathUtils, getOOTScale, ootGetEnums
 from ...texture_array import ootReadTextureArrays
-from ..constants import ootSkeletonImportDict
+from ...tools.quick_import import quick_import_exec
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, get_anim_names
-from ...tools.quick_import import quick_import_exec
+from ..constants import ootSkeletonImportDict
 
 
 class OOTDLEntry:
@@ -246,8 +238,9 @@ def ootBuildSkeleton(
 
 
 def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings):
-    importPath = bpy.path.abspath(importSettings.customPath)
     isCustomImport = importSettings.isCustom
+    decomp_path: Path = bpy.context.scene.fast64.oot.get_decomp_path()
+    importPath = Path(importSettings.customPath).resolve() if isCustomImport else decomp_path
 
     if importSettings.mode != "Generic" and not importSettings.isCustom:
         importInfo = ootSkeletonImportDict[importSettings.mode]
@@ -267,24 +260,23 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         isLink = False
         restPoseData = None
 
-    filepaths = [
-        ootGetObjectPath(isCustomImport, importPath, folderName, True),
-        ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-    ]
+    with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
+        filepaths = [
+            path_utils.get_object_header_path(),
+            path_utils.get_object_source_path(),
+        ]
 
-    if isLink:
-        filepaths.append(ootGetObjectPath(isCustomImport, "", "gameplay_keep", True))
-        filepaths.append(ootGetObjectHeaderPath(isCustomImport, "", "gameplay_keep", True))
+        if isLink:
+            path_utils.set_base_path(decomp_path)
 
-        if (Path(bpy.context.scene.ootDecompPath) / "assets/objects" / folderName).exists():
             filepaths.extend(
                 [
-                    ootGetObjectPath(isCustomImport, importPath, folderName, False),
-                    ootGetObjectHeaderPath(isCustomImport, importPath, folderName, False),
+                    path_utils.get_object_header_path(),
+                    path_utils.get_object_source_path(),
                     (
-                        f"{bpy.context.scene.ootDecompPath}/include/z64player.h"
+                        decomp_path / "include/z64player.h"
                         if bpy.context.scene.fast64.oot.is_z64sceneh_present()
-                        else f"{bpy.context.scene.ootDecompPath}/include/player.h"
+                        else decomp_path / "include/player.h"
                     ),
                 ]
             )

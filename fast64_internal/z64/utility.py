@@ -9,6 +9,7 @@ from mathutils import Vector
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..game_data import game_data
 from .constants import ootSceneIDToName
@@ -24,9 +25,9 @@ from ..utility import (
     applyRotation,
     cleanupDuplicatedObjects,
     hexOrDecInt,
-    binOps,
     deselectAllObjects,
     selectSingleObject,
+    binOps,
 )
 
 if TYPE_CHECKING:
@@ -467,57 +468,6 @@ def getRoomObj(obj):
 def checkEmptyName(name):
     if name == "":
         raise PluginError("No name entered for the exporter.")
-
-
-def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
-
-    if isCustomExport:
-        filepath = exportPath
-    else:
-        filepath = os.path.join(
-            ootGetPath(
-                exportPath,
-                isCustomExport,
-                f"{extracted}/assets/objects/",
-                folderName,
-                False,
-                False,
-            ),
-            folderName + ".c",
-        )
-    return filepath
-
-
-def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
-    if isCustomExport:
-        filepath = exportPath
-    else:
-        filepath = os.path.join(
-            ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, False),
-            folderName + ".h",
-        )
-    return filepath
-
-
-def ootGetPath(
-    exportPath, isCustomExport, subPath, folderName, makeIfNotExists, useFolderForCustom, is_import: bool = False
-):
-    if isCustomExport:
-        path = bpy.path.abspath(os.path.join(exportPath, (folderName if useFolderForCustom else "")))
-    else:
-        if bpy.context.scene.ootDecompPath == "":
-            raise PluginError("Decomp base path is empty.")
-        path = bpy.path.abspath(os.path.join(os.path.join(bpy.context.scene.ootDecompPath, subPath), folderName))
-
-    if not os.path.exists(path):
-        if not is_import and isCustomExport or makeIfNotExists:
-            os.makedirs(path)
-        else:
-            raise PluginError(path + " does not exist.")
-
-    return path
 
 
 def getSortedChildren(armatureObj, bone):
@@ -1031,3 +981,133 @@ def is_oot_features():
 
 def is_hackeroot():
     return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.feature_set == "hackeroot"
+
+
+class PathUtils:
+    def __init__(
+        self,
+        is_import: bool,
+        base_path: Path,
+        sub_dir: Optional[str],
+        folder_name: str,
+        is_custom: bool,
+        use_folder_for_custom: bool = True,
+    ):
+        self.is_import = is_import
+        self.base_path = base_path
+        self.sub_dir = sub_dir
+        self.folder_name = folder_name
+        self.is_custom = is_custom
+        self.use_folder_for_custom = use_folder_for_custom
+
+        if not self.is_custom:
+            self.base_path: Path = self.base_path / bpy.context.scene.fast64.oot.get_extracted_path()
+
+        self.base_path = self.base_path.resolve()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_value:
+            print("\nExecution type:", exc_type)
+            print("\nExecution value:", exc_value)
+            print("\nTraceback:", traceback)
+
+    def get_assets_path(
+        self,
+        sub_folder: str = ".",
+        expected_folder: Optional[str] = None,
+        check_extracted: bool = True,
+        check_file: bool = False,
+        with_decomp_path: bool = False,
+        custom_mkdir: bool = True,
+    ) -> Path:
+        """Returns the accurate assets path"""
+
+        if self.is_custom:
+            return self.get_path(mkdir=custom_mkdir)
+
+        decomp_path = bpy.context.scene.fast64.oot.get_decomp_path()
+        extracted_path = bpy.context.scene.fast64.oot.get_extracted_path()
+
+        def try_path(path: Path, base_name: str, folder_name: str):
+            for dirpath, dirnames, _ in os.walk(path):
+                if folder_name in dirnames:
+                    name = Path(dirpath).name
+
+                    if expected_folder is None or expected_folder == name:
+                        result = f"{base_name}/{name}/{folder_name}"
+
+                        if not (decomp_path / result).exists():
+                            break
+
+                        return Path(result)
+
+            return None
+
+        result = try_path(decomp_path / "assets" / sub_folder, f"assets/{sub_folder}", self.folder_name)
+        is_extracted = False
+
+        if check_extracted and result is None:
+            result = try_path(
+                decomp_path / extracted_path / "assets" / sub_folder,
+                f"{extracted_path}/assets/{sub_folder}",
+                self.folder_name,
+            )
+            is_extracted = True
+
+        assert result is not None, "ERROR: path not found"
+
+        if check_file and not is_extracted:
+            path = result / f"{self.folder_name}.c"
+
+            if not (decomp_path / path).exists():
+                path = extracted_path / result / f"{self.folder_name}.c"
+
+            assert (decomp_path / path).exists(), "ERROR: extracted path not found"
+            result = path
+
+        if with_decomp_path:
+            return decomp_path / result
+
+        return result
+
+    def get_path(self, mkdir: bool = False):
+        if self.is_custom:
+            path = self.base_path / (self.folder_name if self.use_folder_for_custom else "")
+        else:
+            assert self.sub_dir is not None
+            path = self.base_path / self.sub_dir / self.folder_name
+
+        if not path.exists():
+            if mkdir:
+                path.mkdir(parents=True)
+            else:
+                raise PluginError(f"{path} does not exist.")
+
+        return path
+
+    def get_object_header_path(self):
+        path = self.get_assets_path(with_decomp_path=True, custom_mkdir=False)
+        return path / f"{self.folder_name}.h"
+
+    def get_object_source_path(self):
+        path = self.get_assets_path(with_decomp_path=True, custom_mkdir=False)
+        return path / f"{self.folder_name}.c"
+
+    def mkdir(self, path: Path):
+        if not path.exists():
+            path.mkdir(parents=True)
+
+        if not path.exists():
+            raise PluginError(f"{path} does not exist.")
+
+    def set_base_path(self, base_path: Path):
+        self.base_path = base_path
+
+    def set_sub_dir(self, sub_dir: str):
+        self.sub_dir = sub_dir
+
+    def set_folder_name(self, folder_name: str):
+        self.folder_name = folder_name
