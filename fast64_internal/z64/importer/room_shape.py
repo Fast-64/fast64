@@ -1,4 +1,3 @@
-import os
 import re
 import bpy
 import mathutils
@@ -48,8 +47,8 @@ def parseMeshHeader(
 def parseBGImage(roomHeader: OOTRoomHeaderProperty, params: list[str], sharedSceneData: SharedSceneData):
     bgImage = roomHeader.bgImageList.add()
     bgImage.otherModeFlags = params[10]
-    bgName = f"{params[3]}.jpg"
-    image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}"))
+    bgName = params[3]
+    image = bpy.data.images.load(str(sharedSceneData.scenePath / f"{bgName}.jpg"))
     bgImage.image = image
 
 
@@ -66,7 +65,7 @@ def parseBGImageList(
         bgImage.otherModeFlags = params[9]
 
         bgName = params[2]
-        image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}.jpg"))
+        image = bpy.data.images.load(str(sharedSceneData.scenePath / f"{bgName}.jpg"))
         bgImage.image = image
 
 

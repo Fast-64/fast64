@@ -1,4 +1,3 @@
-import os
 import re
 import bpy
 import mathutils
@@ -6,7 +5,7 @@ import mathutils
 from pathlib import Path
 
 from ...game_data import game_data
-from ...utility import PluginError, readFile, hexOrDecInt
+from ...utility import PluginError, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.flipbook import TextureFlipbook
@@ -96,7 +95,9 @@ def parseScene(
     if subfolder is not None:
         importSubdir = subfolder
     if not settings.isCustomDest and subfolder is None:
-        importSubdir = os.path.dirname(getSceneDirFromLevelName(scene_name)) + "/"
+        scene_dir_path = getSceneDirFromLevelName(scene_name)
+        assert scene_dir_path is not None
+        importSubdir = str(Path(scene_dir_path).parent) + "/"
         assert importSubdir is not None
 
     with PathUtils(True, import_path, importSubdir, scene_name, settings.isCustomDest) as path_utils:
@@ -144,7 +145,7 @@ def parseScene(
         sceneCommandsName = f"{scene_name}_scene"
 
     sharedSceneData = SharedSceneData(
-        str(scene_folder_path),  # PATH TODO
+        scene_folder_path,
         f"{scene_name}_scene" if game_data.z64.is_oot() else scene_name,
         settings.includeMesh,
         settings.includeCollision,
@@ -162,7 +163,7 @@ def parseScene(
     )
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], str(bpy.context.scene.fast64.oot.get_decomp_path()))
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
@@ -178,7 +179,8 @@ def parseScene(
         if not settings.isCustomDest:
             drawConfigName = SceneTableUtility.get_draw_config(scene_name)
             filename = "z_scene_table" if game_data.z64.is_oot() else "z_scene_proc"
-            drawConfigData = readFile(os.path.join(import_path, f"src/code/{filename}.c"))
+            z_scene_table_path = import_path / "src" / "code" / f"{filename}.c"
+            drawConfigData = z_scene_table_path.read_text()
             parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
     except:
         pass

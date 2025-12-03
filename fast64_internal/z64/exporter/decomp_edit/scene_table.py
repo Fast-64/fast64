@@ -3,6 +3,8 @@ import bpy
 
 from dataclasses import dataclass, field
 from typing import Optional
+from pathlib import Path
+
 from ....utility import PluginError, writeFile
 from ...constants import ootEnumSceneID, ootSceneNameToID
 
@@ -95,10 +97,10 @@ class SceneTable:
     sections: list[SceneTableSection] = field(default_factory=list)
 
     @staticmethod
-    def new(export_path: str):
+    def new(export_path: Path):
         # read the file's data
         try:
-            with open(export_path) as file_data:
+            with export_path.open() as file_data:
                 data = file_data.read()
                 file_data.seek(0)
                 lines = file_data.readlines()
@@ -251,9 +253,7 @@ class SceneTableUtility:
     @staticmethod
     def get_draw_config(scene_name: str):
         """Read draw config from scene table"""
-        scene_table = SceneTable.new(
-            os.path.join(bpy.path.abspath(bpy.context.scene.ootDecompPath), "include/tables/scene_table.h")
-        )
+        scene_table = SceneTable.new(bpy.context.scene.fast64.oot.get_decomp_path() / "include/tables/scene_table.h")
 
         spec_dict = {entry.spec_name: entry for entry in scene_table.get_entries_flattened()}
         entry = spec_dict.get(f"{scene_name}_scene")
@@ -263,9 +263,9 @@ class SceneTableUtility:
         raise PluginError(f"ERROR: Scene name {scene_name} not found in scene table.")
 
     @staticmethod
-    def edit_scene_table(export_path: str, export_name: str, draw_config: str, title_card_name: str):
+    def edit_scene_table(export_path: Path, export_name: str, draw_config: str, title_card_name: str):
         """Update the scene table entry of the selected scene"""
-        path = os.path.join(export_path, "include/tables/scene_table.h")
+        path = export_path / "include/tables/scene_table.h"
         scene_table = SceneTable.new(path)
         export_enum = get_scene_enum_from_name(export_name)
 
@@ -275,9 +275,9 @@ class SceneTableUtility:
         writeFile(path, scene_table.to_c())
 
     @staticmethod
-    def delete_scene_table_entry(export_path: str, export_name: str):
+    def delete_scene_table_entry(export_path: Path, export_name: str):
         """Remove the scene table entry of the selected scene"""
-        path = os.path.join(export_path, "include/tables/scene_table.h")
+        path = export_path / "include/tables/scene_table.h"
         scene_table = SceneTable.new(path)
         export_enum = get_scene_enum_from_name(export_name)
 

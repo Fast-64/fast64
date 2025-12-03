@@ -22,11 +22,12 @@ class Files:  # TODO: find a better name
             sceneDir = exportInfo.customSubPath + exportInfo.name
         else:
             sceneDir = getSceneDirFromLevelName(exportInfo.name)
+            assert sceneDir is not None
 
-        scenePath = os.path.join(exportInfo.exportPath, sceneDir)
+        scenePath = exportInfo.exportPath / sceneDir
         for filename in os.listdir(scenePath):
-            filepath = os.path.join(scenePath, filename)
-            if os.path.isfile(filepath):
+            filepath = scenePath / filename
+            if filepath.is_file():
                 match = re.match(scene.name + "\_room\_(\d+)\.[ch]", filename)
                 if match is not None and int(match.group(1)) >= len(scene.rooms.entries):
                     os.remove(filepath)
@@ -37,9 +38,10 @@ class Files:  # TODO: find a better name
             sceneDir = remove_info.customSubPath + remove_info.name
         else:
             sceneDir = getSceneDirFromLevelName(remove_info.name)
+            assert sceneDir is not None
 
-        scenePath = os.path.join(remove_info.exportPath, sceneDir)
-        if os.path.exists(scenePath):
+        scenePath = remove_info.exportPath / sceneDir
+        if scenePath.exists():
             shutil.rmtree(scenePath)
 
     @staticmethod

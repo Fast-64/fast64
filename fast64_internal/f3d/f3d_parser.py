@@ -2262,12 +2262,11 @@ def parseMacroArgs(data: str):
     return params
 
 
-def getImportData(filepaths):
+def getImportData(filepaths: list[Path]):
     data = ""
     for path in filepaths:
-        if os.path.exists(path):
-            data += readFile(path)
-
+        if path.exists():
+            data += path.read_text()
     return data
 
 

@@ -1,5 +1,4 @@
 import bpy
-import os
 
 from mathutils import Matrix
 from bpy.types import Object
@@ -17,8 +16,6 @@ from ...utility import (
     unhideAllAndGetHiddenState,
     restoreHiddenState,
     toAlnum,
-    readFile,
-    writeFile,
 )
 
 from ..utility import (
@@ -31,9 +28,9 @@ from ..utility import (
 )
 
 
-def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneInclude: str):
-    drawConfigPath = os.path.join(exportPath, "src/code/z_scene_table.c")
-    drawConfigData = readFile(drawConfigPath)
+def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: Path, sceneInclude: str):
+    drawConfigPath = exportPath / "src/code/z_scene_table.c"
+    drawConfigData = drawConfigPath.read_text()
     newData = drawConfigData
 
     if f'#include "{sceneInclude}"' not in newData:
@@ -48,7 +45,7 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
             raise PluginError("Scenes can only use array flipbooks.")
 
     if newData != drawConfigData:
-        writeFile(drawConfigPath, newData)
+        drawConfigPath.write_text(newData)
 
 
 class SceneExport:
@@ -99,14 +96,16 @@ class SceneExport:
         scene = SceneExport.create_scene(originalSceneObj, transform, exportInfo)
 
         isCustomExport = exportInfo.isCustomExportPath
-        exportPath = Path(exportInfo.exportPath)
+        exportPath = exportInfo.exportPath
         sceneName = exportInfo.name
 
         exportSubdir = ""
         if exportInfo.customSubPath is not None:
             exportSubdir = exportInfo.customSubPath
         if not isCustomExport and exportInfo.customSubPath is None:
-            exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
+            scene_dir_name = getSceneDirFromLevelName(sceneName)
+            assert scene_dir_name is not None
+            exportSubdir = str(Path(scene_dir_name).parent)
 
         sceneInclude = exportSubdir + "/" + sceneName + "/"
 

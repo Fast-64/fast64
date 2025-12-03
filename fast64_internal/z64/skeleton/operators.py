@@ -1,7 +1,6 @@
-from bpy.types import Armature, Operator, Mesh
+from bpy.types import Operator, Mesh
 from bpy.ops import object
 from bpy.utils import register_class, unregister_class
-from bpy.path import abspath
 from mathutils import Matrix
 from ...f3d.f3d_gbi import DLFormat
 from ...utility import PluginError, ExportUtils, raisePluginError
@@ -71,7 +70,7 @@ class OOT_ImportSkeleton(Operator):
 
         try:
             importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-            decompPath = abspath(context.scene.ootDecompPath)
+            decompPath = context.scene.fast64.oot.get_decomp_path()  # PATH TODO
 
             ootImportSkeletonC(decompPath, importSettings)
 

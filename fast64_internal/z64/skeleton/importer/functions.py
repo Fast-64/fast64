@@ -162,7 +162,7 @@ def ootBuildSkeleton(
     removeDoubles,
     importNormals,
     useFarLOD,
-    basePath,
+    basePath: Path,
     drawLayer,
     isLink,
     flipbookArrayIndex2D: int,
@@ -237,7 +237,7 @@ def ootBuildSkeleton(
     return isLOD, armatureObj
 
 
-def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings):
+def ootImportSkeletonC(basePath: Path, importSettings: OOTSkeletonImportSettings):
     isCustomImport = importSettings.isCustom
     decomp_path: Path = bpy.context.scene.fast64.oot.get_decomp_path()
     importPath = Path(importSettings.customPath).resolve() if isCustomImport else decomp_path
@@ -304,7 +304,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     limbs_info = ootGetLimbs(skeletonData, skel_info.limbs_name, False)
 
-    f3dContext = OOTF3DContext(get_F3D_GBI(), limbs_info.limb_list, basePath)
+    f3dContext = OOTF3DContext(get_F3D_GBI(), limbs_info.limb_list, str(basePath))
     f3dContext.mat().draw_layer.oot = drawLayer
     f3dContext.ignore_tlut = ignore_tlut
 

@@ -1,6 +1,5 @@
 import mathutils
 import bpy
-import os
 
 from pathlib import Path
 from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
@@ -27,7 +26,6 @@ from ...utility import (
     checkForStartBone,
     getStartBone,
     getSortedChildren,
-    addIncludeFiles,
 )
 
 
@@ -230,6 +228,7 @@ def ootConvertArmatureToC(
         isLink = importInfo.isLink
     else:
         skeletonName = toAlnum(originalArmatureObj.name)
+        assert skeletonName is not None
         filename = settings.filename if settings.isCustomFilename else skeletonName
         folderName = settings.folder
         overlayName = settings.actorOverlayName if not settings.isCustom else None
@@ -298,25 +297,28 @@ def ootConvertArmatureToC(
     with PathUtils(False, export_path, "assets/objects/", folderName, isCustomExport) as path_utils:
         path = path_utils.get_assets_path(with_decomp_path=True)
         path_utils.mkdir(path)
+        path_utils.set_base_path(path)
 
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
-    exportData = fModel.to_c(
-        TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
-    )
-    skeletonC = skeleton.toC()
+        includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+        exportData = fModel.to_c(
+            TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
+        )
+        skeletonC = skeleton.toC()
 
-    data.append(exportData.all())
-    data.append(skeletonC)
+        data.append(exportData.all())
+        data.append(skeletonC)
 
-    if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
-        data.append(textureArrayData)
+        if isCustomExport:
+            textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
+            data.append(textureArrayData)
 
-    data.header += "\n#endif\n"
-    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
+        data.header += "\n#endif\n"
+        writeCData(data, path / f"{filename}.h", path / f"{filename}.c")
 
-    if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, isLink, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, filename)
-        if removeVanillaData:
-            ootRemoveSkeleton(path, folderName, skeletonName)
+        if not isCustomExport:
+            writeTextureArraysExisting(
+                bpy.context.scene.fast64.oot.get_decomp_path(), overlayName, isLink, flipbookArrayIndex2D, fModel
+            )
+            path_utils.add_include_files(filename)
+            if removeVanillaData:
+                ootRemoveSkeleton(path, folderName, skeletonName)

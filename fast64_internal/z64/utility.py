@@ -230,29 +230,6 @@ def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int)
     return data[: match.start(index)] + newContent + data[match.end(index) :]
 
 
-def addIncludeFiles(objectName, objectPath, assetName):
-    addIncludeFilesExtension(objectName, objectPath, assetName, "h")
-    addIncludeFilesExtension(objectName, objectPath, assetName, "c")
-
-
-def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
-    include = '#include "' + assetName + "." + extension + '"\n'
-    if not os.path.exists(objectPath):
-        raise PluginError(objectPath + " does not exist.")
-    path = os.path.join(objectPath, objectName + "." + extension)
-    if not os.path.exists(path):
-        # workaround for exporting to an object that doesn't exist in assets/
-        data = ""
-    else:
-        data = getDataFromFile(path)
-
-    if include not in data:
-        data += "\n" + include
-
-    # Save this regardless of modification so it will be recompiled.
-    saveDataToFile(path, data)
-
-
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     for sceneDir, dirLevels in ootSceneDirs.items():
@@ -274,7 +251,7 @@ class ExportInfo:
     isCustomExportPath: bool
     """Whether or not we are exporting to a known decomp repo"""
 
-    exportPath: str
+    exportPath: Path
     """Either the decomp repo root, or a specified custom folder (if ``isCustomExportPath`` is true)"""
 
     customSubPath: Optional[str]
@@ -308,7 +285,7 @@ class ExportInfo:
 class RemoveInfo:
     """Contains all parameters used for a scene removal."""
 
-    exportPath: str
+    exportPath: Path
     """The path to the decomp repo root"""
 
     customSubPath: Optional[str]
@@ -1111,3 +1088,23 @@ class PathUtils:
 
     def set_folder_name(self, folder_name: str):
         self.folder_name = folder_name
+
+    def add_include_files(self, assetName: str):
+        self.add_include_file(assetName, "h")
+        self.add_include_file(assetName, "c")
+
+    def add_include_file(self, assetName: str, extension: str):
+        include = '#include "' + assetName + "." + extension + '"\n'
+
+        path = self.get_assets_path(with_decomp_path=True) / f"{self.folder_name}.{extension}"
+        if not path.exists():
+            # workaround for exporting to an object that doesn't exist in assets/
+            data = ""
+        else:
+            data = path.read_text()
+
+        if include not in data:
+            data += "\n" + include
+
+        # Save this regardless of modification so it will be recompiled.
+        path.write_text(data)

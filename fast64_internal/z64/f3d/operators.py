@@ -1,10 +1,8 @@
 import bpy
-import os
 import mathutils
 
 from bpy.types import Operator
 from bpy.ops import object
-from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from typing import Optional
@@ -26,7 +24,6 @@ from ..utility import (
     PathUtils,
     ootDuplicateHierarchy,
     ootCleanupScene,
-    addIncludeFiles,
     getOOTScale,
 )
 
@@ -52,6 +49,7 @@ def ootConvertMeshToC(
     export_path = Path(settings.customPath) if isCustomExport else bpy.context.scene.fast64.oot.get_decomp_path()
     removeVanillaData = settings.removeVanillaData
     name = toAlnum(originalObj.name)
+    assert name is not None
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -90,28 +88,31 @@ def ootConvertMeshToC(
 
     with PathUtils(False, export_path, "assets/objects/", folderName, isCustomExport) as path_utils:
         path = path_utils.get_assets_path(with_decomp_path=True)
+        path_utils.set_base_path(path)
 
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
-    exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
-    )
+        includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+        exportData = fModel.to_c(
+            TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
+        )
 
-    data.append(exportData.all())
+        data.append(exportData.all())
 
-    if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
-        data.append(textureArrayData)
+        if isCustomExport:
+            textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
+            data.append(textureArrayData)
 
-    data.header += "\n#endif\n"
-    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
+        data.header += "\n#endif\n"
+        writeCData(data, path / f"{filename}.h", path / f"{filename}.c")
 
-    if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, name)
-        if removeVanillaData:
-            headerPath = os.path.join(path, folderName + ".h")
-            sourcePath = os.path.join(path, folderName + ".c")
-            removeDL(sourcePath, headerPath, name)
+        if not isCustomExport:
+            writeTextureArraysExisting(
+                bpy.context.scene.fast64.oot.get_decomp_path(), overlayName, False, flipbookArrayIndex2D, fModel
+            )
+            path_utils.add_include_files(name)
+            if removeVanillaData:
+                headerPath = path / f"{folderName}.h"
+                sourcePath = path / f"{folderName}.c"
+                removeDL(str(sourcePath), str(headerPath), name)  # PATH TODO
 
 
 class OOT_ImportDL(Operator):
@@ -135,7 +136,9 @@ class OOT_ImportDL(Operator):
             importPath = (
                 Path(settings.customPath).resolve() if isCustomImport else context.scene.fast64.oot.get_decomp_path()
             )
-            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
+            basePath = (
+                context.scene.fast64.oot.get_decomp_path() if not isCustomImport else importPath.parent
+            )  # PATH TODO
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
@@ -150,7 +153,7 @@ class OOT_ImportDL(Operator):
                 ]
 
             filedata = getImportData(paths)
-            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
+            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], str(basePath))
 
             scale = None
             if not isCustomImport:
