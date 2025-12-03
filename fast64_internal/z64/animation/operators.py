@@ -33,8 +33,8 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         if settings.isCustom
         else bpy.context.scene.fast64.oot.get_decomp_path()
     )
-    with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom) as path_utils:
-        exportPath = path_utils.get_object_source_path()
+    with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom, False) as path_utils:
+        exportPath = path_utils.get_assets_path(with_decomp_path=True)
 
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
@@ -77,7 +77,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
             path = path_utils.get_assets_path()
             path_utils.set_base_path(path)
 
-            writeCData(ootAnimC, path / f"{filename}.h", path / f"{filename}.c")
+            writeCData(ootAnimC, str(path / f"{filename}.h"), str(path / f"{filename}.c"))
             if not settings.isCustom:
                 path_utils.add_include_files(filename)
 
