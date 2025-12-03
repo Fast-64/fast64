@@ -1,6 +1,3 @@
-import os
-
-from bpy.path import abspath
 from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 

@@ -3,6 +3,8 @@ import re
 
 from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
+from pathlib import Path
+
 from bpy.types import Object, Armature
 from ....utility import PluginError, deselectAllObjects, get_include_data
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
@@ -47,7 +49,7 @@ class PropertyData:
 class CutsceneImport(CutsceneObjectFactory):
     """This class contains functions to create the new cutscene Blender data"""
 
-    filePath: Optional[str]  # used when importing from the panel
+    filePath: Optional[Path]  # used when importing from the panel
     fileData: Optional[str]  # used when importing the cutscenes when importing a scene
     csName: Optional[str]  # used when import a specific cutscene
 
@@ -104,8 +106,7 @@ class CutsceneImport(CutsceneObjectFactory):
         if self.fileData is not None:
             fileData = self.fileData
         elif self.filePath is not None:
-            with open(self.filePath, "r") as inputFile:
-                fileData = inputFile.read()
+            fileData = self.filePath.read_text()
         else:
             raise PluginError("ERROR: File data can't be found!")
 

@@ -166,7 +166,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
         settings.folderName = folder_name
         bpy.ops.object.oot_import_anim()
     elif sym_def_type == "CutsceneData" and is_array:
-        bpy.context.scene.ootCSNumber = importCutsceneData(f"{sym_file_p}", None, sym_name)
+        bpy.context.scene.ootCSNumber = importCutsceneData(sym_file_p, None, sym_name)
     else:
         raise QuickImportAborted(
             f"Don't know how to import {sym_def_type}"
