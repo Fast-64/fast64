@@ -134,7 +134,9 @@ class OOT_ImportDL(Operator):
             folderName = settings.folder
             isCustomImport = settings.isCustom
             importPath = (
-                Path(settings.customPath).resolve() if isCustomImport else context.scene.fast64.oot.get_decomp_path()
+                Path(bpy.path.abspath(settings.customPath)).resolve()
+                if isCustomImport
+                else context.scene.fast64.oot.get_decomp_path()
             )
             basePath = context.scene.fast64.oot.get_decomp_path() if not isCustomImport else importPath.parent
             removeDoubles = settings.removeDoubles

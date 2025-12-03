@@ -235,7 +235,7 @@ class CollisionHeader:
         filename = settings.filename if settings.isCustomFilename else f"{name}_collision"
 
         path = (
-            Path(settings.exportPath).resolve()
+            Path(bpy.path.abspath(settings.exportPath)).resolve()
             if settings.customExport
             else bpy.context.scene.fast64.oot.get_decomp_path()
         )

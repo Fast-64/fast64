@@ -240,7 +240,7 @@ def ootBuildSkeleton(
 def ootImportSkeletonC(basePath: Path, importSettings: OOTSkeletonImportSettings):
     isCustomImport = importSettings.isCustom
     decomp_path: Path = bpy.context.scene.fast64.oot.get_decomp_path()
-    importPath = Path(importSettings.customPath).resolve() if isCustomImport else decomp_path
+    importPath = Path(bpy.path.abspath(importSettings.customPath)).resolve() if isCustomImport else decomp_path
 
     if importSettings.mode != "Generic" and not importSettings.isCustom:
         importInfo = ootSkeletonImportDict[importSettings.mode]

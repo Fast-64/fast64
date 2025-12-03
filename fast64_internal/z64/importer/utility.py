@@ -147,7 +147,7 @@ def parse_commands_data(data: str):
 
 
 def get_array_count(shared_data: SharedSceneData, symbol: str):
-    header_path = Path(shared_data.scenePath).resolve() / f"{shared_data.scene_name}.h"
+    header_path = Path(shared_data.scenePath) / f"{shared_data.scene_name}.h"
 
     if not header_path.exists():
         raise PluginError("ERROR: can't find scene header!")

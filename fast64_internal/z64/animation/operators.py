@@ -28,7 +28,11 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     if settings.isCustomFilename:
         checkEmptyName(settings.filename)
 
-    path = Path(settings.customPath).resolve() if settings.isCustom else bpy.context.scene.fast64.oot.get_decomp_path()
+    path = (
+        Path(bpy.path.abspath(settings.customPath)).resolve()
+        if settings.isCustom
+        else bpy.context.scene.fast64.oot.get_decomp_path()
+    )
     with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom) as path_utils:
         exportPath = path_utils.get_object_source_path()
 
@@ -83,7 +87,11 @@ def ootImportAnimationC(
     settings: OOTAnimImportSettingsProperty,
     actorScale: float,
 ):
-    path = Path(settings.customPath).resolve() if settings.isCustom else bpy.context.scene.fast64.oot.get_decomp_path()
+    path = (
+        Path(bpy.path.abspath(settings.customPath)).resolve()
+        if settings.isCustom
+        else bpy.context.scene.fast64.oot.get_decomp_path()
+    )
     with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom) as path_utils:
         filepath = path_utils.get_object_source_path()
 

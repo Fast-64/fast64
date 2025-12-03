@@ -148,7 +148,7 @@ class OOT_ExportScene(Operator):
 
                 if settings.customExport:
                     isCustomExport = True
-                    exportPath = Path(settings.exportPath).resolve()
+                    exportPath = Path(bpy.path.abspath(settings.exportPath)).resolve()
                     customSubPath = None
                 else:
                     if option == "Custom":
