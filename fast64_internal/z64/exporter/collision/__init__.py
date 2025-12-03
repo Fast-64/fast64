@@ -1,5 +1,4 @@
 import bpy
-import math
 import ctypes
 
 from pathlib import Path
@@ -9,7 +8,16 @@ from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
 
-from ....utility import PluginError, CData, toAlnum, unhideAllAndGetHiddenState, restoreHiddenState, indent
+from ....utility import (
+    PluginError,
+    CData,
+    toAlnum,
+    unhideAllAndGetHiddenState,
+    restoreHiddenState,
+    cleanupDuplicatedObjects,
+    indent,
+)
+
 from ...utility import (
     OOTObjectCategorizer,
     convertIntTo2sComplement,
@@ -17,6 +25,7 @@ from ...utility import (
     ootGetPath,
     ootGetObjectPath,
 )
+
 from ...collision.properties import OOTCollisionExportSettings
 from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
@@ -277,6 +286,8 @@ class CollisionHeader:
             source_path.write_text(filedata.source, encoding="utf-8", newline="\n")
         else:
             raise PluginError("ERROR: exporting collision with ignore collision enabled!")
+
+        cleanupDuplicatedObjects([obj])
 
     def getCmd(self):
         """Returns the collision header scene command"""
