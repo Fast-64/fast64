@@ -1,4 +1,3 @@
-import os
 import re
 import bpy
 import mathutils
@@ -6,7 +5,7 @@ import mathutils
 from pathlib import Path
 
 from ...game_data import game_data
-from ...utility import PluginError, readFile, hexOrDecInt
+from ...utility import PluginError, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.flipbook import TextureFlipbook
@@ -18,10 +17,10 @@ from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
 
 from ..utility import (
+    PathUtils,
     getSceneDirFromLevelName,
     setCustomProperty,
     sceneNameFromID,
-    ootGetPath,
     setAllActorsVisibility,
 )
 
@@ -80,46 +79,42 @@ def parseScene(
     settings: OOTImportSceneSettingsProperty,
     option: str,
 ):
-    sceneName = settings.name
+    scene_name = settings.name
+    subfolder = None
+
     if settings.isCustomDest:
-        importPath = bpy.path.abspath(settings.destPath)
-        subfolder = None
+        import_path = Path(settings.destPath)
     else:
         if option == "Custom":
-            subfolder = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/scenes/{settings.subFolder}/"
+            subfolder = bpy.context.scene.fast64.oot.get_assets_path(True, settings.subFolder, expected_folder="scenes")
         else:
-            sceneName = sceneNameFromID(option)
-            subfolder = None
-        importPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+            scene_name = sceneNameFromID(option)
+        import_path = bpy.context.scene.fast64.oot.get_decomp_path()
 
     importSubdir = ""
-    if settings.isCustomDest is not None:
+    if subfolder is not None:
         importSubdir = subfolder
     if not settings.isCustomDest and subfolder is None:
-        importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName, True)) + "/"
+        scene_dir_path = getSceneDirFromLevelName(scene_name)
+        assert scene_dir_path is not None
+        importSubdir = str(Path(scene_dir_path).parent) + "/"
+        assert importSubdir is not None
 
-    sceneFolderPath = ootGetPath(
-        importPath if settings.isCustomDest else f"{importPath}/{bpy.context.scene.fast64.oot.get_extracted_path()}/",
-        settings.isCustomDest,
-        importSubdir,
-        sceneName,
-        False,
-        True,
-        True,
-    )
+    with PathUtils(True, import_path, importSubdir, scene_name, settings.isCustomDest) as path_utils:
+        scene_folder_path = path_utils.get_assets_path(sub_folder="scenes", with_decomp_path=True, custom_mkdir=False)
 
     if game_data.z64.is_oot():
-        file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene.c"
+        file_path = scene_folder_path / f"{scene_name}_scene.c"
     else:
-        file_path = Path(sceneFolderPath).resolve() / f"{sceneName}.c"
+        file_path = scene_folder_path / f"{scene_name}.c"
     is_single_file = True
 
     if not file_path.exists():
-        file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene_main.c"
+        file_path = scene_folder_path / f"{scene_name}_scene_main.c"
         is_single_file = False
 
     if not file_path.exists():
-        raise PluginError("ERROR: scene not found!")
+        raise PluginError(f"ERROR: scene not found! (path: {repr(file_path)})")
 
     sceneData = file_path.read_text()
 
@@ -133,25 +128,25 @@ def parseScene(
         bpy.context.mode = "OBJECT"
 
     if game_data.z64.is_oot():
-        sceneCommandsName = f"{sceneName}_sceneCommands"
+        sceneCommandsName = f"{scene_name}_sceneCommands"
     else:
-        sceneCommandsName = f"{sceneName}Commands"
+        sceneCommandsName = f"{scene_name}Commands"
 
     not_zapd_assets = False
 
     # fast64 naming
     if sceneCommandsName not in sceneData:
         not_zapd_assets = True
-        sceneCommandsName = f"{sceneName}_scene_header00"
+        sceneCommandsName = f"{scene_name}_scene_header00"
 
     # newer assets system naming
     if game_data.z64.is_oot() and sceneCommandsName not in sceneData:
         not_zapd_assets = True
-        sceneCommandsName = f"{sceneName}_scene"
+        sceneCommandsName = f"{scene_name}_scene"
 
     sharedSceneData = SharedSceneData(
-        sceneFolderPath,
-        f"{sceneName}_scene" if game_data.z64.is_oot() else sceneName,
+        scene_folder_path,
+        f"{scene_name}_scene" if game_data.z64.is_oot() else scene_name,
         settings.includeMesh,
         settings.includeCollision,
         settings.includeActors,
@@ -163,12 +158,12 @@ def parseScene(
         settings.includeCutscenes,
         settings.includeAnimatedMats,
         is_single_file,
-        f"{sceneName}_scene_header00" in sceneData,
+        f"{scene_name}_scene_header00" in sceneData,
         not_zapd_assets,
     )
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], str(bpy.context.scene.fast64.oot.get_decomp_path()))
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
@@ -179,11 +174,16 @@ def parseScene(
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
     f3dContext.addMatrix("&gIdentityMtx", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
-    if not settings.isCustomDest:
-        drawConfigName = SceneTableUtility.get_draw_config(sceneName)
-        filename = "z_scene_table" if game_data.z64.is_oot() else "z_scene_proc"
-        drawConfigData = readFile(os.path.join(importPath, f"src/code/{filename}.c"))
-        parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
+    # TODO: fix the scene table parser for HackerOoT
+    try:
+        if not settings.isCustomDest:
+            drawConfigName = SceneTableUtility.get_draw_config(scene_name)
+            filename = "z_scene_table" if game_data.z64.is_oot() else "z_scene_proc"
+            z_scene_table_path = import_path / "src" / "code" / f"{filename}.c"
+            drawConfigData = z_scene_table_path.read_text()
+            parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
+    except:
+        pass
 
     bpy.context.space_data.overlay.show_relationship_lines = False
     bpy.context.space_data.overlay.show_curve_normals = True
@@ -192,16 +192,20 @@ def parseScene(
     if settings.includeCutscenes:
         bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)
 
-    sceneObj = parseSceneCommands(sceneName, None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
+    sceneObj = parseSceneCommands(scene_name, None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 
-    if not settings.isCustomDest:
-        setCustomProperty(
-            sceneObj.ootSceneHeader.sceneTableEntry,
-            "drawConfig",
-            SceneTableUtility.get_draw_config(sceneName),
-            game_data.z64.get_enum("drawConfig"),
-        )
+    # TODO: fix the scene table parser for HackerOoT
+    try:
+        if not settings.isCustomDest:
+            setCustomProperty(
+                sceneObj.ootSceneHeader.sceneTableEntry,
+                "drawConfig",
+                SceneTableUtility.get_draw_config(scene_name),
+                game_data.z64.get_enum("drawConfig"),
+            )
+    except:
+        pass
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
         setAllActorsVisibility(sceneObj, bpy.context)

@@ -13,17 +13,17 @@ if TYPE_CHECKING:
     from ..scene import Scene
 
 
-def get_spec_path(export_path: str):
+def get_spec_path(export_path: Path):
     """Returns the path to the scene spec include"""
 
     version: str = bpy.context.scene.fast64.oot.oot_version
 
     if version == "legacy":
-        return Path(export_path)
+        return export_path
     elif version.startswith("gc-") or version.startswith("ique-"):
-        return Path(f"{export_path}/scenes_gc_ique.inc")
+        return export_path / f"scenes_gc_ique.inc"
     else:
-        return Path(f"{export_path}/scenes_n64.inc")
+        return export_path / f"scenes_n64.inc"
 
 
 @dataclass
@@ -99,7 +99,7 @@ class SpecFile:
     sections: list[SpecSection] = field(default_factory=list)  # list of the different spec entries
 
     @staticmethod
-    def new(export_path: str):
+    def new(export_path: Path):
         # read the file's data
         spec_path = get_spec_path(export_path)
         try:
@@ -219,11 +219,11 @@ class SpecUtility:
     """This class hosts different functions to edit the spec file"""
 
     @staticmethod
-    def remove_segments(export_path: str, scene_name: str):
-        path = os.path.join(export_path, "spec")
-        spec_file = SpecFile.new(path)
+    def remove_segments(export_path: Path, scene_name: str):
+        spec_file = SpecFile.new(export_path)
         SpecUtility.remove_segments_from_spec(spec_file, scene_name)
-        writeFile(path, spec_file.to_c())
+        path = get_spec_path(export_path)
+        path.write_text(spec_file.to_c())
 
     @staticmethod
     def remove_segments_from_spec(spec_file: SpecFile, scene_name: str):
@@ -255,7 +255,7 @@ class SpecUtility:
                 csTotal += len(cs.cutscene.entries)
 
         # get the spec's data
-        exportPath = os.path.join(exportInfo.exportPath, "spec")
+        exportPath = exportInfo.exportPath
         specFile = SpecFile.new(exportPath)
         build_directory = specFile.build_directory
 

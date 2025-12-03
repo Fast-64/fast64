@@ -1,8 +1,9 @@
 import bpy
-import os
 
 from mathutils import Matrix
 from bpy.types import Object
+from pathlib import Path
+
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..model_classes import OOTModel
 from ..f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
@@ -15,23 +16,21 @@ from ...utility import (
     unhideAllAndGetHiddenState,
     restoreHiddenState,
     toAlnum,
-    readFile,
-    writeFile,
 )
 
 from ..utility import (
     ExportInfo,
     OOTObjectCategorizer,
+    PathUtils,
     ootDuplicateHierarchy,
     ootCleanupScene,
     getSceneDirFromLevelName,
-    ootGetPath,
 )
 
 
-def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneInclude: str):
-    drawConfigPath = os.path.join(exportPath, "src/code/z_scene_table.c")
-    drawConfigData = readFile(drawConfigPath)
+def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: Path, sceneInclude: str):
+    drawConfigPath = exportPath / "src/code/z_scene_table.c"
+    drawConfigData = drawConfigPath.read_text()
     newData = drawConfigData
 
     if f'#include "{sceneInclude}"' not in newData:
@@ -46,7 +45,7 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
             raise PluginError("Scenes can only use array flipbooks.")
 
     if newData != drawConfigData:
-        writeFile(drawConfigPath, newData)
+        drawConfigPath.write_text(newData)
 
 
 class SceneExport:
@@ -104,10 +103,15 @@ class SceneExport:
         if exportInfo.customSubPath is not None:
             exportSubdir = exportInfo.customSubPath
         if not isCustomExport and exportInfo.customSubPath is None:
-            exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
+            scene_dir_name = getSceneDirFromLevelName(sceneName)
+            assert scene_dir_name is not None
+            exportSubdir = str(Path(scene_dir_name).parent)
 
         sceneInclude = exportSubdir + "/" + sceneName + "/"
-        path = ootGetPath(exportPath, isCustomExport, exportSubdir, sceneName, True, True)
+
+        with PathUtils(False, exportPath, exportSubdir, sceneName, isCustomExport) as path_utils:
+            path = path_utils.get_assets_path(with_decomp_path=True)
+
         textureExportSettings = TextureExportSettings(False, exportInfo.saveTexturesAsPNG, sceneInclude, path)
 
         sceneFile = scene.getNewSceneFile(path, exportInfo.isSingleFile, textureExportSettings)
@@ -129,9 +133,7 @@ class SceneExport:
         hackerootBootOption = exportInfo.hackerootBootOption
         if hackerootBootOption is not None and hackerootBootOption.bootToScene:
             Config.setBootupScene(
-                os.path.join(exportPath, "include/config/config_debug.h")
-                if not isCustomExport
-                else os.path.join(path, "config_bootup.h"),
+                exportPath / "include/config/config_debug.h" if not isCustomExport else path / "config_bootup.h",
                 f"ENTR_{sceneName.upper()}_{hackerootBootOption.spawnIndex}",
                 hackerootBootOption,
             )

@@ -802,10 +802,10 @@ class SceneAnimatedMaterial:
 
         # write C data
         if settings.is_custom_path:
-            export_path = Path(settings.export_path)
+            export_path = Path(bpy.path.abspath(settings.export_path))
             export_path.mkdir(exist_ok=True)
         else:
-            export_path = Path(bpy.context.scene.ootDecompPath) / "assets" / "objects" / settings.object_name
+            export_path = bpy.context.scene.fast64.oot.get_decomp_path() / "assets" / "objects" / settings.object_name
 
         export_path = export_path.resolve()
         assert export_path.exists(), f"This path doesn't exist: {repr(export_path)}"
@@ -825,7 +825,7 @@ class SceneAnimatedMaterial:
         """Imports animated materials data from C files, this should be called to do a separate import from the scene."""
 
         settings: Z64_AnimatedMaterialImportSettings = bpy.context.scene.fast64.oot.anim_mats_import_settings
-        import_path = Path(settings.import_path).resolve()
+        import_path = Path(bpy.path.abspath(settings.import_path)).resolve()
 
         file_data = import_path.read_text()
         array_names = [

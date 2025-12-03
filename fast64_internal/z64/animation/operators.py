@@ -1,18 +1,20 @@
-import mathutils, bpy, os
+import mathutils
+import bpy
+
 from bpy.types import Scene, Operator, Armature
 from bpy.props import StringProperty, BoolProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
+from pathlib import Path
+
 from ...utility import PluginError, ExportUtils, toAlnum, writeCData, raisePluginError
-from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 from ..exporter.animation import ootExportLinkAnimation, ootExportNonLinkAnimation
+from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 from .importer import ootImportLinkAnimationC, ootImportNonLinkAnimationC
 
 from ..utility import (
-    ootGetPath,
-    addIncludeFiles,
+    PathUtils,
     checkEmptyName,
-    ootGetObjectPath,
     getOOTScale,
 )
 
@@ -26,11 +28,17 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     if settings.isCustomFilename:
         checkEmptyName(settings.filename)
 
-    path = bpy.path.abspath(settings.customPath)
-    exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName, False)
+    path = (
+        Path(bpy.path.abspath(settings.customPath)).resolve()
+        if settings.isCustom
+        else bpy.context.scene.fast64.oot.get_decomp_path()
+    )
+    with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom, False) as path_utils:
+        exportPath = path_utils.get_assets_path(with_decomp_path=True)
 
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
+    assert name is not None
     filename = settings.filename if settings.isCustomFilename else name
     convertTransformMatrix = (
         mathutils.Matrix.Scale(getOOTScale(armatureObj.ootActorScale), 4)
@@ -40,44 +48,38 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     if settings.isLink:
         ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
-        path = ootGetPath(
-            exportPath,
-            settings.isCustom,
-            "assets/misc/link_animetion",
-            settings.folderName if settings.isCustom else "",
-            False,
-            False,
-        )
-        headerPath = ootGetPath(
-            exportPath,
-            settings.isCustom,
-            "assets/objects/gameplay_keep",
-            settings.folderName if settings.isCustom else "",
-            False,
-            False,
-        )
-        writeCData(
-            ootAnimC, os.path.join(path, ootAnim.dataName() + ".h"), os.path.join(path, ootAnim.dataName() + ".c")
-        )
-        writeCData(
-            ootAnimHeaderC,
-            os.path.join(headerPath, ootAnim.headerName + ".h"),
-            os.path.join(headerPath, ootAnim.headerName + ".c"),
-        )
+        folder_name = settings.folderName if settings.isCustom else ""
 
-        if not settings.isCustom:
-            addIncludeFiles("link_animetion", path, ootAnim.dataName())
-            addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
+        with PathUtils(
+            False, exportPath, "assets/misc/link_animetion", folder_name, settings.isCustom, False
+        ) as path_utils:
+            path = path_utils.get_assets_path(custom_mkdir=False)
+            headerPath = path_utils.get_assets_path(custom_mkdir=False)
+            path_utils.set_base_path(path)
 
+            assert ootAnim.headerName is not None
+            writeCData(ootAnimC, path / f"{ootAnim.dataName()}.h", path / f"{ootAnim.dataName()}.c")
+            writeCData(ootAnimHeaderC, headerPath / f"{ootAnim.headerName}.h", headerPath / f"{ootAnim.headerName}.c")
+
+            if not settings.isCustom:
+                path_utils.set_folder_name("link_animetion")
+                path_utils.add_include_files(ootAnim.dataName())
+
+                path_utils.set_folder_name("gameplay_keep")
+                path_utils.add_include_files(ootAnim.headerName)
     else:
         ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name, filename)
-
         ootAnimC = ootAnim.toC()
-        path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, True, False)
-        writeCData(ootAnimC, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
-        if not settings.isCustom:
-            addIncludeFiles(settings.folderName, path, filename)
+        with PathUtils(
+            False, exportPath, "assets/objects/", settings.folderName, settings.isCustom, False
+        ) as path_utils:
+            path = path_utils.get_assets_path()
+            path_utils.set_base_path(path)
+
+            writeCData(ootAnimC, str(path / f"{filename}.h"), str(path / f"{filename}.c"))
+            if not settings.isCustom:
+                path_utils.add_include_files(filename)
 
 
 def ootImportAnimationC(
@@ -85,23 +87,26 @@ def ootImportAnimationC(
     settings: OOTAnimImportSettingsProperty,
     actorScale: float,
 ):
-    importPath = bpy.path.abspath(settings.customPath)
-    filepath = ootGetObjectPath(settings.isCustom, importPath, settings.folderName, True)
+    path = (
+        Path(bpy.path.abspath(settings.customPath)).resolve()
+        if settings.isCustom
+        else bpy.context.scene.fast64.oot.get_decomp_path()
+    )
+    with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom) as path_utils:
+        filepath = path_utils.get_object_source_path()
+
     if settings.isLink:
         numLimbs = 21
         if not settings.isCustom:
-            basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-            animFilepath = os.path.join(
-                basePath,
-                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/misc/link_animetion/link_animetion.c",
-            )
-            animHeaderFilepath = os.path.join(
-                basePath,
-                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/gameplay_keep/gameplay_keep.c",
-            )
+            decomp_path: Path = bpy.context.scene.fast64.oot.get_decomp_path()
+            with PathUtils(False, decomp_path, None, "link_animetion", settings.isCustom) as path_utils:
+                animFilepath = path_utils.get_assets_path(with_decomp_path=True, check_file=True)
+                path_utils.set_folder_name("gameplay_keep")
+                animHeaderFilepath = path_utils.get_assets_path(with_decomp_path=True, check_file=True)
         else:
             animFilepath = filepath
             animHeaderFilepath = filepath
+
         ootImportLinkAnimationC(
             armatureObj,
             animHeaderFilepath,

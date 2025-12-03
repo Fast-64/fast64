@@ -2,6 +2,10 @@ import mathutils
 import bpy
 import re
 import math
+
+from bpy.types import Object
+from pathlib import Path
+
 from ....utility import PluginError, hexOrDecInt, get_include_data, removeComments
 from ....f3d.f3d_parser import getImportData
 from ...model_classes import ootGetIncludedAssetData
@@ -26,10 +30,10 @@ def binangToRadians(value):
     return math.radians(value * 360 / (2**16))
 
 
-def getFrameData(filepath: str, animData: str, frameDataName: str):
-    matchResult = re.search(re.escape(frameDataName) + "\s*\[.*?\]\s*=\s*\{([^\}]*)\}", animData, re.DOTALL)
+def getFrameData(filepath: Path, animData: str, frameDataName: str):
+    matchResult = re.search(re.escape(frameDataName) + r"\s*\[.*?\]\s*=\s*\{([^\}]*)\}", animData, re.DOTALL)
     if matchResult is None:
-        raise PluginError("Cannot find animation frame data named " + frameDataName + " in " + filepath)
+        raise PluginError(f"Cannot find animation frame data named {frameDataName} in {filepath}")
     data = matchResult.group(1)
 
     if "#include" in data:
@@ -45,10 +49,10 @@ def getFrameData(filepath: str, animData: str, frameDataName: str):
     return frameData
 
 
-def getJointIndices(filepath, animData, jointIndicesName):
-    matchResult = re.search(re.escape(jointIndicesName) + "\s*\[\s*[0-9]*\s*\]\s*=\s*\{([^;]*);", animData, re.DOTALL)
+def getJointIndices(filepath: Path, animData: str, jointIndicesName: str):
+    matchResult = re.search(re.escape(jointIndicesName) + r"\s*\[\s*[0-9]*\s*\]\s*=\s*\{([^;]*);", animData, re.DOTALL)
     if matchResult is None:
-        raise PluginError("Cannot find animation joint indices data named " + jointIndicesName + " in " + filepath)
+        raise PluginError(f"Cannot find animation joint indices data named {jointIndicesName} in {filepath}")
     data = matchResult.group(1)
 
     if "#include" in data:
@@ -56,22 +60,24 @@ def getJointIndices(filepath, animData, jointIndicesName):
 
     jointIndicesData = [
         [hexOrDecInt(match.group(i)) for i in range(1, 4)]
-        for match in re.finditer("\{([^,\}]*),([^,\}]*),([^,\}]*)\s*,?\s*\}", data, re.DOTALL)
+        for match in re.finditer(r"\{([^,\}]*),([^,\}]*),([^,\}]*)\s*,?\s*\}", data, re.DOTALL)
     ]
 
     return jointIndicesData
 
 
-def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
+def ootImportNonLinkAnimationC(
+    armatureObj: Object, filepath: Path, animName: str, actorScale: float, isCustomImport: bool
+):
     animData = getImportData([filepath])
     if not isCustomImport:
-        basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+        basePath = bpy.context.scene.fast64.oot.get_decomp_path()
         animData = ootGetIncludedAssetData(basePath, [filepath], animData) + animData
 
     matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", animData, re.DOTALL | re.MULTILINE)
 
     if matchResult is None:
-        raise PluginError("Cannot find definition named " + animName + " in " + filepath)
+        raise PluginError(f"Cannot find definition named {animName} in {filepath}")
 
     if "#include" in matchResult.group(1):
         anim_data = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
@@ -88,7 +94,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
         anim_data,
     )
     if matchResult is None:
-        raise PluginError("Cannot find animation named " + animName + " in " + filepath)
+        raise PluginError(f"Cannot find animation named {animName} in {filepath}")
     frameCount = hexOrDecInt(matchResult.group(1).strip())
     frameDataName = matchResult.group(2).strip()
     jointIndicesName = matchResult.group(3).strip()
@@ -176,19 +182,19 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
 # animName is header name.
 # numLimbs = 21 for link.
 def ootImportLinkAnimationC(
-    armatureObj: bpy.types.Object,
-    animHeaderFilepath: str,
-    animFilepath: str,
+    armatureObj: Object,
+    animHeaderFilepath: Path,
+    animFilepath: Path,
     animHeaderName: str,
     actorScale: float,
     numLimbs: int,
     isCustomImport: bool,
 ):
-    header_data = getImportData([animFilepath.replace(".c", ".h")])
+    header_data = getImportData([animFilepath.with_suffix(".h")])
     animHeaderData = getImportData([animHeaderFilepath])
     animData = getImportData([animFilepath])
     if not isCustomImport:
-        basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+        basePath = bpy.context.scene.fast64.oot.get_decomp_path()
         animHeaderData = ootGetIncludedAssetData(basePath, [animHeaderFilepath], animHeaderData) + animHeaderData
         animData = ootGetIncludedAssetData(basePath, [animFilepath], animData) + animData
 
@@ -197,7 +203,7 @@ def ootImportLinkAnimationC(
     )
 
     if matchResult is None:
-        raise PluginError("Cannot find definition named " + animHeaderName + " in " + animHeaderFilepath)
+        raise PluginError(f"Cannot find definition named {animHeaderName} in {animHeaderFilepath}")
 
     if "#include" in matchResult.group(1):
         anim_data = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
@@ -211,7 +217,7 @@ def ootImportLinkAnimationC(
         anim_data,
     )
     if matchResult is None:
-        raise PluginError("Cannot find animation named " + animHeaderName + " in " + animHeaderFilepath)
+        raise PluginError(f"Cannot find animation named {animHeaderName} in {animHeaderFilepath}")
 
     frame_count_raw = matchResult.group(1).strip()
 

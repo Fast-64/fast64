@@ -2063,14 +2063,14 @@ def as_posix(path: Path) -> str:
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
     # get the extracted path
     extracted = bpy.context.scene.fast64.oot.get_extracted_path()
-    decomp_path = bpy.context.scene.ootDecompPath if use_decomp_path else "."
+    decomp_path = bpy.context.scene.fast64.oot.get_decomp_path()
 
     # get the file's path
-    file_path = Path(f"{decomp_path}/{base_path}").resolve()
+    file_path = Path(f"{decomp_path if use_decomp_path else '.'}/{base_path}").resolve()
 
     # check if the path exists
     if not file_path.exists():
-        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{base_path}").resolve()
+        file_path = Path(f"{decomp_path}/{extracted}/{base_path}").resolve()
 
     # if it doesn't check if the extracted path exists (we want to skip that for PNG files)
     if check_exists and not file_path.exists():
@@ -2092,7 +2092,10 @@ def get_include_data(include: str, strip: bool = False):
     include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
 
     if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
-        file_path = oot_get_assets_path(include)
+        file_path: Path = bpy.context.scene.fast64.oot.get_decomp_path() / include
+
+        if not file_path.exists():
+            file_path = oot_get_assets_path(include)
     else:
         raise PluginError(f"ERROR: game not supported ({bpy.context.scene.gameEditorMode})")
 

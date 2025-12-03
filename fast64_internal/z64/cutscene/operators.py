@@ -1,10 +1,11 @@
 import bpy
 
-from bpy.path import abspath
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Object
 from bpy.utils import register_class, unregister_class
+from pathlib import Path
+
 from ...utility import PluginError, ExportUtils, raisePluginError
 from ...game_data import game_data
 from ..collection_utility import getCollection
@@ -56,7 +57,7 @@ class OOT_ImportCutscene(Operator):
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
 
-            path = abspath(context.scene.ootCutsceneImportPath)
+            path = Path(bpy.path.abspath(context.scene.ootCutsceneImportPath)).resolve()
             csName = context.scene.ootCSImportName if len(context.scene.ootCSImportName) > 0 else None
             context.scene.ootCSNumber = importCutsceneData(path, None, csName)
 

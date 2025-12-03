@@ -1970,6 +1970,16 @@ def parseF3D(
     processedDLName = f3dContext.processDLName(dlName)
     if processedDLName is not None:
         dlCommands = parseDLData(dlData, processedDLName)
+
+        # some commands in OoT are using macros to set width and height values
+        if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
+            for command in dlCommands:
+                for i, param in enumerate(command.params):
+                    if "_WIDTH" in param or "_HEIGHT" in param:
+                        value_match = re.search(rf"\#define\s?{param}\s?(\d*)", dlData, re.DOTALL)
+                        assert value_match is not None, f"can't find {repr(param)}"
+                        command.params[i] = value_match.group(1)
+
         f3dContext.processCommands(dlData, processedDLName, dlCommands)
 
     if callClearMaterial:
@@ -2262,12 +2272,12 @@ def parseMacroArgs(data: str):
     return params
 
 
-def getImportData(filepaths):
+def getImportData(filepaths: list[Path | str]):
     data = ""
-    for path in filepaths:
-        if os.path.exists(path):
-            data += readFile(path)
-
+    for base_path in filepaths:
+        path = Path(base_path) if isinstance(base_path, str) else base_path
+        if path.exists():
+            data += path.read_text()
     return data
 
 

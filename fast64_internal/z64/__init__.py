@@ -1,5 +1,6 @@
 import bpy
 
+from typing import Optional
 from pathlib import Path
 from bpy.utils import register_class, unregister_class
 
@@ -13,7 +14,7 @@ from .scene.panels import scene_panels_register, scene_panels_unregister
 from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .collection_utility import collections_register, collections_unregister
-from .utility import setAllActorsVisibility
+from .utility import PathUtils, setAllActorsVisibility
 from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
@@ -146,8 +147,16 @@ class OOT_Properties(bpy.types.PropertyGroup):
         else:
             return f"extracted/{version if version != 'Custom' else self.oot_version_custom}"
 
+    def get_decomp_path(self):
+        decomp_path = Path(bpy.path.abspath(bpy.context.scene.ootDecompPath)).resolve()
+
+        if not decomp_path.exists():
+            raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
+
+        return decomp_path
+
     def is_include_present(self, include_file: str):
-        decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
+        decomp_path = self.get_decomp_path()
 
         if not decomp_path.exists():
             raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
@@ -160,6 +169,25 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     def is_z64sceneh_present(self):
         return self.is_include_present("z64scene.h")
+
+    def get_assets_path(
+        self,
+        is_import: bool,
+        folder_name: str,
+        expected_folder: Optional[str] = None,
+        check_extracted: bool = True,
+        check_file: bool = False,
+        with_decomp_path: bool = False,
+    ):
+        with PathUtils(is_import, self.get_decomp_path(), None, folder_name, False) as path_utils:
+            path = path_utils.get_assets_path(
+                expected_folder=expected_folder,
+                check_extracted=check_extracted,
+                check_file=check_file,
+                with_decomp_path=with_decomp_path,
+            )
+
+        return str(path)
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True

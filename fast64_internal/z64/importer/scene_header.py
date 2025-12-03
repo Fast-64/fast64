@@ -223,7 +223,7 @@ def parseRoomList(
         file_path = Path(sharedSceneData.scenePath) / f"{roomName}.c"
 
         if not file_path.exists():
-            file_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}_main.c"
+            file_path = Path(sharedSceneData.scenePath) / f"{roomName}_main.c"
 
         if not file_path.exists():
             raise PluginError("ERROR: scene not found!")
