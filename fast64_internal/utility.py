@@ -2092,7 +2092,10 @@ def get_include_data(include: str, strip: bool = False):
     include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
 
     if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
-        file_path = oot_get_assets_path(include)
+        file_path: Path = bpy.context.scene.fast64.oot.get_decomp_path() / include
+
+        if not file_path.exists():
+            file_path = oot_get_assets_path(include)
     else:
         raise PluginError(f"ERROR: game not supported ({bpy.context.scene.gameEditorMode})")
 

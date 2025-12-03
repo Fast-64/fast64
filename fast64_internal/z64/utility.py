@@ -231,10 +231,16 @@ def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int)
 
 
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
-            return f"{extracted}/" + sceneDir + name
+            path = base_path = sceneDir + name
+            check_path: Path = bpy.context.scene.fast64.oot.get_decomp_path() / base_path
+
+            if include_extracted and not check_path.exists():
+                path = bpy.context.scene.fast64.oot.get_decomp_path() / extracted / base_path
+
+            return path
     return None
 
 
@@ -971,16 +977,11 @@ class PathUtils:
         use_folder_for_custom: bool = True,
     ):
         self.is_import = is_import
-        self.base_path = base_path
+        self.base_path = base_path.resolve()
         self.sub_dir = sub_dir
         self.folder_name = folder_name
         self.is_custom = is_custom
         self.use_folder_for_custom = use_folder_for_custom
-
-        if not self.is_custom:
-            self.base_path: Path = self.base_path / bpy.context.scene.fast64.oot.get_extracted_path()
-
-        self.base_path = self.base_path.resolve()
 
     def __enter__(self):
         return self
@@ -1036,10 +1037,10 @@ class PathUtils:
 
         assert result is not None, "ERROR: path not found"
 
-        if check_file and not is_extracted:
+        if check_file:
             path = result / f"{self.folder_name}.c"
 
-            if not (decomp_path / path).exists():
+            if not is_extracted and not (decomp_path / path).exists():
                 path = extracted_path / result / f"{self.folder_name}.c"
 
             assert (decomp_path / path).exists(), "ERROR: extracted path not found"

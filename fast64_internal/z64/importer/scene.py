@@ -86,7 +86,7 @@ def parseScene(
         import_path = Path(settings.destPath)
     else:
         if option == "Custom":
-            subfolder = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/scenes/{settings.subFolder}/"
+            subfolder = bpy.context.scene.fast64.oot.get_assets_path(True, settings.subFolder, expected_folder="scenes")
         else:
             scene_name = sceneNameFromID(option)
         import_path = bpy.context.scene.fast64.oot.get_decomp_path()
@@ -114,7 +114,7 @@ def parseScene(
         is_single_file = False
 
     if not file_path.exists():
-        raise PluginError("ERROR: scene not found!")
+        raise PluginError(f"ERROR: scene not found! (path: {repr(file_path)})")
 
     sceneData = file_path.read_text()
 

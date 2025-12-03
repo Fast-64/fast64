@@ -152,10 +152,11 @@ class OOT_ImportDL(Operator):
 
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], str(basePath))
+            f3dContext.ignore_tlut = '.inc.c"' in filedata
 
             scale = None
             if not isCustomImport:
-                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
+                filedata = ootGetIncludedAssetData(basePath, paths, filedata, True) + filedata
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)

@@ -281,6 +281,14 @@ def ootImportSkeletonC(basePath: Path, importSettings: OOTSkeletonImportSettings
                 ]
             )
 
+            path_utils.set_folder_name("gameplay_keep")
+            filepaths.extend(
+                [
+                    path_utils.get_object_header_path(),
+                    path_utils.get_object_source_path(),
+                ]
+            )
+
     for path in filepaths:
         p = Path(path)
         if not p.exists():

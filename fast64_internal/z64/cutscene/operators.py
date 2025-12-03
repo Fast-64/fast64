@@ -57,7 +57,7 @@ class OOT_ImportCutscene(Operator):
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
 
-            path = Path(context.scene.ootCutsceneImportPath)
+            path = Path(context.scene.ootCutsceneImportPath).resolve()
             csName = context.scene.ootCSImportName if len(context.scene.ootCSImportName) > 0 else None
             context.scene.ootCSNumber = importCutsceneData(path, None, csName)
 
