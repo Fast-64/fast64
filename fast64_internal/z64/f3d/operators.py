@@ -50,7 +50,8 @@ def ootConvertMeshToC(
     exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
     removeVanillaData = settings.removeVanillaData
-    name = toAlnum(originalObj.name)
+    filename = toAlnum(settings.filename) if settings.isCustomFilename else toAlnum(originalObj.name)
+    assert filename is not None
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -58,7 +59,7 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(name, DLFormat, None)
+        fModel = OOTModel(filename, DLFormat, None)
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
@@ -66,7 +67,7 @@ def ootConvertMeshToC(
 
         # Since we provide a draw layer override, there should only be one fMesh.
         for fMesh in fMeshes.values():
-            fMesh.draw.name = name
+            fMesh.draw.name = filename
 
         ootCleanupScene(originalObj, allObjs)
 
@@ -74,7 +75,6 @@ def ootConvertMeshToC(
         ootCleanupScene(originalObj, allObjs)
         raise Exception(str(e))
 
-    filename = settings.filename if settings.isCustomFilename else name
     data = CData()
     data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
 
@@ -104,11 +104,11 @@ def ootConvertMeshToC(
 
     if not isCustomExport:
         writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, name)
+        addIncludeFiles(folderName, path, filename)
         if removeVanillaData:
             headerPath = os.path.join(path, folderName + ".h")
             sourcePath = os.path.join(path, folderName + ".c")
-            removeDL(sourcePath, headerPath, name)
+            removeDL(sourcePath, headerPath, filename)
 
 
 class OOT_ImportDL(Operator):
