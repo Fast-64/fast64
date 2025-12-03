@@ -354,12 +354,16 @@ def upgrade_changed_props():
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
         settings: Fast64Settings_Properties = scene.fast64.settings
-        if settings.internal_game_update_ver != 1:
-            set_game_defaults(scene, False)
-            settings.internal_game_update_ver = 1
+
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
+
+        if settings.internal_game_update_ver == 0:  # set world defaults, since we default to ucode defaults
+            set_game_defaults(scene, False)
+        if settings.internal_game_update_ver <= 1 and scene.gameEditorMode != "Homebrew" and scene.world is not None:
+            scene.world.rdp_defaults.g_lighting_positional = True  #  set lighting positional in old/new files
+        settings.internal_game_update_ver = 2
 
         settings = scene.fast64.renderSettings
         light0Color = settings.pop("lightColor", None)
