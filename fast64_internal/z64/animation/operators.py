@@ -58,7 +58,6 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
             writeCData(ootAnimHeaderC, headerPath / f"{ootAnim.headerName}.h", headerPath / f"{ootAnim.headerName}.c")
 
             if not settings.isCustom:
-                # PATH TODO
                 path_utils.set_folder_name("link_animetion")
                 path_utils.add_include_files(ootAnim.dataName())
 

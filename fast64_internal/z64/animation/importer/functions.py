@@ -190,7 +190,7 @@ def ootImportLinkAnimationC(
     numLimbs: int,
     isCustomImport: bool,
 ):
-    header_data = getImportData([animFilepath.replace(".c", ".h")])  # PATH TODO
+    header_data = getImportData([animFilepath.with_suffix(".h")])
     animHeaderData = getImportData([animHeaderFilepath])
     animData = getImportData([animFilepath])
     if not isCustomImport:

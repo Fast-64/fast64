@@ -70,7 +70,7 @@ class OOT_ImportSkeleton(Operator):
 
         try:
             importSettings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
-            decompPath = context.scene.fast64.oot.get_decomp_path()  # PATH TODO
+            decompPath = context.scene.fast64.oot.get_decomp_path()
 
             ootImportSkeletonC(decompPath, importSettings)
 

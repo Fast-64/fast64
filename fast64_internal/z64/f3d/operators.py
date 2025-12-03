@@ -112,7 +112,7 @@ def ootConvertMeshToC(
             if removeVanillaData:
                 headerPath = path / f"{folderName}.h"
                 sourcePath = path / f"{folderName}.c"
-                removeDL(str(sourcePath), str(headerPath), name)  # PATH TODO
+                removeDL(str(sourcePath), str(headerPath), name)
 
 
 class OOT_ImportDL(Operator):
@@ -136,9 +136,7 @@ class OOT_ImportDL(Operator):
             importPath = (
                 Path(settings.customPath).resolve() if isCustomImport else context.scene.fast64.oot.get_decomp_path()
             )
-            basePath = (
-                context.scene.fast64.oot.get_decomp_path() if not isCustomImport else importPath.parent
-            )  # PATH TODO
+            basePath = context.scene.fast64.oot.get_decomp_path() if not isCustomImport else importPath.parent
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
