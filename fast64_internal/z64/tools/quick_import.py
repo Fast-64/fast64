@@ -66,7 +66,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
 
     all_found_defs: dict[Path, list[tuple[str, str]]] = dict()
     found_dir_p: Optional[Path] = None
-    base_dir_p = Path(context.scene.ootDecompPath)
+    base_dir_p = context.scene.fast64.oot.get_decomp_path()
 
     # this str cast completely useless, it's there to force linting to recognize a Path element
     extracted_dir_p = base_dir_p / str(context.scene.fast64.oot.get_extracted_path())

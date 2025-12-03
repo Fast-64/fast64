@@ -805,7 +805,7 @@ class SceneAnimatedMaterial:
             export_path = Path(settings.export_path)
             export_path.mkdir(exist_ok=True)
         else:
-            export_path = Path(bpy.context.scene.ootDecompPath) / "assets" / "objects" / settings.object_name
+            export_path = bpy.context.scene.fast64.oot.get_decomp_path() / "assets" / "objects" / settings.object_name
 
         export_path = export_path.resolve()
         assert export_path.exists(), f"This path doesn't exist: {repr(export_path)}"
