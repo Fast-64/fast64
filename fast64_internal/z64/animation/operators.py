@@ -100,9 +100,9 @@ def ootImportAnimationC(
         if not settings.isCustom:
             decomp_path: Path = bpy.context.scene.fast64.oot.get_decomp_path()
             with PathUtils(False, decomp_path, None, "link_animetion", settings.isCustom) as path_utils:
-                animFilepath = path_utils.get_assets_path(with_decomp_path=True)
+                animFilepath = path_utils.get_assets_path(with_decomp_path=True, check_file=True)
                 path_utils.set_folder_name("gameplay_keep")
-                animHeaderFilepath = path_utils.get_assets_path(with_decomp_path=True)
+                animHeaderFilepath = path_utils.get_assets_path(with_decomp_path=True, check_file=True)
         else:
             animFilepath = filepath
             animHeaderFilepath = filepath
