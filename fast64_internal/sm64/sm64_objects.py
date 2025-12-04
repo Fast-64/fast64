@@ -1,3 +1,4 @@
+import dataclasses
 import math, bpy, mathutils
 from bpy.utils import register_class, unregister_class
 from bpy.types import UILayout
@@ -33,6 +34,11 @@ from ..utility import (
 from ..f3d.f3d_gbi import (
     DLFormat,
     upgrade_old_prop,
+)
+from ..f3d.occlusion_planes.exporter.functions import (
+    addOcclusionQuads,
+    OcclusionPlaneCandidate,
+    OcclusionPlaneCandidatesList,
 )
 
 from .sm64_constants import (
@@ -511,9 +517,45 @@ class SM64_Mario_Start:
         )
 
 
+@dataclasses.dataclass
+class SM64_OcclusionPlaneCandidate(OcclusionPlaneCandidate):
+    room_num: int
+
+    def to_c(self, indent_char: str) -> str:
+        return (
+            f"{indent_char}{{\n"
+            f"{indent_char * 2}{{\n"
+            f"{self.vertices_to_c(indent_char * 3)}"
+            f"{indent_char * 2}}},\n"
+            f"{indent_char * 2}{self.weight}f\n"
+            f"{indent_char * 2}{self.room_num}\n"
+            f"{indent_char}}},\n"
+        )
+
+
+class SM64_OcclusionPlaneCandidatesList(OcclusionPlaneCandidatesList):
+    def __init__(self, ownerName: str, enable_rooms: bool):
+        super().__init__(ownerName)
+        self.indent_char: str = "\t"
+        self.enable_rooms = enable_rooms
+
+    def add_plane(self, obj: bpy.types.Object, verts: list[Vector], weight: float):
+        self.planes.append(SM64_OcclusionPlaneCandidate(verts, weight, obj.room_num if self.enable_rooms else -1))
+
+
 class SM64_Area:
     def __init__(
-        self, index, music_seq, music_preset, terrain_type, geolayout, collision, warpNodes, name, startDialog
+        self,
+        index,
+        music_seq,
+        music_preset,
+        terrain_type,
+        geolayout,
+        collision,
+        warpNodes,
+        name,
+        startDialog,
+        enable_rooms: bool,
     ):
         self.cameraVolumes = []
         self.puppycamVolumes = []
@@ -533,6 +575,9 @@ class SM64_Area:
         self.splines = []
         self.startDialog = startDialog
         self.custom_cmds = []
+        self.occlusion_planes: SM64_OcclusionPlaneCandidatesList = SM64_OcclusionPlaneCandidatesList(
+            self.name, enable_rooms
+        )
 
     def macros_name(self):
         return self.name + "_macro_objs"
@@ -556,6 +601,8 @@ class SM64_Area:
         if self.startDialog is not None:
             data += "\t\tSHOW_DIALOG(0x00, " + self.startDialog + "),\n"
         data += "\t\tTERRAIN_TYPE(" + self.terrain_type + "),\n"
+        if bpy.context.scene.f3d_type == "F3DEX3" and len(self.occlusion_planes.planes) > 0:
+            data += f"\t\tSETUP_OCCLUSION_PLANES({self.occlusion_planes.name}),\n"
         data += f"{persistentBlockString}\n"
         data += "\tEND_AREA(),\n"
         return data
@@ -768,7 +815,11 @@ def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
         [areaObj.warpNodes[i].to_c() for i in range(len(areaObj.warpNodes))],
         name,
         areaObj.startDialog if areaObj.showStartDialog else None,
+        areaObj.enableRoomSwitch,
     )
+
+    if bpy.context.scene.f3d_type == "F3DEX3":
+        addOcclusionQuads(areaObj, area.occlusion_planes, True, transformMatrix)
 
     start_process_sm64_objects(areaObj, area, transformMatrix, False)
 
