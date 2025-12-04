@@ -1347,7 +1347,7 @@ def processMesh(
         alphabeticalChildren = getSwitchChildren(obj)
         for i in range(len(alphabeticalChildren)):
             childObj = alphabeticalChildren[i]
-            if i == 0:  # Outside room system
+            if i == 0 and addRooms:  # Outside room system
                 # TODO: Allow users to specify whether this should be rendered before or after rooms (currently, it is after)
                 processMesh(
                     fModel,
