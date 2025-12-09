@@ -539,49 +539,56 @@ def setStartLevel(basePath, levelEnum):
         saveDataToFile(filepath, newData)
 
 
-def addActSelectorIgnore(basePath, levelEnum):
-    filepath = os.path.join(basePath, "src/game/level_update.c")
-    data = getDataFromFile(filepath)
+def add_act_selector_ignore(base_path, level_enum):
+    file_path = os.path.join(base_path, "src/game/level_update.c")
+    data = getDataFromFile(file_path)
 
-    checkResult = re.search("if\s*\(gCurrLevelNum\s*==\s*" + levelEnum + "\)\s*return\s*0;", data, re.DOTALL)
-    if checkResult is not None:
+    function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL)
+
+    if function_start is None:
+        raise PluginError('Could not find lvl_set_current_level in "' + file_path + '".')
+
+    function_end = re.search("\s*return\s*\!gDebugLevelSelect;\s*", data, re.DOTALL)
+    if function_end is None:
+        raise PluginError('Could not find return in lvl_set_current_level in "' + file_path + '".')
+
+    function_contents = data[function_start.end() : function_end.start()]
+
+    check_result = re.search(
+        "if\s*\(gCurrLevelNum\s*==\s*" + level_enum + "\)\s*return\s*0;", function_contents, re.DOTALL
+    )
+    if check_result is not None:
         return
 
-    # This won't actually match whole function, but only up to first closing bracket.
-    # This should be okay though... ?
-    matchResultFunction = re.search(
-        "s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{" + "(((?!\}).)*)\}", data, re.DOTALL
+    function_contents += "\n\tif (gCurrLevelNum == " + level_enum + ") return 0;"
+
+    new_data = data[: function_start.end()] + function_contents + data[function_end.start() :]
+
+    saveDataToFile(file_path, new_data)
+
+
+def remove_act_selector_ignore(base_path, level_enum):
+    file_path = os.path.join(base_path, "src/game/level_update.c")
+    data = getDataFromFile(file_path)
+
+    function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL)
+
+    if function_start is None:
+        raise PluginError('Could not find lvl_set_current_level in "' + file_path + '".')
+
+    function_end = re.search("\s*return\s*\!gDebugLevelSelect;\s*", data, re.DOTALL)
+    if function_end is None:
+        raise PluginError('Could not find return in lvl_set_current_level in "' + file_path + '".')
+
+    function_contents = data[function_start.end() : function_end.start()]
+
+    new_function_contents = re.sub(
+        "\s*?if\s*\(gCurrLevelNum\s*==\s*" + level_enum + "\)\s*return\s*0;", "", function_contents, re.DOTALL
     )
 
-    if matchResultFunction is None:
-        raise PluginError('Could not find lvl_set_current_level in "' + filepath + '".')
-
-    functionContents = matchResultFunction.group(3)
-
-    matchResult = re.search("gCurrCourseNum\s*\=\s*gLevelToCourseNumTable(((?!\;).)*)\;", functionContents, re.DOTALL)
-    if matchResult is None:
-        raise PluginError('Could not find gCurrCourseNum setting in lvl_set_current_level in "' + filepath + '".')
-
-    functionContents = (
-        functionContents[: matchResult.end(0)]
-        + "\n\tif (gCurrLevelNum == "
-        + levelEnum
-        + ") return 0;"
-        + functionContents[matchResult.end(0) :]
-    )
-
-    newData = data[: matchResultFunction.start(3)] + functionContents + data[matchResultFunction.end(3) :]
-
-    saveDataToFile(filepath, newData)
-
-
-def removeActSelectorIgnore(basePath, levelEnum):
-    filepath = os.path.join(basePath, "src/game/level_update.c")
-    data = getDataFromFile(filepath)
-
-    newData = re.sub("if\s*\(gCurrLevelNum\s*\=\=\s*" + levelEnum + "\)\s*return\s*0\;\n", "", data, re.DOTALL)
-    if data != newData:
-        saveDataToFile(filepath, newData)
+    if function_contents != new_function_contents:
+        new_data = data[: function_start.end()] + new_function_contents + data[function_end.start() :]
+        saveDataToFile(file_path, new_data)
 
 
 areaNumReg = re.compile(r".*AREA\(([0-9]+),.+\),")
@@ -1102,9 +1109,9 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             zoomMasks.write(cameraPath)
 
         if obj.actSelectorIgnore:
-            addActSelectorIgnore(exportDir, levelEnum)
+            add_act_selector_ignore(exportDir, levelEnum)
         else:
-            removeActSelectorIgnore(exportDir, levelEnum)
+            remove_act_selector_ignore(exportDir, levelEnum)
 
         if obj.setAsStartLevel:
             setStartLevel(exportDir, levelEnum)
