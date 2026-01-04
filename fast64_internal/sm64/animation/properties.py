@@ -53,6 +53,8 @@ from .utility import (
     action_name_to_anim_name,
     duplicate_name,
     table_name_to_enum,
+    check_for_action_in_table,
+    check_for_headers_in_table,
 )
 from .importing import get_enum_from_import_preset, update_table_preset
 
@@ -317,6 +319,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         layout: UILayout,
         action: Action,
         in_table: bool,
+        table_elements: list["SM64_AnimTableElementProperties"],
         updates_table: bool,
         dma: bool,
         export_type: str,
@@ -328,12 +331,15 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         preview_op = SM64_PreviewAnim.draw_props(split)
         preview_op.played_header = self.header_variant
         preview_op.played_action = action.name
-        if not in_table:  # Don´t show index or name in table props
+        # Don´t show index or name in table props
+        if not in_table:
             draw_list_op(
                 split,
                 SM64_AnimTableOps,
                 "ADD",
-                text="Add To Table",
+                text="Add To Table (Again)"
+                if check_for_headers_in_table([self], table_elements, dma)
+                else "Add To Table",
                 icon="LINKED",
                 action_name=action.name,
                 header_variant=self.header_variant,
@@ -459,24 +465,37 @@ class SM64_ActionAnimProperty(PropertyGroup):
         actor_name: str,
         gen_enums: bool,
         dma: bool,
+        table_elements: list["SM64_AnimTableElementProperties"] = None,
     ):
+        table_elements = table_elements or []
         # Args to pass to the headers
-        header_args = (action, in_table, updates_table, dma, export_type, actor_name, gen_enums)
+        header_args = (action, in_table, table_elements, updates_table, dma, export_type, actor_name, gen_enums)
 
         col = layout.column()
         if specific_variant is not None:
             col.label(text="Action Properties", icon="ACTION")
         if not in_table:
-            draw_list_op(
-                col,
-                SM64_AnimTableOps,
-                "ADD_ALL",
-                text="Add All Variants To Table",
-                icon="LINKED",
-                action_name=action.name,
-            )
-            col.separator()
-
+            if check_for_action_in_table(action, table_elements, dma):
+                if not check_for_headers_in_table(self.headers, table_elements, dma):
+                    draw_list_op(
+                        col,
+                        SM64_AnimTableOps,
+                        "ADD_ALL",
+                        text="Add Remaining Variants To Table",
+                        icon="LINKED",
+                        action_name=action.name,
+                    )
+                    col.separator()
+            else:
+                draw_list_op(
+                    col,
+                    SM64_AnimTableOps,
+                    "ADD_ALL",
+                    text="Add All Variants To Table",
+                    icon="LINKED",
+                    action_name=action.name,
+                )
+                col.separator()
             if export_type == "Binary" and not dma:
                 string_int_prop(col, self, "start_address", "Start Address")
                 string_int_prop(col, self, "end_address", "End Address")
