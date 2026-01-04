@@ -14,6 +14,7 @@ from .importing import import_animations, get_enum_from_import_preset
 from .exporting import export_animation, export_animation_table
 from .utility import (
     animation_operator_checks,
+    check_for_headers_in_table,
     get_action_props,
     get_anim_obj,
     get_scene_anim_props,
@@ -114,7 +115,8 @@ class SM64_AnimTableOps(OperatorBase):
         return True
 
     def execute_operator(self, context):
-        table_elements = get_anim_props(context).elements
+        anim_props = get_anim_props(context)
+        table_elements = anim_props.elements
         if self.op_name == "MOVE_UP":
             table_elements.move(self.index, self.index - 1)
         elif self.op_name == "MOVE_DOWN":
@@ -132,6 +134,8 @@ class SM64_AnimTableOps(OperatorBase):
         elif self.op_name == "ADD_ALL":
             action = bpy.data.actions[self.action_name]
             for header_variant in range(len(get_action_props(action).headers)):
+                if check_for_headers_in_table([(action, header_variant)], table_elements, anim_props.is_dma):
+                    continue
                 table_elements.add()
                 table_elements[-1].set_variant(action, header_variant)
         elif self.op_name == "REMOVE":
