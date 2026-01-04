@@ -1188,9 +1188,11 @@ def getDirectionGivenAppVersion():
         return 1
 
 
-def applyRotation(objs: list[Object], angle: float, axis: str):
+def applyRotation(objs: Iterable[Object], angle: float, axis: str):
+    """Each object will only apply this rotation once"""
     rot_mat = Matrix.Rotation(angle, 4, axis).inverted()
 
+    objs = set(objs)
     for obj in objs:
         # rotate object
         obj.matrix_world = rot_mat @ obj.matrix_world
