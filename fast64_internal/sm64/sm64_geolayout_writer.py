@@ -407,25 +407,23 @@ def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
             if f_mesh.cullVertexList:
                 create_revert_node(draw_layer, transform_node)
             else:
-                if (hasattr(f_mesh, "override_layer") and f_mesh.override_layer) or node.override_hash:
-                    draw_overrides = f_model.draw_overrides.setdefault(f_mesh, {})
-                    if node.override_hash is None:
-                        node.override_hash = (5, node.drawLayer)
+                override_hash = node.override_hash or tuple()
+                override_hash = override_hash + (5, draw_layer)
+                draw_overrides = f_model.draw_overrides.setdefault(f_mesh, {})
+                existing_cmd_list, existing_nodes = draw_overrides.get(override_hash, (None, []))
+                node.override_hash = override_hash
+                if existing_cmd_list is not None:
+                    node.DLmicrocode = existing_cmd_list
+                    existing_nodes.append(node)
+                    continue
+                else:
+                    node.DLmicrocode = cmd_list = copy.copy(cmd_list)
+                    cmd_list.commands = cmd_list.commands.copy()
+                    if hasattr(f_mesh, "override_layer"):
+                        cmd_list.name += f"_with_layer_{draw_layer}_revert"
                     else:
-                        node.override_hash = (5, *node.override_hash)
-                    existing_cmd_list, existing_nodes = draw_overrides.get(node.override_hash, (None, []))
-                    if existing_cmd_list is not None:
-                        node.DLmicrocode = existing_cmd_list
-                        existing_nodes.append(node)
-                        continue
-                    else:
-                        node.DLmicrocode = cmd_list = copy.copy(cmd_list)
-                        if node.override_hash not in draw_overrides:
-                            cmd_list.name += f"_with_layer_{node.drawLayer}_revert"
-                        else:
-                            cmd_list.name += "_with_revert"
-                        cmd_list.commands = cmd_list.commands.copy()
-                        draw_overrides[node.override_hash] = (cmd_list, [node])
+                        cmd_list.name += "_with_revert"
+                    draw_overrides[override_hash] = (cmd_list, [node])
                 # remove SPEndDisplayList from gfx_list, material_revert has its own SPEndDisplayList cmd
                 while SPEndDisplayList() in cmd_list.commands:
                     cmd_list.commands.remove(SPEndDisplayList())
@@ -1114,7 +1112,7 @@ def generate_overrides(
                 if dl is not None and override_hash is not None:
                     node.DLmicrocode = dl
                     node.override_hash = override_hash
-            if override_node.drawLayer is not None and node.drawLayer != override_node.drawLayer:
+            if override_node.drawLayer is not None:
                 node.drawLayer = override_node.drawLayer
                 if node.fMesh is not None:
                     node.fMesh.override_layer = True
