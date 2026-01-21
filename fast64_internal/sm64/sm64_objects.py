@@ -2840,11 +2840,9 @@ class SM64_GeoASMProperties(bpy.types.PropertyGroup):
         name="Geo ASM Param", default="0", description="Function parameter. (Binary exporting will cast to int)"
     )
 
-    @staticmethod
-    def upgrade_object(obj: bpy.types.Object):
-        geo_asm = obj.fast64.sm64.geo_asm
-        upgrade_old_prop(geo_asm, "func", obj, {"geoASMFunc", "geo_func"})
-        upgrade_old_prop(geo_asm, "param", obj, {"geoASMParam", "func_param"})
+    def upgrade_object(self, obj: bpy.types.Object):
+        upgrade_old_prop(self, "func", obj, {"geoASMFunc", "geo_func"})
+        upgrade_old_prop(self, "param", obj, {"geoASMParam", "func_param"})
 
 
 class SM64_AreaProperties(bpy.types.PropertyGroup):
@@ -2896,20 +2894,17 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
     bparam3: bpy.props.StringProperty(name="Behavior Param 3", description="Third Behavior Param", default="")
     bparam4: bpy.props.StringProperty(name="Behavior Param 4", description="Fourth Behavior Param", default="")
 
-    @staticmethod
-    def upgrade_object(obj):
-        game_object: SM64_GameObjectProperties = obj.fast64.sm64.game_object
-
-        upgrade_old_prop(game_object, "bparams", obj, "sm64_obj_bparam")
+    def upgrade_object(self, obj: bpy.types.Object):
+        upgrade_old_prop(self, "bparams", obj, "sm64_obj_bparam")
 
         # get combined bparams, if they arent the default value then return because they have been set
-        combined_bparams = game_object.get_combined_bparams()
+        combined_bparams = self.get_combined_bparams()
         if combined_bparams != DEFAULT_BEHAVIOR_PARAMS:
             return
 
         # If bparams arent the default bparams, disable `use_individual_params`
-        if game_object.bparams != DEFAULT_BEHAVIOR_PARAMS:
-            game_object.use_individual_params = False
+        if self.bparams != DEFAULT_BEHAVIOR_PARAMS:
+            self.use_individual_params = False
 
     def get_combined_bparams(self):
         params = [self.bparam1, self.bparam2, self.bparam3, self.bparam4]
@@ -3020,15 +3015,30 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
 
     animation: bpy.props.PointerProperty(type=SM64_ArmatureAnimProperties)
 
+    def upgrade_obj(self, obj: bpy.types.Object):
+        if self.version == 0:
+            self.geo_asm.upgrade_object(obj)
+        if self.version < 3:
+            self.game_object.upgrade_object(obj)
+        if self.version < 4:
+            self.custom.upgrade_object(obj)
+        self.set_to_newest_version()
+
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
-            if obj.fast64.sm64.version == 0:
-                SM64_GeoASMProperties.upgrade_object(obj)
-            if obj.fast64.sm64.version < 3:
-                SM64_GameObjectProperties.upgrade_object(obj)
-            obj.fast64.sm64.custom.upgrade_object(obj)
-            obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
+            obj.fast64.sm64.upgrade_obj(obj)
+
+    def set_to_newest_version(self):
+        self.version = self.cur_version
+        self.custom.set_to_newest_version()
+
+
+def depsgraph_handler(_scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
+    for update in depsgraph.updates:
+        id = update.id
+        if isinstance(id, bpy.types.Object):
+            id.fast64.sm64.set_to_newest_version()
 
 
 sm64_obj_classes = (
@@ -3244,6 +3254,8 @@ def sm64_obj_register():
 
     bpy.types.Object.enableRoomSwitch = bpy.props.BoolProperty(name="Enable Room System")
 
+    bpy.app.handlers.depsgraph_update_post.append(depsgraph_handler)
+
 
 def sm64_obj_unregister():
     del bpy.types.Object.sm64_model_enum
@@ -3320,6 +3332,9 @@ def sm64_obj_unregister():
     del bpy.types.Object.switchFunc
     del bpy.types.Object.switchParam
     del bpy.types.Object.enableRoomSwitch
+
+    while depsgraph_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(depsgraph_handler)
 
     for cls in reversed(sm64_obj_classes):
         unregister_class(cls)
