@@ -11,7 +11,7 @@ from ..panels import SM64_Panel
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
 from .sm64_geolayout_bone import getSwitchOptionBone
 from .sm64_camera import saveCameraSettingsToGeolayout
-from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
+from .sm64_f3d_writer import SM64Model, SM64GfxFormatter, GfxOverride, OverrideHash
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
@@ -407,17 +407,16 @@ def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
             if f_mesh.cullVertexList:
                 create_revert_node(draw_layer, transform_node)
             else:
-                draw_overrides = f_model.draw_overrides.setdefault(f_mesh, {})
                 if node.override_hash:
                     node.override_hash = (5, *node.override_hash)
                 elif hasattr(f_mesh, "override_layer") and f_mesh.override_layer:
                     node.override_hash = (5, node.drawLayer)
                 else:
                     node.override_hash = (6,)
-                existing_cmd_list, existing_nodes = draw_overrides.get(node.override_hash, (None, []))
-                if existing_cmd_list is not None:
-                    node.DLmicrocode = existing_cmd_list
-                    existing_nodes.append(node)
+                override = f_model.draw_overrides.get(f_mesh, {}).get(node.override_hash)
+                if override is not None:
+                    node.DLmicrocode = override.gfx
+                    override.nodes.append(node)
                     continue
                 else:
                     node.DLmicrocode = cmd_list = copy.copy(cmd_list)
@@ -426,22 +425,22 @@ def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
                     else:
                         cmd_list.name += "_with_revert"
                     cmd_list.commands = cmd_list.commands.copy()
-                    draw_overrides[node.override_hash] = (cmd_list, [node])
+                    f_model.draw_overrides.setdefault(f_mesh, {})[node.override_hash] = GfxOverride(cmd_list, [node])
                 # remove SPEndDisplayList from gfx_list, material_revert has its own SPEndDisplayList cmd
                 while SPEndDisplayList() in cmd_list.commands:
                     cmd_list.commands.remove(SPEndDisplayList())
                 cmd_list.commands.extend(material_revert.commands)
 
 
-def add_overrides_to_fmodel(f_model: SM64Model):
+def add_overrides_to_fmodel(f_model: SM64Model, graph: GeolayoutGraph):
     for f_mesh, draw_overrides in f_model.draw_overrides.items():
-        nodes = [node for _, nodes in draw_overrides.items() for node in nodes]
-        if all(node.override_hash is not None for _, (_, nodes) in draw_overrides.items() for node in nodes):
-            # all nodes use an override, make the first override the main draw
+        # each override dict might have a none which ends up unused, actually check the node
+        nodes = [node for override in draw_overrides.values() for node in override.nodes]
+        if len(nodes) > 0 and all(node.override_hash is not None for node in nodes):
             override_hash, cmd_list, nodes = next(
                 (override_hash, cmd_list, nodes)
                 for override_hash, (cmd_list, nodes) in draw_overrides.items()
-                if override_hash is not None and any(node.override_hash == override_hash for node in nodes)
+                if any(node.override_hash == override_hash for node in nodes)
             )
             for node in nodes:
                 if node.override_hash == override_hash:
@@ -449,6 +448,7 @@ def add_overrides_to_fmodel(f_model: SM64Model):
                     node.override_hash = None
             f_mesh.draw = cmd_list
             draw_overrides.pop(override_hash)
+
         for override_hash, (cmd_list, nodes) in draw_overrides.items():
             # remove no longer used overrides
             if all(node.override_hash is None or node.override_hash != override_hash for node in nodes):
@@ -515,13 +515,13 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
 
     children = meshGeolayout.nodes
     meshGeolayout.nodes = []
-    for node in children:
-        node = copy.copy(node)
-        node.node = copy.copy(node.node)
-        meshGeolayout.nodes.append(generate_overrides(fModel, node, [], meshGeolayout, geolayoutGraph))
+    for child in children:
+        child_copy = copy.copy(child)
+        child_copy.node = copy.copy(child_copy.node)
+        meshGeolayout.nodes.append(generate_overrides(fModel, child_copy, [], meshGeolayout, geolayoutGraph))
 
     append_revert_to_geolayout(geolayoutGraph, fModel)
-    add_overrides_to_fmodel(fModel)
+    add_overrides_to_fmodel(fModel, geolayoutGraph)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -592,7 +592,7 @@ def convertObjectToGeolayout(
         bpy.context.view_layer.objects.active = rootObj
 
     append_revert_to_geolayout(geolayoutGraph, fModel)
-    add_overrides_to_fmodel(fModel)
+    add_overrides_to_fmodel(fModel, geolayoutGraph)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -1092,16 +1092,20 @@ def generate_overrides(
         else:
             node.geolayout.nodes = []
         for child in start_nodes:
-            child = copy.copy(child)
-            child.node = copy.copy(child.node)
-            node.geolayout.nodes.append(generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name))
+            child_copy = copy.copy(child)
+            child_copy.node = copy.copy(child_copy.node)
+            node.geolayout.nodes.append(
+                generate_overrides(fModel, child_copy, switch_stack.copy(), geolayout, graph, name)
+            )
     elif node.hasDL or hasattr(node, "drawLayer"):
+        draw_overrides = fModel.draw_overrides.setdefault(node.fMesh, {})
         for i, override_node in enumerate(switch_stack):
             if node.hasDL:
-                dl, override_hash = save_override_draw(
+                save_override_draw(
                     fModel,
                     node.DLmicrocode,
                     name,
+                    draw_overrides,
                     node.override_hash,
                     override_node.material,
                     override_node.specificMat,
@@ -1112,38 +1116,35 @@ def generate_overrides(
                     node.drawLayer,
                     True,
                 )
-                if dl is not None and override_hash is not None:
-                    node.DLmicrocode = dl
-                    node.override_hash = override_hash
             if override_node.drawLayer is not None and node.drawLayer != override_node.drawLayer:
                 node.drawLayer = override_node.drawLayer
                 if node.fMesh is not None:
                     node.fMesh.override_layer = True
         if node.hasDL:
-            draw_overrides = fModel.draw_overrides.setdefault(node.fMesh, {})
-            _, nodes = draw_overrides.setdefault(node.override_hash, (node.DLmicrocode, []))
+            nodes = draw_overrides.setdefault(node.override_hash, GfxOverride(node.DLmicrocode, [])).nodes
             nodes.append(node)
     for i, child in enumerate(children):
-        child = copy.copy(child)
-        child_node = child.node = copy.copy(child.node)
-        if isinstance(child_node, SwitchOverrideNode):
-            child.parent = None
+        child_copy = copy.copy(child)
+        child_node_copy = child_copy.node = copy.copy(child_copy.node)
+        if isinstance(child_node_copy, SwitchOverrideNode):
+            child_copy.parent = None
             assert i != 0, "Switch override must not be the first child of its parent"
-            override_switch_stack = [*switch_stack, child_node]
+            override_switch_stack = [*switch_stack, child_node_copy]
             option0 = copy.copy(children[0])
+            option0_copy = copy.copy(option0)
             new_name = toAlnum(f"{name}_opt_{i}")
             new_geolayout = graph.addGeolayout(transform_node, geolayout.name + new_name)
             graph.addGeolayoutCall(geolayout, new_geolayout)
             new_geolayout.nodes.append(
-                generate_overrides(fModel, option0, override_switch_stack.copy(), new_geolayout, graph, new_name)
+                generate_overrides(fModel, option0_copy, override_switch_stack.copy(), new_geolayout, graph, new_name)
             )
             option_child = TransformNode(JumpNode(True, new_geolayout))
             transform_node.children.append(option_child)
             option_child.parent = transform_node
         else:
-            child = generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name)
-            transform_node.children.append(child)
-            child.parent = transform_node
+            generate_overrides(fModel, child_copy, switch_stack.copy(), geolayout, graph, name)
+            transform_node.children.append(child_copy)
+            child_copy.parent = transform_node
     return transform_node
 
 
@@ -2479,17 +2480,17 @@ def save_override_draw(
     f_model: SM64Model,
     draw: GfxList,
     prefix: str,
-    existing_hash,
+    draw_overrides: dict[OverrideHash, GfxOverride],
+    existing_hash: OverrideHash,
     override_mat: bpy.types.Material | None,
     specific_mats: tuple[bpy.types.Material] | None,
     override_layer: int | None,
     override_type: str,
     fMesh: FMesh,
-    obj: object,
+    node: DisplayListNode,
     draw_layer: int,
     convert_texture_data: bool,
 ):
-    draw_overrides = f_model.draw_overrides.setdefault(fMesh, {})
     specific_mats = specific_mats or tuple()
     f_override_mat = override_tex_dimensions = None
     new_layer = draw_layer if override_layer is None else override_layer
@@ -2505,7 +2506,7 @@ def save_override_draw(
     name = f"{fMesh.name}{prefix}"
     new_name = name
     override_index = -1
-    while new_name in [x.name for x, _ in draw_overrides.values()]:
+    while new_name in [x.gfx.name for x in draw_overrides.values()]:
         override_index += 1
         new_name = f"{name}_{override_index}"
     name = new_name
@@ -2560,7 +2561,7 @@ def save_override_draw(
                         new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
                         new_mat.material.tag |= GfxListTag.NoExport
                     f_model.layer_adapted_fmats[material_hash] = new_mat
-            new_mat |= f_model.layer_adapted_fmats.get(material_hash)
+            new_mat = new_mat or f_model.layer_adapted_fmats.get(material_hash)
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
@@ -2642,10 +2643,10 @@ def save_override_draw(
 
     new_hash = tuple(new_hash)
     if save_mesh_override:
-        new_dl_override, nodes = draw_overrides.setdefault(new_hash, (new_dl_override, []))
-        nodes.append(obj)
-        return new_dl_override, new_hash
-    return None, None
+        override = draw_overrides.setdefault(new_hash, GfxOverride(new_dl_override, []))
+        node.DLmicrocode = override.gfx
+        node.override_hash = new_hash
+        override.nodes.append(node)
 
 
 def findVertIndexInBuffer(loop, buffer, loopDict):

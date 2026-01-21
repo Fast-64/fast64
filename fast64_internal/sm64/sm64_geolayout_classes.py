@@ -218,7 +218,7 @@ class GeolayoutGraph:
 
 class Geolayout:
     def __init__(self, name, isStartGeo):
-        self.nodes = []
+        self.nodes: list[TransformNode] = []
         self.name = toAlnum(name)
         self.startAddress = 0
         self.isStartGeo = isStartGeo
@@ -284,7 +284,7 @@ class Geolayout:
 class TransformNode:
     def __init__(self, node):
         self.node = node
-        self.children = []
+        self.children: list[TransformNode] = []
         self.parent = None
         self.skinned = False
         self.skinnedWithoutDL = False
@@ -445,7 +445,7 @@ class SwitchOverrideNode:
 
 
 class JumpNode:
-    def __init__(self, storeReturn, geolayout, geoRef: str = None):
+    def __init__(self, storeReturn, geolayout: Geolayout, geoRef: str = None):
         self.geolayout = geolayout
         self.storeReturn = storeReturn
         self.hasDL = False
@@ -698,10 +698,9 @@ class TranslateRotateNode(BaseDisplayListNode):
         self.rotate = rotate
 
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def get_ptr_offsets(self):
         if self.hasDL:
@@ -798,10 +797,9 @@ class TranslateNode(BaseDisplayListNode):
         self.hasDL = useDeform
         self.translate = translate
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -842,10 +840,9 @@ class RotateNode(BaseDisplayListNode):
         self.hasDL = hasDL
         self.rotate = rotate
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -884,10 +881,9 @@ class BillboardNode(BaseDisplayListNode):
         self.hasDL = hasDL
         self.translate = translate
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -923,10 +919,9 @@ class DisplayListNode(BaseDisplayListNode):
         self.drawLayer = drawLayer
         self.hasDL = True
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [4]
@@ -979,10 +974,9 @@ class ScaleNode(BaseDisplayListNode):
         self.scaleValue = geo_scale
         self.hasDL = use_deform
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def get_ptr_offsets(self):
         return [8] if self.hasDL else []
@@ -1058,10 +1052,9 @@ class DisplayListWithOffsetNode(BaseDisplayListNode):
         self.hasDL = use_deform
         self.translate = translate
         self.fMesh = None
-        self.DLmicrocode = None
+
         self.dlRef = dlRef
         # exists to get the override DL from an fMesh
-        self.override_hash = None
 
     def size(self):
         return 12
