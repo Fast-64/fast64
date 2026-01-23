@@ -436,7 +436,11 @@ def add_overrides_to_fmodel(f_model: SM64Model, graph: GeolayoutGraph):
     for f_mesh, draw_overrides in f_model.draw_overrides.items():
         # each override dict might have a none which ends up unused, actually check the node
         nodes = [node for override in draw_overrides.values() for node in override.nodes]
-        if len(nodes) > 0 and all(node.override_hash is not None for node in nodes):
+        if (
+            len(nodes) > 0
+            and all(node.override_hash is not None for node in nodes)
+            and not any(node.dlRef is f_mesh.draw for node in nodes)
+        ):
             override_hash, cmd_list, nodes = next(
                 (override_hash, cmd_list, nodes)
                 for override_hash, (cmd_list, nodes) in draw_overrides.items()
@@ -447,6 +451,7 @@ def add_overrides_to_fmodel(f_model: SM64Model, graph: GeolayoutGraph):
                     node.DLmicrocode = cmd_list
                     node.override_hash = None
             f_mesh.draw = cmd_list
+            f_mesh.name = cmd_list.name
             draw_overrides.pop(override_hash)
 
         for override_hash, (cmd_list, nodes) in draw_overrides.items():
@@ -1484,16 +1489,17 @@ def processMesh(
 
             src_meshes = temp_obj.get("src_meshes", [])
 
-            if len(src_meshes):
-                fMeshes = {}
-                # find dl
-                draw, name = None, src_meshes[0]["dl_name"]
+            def find_draw_by_name(name):
                 for fmesh in fModel.meshes.values():
                     for fmesh_draw in [fmesh.draw] + fmesh.draw_overrides:
                         if fmesh_draw.name == name:
-                            draw = fmesh_draw
-                            break
-                node.dlRef = draw
+                            return fmesh_draw
+                return None
+
+            if len(src_meshes):
+                fMeshes = {}
+                name = src_meshes[0]["dl_name"]
+                node.dlRef = find_draw_by_name(name)
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
@@ -1521,7 +1527,6 @@ def processMesh(
                     temp_obj["src_meshes"] = [
                         ({"dl_name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    node.dlRef = temp_obj["src_meshes"][0]["dl_name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
