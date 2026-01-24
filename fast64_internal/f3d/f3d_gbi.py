@@ -2450,9 +2450,10 @@ class FModel:
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False):
         final_name = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         if dedup:
+            base_name = final_name
             for i in range(1, len(self.meshes) + 2):
                 if final_name in self.meshes:
-                    final_name = f"{name}_{i:03}"
+                    final_name = f"{base_name}_{i:03}"
         checkUniqueBoneNames(self, final_name, name)
         self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
         self.onAddMesh(mesh, contextObj)
