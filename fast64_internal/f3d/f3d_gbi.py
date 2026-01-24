@@ -2452,7 +2452,7 @@ class FModel:
         if dedup:
             for i in range(1, len(self.meshes) + 2):
                 if final_name in self.meshes:
-                    final_name = f"{name}_{i:03}"
+                    final_name = f"{final_name}_{i:03}"
         checkUniqueBoneNames(self, final_name, name)
         self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
         self.onAddMesh(mesh, contextObj)
