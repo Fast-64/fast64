@@ -432,7 +432,7 @@ def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
                 cmd_list.commands.extend(material_revert.commands)
 
 
-def add_overrides_to_fmodel(f_model: SM64Model, graph: GeolayoutGraph):
+def add_overrides_to_fmodel(f_model: SM64Model):
     for f_mesh, draw_overrides in f_model.draw_overrides.items():
         # each override dict might have a none which ends up unused, actually check the node
         nodes = [node for override in draw_overrides.values() for node in override.nodes]
@@ -526,7 +526,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
         meshGeolayout.nodes.append(generate_overrides(fModel, child_copy, [], meshGeolayout, geolayoutGraph))
 
     append_revert_to_geolayout(geolayoutGraph, fModel)
-    add_overrides_to_fmodel(fModel, geolayoutGraph)
+    add_overrides_to_fmodel(fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -597,7 +597,7 @@ def convertObjectToGeolayout(
         bpy.context.view_layer.objects.active = rootObj
 
     append_revert_to_geolayout(geolayoutGraph, fModel)
-    add_overrides_to_fmodel(fModel, geolayoutGraph)
+    add_overrides_to_fmodel(fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
