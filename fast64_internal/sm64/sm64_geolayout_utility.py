@@ -135,12 +135,17 @@ def updateBone(bone, context):
     addBoneToGroup(armatureObj, bone.name)
 
 
+OverrideHash = tuple[any, ...]
+
+
 class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
     override_layer = False
     dlRef: str | GfxList | None
+    override_hash: OverrideHash | None = None
+    DLmicrocode = None
 
     def get_dl_address(self):
         assert not isinstance(self.dlRef, str), "dlRef string not supported in binary"
