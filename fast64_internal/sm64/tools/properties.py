@@ -7,7 +7,7 @@ from bpy.utils import register_class, unregister_class
 
 from ...utility import prop_split, upgrade_old_prop
 from ..sm64_utility import string_int_prop, import_rom_ui_warnings
-from ..sm64_constants import level_enums
+from ..sm64_constants import enumLevelNames
 
 from .operators import SM64_AddrConv
 
@@ -18,7 +18,7 @@ class SM64_AddrConvProperties(PropertyGroup):
 
     rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
     address: StringProperty(name="Address")
-    level: EnumProperty(items=level_enums, name="Level", default="IC")
+    level: EnumProperty(items=enumLevelNames, name="Level", default="castle_inside")
     clipboard: BoolProperty(name="Copy to Clipboard", default=True)
 
     def upgrade_changed_props(self, scene: Scene):

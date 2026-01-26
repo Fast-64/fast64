@@ -1,10 +1,11 @@
 import bpy
 from bpy.ops import object
-from bpy.types import Bone, Object, Panel, Operator, Armature, Mesh, Material, PropertyGroup
+from bpy.types import Bone, Object, Context, Panel, Operator, Armature, Mesh, Material, PropertyGroup
 from bpy.utils import register_class, unregister_class
-from ..utility import PluginError, prop_split, obj_scale_is_unified
+from ..utility import PluginError, get_first_set_prop, prop_split, obj_scale_is_unified, upgrade_old_prop
 from ..f3d.f3d_material import sm64EnumDrawLayers
-from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
+from .sm64_geolayout_utility import updateBone
+from .custom_cmd.properties import SM64_CustomCmdProperties
 
 from bpy.props import (
     StringProperty,
@@ -34,11 +35,9 @@ enumBoneType = [
     ("Ignore", "Ignore", "Ignore bones when exporting."),
     ("SwitchOption", "Switch Option", "Switch Option"),
     ("DisplayListWithOffset", "Animated Part (0x13)", "Animated Part (Animatable Bone)"),
-    ("CustomAnimated", "Custom Animated", "Custom Bone used for animation"),
-    ("CustomNonAnimated", "Custom (Non-animated)", "Custom geolayout bone, non animated"),
+    ("", "", ""),
+    ("Custom", "Custom", "Custom bone using command presets"),
 ]
-
-animatableBoneTypes = {"DisplayListWithOffset", "CustomAnimated"}
 
 enumGeoStaticType = [
     ("Billboard", "Billboard (0x14)", "Billboard"),
@@ -81,16 +80,27 @@ enumMatOverrideOptions = [
 ]
 
 
-def drawGeoInfo(panel: Panel, bone: Bone):
+def drawGeoInfo(panel: Panel, context: Context):
     panel.layout.box().label(text="Geolayout Inspector")
+    bone = context.bone
     if bone is None:
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
         return
-
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+    sm64_props: "SM64_Properties" = context.scene.fast64.sm64
     col = panel.layout.column()
 
     prop_split(col, bone, "geo_cmd", "Geolayout Command")
 
+    if bpy.context.scene.exportInlineF3D:
+        revert_split = col.split(factor=0.4)
+        revert_split.label(text="Revert Material")
+        revert_row = revert_split.row()
+        revert_row.prop(
+            bone_props,
+            "revert_before_func" if bone.geo_cmd in {"Function", "HeldObject"} else "revert_previous_mat",
+            text="Previous",
+        )
     if bone.geo_cmd in [
         "TranslateRotate",
         "Translate",
@@ -99,9 +109,10 @@ def drawGeoInfo(panel: Panel, bone: Bone):
         "DisplayList",
         "Scale",
         "DisplayListWithOffset",
-        "CustomAnimated",
     ]:
         drawLayerWarningBox(col, bone, "draw_layer")
+        if bpy.context.scene.exportInlineF3D:
+            revert_row.prop(bone_props, "revert_after_mat", text="After")
 
     if bone.geo_cmd == "Scale":
         prop_split(col, bone, "geo_scale", "Scale")
@@ -137,14 +148,10 @@ def drawGeoInfo(panel: Panel, bone: Bone):
         infoBoxRenderArea.label(text="See the object properties window for the armature instead.")
         prop_split(col, bone, "culling_radius", "Culling Radius")
 
-    elif bone.geo_cmd in {"CustomAnimated", "CustomNonAnimated"}:
-        prop_split(col, bone.fast64.sm64, "custom_geo_cmd_macro", "Geo Command Macro")
-        if bone.geo_cmd == "CustomNonAnimated":
-            prop_split(col, bone.fast64.sm64, "custom_geo_cmd_args", "Geo Command Args")
-        else:  # It's animated
-            infobox = col.box()
-            infobox.label(text="Command's args will be filled with layer, translate, and rotate", icon="INFO")
-            infobox.label(text="e.g. `GEO_CUSTOM(layer, tX, tY, tZ, rX, rY, rZ, displayList)`")
+    elif bone.geo_cmd == "Custom":
+        bone_props.custom.draw_props(
+            col, sm64_props.binary_export, context.bone, "NO_PRESET", sm64_props.blender_to_sm64_scale
+        )
 
     # if bone.geo_cmd == 'SwitchOption':
     # 	prop_split(col, bone, 'switch_bone', 'Switch Bone')
@@ -168,7 +175,7 @@ class GeolayoutBonePanel(Panel):
         return context.scene.gameEditorMode == "SM64"
 
     def draw(self, context):
-        drawGeoInfo(self, context.bone)
+        drawGeoInfo(self, context)
 
 
 class GeolayoutArmaturePanel(Panel):
@@ -251,10 +258,10 @@ class GeolayoutObjectPanel(Panel):
             prop_split(col, geo_asm, "param", "Parameter")
         col.prop(obj, "ignore_render")
         col.prop(obj, "ignore_collision")
-        if bpy.context.scene.f3d_type == "F3DEX3":
-            box.prop(obj, "is_occlusion_planes")
-            if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
-                box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
+        # if bpy.context.scene.f3d_type == "F3DEX3":
+        #    box.prop(obj, "is_occlusion_planes")
+        #    if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
+        #        box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
         if context.scene.exportInlineF3D:
             col.prop(obj, "bleed_independently")
         if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:
@@ -446,23 +453,26 @@ def getSwitchOptionBone(switchArmature):
     return optionBones[0]
 
 
-def updateBone(bone, context):
-    armatureObj = context.object
-
-    createBoneGroups(armatureObj)
-    if bone.geo_cmd not in animatableBoneTypes:
-        addBoneToGroup(armatureObj, bone.name, bone.geo_cmd)
-        object.mode_set(mode="POSE")
-    else:
-        addBoneToGroup(armatureObj, bone.name, None)
-        object.mode_set(mode="POSE")
-
-
 class SM64_BoneProperties(PropertyGroup):
     version: IntProperty(name="SM64_BoneProperties Version", default=0)
+    custom: PointerProperty(type=SM64_CustomCmdProperties)
+    revert_previous_mat: BoolProperty(name="Revert Previous Material", default=False)
+    revert_after_mat: BoolProperty(
+        name="Revert After Material",
+        default=False,
+        description="If disabled the last material of each layer will still be reverted at the end",
+    )
+    revert_before_func: BoolProperty(name="Revert Before Function", default=True)
 
-    custom_geo_cmd_macro: StringProperty(name="Geo Command Macro", default="GEO_BONE")
-    custom_geo_cmd_args: StringProperty(name="Geo Command Args", default="")
+    def upgrade_bone(self, bone):
+        self.custom.upgrade_bone(bone)
+
+    @staticmethod
+    def upgrade_changed_props():
+        for obj in bpy.data.objects:
+            if obj.type == "ARMATURE":
+                for bone in obj.data.bones:
+                    bone.fast64.sm64.upgrade_bone(bone)
 
 
 sm64_bone_classes = (

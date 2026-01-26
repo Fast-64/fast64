@@ -1,16 +1,11 @@
+from pathlib import Path
 import bpy, shutil, os, math, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
-from .sm64_constants import (
-    level_enums,
-    level_pointers,
-    enumLevelNames,
-    insertableBinaryTypes,
-    defaultExtendSegment4,
-)
-from .sm64_utility import export_rom_checks
+from .sm64_constants import insertableBinaryTypes, defaultExtendSegment4
+from .sm64_utility import export_rom_checks, to_include_descriptor, update_actor_includes, write_or_delete_if_found
 from .sm64_objects import SM64_Area, start_process_sm64_objects
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
 from ..panels import SM64_Panel
 
@@ -23,8 +18,6 @@ from ..utility import (
     get64bitAlignedAddr,
     prop_split,
     getExportDir,
-    writeIfNotFound,
-    deleteIfFound,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
     writeInsertableFile,
@@ -34,11 +27,7 @@ from ..utility import (
     tempName,
     bytesToHex,
     applyRotation,
-    customExportWarning,
-    decompFolderMessage,
-    makeWriteInfoBox,
-    writeBoxExportType,
-    enumExportHeaderType,
+    selectSingleObject,
 )
 
 
@@ -146,11 +135,11 @@ class Collision:
         if len(self.specials) > 0:
             data.source += "\tCOL_SPECIAL_INIT(" + str(len(self.specials)) + "),\n"
             for special in self.specials:
-                data.source += "\t" + special.to_c()
+                data.source += "\t" + special.to_c(1) + ",\n"
         if len(self.water_boxes) > 0:
             data.source += "\tCOL_WATER_BOX_INIT(" + str(len(self.water_boxes)) + "),\n"
             for waterBox in self.water_boxes:
-                data.source += "\t" + waterBox.to_c()
+                data.source += "\t" + waterBox.to_c(1) + ",\n"
         data.source += "\tCOL_END()\n" + "};\n"
         return data
 
@@ -331,31 +320,24 @@ def exportCollisionC(
     cDefFile.write(cDefine)
     cDefFile.close()
 
-    if headerType == "Actor":
-        # Write to group files
-        if groupName == "" or groupName is None:
-            raise PluginError("Actor header type chosen but group name not provided.")
-
-        groupPathC = os.path.join(dirPath, groupName + ".c")
-        groupPathH = os.path.join(dirPath, groupName + ".h")
-
-        writeIfNotFound(groupPathC, '\n#include "' + name + '/collision.inc.c"', "")
-        if writeRoomsFile:
-            writeIfNotFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"', "")
-        else:
-            deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
-        writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', "\n#endif")
-
-    elif headerType == "Level":
-        groupPathC = os.path.join(dirPath, "leveldata.c")
-        groupPathH = os.path.join(dirPath, "header.h")
-
-        writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/collision.inc.c"', "")
-        if writeRoomsFile:
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"', "")
-        else:
-            deleteIfFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"')
-        writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + "/" + name + '/collision_header.h"', "\n#endif")
+    data_includes = [Path("collision.inc.c")]
+    if writeRoomsFile:
+        data_includes.append(Path("rooms.inc.c"))
+    update_actor_includes(
+        headerType, groupName, Path(dirPath), name, levelName, data_includes, [Path("collision_header.h")]
+    )
+    if not writeRoomsFile:  # TODO: Could be done better
+        if headerType == "Actor":
+            group_path_c = Path(dirPath, f"{groupName}.c")
+            write_or_delete_if_found(group_path_c, to_remove=[to_include_descriptor(Path(name, "rooms.inc.c"))])
+        elif headerType == "Level":
+            group_path_c = Path(dirPath, "leveldata.c")
+            write_or_delete_if_found(
+                group_path_c,
+                to_remove=[
+                    to_include_descriptor(Path(name, "rooms.inc.c"), Path("levels", levelName, name, "rooms.inc.c")),
+                ],
+            )
 
     return cDefine
 
@@ -377,8 +359,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath, includeSpeci
 
 
 def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, name, areaIndex):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}
@@ -387,7 +368,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     try:
         addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
         if not collisionDict:
-            raise PluginError("No collision data to export")
+            raise PluginError("No collision data to export", PluginError.exc_warn)
         cleanupDuplicatedObjects(allObjs)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
@@ -537,7 +518,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.colExportLevel])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -606,6 +587,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
     def draw(self, context):
         col = self.layout.column()
         propsColE = col.operator(SM64_ExportCollision.bl_idname)
+        props = context.scene.fast64.sm64.combined_export
 
         col.prop(context.scene, "colIncludeChildren")
         if context.scene.fast64.sm64.export_type == "Insertable Binary":
@@ -613,7 +595,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
         else:
             prop_split(col, context.scene, "colStartAddr", "Start Address")
             prop_split(col, context.scene, "colEndAddr", "End Address")
-            prop_split(col, context.scene, "colExportLevel", "Level Used By Collision")
+            prop_split(col, props, "level_name", "Level")
             col.prop(context.scene, "set_addr_0x2A")
             if context.scene.set_addr_0x2A:
                 prop_split(col, context.scene, "addr_0x2A", "0x2A Behaviour Command Address")
@@ -642,9 +624,6 @@ def sm64_col_register():
         register_class(cls)
 
     # Collision
-    bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(
-        items=level_enums, name="Level Used By Collision", default="WF"
-    )
     bpy.types.Scene.addr_0x2A = bpy.props.StringProperty(name="0x2A Behaviour Command Address", default="21A9CC")
     bpy.types.Scene.set_addr_0x2A = bpy.props.BoolProperty(name="Overwrite 0x2A Behaviour Command")
     bpy.types.Scene.colStartAddr = bpy.props.StringProperty(name="Start Address", default="11D8930")
@@ -673,7 +652,6 @@ def sm64_col_register():
 
 def sm64_col_unregister():
     # Collision
-    del bpy.types.Scene.colExportLevel
     del bpy.types.Scene.addr_0x2A
     del bpy.types.Scene.set_addr_0x2A
     del bpy.types.Scene.colStartAddr

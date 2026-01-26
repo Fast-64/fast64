@@ -46,7 +46,7 @@ from collections.abc import Sequence
 # from SM64classes import *
 
 from ..f3d.f3d_import import *
-from ..f3d.f3d_material import update_node_values_of_material
+from ..f3d.f3d_material import update_node_values_of_material, getDefaultMaterialPreset, createF3DMat
 from ..panels import SM64_Panel
 from ..utility_importer import *
 from ..utility import (
@@ -885,7 +885,7 @@ class SM64_F3D(DL):
             t.close()
 
     # recursively parse the display list in order to return a bunch of model data
-    def get_f3d_data_from_model(self, start: str, last_mat: SM64_Material = None):
+    def get_f3d_data_from_model(self, start: str, last_mat: SM64_Material = None, layer: int = None):
         DL = self.Gfx.get(start)
         self.VertBuff = [0] * 32  # If you're doing some fucky shit with a larger vert buffer it sucks to suck I guess
         if not DL:
@@ -895,8 +895,15 @@ class SM64_F3D(DL):
         self.UVs = []
         self.VCs = []
         self.Mats = []
+        # inherit the mat based on the layer, or explicitly given one
         if last_mat:
-            self.LastMat = last_mat
+            self.last_mat = last_mat
+        elif layer:
+            last_mat = self.last_mat_dict.get(layer, None)
+            if last_mat:
+                self.last_mat = last_mat
+            else:
+                self.last_mat = SM64_Material()
         self.parse_stream(DL, start)
         self.NewMat = 0
         self.StartName = start
@@ -946,7 +953,7 @@ class SM64_F3D(DL):
         self.Mats.append([len(tris), 0])
         for i, t in enumerate(tris):
             if i > self.Mats[ind + 1][0]:
-                new = self.create_new_f3d_mat(self.Mats[ind + 1][1], mesh)
+                new = self.create_new_f3d_mat(self.Mats[ind + 1][1], obj)
                 ind += 1
                 if not new:
                     new = len(mesh.materials) - 1
@@ -980,32 +987,21 @@ class SM64_F3D(DL):
             # idk why this is necessary. N64 thing or something?
             l[uv_map].uv[1] = l[uv_map].uv[1] * -1 + 1
             l[v_color] = [a / 255 for a in vcol]
+            l[v_alpha] = [vcol[3] / 255 for i in range(4)]
 
     # create a new f3d_mat given an SM64_Material class but don't create copies with same props
-    def create_new_f3d_mat(self, mat: SM64_Material, mesh: bpy.types.Mesh):
+    def create_new_f3d_mat(self, mat: SM64_Material, obj: bpy.types.Object):
         if not self.props.force_new_tex:
-            # check if this mat was used already in another mesh (or this mat if DL is garbage or something)
+            # check if this mat was used already in another mesh (or this mat if DL is suboptimal or something)
             # even looping n^2 is probably faster than duping 3 mats with blender speed
             for j, F3Dmat in enumerate(bpy.data.materials):
                 if F3Dmat.is_f3d:
                     dupe = mat.mat_hash_f3d(F3Dmat.f3d_mat)
                     if dupe:
                         return F3Dmat
-        f3d_mat = None
-        for mat in bpy.data.materials:
-            if mat.is_f3d:
-                f3d_mat = mat
-        if f3d_mat:
-            new_mat = f3d_mat.id_data.copy()  # make a copy of the data block
-            # add a mat slot and add mat to it
-            mesh.materials.append(new_mat)
-        else:
-            if self.props.as_obj:
-                NewMat = bpy.data.materials.new(f"sm64 {mesh.name.replace('Data', 'material')}")
-                mesh.materials.append(NewMat)  # the newest mat should be in slot[-1] for the mesh materials
-                NewMat.use_nodes = True
-            else:
-                bpy.ops.object.create_f3d_mat()  # the newest mat should be in slot[-1] for the mesh materials
+        # make new mat
+        preset = getDefaultMaterialPreset("Shaded Solid")
+        createF3DMat(obj, preset)
         return None
 
 
@@ -1053,6 +1049,33 @@ class GraphNodes(DataParser):
         self.name = name
         self.col = col
         super().__init__(parent=geo_parent)
+
+    # pick the right subclass given contents of geo layout
+    @staticmethod
+    def new_subclass_dyn(
+        geo_layout_dict: dict[geo_name:str, geo_data : list[str]],
+        scene: bpy.types.Scene,
+        layout_name: str,
+        col: bpy.types.Collection = None,
+    ) -> Union[GeoLayout, GeoArmature]:
+        geo_layout = geo_layout_dict.get(layout_name)
+        if not geo_layout:
+            raise Exception(
+                "Could not find geo layout {}".format(layout_name),
+                "pass_linked_export",
+            )
+        for line in geo_layout:
+            if "GEO_ANIMATED_PART" in line:
+                name = f"Actor {layout_name}"
+                arm_obj = bpy.data.objects.new(name, bpy.data.armatures.new(name))
+                col.objects.link(arm_obj)
+                geo_armature = GeoArmature(geo_layout_dict, arm_obj, scene, layout_name, col)
+                geo_armature.parse_armature(layout_name, scene.fast64.sm64.importer)
+                return geo_armature
+        else:
+            geo_layout = GeoLayout(geo_layout_dict, None, scene, layout_name, None, col=col)
+            geo_layout.parse_level_geo(layout_name)
+            return geo_layout
 
     def parse_layer(self, layer: str):
         if not layer.isdigit():
@@ -1367,12 +1390,12 @@ class GeoLayout(GraphNodes):
     rotate = "Geo Rotation Node"
     billboard = "Geo Billboard"
     display_list = "Geo Displaylist"
-    shadow = "Custom Geo Command"
+    shadow = "Custom"
     asm = "Geo ASM"
     scale = "Geo Scale"
     animated_part = "Geo Translate Node"
-    custom_animated = "Custom Geo Command"
-    custom = "Custom Geo Command"
+    custom_animated = "Custom"
+    custom = "Custom"
 
     def __init__(
         self,
@@ -1494,8 +1517,10 @@ class GeoLayout(GraphNodes):
     # change so this can be applied to mesh on root?
     def GEO_SHADOW(self, macro: Macro, depth: int):
         geo_obj = self.setup_geo_obj("shadow empty", self.shadow)
-        geo_obj.customGeoCommand = "GEO_SHADOW"
-        geo_obj.customGeoCommandArgs = ", ".join(macro.args)
+        # custom cmds were changed and wrapped into a new update
+        # its probably better to just make shadows a real geo cmd or have some generic custom cmd func
+        # geo_obj.customGeoCommand = "GEO_SHADOW"
+        # geo_obj.customGeoCommandArgs = ", ".join(macro.args)
         return self.continue_parse
 
     def GEO_SWITCH_CASE(self, macro: Macro, depth: int):
@@ -1628,6 +1653,18 @@ class GeoArmature(GraphNodes):
         else:
             self.switch_armatures = switch_armatures
         super().__init__(geo_layouts, scene, name, col, geo_parent=geo_parent, stream=stream)
+
+    @property
+    def first_obj(self):
+        if self.armature:
+            return self.armature
+        for model in self.models:
+            if model.object:
+                return model.object
+        for child in self.children:
+            if root := child.first_obj:
+                return root
+        return None
 
     def enter_edit_mode(self, geo_armature: bpy.types.Object):
         geo_armature.select_set(True)
@@ -1883,17 +1920,17 @@ def write_armature_to_bpy(
     scene: bpy.types.Scene,
     f3d_dat: SM64_F3D,
     root_path: Path,
-    parsed_model_data: dict,
+    parsed_model_data: dict[str, bpy.Types.Mesh],
     cleanup: bool = True,
 ):
     parsed_model_data = recurse_armature(geo_armature, scene, f3d_dat, root_path, parsed_model_data, cleanup=cleanup)
 
     objects_by_armature = dict()
-    for model_dat in parsed_model_data.values():
-        if not objects_by_armature.get(model_dat.armature_obj, None):
-            objects_by_armature[model_dat.armature_obj] = [model_dat.object]
+    for model_data in geo_armature.models:
+        if not objects_by_armature.get(model_data.armature_obj, None):
+            objects_by_armature[model_data.armature_obj] = [model_data.object]
         else:
-            objects_by_armature[model_dat.armature_obj].append(model_dat.object)
+            objects_by_armature[model_data.armature_obj].append(model_data.object)
 
     for armature_obj, objects in objects_by_armature.items():
         # I don't really know the specific override needed for this to work
@@ -1909,6 +1946,7 @@ def write_armature_to_bpy(
         # armature deform
         mod = obj.modifiers.new("deform", "ARMATURE")
         mod.object = geo_armature.armature
+    return parsed_model_data
 
 
 def apply_mesh_data(
@@ -1935,21 +1973,22 @@ def recurse_armature(
     scene: bpy.types.Scene,
     f3d_dat: SM64_F3D,
     root_path: Path,
-    parsed_model_data: dict,
+    parsed_model_data: dict[str, bpy.Types.Mesh],
     cleanup: bool = True,
 ):
     if geo_armature.models:
         # create a mesh for each one
         for model_data in geo_armature.models:
             name = f"{model_data.model_name} data"
-            if name in parsed_model_data.keys():
-                mesh = parsed_model_data[name].mesh
+            layer = geo_armature.parse_layer(model_data.layer)
+            if parsed_model_data and name in parsed_model_data.keys():
+                mesh = parsed_model_data[name]
                 name = 0
             else:
                 mesh = bpy.data.meshes.new(name)
                 model_data.mesh = mesh
-                parsed_model_data[name] = model_data
-                [verts, tris] = f3d_dat.get_f3d_data_from_model(model_data.model_name)
+                parsed_model_data[name] = mesh
+                [verts, tris] = f3d_dat.get_f3d_data_from_model(model_data.model_name, layer=layer)
                 mesh.from_pydata(verts, [], tris)
 
             obj = bpy.data.objects.new(f"{model_data.model_name} obj", mesh)
@@ -1970,7 +2009,6 @@ def recurse_armature(
                 model_data.armature_obj = geo_armature.armature
 
             if name:
-                layer = geo_armature.parse_layer(model_data.layer)
                 apply_mesh_data(f3d_dat, obj, mesh, str(layer), root_path, cleanup)
 
     if not geo_armature.children:
@@ -1993,22 +2031,21 @@ def write_geo_to_bpy(
         # create a mesh for each one.
         for model_data in geo.models:
             name = f"{model_data.model_name} data"
-            if name in meshes.keys():
+            layer = geo.parse_layer(model_data.layer)
+            if meshes and name in meshes.keys():
                 mesh = meshes[name]
                 name = 0
             else:
                 mesh = bpy.data.meshes.new(name)
                 meshes[name] = mesh
-                [verts, tris] = f3d_dat.get_f3d_data_from_model(model_data.model_name)
+                [verts, tris] = f3d_dat.get_f3d_data_from_model(model_data.model_name, layer=layer)
                 mesh.from_pydata(verts, [], tris)
 
             # swap out placeholder mesh data
             model_data.object.data = mesh
 
             if name:
-                apply_mesh_data(
-                    f3d_dat, model_data.object, mesh, str(geo.parse_layer(model_data.layer)), root_path, cleanup
-                )
+                apply_mesh_data(f3d_dat, model_data.object, mesh, str(layer), root_path, cleanup)
     if not geo.children:
         return meshes
     for g in geo.children:
@@ -2119,7 +2156,6 @@ def find_actor_models_from_model_ids(
     model_ids: list[str],
     level: Level,
     scene: bpy.types.Scene,
-    root_obj: bpy.types.Object,
     root_path: Path,
     col: bpy.types.Collection = None,
 ) -> dict[model_id, GeoLayout]:
@@ -2131,9 +2167,8 @@ def find_actor_models_from_model_ids(
             # create a warning off of this somehow?
             print(f"could not find model {model}")
             continue
-        geo_layout = GeoLayout(geo_layout_dict, root_obj, scene, layout_name, root_obj, col=col)
         try:
-            geo_layout.parse_level_geo(layout_name)
+            geo_layout = GraphNodes.new_subclass_dyn(geo_layout_dict, scene, layout_name, col)
             geo_layout_per_model[model] = geo_layout
         except Exception as exc:
             if exc.args[1] == "pass_linked_export":
@@ -2148,28 +2183,11 @@ def find_actor_models_from_geo(
     geo_paths: list[Path],
     layout_name: str,
     scene: bpy.types.Scene,
-    root_obj: bpy.types.Object,
     root_path: Path,
     col: bpy.types.Collection = None,
 ) -> GeoLayout:
     geo_layout_dict = construct_geo_layouts_from_file(geo_paths, root_path)
-    geo_layout = GeoLayout(geo_layout_dict, root_obj, scene, layout_name, root_obj, col=col)
-    geo_layout.parse_level_geo(layout_name)
-    return geo_layout
-
-
-def find_armature_models_from_geo(
-    geo_paths: list[Path],
-    layout_name: str,
-    scene: bpy.types.Scene,
-    armature_obj: bpy.types.Armature,
-    root_path: Path,
-    col: bpy.types.Collection,
-) -> GeoArmature:
-    geo_layout_dict = construct_geo_layouts_from_file(geo_paths, root_path)
-    geo_armature = GeoArmature(geo_layout_dict, armature_obj, scene, "{}".format(layout_name), col)
-    geo_armature.parse_armature(layout_name, scene.fast64.sm64.importer)
-    return geo_armature
+    return GraphNodes.new_subclass_dyn(geo_layout_dict, scene, layout_name, col)
 
 
 # Find DL references given a level geo file and a path to a level folder
@@ -2305,7 +2323,7 @@ class SM64_ActImport(Operator):
         )
 
         geo_layout = find_actor_models_from_geo(
-            geo_paths, props.geo_layout, scene, None, decomp_path, col=rt_col
+            geo_paths, props.geo_layout, scene, decomp_path, col=rt_col
         )  # return geo layout class and write the geo layout
         models = construct_model_data_from_file(model_data_paths, scene, decomp_path)
         # just a try, in case you are importing from not the base decomp repo
@@ -2313,50 +2331,10 @@ class SM64_ActImport(Operator):
             models.get_generic_textures(decomp_path)
         except:
             print("could not import genric textures, if this errors later from missing textures this may be why")
-        write_geo_to_bpy(geo_layout, scene, models, decomp_path, {}, cleanup=self.cleanup)
-        return {"FINISHED"}
-
-
-class SM64_ArmatureImport(Operator):
-    bl_label = "Import Armature"
-    bl_idname = "wm.sm64_import_armature"
-    bl_options = {"REGISTER", "UNDO"}
-
-    cleanup: BoolProperty(name="Cleanup Mesh", default=1)
-
-    def execute(self, context):
-        scene = context.scene
-        rt_col = context.collection
-        props = scene.fast64.sm64.importer
-
-        decomp_path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
-
-        group_prefix = props.group_prefix
-        level_name = props.level_name
-        level_prefix = props.level_prefix
-        geo_paths = (
-            decomp_path / "actors" / (group_prefix + "_geo.c"),
-            decomp_path / "levels" / level_name / (level_prefix + "geo.c"),
-        )
-        model_data_paths = (
-            decomp_path / "actors" / (group_prefix + ".c"),
-            decomp_path / "levels" / level_name / (level_prefix + "leveldata.c"),
-        )
-
-        name = f"Actor {props.geo_layout}"
-        armature_obj = bpy.data.objects.new(name, bpy.data.armatures.new(name))
-        rt_col.objects.link(armature_obj)
-
-        geo_armature = find_armature_models_from_geo(
-            geo_paths, props.geo_layout, scene, armature_obj, decomp_path, col=rt_col
-        )  # return geo layout class and write the geo layout
-        models = construct_model_data_from_file(model_data_paths, scene, decomp_path)
-        # just a try, in case you are importing from not the base decomp repo
-        try:
-            models.get_generic_textures(decomp_path)
-        except:
-            print("could not import genric textures, if this errors later from missing textures this may be why")
-        write_armature_to_bpy(geo_armature, scene, models, decomp_path, {}, cleanup=self.cleanup)
+        if type(geo_layout) == GeoLayout:
+            write_geo_to_bpy(geo_layout, scene, models, decomp_path, {}, cleanup=self.cleanup)
+        else:
+            write_armature_to_bpy(geo_layout, scene, models, decomp_path, {}, cleanup=self.cleanup)
         return {"FINISHED"}
 
 
@@ -2413,7 +2391,7 @@ class SM64_LvlImport(Operator):
             ]
             actor_col = create_collection(col, "linked actors col")
             actor_geo_layouts: dict[model_id, GeoLayout] = find_actor_models_from_model_ids(
-                geo_actor_paths, unique_model_ids, lvl, scene, None, decomp_path, col=actor_col
+                geo_actor_paths, unique_model_ids, lvl, scene, decomp_path, col=actor_col
             )
             model_data = construct_model_data_from_file(model_actor_paths, scene, decomp_path)
             # just a try, in case you are importing from not the base decomp repo
@@ -2423,7 +2401,12 @@ class SM64_LvlImport(Operator):
                 print("could not import genric textures, if this errors later from missing textures this may be why")
             meshes = {}
             for model, geo_layout in actor_geo_layouts.items():
-                meshes = write_geo_to_bpy(geo_layout, scene, model_data, decomp_path, meshes, cleanup=self.cleanup)
+                if type(geo_layout) == GeoLayout:
+                    meshes = write_geo_to_bpy(geo_layout, scene, model_data, decomp_path, meshes, cleanup=self.cleanup)
+                else:
+                    meshes = write_armature_to_bpy(
+                        geo_layout, scene, model_data, decomp_path, meshes, cleanup=self.cleanup
+                    )
                 # update model to be root obj of geo
                 actor_geo_layouts[model] = geo_layout.first_obj
 
@@ -2855,7 +2838,6 @@ class SM64_ImportPanel(SM64_Panel):
         layout.operator("wm.sm64_import_object")
         importer_props.draw_actor(layout)
         layout.operator("wm.sm64_import_actor")
-        layout.operator("wm.sm64_import_armature")
 
 
 classes = (
@@ -2868,7 +2850,6 @@ classes = (
     SM64_LvlColImport,
     SM64_ObjImport,
     SM64_ActImport,
-    SM64_ArmatureImport,
 )
 
 
