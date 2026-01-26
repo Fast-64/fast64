@@ -40,6 +40,7 @@ from .sm64_constants import (
     enumLevelNames,
     enumModelIDs,
     enumMacrosNames,
+    enumWhirlpoolConditions,
     enumSpecialsNames,
     enumBehaviourPresets,
     enumBehaviorMacros,
@@ -151,7 +152,7 @@ enumEnvFX = [
     ("ENVFX_SNOW_BLIZZARD", "Blizzard", "Unused"),
     ("ENVFX_FLOWERS", "Flowers", "Unused"),
     ("ENVFX_LAVA_BUBBLES", "Lava Bubbles", "Used in LLL, BitFS, Bowser 2"),
-    ("ENVFX_WHIRLPOOL_BUBBLES", "Whirpool Bubbles", "Used in DDD where whirpool is"),
+    ("ENVFX_WHIRLPOOL_BUBBLES", "Whirlpool Bubbles", "Used in DDD where whirlpool is"),
     ("ENVFX_JETSTREAM_BUBBLES", "Jetstream Bubbles", "Used in JRB, DDD where jetstream is"),
 ]
 
@@ -358,7 +359,7 @@ class SM64_Object:
             )
 
 
-class SM64_Whirpool:
+class SM64_Whirlpool:
     def __init__(self, index, condition, strength, position):
         self.index = index
         self.condition = condition
@@ -368,7 +369,7 @@ class SM64_Whirpool:
 
     def to_c(self, _depth=0):
         return (
-            "WHIRPOOL("
+            "WHIRLPOOL("
             + str(self.index)
             + ", "
             + str(self.condition)
@@ -897,10 +898,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 area.mario_start = mario_start
             elif obj.sm64_obj_type == "Trajectory":
                 pass
-            elif obj.sm64_obj_type == "Whirpool":
-                area.objects.append(
-                    SM64_Whirpool(obj.whirlpool_index, obj.whirpool_condition, obj.whirpool_strength, translation)
-                )
+            elif obj.sm64_obj_type == "Whirlpool":
+                condition = obj.sm64_whirlpool_enum if obj.sm64_whirlpool_enum != "Custom" else obj.sm64_obj_preset
+                area.objects.append(SM64_Whirlpool(obj.whirlpool_index, condition, obj.whirlpool_strength, translation))
             elif obj.sm64_obj_type == "Camera Volume":
                 checkIdentityRotation(obj, rotation.to_quaternion(), True)
                 if obj.cameraVolumeGlobal:
@@ -1266,9 +1266,13 @@ class SM64ObjectPanel(bpy.types.Panel):
             pass
 
         elif obj.sm64_obj_type == "Whirlpool":
-            prop_split(box, obj, "whirpool_index", "Index")
-            prop_split(box, obj, "whirpool_condition", "Condition")
-            prop_split(box, obj, "whirpool_strength", "Strength")
+            prop_split(box, obj, "sm64_whirlpool_enum", "Condition")
+            if obj.sm64_whirlpool_enum == "Custom":
+                prop_split(box, obj, "sm64_obj_preset", "Condition Name")
+            box.box().label(text="Whirlpool conditions defined in include/level_commands.h.")
+            prop_split(box, obj, "whirlpool_index", "Index")
+            prop_split(box, obj, "whirlpool_strength", "Strength")
+            box.box().label(text="Negative strength pushs, positive strength pulls.")
             pass
 
         elif obj.sm64_obj_type == "Water Box":
@@ -3114,9 +3118,10 @@ def sm64_obj_register():
 
     bpy.types.Object.sm64_obj_mario_start_area = bpy.props.StringProperty(name="Area", default="0x01")
 
-    bpy.types.Object.whirpool_index = bpy.props.StringProperty(name="Index", default="0")
-    bpy.types.Object.whirpool_condition = bpy.props.StringProperty(name="Condition", default="3")
-    bpy.types.Object.whirpool_strength = bpy.props.StringProperty(name="Strength", default="-30")
+    bpy.types.Object.whirlpool_index = bpy.props.StringProperty(name="Index", default="0")
+    bpy.types.Object.sm64_whirlpool_enum = bpy.props.EnumProperty(name="Condition", items=enumWhirlpoolConditions)
+    bpy.types.Object.whirlpool_strength = bpy.props.StringProperty(name="Strength", default="20")
+
     bpy.types.Object.waterBoxType = bpy.props.EnumProperty(
         name="Water Box Type", items=enumWaterBoxType, default="Water"
     )
@@ -3250,6 +3255,7 @@ def sm64_obj_unregister():
     del bpy.types.Object.sm64_macro_enum
     del bpy.types.Object.sm64_special_enum
     del bpy.types.Object.sm64_behaviour_enum
+    del bpy.types.Object.sm64_whirlpool_enum
 
     # del bpy.types.Object.sm64_model
     # del bpy.types.Object.sm64_macro
@@ -3261,9 +3267,8 @@ def sm64_obj_unregister():
     del bpy.types.Object.sm64_obj_preset
     del bpy.types.Object.sm64_obj_behaviour
 
-    del bpy.types.Object.whirpool_index
-    del bpy.types.Object.whirpool_condition
-    del bpy.types.Object.whirpool_strength
+    del bpy.types.Object.whirlpool_index
+    del bpy.types.Object.whirlpool_strength
 
     del bpy.types.Object.waterBoxType
 
