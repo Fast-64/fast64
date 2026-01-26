@@ -155,9 +155,10 @@ class BleedGraphics:
         place_in_flaglist(defaults.g_tex_gen, "G_TEXTURE_GEN", setGeo, clearGeo)
         place_in_flaglist(defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", setGeo, clearGeo)
         place_in_flaglist(defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo)
-        if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
+        if self.f3d.F3DEX_GBI:
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
-
+        if self.f3d.POINT_LIT_GBI:
+            place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)
         self.default_load_geo = SPLoadGeometryMode(setGeo.flagList)
         self.default_set_geo = setGeo
         self.default_clear_geo = clearGeo

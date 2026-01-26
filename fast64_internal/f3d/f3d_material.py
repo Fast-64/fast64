@@ -37,6 +37,7 @@ from .f3d_gbi import (
     isUcodeF3DEX1,
     isUcodeF3DEX3,
     is_ucode_f3d,
+    is_ucode_point_lit,
     is_ucode_t3d,
     default_draw_layers,
 )
@@ -170,6 +171,10 @@ F3DLX_GEO_MODES = {
     "clipping": "g_clipping",
 }
 
+F3D_PL_MODES = {
+    "positionalLighting": "g_lighting_positional",
+}
+
 F3DEX3_GEO_MODES = {
     "ambientOcclusion": "g_ambocclusion",
     "attroffsetZ": "g_attroffset_z_enable",
@@ -204,6 +209,8 @@ def geo_modes_in_ucode(UCODE_VER: str):
             geo_modes.update(F3DEX3_GEO_MODES)
     if is_ucode_t3d(UCODE_VER):
         geo_modes.update(T3D_GEO_MODES)
+    if is_ucode_point_lit(UCODE_VER):
+        geo_modes.update(F3D_PL_MODES)
     return geo_modes
 
 
@@ -561,6 +568,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.enabled = enable or not disable_dependent
             return c
 
+        f3d = get_F3D_GBI()
+
         ccWarnings = shadeInCC = False
         blendWarnings = shadeInBlender = zInBlender = False
         if isinstance(dataHolder, F3DMaterialProperty):
@@ -579,6 +588,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         if ccWarnings and not shadeInCC and is_on("g_lighting") and not is_on("g_tex_gen"):
             multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
         draw_mode(c, "g_packed_normals", "g_lighting_specular", "g_ambocclusion", "g_fresnel_color")
+        if not f3d.F3DEX_GBI_3:  # Draw this flag in Not Useful for f3dex3
+            draw_mode(c, "g_lighting_positional")
         if should_draw("g_tex_gen_linear"):
             d = indentGroup(c, "g_tex_gen", False)
         else:
@@ -667,9 +678,11 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             elif ccWarnings and is_on("g_shade") and not shadeInCC and not shadeInBlender:
                 c.label(text="Shade is not being used, can disable.", icon="INFO")
 
-        if should_draw("g_lod", "g_clipping"):
+        if should_draw("g_lod", "g_clipping") or f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Not useful:", True)
             draw_mode(c, "g_lod", "g_clipping")
+            if f3d.F3DEX_GBI_3:
+                c.prop(settings, "g_lighting_positional", text="Positional Lighting (Always enabled in EX3)")
 
 
 def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
@@ -3528,6 +3541,12 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
     )
+    g_lighting_positional: bpy.props.BoolProperty(
+        name="Positional Lighting",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX2 (Point Lit): Enables calculating shade color using positional lights along with directional, ignored in F3DEX3",
+    )
 
     # upper half mode
     # v2 only
@@ -3805,7 +3824,7 @@ class RDPSettings(PropertyGroup):
                 value = add_prefix(value, args[3])
             setattr(self, attr, value)
 
-    geo_mode_attributes = {**F3D_GEO_MODES, **F3DLX_GEO_MODES, **F3DEX3_GEO_MODES}
+    geo_mode_attributes = {**F3D_GEO_MODES, **F3DLX_GEO_MODES, **F3D_PL_MODES, **F3DEX3_GEO_MODES, **T3D_GEO_MODES}
 
     def geo_mode_dict_to_dict(self, modes: dict):
         data = {}

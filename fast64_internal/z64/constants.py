@@ -450,6 +450,7 @@ oot_world_defaults = {
         "cullBack": True,
         "lighting": True,
         "shadeSmooth": True,
+        "positionalLighting": True,
     },
     "otherModeH": {
         "alphaDither": "G_AD_NOISE",
