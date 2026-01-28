@@ -256,6 +256,8 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 # we use a handler since update functions are not called when a property is animated.
 @persistent
 def flipbookAnimHandler(dummy):
+    from ..utility_anim import get_fcurves
+
     if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
         for obj in bpy.data.objects:
             if obj.type == "ARMATURE":
@@ -263,10 +265,15 @@ def flipbookAnimHandler(dummy):
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:
                     continue
-                action = obj.animation_data.action
+                action_slot = None
+                if bpy.app.version >= (5, 0, 0):
+                    action_slot = obj.animation_data.action_slot
+                    if action_slot is None:
+                        continue
+
+                fcurves = get_fcurves(obj.animation_data.action, action_slot)
                 if not (
-                    action.fcurves.find("ootLinkTextureAnim.eyes") is None
-                    or action.fcurves.find("ootLinkTextureAnim.mouth") is None
+                    fcurves.find("ootLinkTextureAnim.eyes") is None or fcurves.find("ootLinkTextureAnim.mouth") is None
                 ):
                     ootFlipbookAnimUpdate(obj.data, obj, "8", obj.ootLinkTextureAnim.eyes)
                     ootFlipbookAnimUpdate(obj.data, obj, "9", obj.ootLinkTextureAnim.mouth)

@@ -10,6 +10,9 @@ from ....utility_anim import (
     getTranslationRelativeToRest,
     getRotationRelativeToRest,
     stashActionInArmature,
+    create_basic_action,
+    get_fcurves,
+    create_new_fcurve,
 )
 
 from ...utility import (
@@ -101,7 +104,8 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     # print(str(frameData) + "\n" + str(jointIndices))
 
     bpy.context.scene.frame_end = frameCount
-    anim = bpy.data.actions.new(animName)
+    anim, slot = create_basic_action(armatureObj, animName)
+    anim_fcurves = get_fcurves(anim, slot)
 
     startBoneName = getStartBone(armatureObj)
     boneStack = [startBoneName]
@@ -113,7 +117,8 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     for jointIndex in jointIndices:
         if isRootTranslation:
             fcurves = [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + startBoneName + '"].location',
                     index=propertyIndex,
                     action_group=startBoneName,
@@ -142,7 +147,8 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
             bone, boneStack = getNextBone(boneStack, armatureObj)
 
             fcurves = [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + bone.name + '"].rotation_euler',
                     index=propertyIndex,
                     action_group=bone.name,
@@ -227,7 +233,8 @@ def ootImportLinkAnimationC(
     print(f"{frameDataName}: {frameCount} frames, {len(frameData)} values.")
 
     bpy.context.scene.frame_end = frameCount
-    anim = bpy.data.actions.new(animHeaderName)
+    anim, slot = create_basic_action(armatureObj, animHeaderName)
+    anim_fcurves = get_fcurves(anim, slot)
 
     # get ordered list of bone names
     # create animation curves for each bone
@@ -237,11 +244,13 @@ def ootImportLinkAnimationC(
     boneCurveTranslation = None
     boneStack = [startBoneName]
 
-    eyesCurve = anim.fcurves.new(
+    eyesCurve = create_new_fcurve(
+        anim_fcurves,
         data_path="ootLinkTextureAnim.eyes",
         action_group="Texture Animations",
     )
-    mouthCurve = anim.fcurves.new(
+    mouthCurve = create_new_fcurve(
+        anim_fcurves,
         data_path="ootLinkTextureAnim.mouth",
         action_group="Texture Animations",
     )
@@ -253,7 +262,8 @@ def ootImportLinkAnimationC(
 
         if boneCurveTranslation is None:
             boneCurveTranslation = [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + bone.name + '"].location',
                     index=propertyIndex,
                     action_group=startBoneName,
@@ -263,7 +273,8 @@ def ootImportLinkAnimationC(
 
         boneCurvesRotation.append(
             [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + bone.name + '"].rotation_euler',
                     index=propertyIndex,
                     action_group=bone.name,
