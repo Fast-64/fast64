@@ -157,7 +157,6 @@ class SM64_Properties(PropertyGroup):
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
             "custom_include_directory": {"geoTexDir"},
-            "binary_level": {"levelAnimExport"},
             # as the others binary props get carried over to here we need to update the cur_version again
         }
         binary_level_names = {"levelAnimExport", "colExportLevel", "levelDLExport", "levelGeoExport"}
