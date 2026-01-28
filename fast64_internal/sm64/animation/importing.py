@@ -13,7 +13,7 @@ from mathutils import Quaternion
 
 from ...f3d.f3d_parser import math_eval
 from ...utility import PluginError, decodeSegmentedAddr, filepath_checks, path_checks, intToHex
-from ...utility_anim import create_basic_action, get_fcurve
+from ...utility_anim import create_basic_action, get_fcurves, create_new_fcurve
 
 from ..sm64_constants import AnimInfo, level_pointers
 from ..sm64_level_parser import parseLevelAtPointer
@@ -79,13 +79,10 @@ class FramesHolder:
     frames: np.ndarray = dataclasses.field(default_factory=list)
 
     def populate_action(self, action: Action, action_slot: "ActionSlot", pose_bone: PoseBone, path: str):
-        fcurves = get_fcurve(action, action_slot)
+        fcurves = get_fcurves(action, action_slot)
         for index in range(3):
             data_path = pose_bone.path_from_id(path)
-            if bpy.app.version >= (5, 0, 0):
-                f_curve = fcurves.new(data_path, index=index, group_name=pose_bone.name)
-            else:
-                f_curve = fcurves.new(data_path, index=index, action_group=pose_bone.name)
+            f_curve = create_new_fcurve(fcurves, data_path, index=index, action_group=pose_bone.name)
             for time, frame in enumerate(self.frames):
                 f_curve.keyframe_points.insert(time, frame[index], options={"FAST"})
 
@@ -153,12 +150,9 @@ class RotationFramesHolder(FramesHolder):
         else:
             rotations = self.get_euler(rotation_mode)
             size = 3
-        fcurves = get_fcurve(action, action_slot)
+        fcurves = get_fcurves(action, action_slot)
         for index in range(size):
-            if bpy.app.version >= (5, 0, 0):
-                f_curve = fcurves.new(data_path, index=index, group_name=pose_bone.name)
-            else:
-                f_curve = fcurves.new(data_path, index=index, action_group=pose_bone.name)
+            f_curve = create_new_fcurve(fcurves, data_path, index=index, action_group=pose_bone.name)
             for frame, rotation in enumerate(rotations):
                 f_curve.keyframe_points.insert(frame, rotation[index], options={"FAST"})
 

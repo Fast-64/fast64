@@ -1,5 +1,5 @@
 import bpy, math, mathutils
-from bpy.types import Object, Action, AnimData
+from bpy.types import Object, Action, AnimData, FCurve
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty
 from bpy_extras import anim_utils
@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     if bpy.app.version >= (5, 0, 0):
-        from bpy.types import ActionSlot
+        from bpy.types import ActionSlot, ActionFCurves
     from .. import Fast64_Properties
     from .. import Fast64Settings_Properties
 
@@ -211,7 +211,7 @@ def getFrameInterval(action: bpy.types.Action, slot: Optional[bpy.types.ActionSl
 
     def get_action_frame_range():
         if slot is not None:
-            fcurves = get_fcurve(action, slot)
+            fcurves = get_fcurves(action, slot)
 
             min_frame = 0
             max_frame = 0
@@ -311,18 +311,24 @@ def get_slots(action: Action):
     return {str(slot.identifier): slot for slot in action.slots if slot.target_id_type == "OBJECT"}
 
 
-def get_fcurve(
-    action: bpy.types.Action, action_slot: Optional["ActionSlot"] = None, error=True
-) -> list[bpy.types.FCurve]:
+def get_fcurves(action: bpy.types.Action, action_slot: Optional["ActionSlot"] = None) -> "ActionFCurves":
+    """If action_slot is None in blender 5.0 an exception will still be raised"""
     if bpy.app.version >= (5, 0, 0):
         if action_slot is None:
-            if error:
-                raise PluginError(f'No action slot provided for action "{action.name}"')
-            return []
+            raise PluginError(f'No action slot provided for action "{action.name}"')
         channelbag = anim_utils.action_ensure_channelbag_for_slot(action, action_slot)
         return channelbag.fcurves
     else:
         return action.fcurves
+
+
+def create_new_fcurve(
+    fcurves: "ActionFCurves", data_path: str, *, index: int | None = 0, action_group: str = ""
+) -> FCurve:
+    if bpy.app.version >= (5, 0, 0):
+        return fcurves.new(data_path=data_path, index=index, group_name=action_group)
+    else:
+        return fcurves.new(data_path=data_path, index=index, action_group=action_group)
 
 
 classes = (ArmatureApplyWithMeshOperator, CreateAnimData, AddBasicAction, StashAction, AddSubAction)

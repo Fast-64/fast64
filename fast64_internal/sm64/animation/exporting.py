@@ -22,7 +22,7 @@ from ...utility import (
     toAlnum,
     directory_path_checks,
 )
-from ...utility_anim import get_fcurve, stashActionInArmature, get_slots
+from ...utility_anim import get_fcurves, stashActionInArmature, get_slots
 
 from ..sm64_constants import BEHAVIOR_COMMANDS, BEHAVIOR_EXITS, defaultExtendSegment4, level_pointers
 from ..sm64_utility import (
@@ -99,7 +99,7 @@ def get_entire_fcurve_data(
     default_values = list(getattr(anim_owner, prop))
     populated = [False] * len(default_values)
 
-    fcurves = get_fcurve(action, get_action_props(action).get_slot(action))
+    fcurves = get_fcurves(action, get_action_props(action).get_slot(action))
     for fcurve in fcurves:
         if fcurve.data_path == data_path:
             array_index = fcurve.array_index
