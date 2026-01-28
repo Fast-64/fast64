@@ -171,10 +171,11 @@ class F3D_ConvertBSDF(OperatorBase):
                 # Move or remove the original object first so the new copy can
                 # take the original name without Blender auto-suffixing it.
                 if self.backup:
-                    old_obj.name = f"{name}_backup"
-
                     if backup_collection is not None:
-                        backup_collection.objects.link(old_obj)
+                        if old_obj.name not in backup_collection.objects:
+                            backup_collection.objects.link(old_obj)
+
+                    old_obj.name = f"{name}_backup"
 
                     for col in list(old_obj.users_collection):
                         if col is backup_collection:
