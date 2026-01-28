@@ -166,12 +166,6 @@ def convertF3DtoNewVersion(
         traceback.print_exc()
 
 
-def updateMatWithName(f3dMat, oldMat, materialDict):
-    f3dMat.name = oldMat.name + "_f3d"
-    update_preset_manual(f3dMat, bpy.context)
-    materialDict[oldMat] = f3dMat
-
-
 class MatUpdateConvert(bpy.types.Operator):
     # set bl_ properties
     bl_idname = "object.convert_f3d_update"

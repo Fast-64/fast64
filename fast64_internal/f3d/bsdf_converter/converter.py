@@ -207,7 +207,7 @@ def f3d_tex_to_abstracted(f3d_tex: TextureProperty, set_color: bool, set_alpha: 
         print("No texture set")
 
     abstracted_tex = AbstractedN64Texture(f3d_tex.tex, repeat=not f3d_tex.S.clamp or not f3d_tex.T.clamp)
-    size = f3d_tex.get_tex_size()
+    size = f3d_tex.tex_size
     if size != [0, 0]:
         abstracted_tex.offset = (to_offset(f3d_tex.S.low, size[0]), to_offset(f3d_tex.T.low, size[1]))
     abstracted_tex.scale = (2.0 ** (f3d_tex.S.shift * -1.0), 2.0 ** (f3d_tex.T.shift * -1.0))
@@ -251,7 +251,8 @@ def f3d_mat_to_abstracted(material: Material):
 def material_to_bsdf(material: Material, put_alpha_into_color=False):
     abstracted_mat = f3d_mat_to_abstracted(material)
 
-    new_material = bpy.data.materials.new(name=material.name)
+    target_name = f"{material.name}_bsdf"
+    new_material = bpy.data.materials.new(name=target_name)
     new_material.use_nodes = True
     nodes = new_material.node_tree.nodes
     links = new_material.node_tree.links
@@ -777,7 +778,8 @@ def material_to_f3d(
 
     preset = getDefaultMaterialPreset("Shaded Solid")
     new_material = createF3DMat(obj, preset=preset, append=False)
-    new_material.name = material.name
+    target_name = f"{material.name}_f3d"
+    new_material.name = target_name
     f3d_mat: F3DMaterialProperty = new_material.f3d_mat
     rdp: RDPSettings = f3d_mat.rdp_settings
 
@@ -983,5 +985,6 @@ def obj_to_bsdf(obj: Object, converted_materials: dict[Material, Material], put_
         if material in converted_materials:
             obj.material_slots[index].material = converted_materials[material]
         else:
-            obj.material_slots[index].material = material_to_bsdf(material, put_alpha_into_color)
+            converted_materials[material] = material_to_bsdf(material, put_alpha_into_color)
+            obj.material_slots[index].material = converted_materials[material]
     return True
