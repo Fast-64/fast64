@@ -71,21 +71,28 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
     # this str cast completely useless, it's there to force linting to recognize a Path element
     extracted_dir_p = base_dir_p / str(context.scene.fast64.oot.get_extracted_path())
 
-    assets_paths: list[Path] = [
+    assets_paths: list[tuple[Optional[Path], Path]] = [
         # objects
-        extracted_dir_p / "assets" / "objects",
+        (extracted_dir_p / "assets" / "objects", base_dir_p / "assets" / "objects"),
         # scenes
-        extracted_dir_p / "assets" / "scenes",
+        (extracted_dir_p / "assets" / "scenes", base_dir_p / "assets" / "scenes"),
         # other assets embedded in actors (cutscenes for instance)
-        base_dir_p / "src" / "overlays" / "actors",
+        (None, base_dir_p / "src" / "overlays" / "actors"),
     ]
 
-    for path in assets_paths:
+    for extracted_path, path in assets_paths:
         all_found_defs = get_found_defs(path, sym_name, sym_def_pattern)
 
         if len(all_found_defs) > 0:
             found_dir_p = path
             break
+
+        if extracted_path is not None:
+            all_found_defs = get_found_defs(extracted_path, sym_name, sym_def_pattern)
+
+            if len(all_found_defs) > 0:
+                found_dir_p = extracted_path
+                break
 
     assert found_dir_p is not None
 
@@ -147,6 +154,14 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
         settings: OOTAnimImportSettingsProperty = context.scene.fast64.oot.animImportSettings
         settings.isCustom = False
         settings.isLink = False
+        settings.animName = sym_name
+        settings.folderName = folder_name
+        bpy.ops.object.oot_import_anim()
+    elif sym_def_type == "LinkAnimationHeader" and not is_array:
+        raise_only_from_object(sym_def_type)
+        settings: OOTAnimImportSettingsProperty = context.scene.fast64.oot.animImportSettings
+        settings.isCustom = False
+        settings.isLink = True
         settings.animName = sym_name
         settings.folderName = folder_name
         bpy.ops.object.oot_import_anim()

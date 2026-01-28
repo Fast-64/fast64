@@ -2078,7 +2078,8 @@ class GfxFormatter:
         """
         return CScrollData()
 
-    def drawToC(self, f3d: F3D, gfxList: "GfxList") -> CData:
+    # `layer`` argument used for Z64 overrides
+    def drawToC(self, f3d: F3D, gfxList: "GfxList", layer: Optional[str] = None) -> CData:
         """
         Called for building the entry point DL for drawing a model.
         """
@@ -2199,10 +2200,13 @@ class GfxList:
             data.extend(command.to_binary(f3d, segments))
         return data
 
-    def to_c_static(self):
-        data = f"Gfx {self.name}[] = {{\n"
+    def to_c_static(self, name: str):
+        data = f"Gfx {name}[] = {{\n"
         for command in self.commands:
-            data += f"\t{command.to_c(True)},\n"
+            if command.default_formatting:
+                data += f"\t{command.to_c(True)},\n"
+            else:
+                data += command.to_c(True)
         data += "};\n\n"
         return data
 
@@ -2213,16 +2217,19 @@ class GfxList:
         data += "\treturn glistp;\n}\n\n"
         return data
 
-    def to_c(self, f3d):
+    def to_c(self, f3d, name_override: Optional[str] = None):
         data = CData()
+        name = name_override if name_override is not None else self.name
+
         if self.DLFormat == DLFormat.Static:
-            data.header = f"extern Gfx {self.name}[];\n"
-            data.source = self.to_c_static()
+            data.header = f"extern Gfx {name}[];\n"
+            data.source = self.to_c_static(name)
         elif self.DLFormat == DLFormat.Dynamic:
-            data.header = f"Gfx* {self.name}(Gfx* glistp);\n"
+            data.header = f"Gfx* {name}(Gfx* glistp);\n"
             data.source = self.to_c_dynamic()
         else:
             raise PluginError("Invalid GfxList format: " + str(self.DLFormat))
+
         return data
 
 
@@ -2443,9 +2450,10 @@ class FModel:
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False):
         final_name = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         if dedup:
+            base_name = final_name
             for i in range(1, len(self.meshes) + 2):
                 if final_name in self.meshes:
-                    final_name = f"{name}_{i:03}"
+                    final_name = f"{base_name}_{i:03}"
         checkUniqueBoneNames(self, final_name, name)
         self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
         self.onAddMesh(mesh, contextObj)
@@ -2940,15 +2948,21 @@ class FMesh:
         for cmd_list in self.draw_overrides:
             cmd_list.save_binary(romfile, f3d, segments)
 
-    def to_c(self, f3d, gfxFormatter):
+    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
         staticData = CData()
+
         if self.cullVertexList is not None:
             staticData.append(self.cullVertexList.to_c())
+
         for triGroup in self.triangleGroups:
             staticData.append(triGroup.to_c(f3d, gfxFormatter))
-        dynamicData = gfxFormatter.drawToC(f3d, self.draw)
+
+        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
+
         for cmd_list in self.draw_overrides:
             dynamicData.append(cmd_list.to_c(f3d))
+
         return staticData, dynamicData
 
 
@@ -3021,7 +3035,11 @@ class FMaterial:
         self.material = GfxList(f"mat_{name}", GfxListTag.Material, DLFormat)
         self.mat_only_DL = GfxList(f"mat_only_{name}", GfxListTag.Material, DLFormat)
         self.texture_DL = GfxList(f"tex_{name}", GfxListTag.Material, DLFormat.Static)
-        self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
+
+        self.revert: Optional[GfxList] = None
+        if bpy.context.scene.gameEditorMode not in {"OOT", "MM"}:
+            self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
+
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
 
@@ -3399,6 +3417,11 @@ class GbiMacro:
     That would cause an issue for scrolling that modifies static DLs, which requires the command's index into its current display list.
     For example, inling material commands.
     This is unannotated and will not be considered when calculating the hash.
+    """
+
+    default_formatting = True
+    """
+    Type: bool. Used to allow an overriden `to_c` function customize the formatting (identation, newlines, etc).
     """
 
     def get_ptr_offsets(self, f3d):

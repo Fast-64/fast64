@@ -17,6 +17,7 @@ class SharedSceneData:
         includePaths: bool,
         includeWaterBoxes: bool,
         includeCutscenes: bool,
+        includeAnimatedMats: bool,
         is_single_file: bool,
         is_fast64_data: bool,
         not_zapd_assets: bool,
@@ -37,6 +38,7 @@ class SharedSceneData:
         self.includePaths = includePaths
         self.includeWaterBoxes = includeWaterBoxes
         self.includeCutscenes = includeCutscenes
+        self.includeAnimatedMats = includeAnimatedMats
         self.is_single_file = is_single_file
         self.is_fast64_data = is_fast64_data
         self.not_zapd_assets = not_zapd_assets

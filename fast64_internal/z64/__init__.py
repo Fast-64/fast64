@@ -57,12 +57,32 @@ from .skeleton.panels import skeleton_panels_register, skeleton_panels_unregiste
 from .spline.properties import spline_props_register, spline_props_unregister
 from .spline.panels import spline_panels_register, spline_panels_unregister
 
+from .animated_mats.operators import animated_mats_ops_register, animated_mats_ops_unregister
+from .animated_mats.panels import animated_mats_panels_register, animated_mats_panels_unregister
+from .animated_mats.properties import (
+    Z64_AnimatedMaterialExportSettings,
+    Z64_AnimatedMaterialImportSettings,
+    animated_mats_props_register,
+    animated_mats_props_unregister,
+)
+
+from .hackeroot.operators import hackeroot_ops_register, hackeroot_ops_unregister
+from .hackeroot.properties import HackerOoTSettings, hackeroot_props_register, hackeroot_props_unregister
+from .hackeroot.panels import hackeroot_panels_register, hackeroot_panels_unregister
+
 from .tools import (
     oot_operator_panel_register,
     oot_operator_panel_unregister,
     oot_operator_register,
     oot_operator_unregister,
 )
+
+
+feature_set_enum = (
+    ("default", "Default", "Default"),
+    ("hackeroot", "HackerOoT", "HackerOoT"),
+)
+
 
 oot_versions_items = [
     ("Custom", "Custom", "Custom", 0),
@@ -80,7 +100,7 @@ oot_versions_items = [
     ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq", 7),
     ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce", 3),
     ("ique-cn", "ique-cn", "ique-cn", 16),
-    ("hackeroot-mq", "HackerOoT", "hackeroot-mq", 9),  # TODO: force this value if HackerOoT features are enabled?
+    ("hackeroot-mq", "HackerOoT (Legacy)", "hackeroot-mq", 9),
     ("legacy", "Legacy", "Older Decomp Version", 10),
 ]
 
@@ -95,7 +115,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
-    hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    feature_set: bpy.props.EnumProperty(name="Feature Set", default=0, items=feature_set_enum)
     headerTabAffectsVisibility: bpy.props.BoolProperty(
         default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
@@ -110,6 +130,13 @@ class OOT_Properties(bpy.types.PropertyGroup):
     oot_version: bpy.props.EnumProperty(name="OoT Version", items=oot_versions_items, default="gc-eu-mq-dbg")
     mm_version: bpy.props.EnumProperty(name="MM Version", items=mm_versions_items, default="n64-us")
     oot_version_custom: bpy.props.StringProperty(name="Custom Version")
+    mm_features: bpy.props.BoolProperty(name="Enable MM Features", default=False)
+    hackeroot_settings: bpy.props.PointerProperty(type=HackerOoTSettings)
+    anim_mats_export_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialExportSettings)
+    anim_mats_import_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialImportSettings)
+    export_cutscene_obj: bpy.props.PointerProperty(
+        type=bpy.types.Object, poll=lambda self, obj: obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene"
+    )
 
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version
@@ -129,7 +156,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
         return include_file_path.exists()
 
     def is_globalh_present(self):
-        return self.is_include_present("global.h")
+        return self.oot_version == "legacy" or self.is_include_present("global.h")
 
     def is_z64sceneh_present(self):
         return self.is_include_present("z64scene.h")
@@ -150,12 +177,21 @@ class OOT_Properties(bpy.types.PropertyGroup):
         default=True,
     )
 
+    @staticmethod
+    def upgrade_changed_props():
+        if "hackerFeaturesEnabled" in bpy.context.scene.fast64.oot:
+            bpy.context.scene.fast64.oot.feature_set = (
+                "hackeroot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "default"
+            )
+            del bpy.context.scene.fast64.oot["hackerFeaturesEnabled"]
+
 
 oot_classes = (OOT_Properties,)
 
 
 def oot_panel_register():
     oot_operator_panel_register()
+    hackeroot_panels_register()
     cutscene_panels_register()
     scene_panels_register()
     f3d_panels_register()
@@ -164,10 +200,12 @@ def oot_panel_register():
     spline_panels_register()
     anim_panels_register()
     skeleton_panels_register()
+    animated_mats_panels_register()
 
 
 def oot_panel_unregister():
     oot_operator_panel_unregister()
+    hackeroot_panels_unregister()
     cutscene_panels_unregister()
     collision_panels_unregister()
     oot_obj_panel_unregister()
@@ -176,21 +214,25 @@ def oot_panel_unregister():
     f3d_panels_unregister()
     anim_panels_unregister()
     skeleton_panels_unregister()
+    animated_mats_panels_unregister()
 
 
 def oot_register(registerPanels):
+    hackeroot_props_register()
+    hackeroot_ops_register()
     oot_operator_register()
     collections_register()
     collision_ops_register()  # register first, so panel goes above mat panel
     collision_props_register()
     cutscene_props_register()
+    animated_mats_ops_register()
+    animated_mats_props_register()
     scene_ops_register()
     scene_props_register()
     room_ops_register()
     room_props_register()
     actor_ops_register()
     actor_props_register()
-    oot_obj_register()
     spline_props_register()
     f3d_props_register()
     anim_ops_register()
@@ -207,6 +249,8 @@ def oot_register(registerPanels):
     csMotion_preview_register()
     cutscene_preview_register()
 
+    oot_obj_register()
+
     for cls in oot_classes:
         register_class(cls)
 
@@ -215,30 +259,13 @@ def oot_register(registerPanels):
 
 
 def oot_unregister(unregisterPanels):
+    if unregisterPanels:
+        oot_panel_unregister()
+
     for cls in reversed(oot_classes):
         unregister_class(cls)
 
-    oot_operator_unregister()
-    collections_unregister()
-    collision_ops_unregister()  # register first, so panel goes above mat panel
-    collision_props_unregister()
     oot_obj_unregister()
-    cutscene_props_unregister()
-    scene_ops_unregister()
-    scene_props_unregister()
-    room_ops_unregister()
-    room_props_unregister()
-    actor_ops_unregister()
-    actor_props_unregister()
-    spline_props_unregister()
-    f3d_props_unregister()
-    anim_ops_unregister()
-    skeleton_ops_unregister()
-    skeleton_props_unregister()
-    cutscene_ops_unregister()
-    f3d_ops_unregister()
-    file_unregister()
-    anim_props_unregister()
 
     cutscene_preview_unregister()
     csMotion_preview_unregister()
@@ -246,5 +273,27 @@ def oot_unregister(unregisterPanels):
     csMotion_props_unregister()
     csMotion_ops_unregister()
 
-    if unregisterPanels:
-        oot_panel_unregister()
+    anim_props_unregister()
+    file_unregister()
+    f3d_ops_unregister()
+    cutscene_ops_unregister()
+    skeleton_props_unregister()
+    skeleton_ops_unregister()
+    anim_ops_unregister()
+    f3d_props_unregister()
+    spline_props_unregister()
+    actor_props_unregister()
+    actor_ops_unregister()
+    room_props_unregister()
+    room_ops_unregister()
+    scene_props_unregister()
+    scene_ops_unregister()
+    animated_mats_props_unregister()
+    animated_mats_ops_unregister()
+    cutscene_props_unregister()
+    collision_props_unregister()
+    collision_ops_unregister()
+    collections_unregister()
+    oot_operator_unregister()
+    hackeroot_ops_unregister()
+    hackeroot_props_unregister()

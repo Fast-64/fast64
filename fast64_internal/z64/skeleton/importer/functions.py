@@ -23,7 +23,8 @@ from ...utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeade
 from ...texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
-from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose
+from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, get_anim_names
+from ...tools.quick_import import quick_import_exec
 
 
 class OOTDLEntry:
@@ -295,6 +296,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
+    import_animations = importSettings.import_animations
     drawLayer = importSettings.drawLayer
 
     skeletonData = getImportData(filepaths)
@@ -322,7 +324,6 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     if actorScale is None:
         actorScale = getOOTScale(importSettings.actorScale)
 
-    # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
         overlayName,
@@ -361,3 +362,14 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         applySkeletonRestPose(restPoseData, armatureObj)
         if isLOD:
             applySkeletonRestPose(restPoseData, LODArmatureObj)
+
+    if import_animations:
+        if armatureObj is not None:
+            selectSingleObject(armatureObj)
+
+        animation_names = get_anim_names(skeletonData, isLink)
+        animation_names = list(dict.fromkeys(animation_names))
+
+        # Call quick_import_exec for each animation name
+        for animation_name in animation_names:
+            quick_import_exec(bpy.context, animation_name)

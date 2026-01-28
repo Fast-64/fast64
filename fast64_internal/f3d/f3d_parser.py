@@ -376,8 +376,6 @@ def math_eval(s, f3d):
         elif isinstance(node, ast.Name):
             if hasattr(f3d, node.id):
                 return getattr(f3d, node.id)
-            else:
-                return node.id
         elif isinstance(node, ast.Num):
             return node.n
         elif isinstance(node, ast.UnaryOp):

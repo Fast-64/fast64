@@ -3,6 +3,8 @@ import bpy
 from dataclasses import dataclass, field
 from bpy.types import Object
 from typing import Optional
+
+from ...utility import get_new_object
 from ...game_data import game_data
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
@@ -498,26 +500,14 @@ class Cutscene:
 class CutsceneObjectFactory:
     """This class contains functions to create new Blender objects"""
 
-    def getNewObject(self, name: str, data, selectObject: bool, parentObj: Object) -> Object:
-        newObj = bpy.data.objects.new(name=name, object_data=data)
-        bpy.context.view_layer.active_layer_collection.collection.objects.link(newObj)
-        if selectObject:
-            newObj.select_set(True)
-            bpy.context.view_layer.objects.active = newObj
-        newObj.parent = parentObj
-        newObj.location = [0.0, 0.0, 0.0]
-        newObj.rotation_euler = [0.0, 0.0, 0.0]
-        newObj.scale = [1.0, 1.0, 1.0]
-        return newObj
-
     def getNewEmptyObject(self, name: str, selectObject: bool, parentObj: Object):
-        return self.getNewObject(name, None, selectObject, parentObj)
+        return get_new_object(name, None, selectObject, parent=parentObj)
 
     def getNewArmatureObject(self, name: str, selectObject: bool, parentObj: Object):
         newArmatureData = bpy.data.armatures.new(name)
         newArmatureData.display_type = "STICK"
         newArmatureData.show_names = True
-        newArmatureObject = self.getNewObject(name, newArmatureData, selectObject, parentObj)
+        newArmatureObject = get_new_object(name, newArmatureData, selectObject, parent=parentObj)
         return newArmatureObject
 
     def getNewCutsceneObject(self, name: str, frameCount: int, parentObj: Object):
@@ -595,7 +585,7 @@ class CutsceneObjectFactory:
         self, name: str, displaySize: float, clipStart: float, clipEnd: float, alpha: float, parentObj: Object
     ):
         newCamera = bpy.data.cameras.new(name)
-        newCameraObj = self.getNewObject(name, newCamera, False, parentObj)
+        newCameraObj = get_new_object(name, newCamera, False, parent=parentObj)
         newCameraObj.data.display_size = displaySize
         newCameraObj.data.clip_start = clipStart
         newCameraObj.data.clip_end = clipEnd

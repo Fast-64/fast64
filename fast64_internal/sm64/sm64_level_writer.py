@@ -2,7 +2,7 @@ from pathlib import Path
 import bpy, os, math, re, shutil, mathutils
 from collections import defaultdict
 from typing import NamedTuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
@@ -22,6 +22,7 @@ from .sm64_utility import (
 )
 
 from ..utility import (
+    yUpToZUp,
     PluginError,
     getDataFromFile,
     saveDataToFile,
@@ -305,6 +306,7 @@ class LevelScript:
         self.marioStart = None
         self.persistentBlocks = PersistentBlocks.new()
         self.sub_scripts: LevelScript = []
+        self.custom_cmds: list["SM64_CustomCmdProperties"] = []
 
     # this is basically a smaller script jumped to from the main one
     def add_subscript(self, name: str):
@@ -357,6 +359,7 @@ class LevelScript:
                     macrosToString(self.segmentLoads),
                     f"\tALLOC_LEVEL_POOL(),",
                     f"\t{self.mario}",
+                    *[f"\t{cmd.to_c(1)}," for cmd in self.custom_cmds],
                     macrosToString(self.levelFunctions),
                     macrosToString(self.modelLoads),
                     f"{self.get_persistent_block(PersistentBlocks.levelCommands, nTabs=1)}\n",
@@ -536,49 +539,56 @@ def setStartLevel(basePath, levelEnum):
         saveDataToFile(filepath, newData)
 
 
-def addActSelectorIgnore(basePath, levelEnum):
-    filepath = os.path.join(basePath, "src/game/level_update.c")
-    data = getDataFromFile(filepath)
+def add_act_selector_ignore(base_path, level_enum):
+    file_path = os.path.join(base_path, "src/game/level_update.c")
+    data = getDataFromFile(file_path)
 
-    checkResult = re.search("if\s*\(gCurrLevelNum\s*==\s*" + levelEnum + "\)\s*return\s*0;", data, re.DOTALL)
-    if checkResult is not None:
+    function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL)
+
+    if function_start is None:
+        raise PluginError('Could not find lvl_set_current_level in "' + file_path + '".')
+
+    function_end = re.search("\s*return\s*\!gDebugLevelSelect;\s*", data, re.DOTALL)
+    if function_end is None:
+        raise PluginError('Could not find return in lvl_set_current_level in "' + file_path + '".')
+
+    function_contents = data[function_start.end() : function_end.start()]
+
+    check_result = re.search(
+        "if\s*\(gCurrLevelNum\s*==\s*" + level_enum + "\)\s*return\s*0;", function_contents, re.DOTALL
+    )
+    if check_result is not None:
         return
 
-    # This won't actually match whole function, but only up to first closing bracket.
-    # This should be okay though... ?
-    matchResultFunction = re.search(
-        "s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{" + "(((?!\}).)*)\}", data, re.DOTALL
+    function_contents += "\n\tif (gCurrLevelNum == " + level_enum + ") return 0;"
+
+    new_data = data[: function_start.end()] + function_contents + data[function_end.start() :]
+
+    saveDataToFile(file_path, new_data)
+
+
+def remove_act_selector_ignore(base_path, level_enum):
+    file_path = os.path.join(base_path, "src/game/level_update.c")
+    data = getDataFromFile(file_path)
+
+    function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL)
+
+    if function_start is None:
+        raise PluginError('Could not find lvl_set_current_level in "' + file_path + '".')
+
+    function_end = re.search("\s*return\s*\!gDebugLevelSelect;\s*", data, re.DOTALL)
+    if function_end is None:
+        raise PluginError('Could not find return in lvl_set_current_level in "' + file_path + '".')
+
+    function_contents = data[function_start.end() : function_end.start()]
+
+    new_function_contents = re.sub(
+        "\s*?if\s*\(gCurrLevelNum\s*==\s*" + level_enum + "\)\s*return\s*0;", "", function_contents, re.DOTALL
     )
 
-    if matchResultFunction is None:
-        raise PluginError('Could not find lvl_set_current_level in "' + filepath + '".')
-
-    functionContents = matchResultFunction.group(3)
-
-    matchResult = re.search("gCurrCourseNum\s*\=\s*gLevelToCourseNumTable(((?!\;).)*)\;", functionContents, re.DOTALL)
-    if matchResult is None:
-        raise PluginError('Could not find gCurrCourseNum setting in lvl_set_current_level in "' + filepath + '".')
-
-    functionContents = (
-        functionContents[: matchResult.end(0)]
-        + "\n\tif (gCurrLevelNum == "
-        + levelEnum
-        + ") return 0;"
-        + functionContents[matchResult.end(0) :]
-    )
-
-    newData = data[: matchResultFunction.start(3)] + functionContents + data[matchResultFunction.end(3) :]
-
-    saveDataToFile(filepath, newData)
-
-
-def removeActSelectorIgnore(basePath, levelEnum):
-    filepath = os.path.join(basePath, "src/game/level_update.c")
-    data = getDataFromFile(filepath)
-
-    newData = re.sub("if\s*\(gCurrLevelNum\s*\=\=\s*" + levelEnum + "\)\s*return\s*0\;\n", "", data, re.DOTALL)
-    if data != newData:
-        saveDataToFile(filepath, newData)
+    if function_contents != new_function_contents:
+        new_data = data[: function_start.end()] + new_function_contents + data[function_end.start() :]
+        saveDataToFile(file_path, new_data)
 
 
 areaNumReg = re.compile(r".*AREA\(([0-9]+),.+\),")
@@ -794,6 +804,7 @@ def export_area_c(
         raise PluginError(f"Error while creating area {area_root.areaIndex}: {str(exc)}") from exc
     if area.mario_start is not None:
         prev_level_script.marioStart = area.mario_start
+    prev_level_script.custom_cmds += area.custom_cmds
     persistentBlockString = prev_level_script.get_persistent_block(
         PersistentBlocks.areaCommands, nTabs=2, areaIndex=str(area.index)
     )
@@ -893,6 +904,23 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
 
+    for child in obj.children:
+        if child.type == "EMPTY" and child.sm64_obj_type == "Custom":
+            custom_props = child.fast64.sm64.custom
+            if custom_props.preset != "NONE" and custom_props.section == "AREA":
+                raise PluginError(
+                    f"Object {obj.name} is parented to the level root but should be parented to an area root."
+                )
+            prev_level_script.custom_cmds.append(
+                custom_props.get_final_cmd(
+                    obj,
+                    bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+                    child.matrix_world @ yUpToZUp,
+                    child.matrix_local,
+                    name=obj.name,
+                )
+            )
+
     uses_env_fx = False
     echoLevels = ["0x00", "0x00", "0x00"]
     zoomFlags = [False, False, False, False]
@@ -915,7 +943,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
                 echoLevels[area_root.areaIndex - 1] = area_root.echoLevel
 
         # write area specific files
-        level_data, fModel, uses_env_fx = export_area_c(
+        level_data, fModel, area_uses_env_fx = export_area_c(
             obj,
             level_data,
             area_root,
@@ -927,6 +955,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             DLFormat,
             savePNG,
         )
+        uses_env_fx |= area_uses_env_fx
 
     level_data.camera_data += "\tNULL_TRIGGER\n};"
 
@@ -1080,9 +1109,9 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             zoomMasks.write(cameraPath)
 
         if obj.actSelectorIgnore:
-            addActSelectorIgnore(exportDir, levelEnum)
+            add_act_selector_ignore(exportDir, levelEnum)
         else:
-            removeActSelectorIgnore(exportDir, levelEnum)
+            remove_act_selector_ignore(exportDir, levelEnum)
 
         if obj.setAsStartLevel:
             setStartLevel(exportDir, levelEnum)

@@ -12,6 +12,7 @@
 9. [Custom Link Process](#custom-link-process)
 10. [Custom Skeleton Mesh Process](#custom-skeleton-mesh-process)
 11. [Cutscenes](#cutscenes)
+12. [Animated Materials](#animated-materials)
 
 ### Getting Started
 1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
@@ -194,3 +195,76 @@ If the camera preview in Blender isn't following where you have the bones or if 
 2. If you moved / rotated / etc. one of the camera shots / armatures in object mode, this transformation will be ignored. You can fix this by selecting the shot / armature in object mode and clicking Object > Apply > All Transforms. That will convert the transform to actual changed positions for each bone.
 
 If the game crashes check the transitions if you use the transition command (check both the ones from the entrance table and your cutscene script), also it will crash if you try to use the map select without having a 5th entrance (or more depending on the number of cutscenes you have) in the group for your scene.
+
+### Animated Materials
+
+This is a feature you can use for Majora's Mask and OoT backports like HackerOoT (requires enabling `Enable MM Features` for non-HackerOoT OoT decomp projects). It allows you to do some animation on any material you want, on Majora's Mask it's used to animate some actor's textures, and it's used in scenes too, this is what makes the walls in Majora's Lair animated, for instance.
+
+**Important**: this requires the scene to use a specific draw config called `Material Animated` (or `Material Animated (manual step)` for special cases).
+
+**Getting Started**
+
+For non-scene export you'll need to either use the `Add Animated Material` button under the `Tools` tab, or manually adding an empty object and setting the object mode to `Animated Materials`. If doing the latter make sure the object is parented to the scene object, it can be parented to a room too, or anything else as long as the scene object is in the hierarchy, but it will be exported to the scene file.
+
+For scenes it's integrated as a tab in the scene header properties panel.
+
+**Creating the animated materials list**
+
+For non-scene export, click on `Add Item` to add a new animated material list.
+
+You can pick the segment number with the `Segment Number` field (make sure to use the same number on the material you want this to be used on), for convenience the exporter will add a macro to make it more readable.
+
+**Important**: when using texture references:
+1. make sure to use a dedicated segment otherwise it will crash (for example, texture reference on segment 8 and having the checkbox for segment 8 enabled will crash, but if they are different it won't)
+2. always use the segment address as the texture symbol (for example, `0x08000000` for segment 8)
+
+`Draw Handler Type` lets you choose what kind of animated material you want, it can be one of:
+- `0` (`ANIM_MAT_TYPE_TEX_SCROLL`): Texture Scroll
+- `1` (`ANIM_MAT_TYPE_TWO_TEX_SCROLL`): Two-textures Scroll
+- `2` (`ANIM_MAT_TYPE_COLOR`): Color
+- `3` (`ANIM_MAT_TYPE_COLOR_LERP`): Color LERP
+- `4` (`ANIM_MAT_TYPE_COLOR_NON_LINEAR_INTERP`): Color Non-linear Interpolation
+- `5` (`ANIM_MAT_TYPE_TEX_CYCLE`): Texture Cycle (like a GIF)
+- `6` (`ANIM_MAT_TYPE_NONE`): nothing, only there for backward compatibility with MM
+- `7` (`ANIM_MAT_TYPE_COLOR_CYCLE`): like `ANIM_MAT_TYPE_COLOR` except this takes a keyframe array to set duration values for each colors
+- `8` (`ANIM_MAT_TYPE_TEX_TIMED_CYCLE`): displays a texture for a set amount of time then it goes to the next one until the end then it starts back at the beginning (requires texture reference)
+- `9` (`ANIM_MAT_TYPE_TEXTURE`):  displays a texture depending on the trigger event state, this can only take two textures (requires texture reference)
+- `10` (`ANIM_MAT_TYPE_MULTITEXTURE`): displays two textures and allows you to transition from one to another and also make both transparent (optional: you can use texture reference), note: this may require the "Shaded Multitexture Lerp Transparent" preset (also you might need to uncheck "Environment Color", enabling "Cull Back" may help in some situations (example: reproducing the Kokiri Forest grass env alpha change))
+- `11` (`ANIM_MAT_TYPE_EVENT`): will hide the texture until the trigger event is completed
+- `12` (`ANIM_MAT_TYPE_SURFACE_SWAP`): can change one or several surface types along with collision flags, if linking mesh objects it will change any surface type related to the triangles of the mesh
+- `13` (`ANIM_MAT_TYPE_OSCILLATING_TWO_TEX`): exactly like `ANIM_MAT_TYPE_TWO_TEX_SCROLL` except the scroll is oscillating instead of going forever in the same direction
+
+Note: the enum names from above are currently only on HackerOoT.
+
+For the LERP and non-linear interpolation color types you will also have a `Keyframe Length` field, this corresponds to the length of the animation. `Draw Color` (type 2) can use environment color but it's not mandatory unlike the other ones.
+
+Both texture scroll types will use the same elements (types 0 to 5):
+- `Step X`: step value on the X axis
+- `Step Y`: step value on the Y axis
+- `Texture Width`: the width of the texture
+- `Texture Height`: the height of the texture
+
+All 3 color types will use the same elements (types 0 to 5):
+- `Frame No.`: when to execute this entry (relative to the keyframe length), not available for `Draw Color`
+- `Primitive LOD Frac`: unknown purpose, feel free to complete!
+- `Primitive Color`: the primitive color to apply
+- `Environment Color`: the environment color to apply, optional for `Draw Color`
+
+The texture cycle type (5) will show you two lists to fill, one for the texture symbols to use and another one for the indices that points to the textures list. Note that both list don't need to be the same length, also this technically uses a keyframe length too but it should always match the total number of indices that's why you can't manually choose it.
+
+**Trigger Events**
+
+This is only relevant if using HackerOoT.
+
+You can optionally connect an "event" to an animated material, this means you can set draw conditions. You can choose between 3 different types of events:
+- Flag Events, those will be any flag (like switch flags, clear flags, inf flags, ...)
+- Game Events, those will be anything related to the game, currently it's mostly focusing on the save data (inventory, equipment, quest items and health/rupee/magic/gold skulltula amounts)
+- Time Events, those will be related to the current time of day, you can choose between having a specific time, or a time range, or only day/night
+
+Some of these events may require a "condition type", this is useful if you want the animated material to draw when you have specific amounts of something, it supports:
+- equal (`a == b`)
+- different (`a != b`)
+- strictly inferior (`a < b`)
+- strictly superior (`a > b`)
+- inferior or equal (`a <= b`)
+- superior or equal (`a >= b`)

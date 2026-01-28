@@ -4,7 +4,8 @@ from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel
 from .sm64_level_parser import parse_level_binary
 from .sm64_constants import enumLevelNames
-from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
+from .sm64_geolayout_bone import enumShadowType
+from .sm64_geolayout_utility import is_bone_animatable
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
 from .sm64_utility import import_rom_checks
 
@@ -169,13 +170,6 @@ def parseGeoLayout(
     if bpy.app.version < (4, 0, 0) and useArmature:
         armatureObj.data.layers[1] = True
 
-    """
-	if useMetarig:
-		metaBones = [bone for bone in armatureObj.data.bones if \
-			bone.layers[boneLayers['meta']] or bone.layers[boneLayers['visual']]]
-		for bone in metaBones:
-			addBoneToGroup(armatureObj, bone.name, 'Ignore')
-	"""
     return armatureMeshGroups, armatureObj
 
 
@@ -536,11 +530,9 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
     if bpy.app.version >= (4, 0, 0):
         if "Ignore" in bone.collections:
             return
-        nonAnimatableBoneTypes = set([item[0] for item in enumBoneType]) - animatableBoneTypes
-        isAnimatableBone = not any([item in bone.collections for item in nonAnimatableBoneTypes])
-        if isAnimatableBone:
+        if is_bone_animatable(bone):
             processBoneMeta(armatureObj, boneName, parentName)
-        nextParentName = boneName if isAnimatableBone else parentName
+        nextParentName = boneName if is_bone_animatable(bone) else parentName
         bone = armature.bones[boneName]  # re-obtain reference after edit mode changes
         childrenNames = [child.name for child in bone.children]
 
@@ -702,37 +694,36 @@ def createConnectBone(armatureObj, childName, parentName):
 
 
 def createBone(armatureObj, parentBoneName, boneName, currentTransform, boneGroup, loadDL):
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-    selectSingleObject(armatureObj)
-    bpy.ops.object.mode_set(mode="EDIT")
-    bone = armatureObj.data.edit_bones.new(boneName)
-    bone.use_connect = False
+    if bpy.context.mode != "EDIT":
+        bpy.ops.object.mode_set(mode="EDIT")
+    edit_bone: bpy.types.EditBone = armatureObj.data.edit_bones.new(boneName)
+    boneName = edit_bone.name
+    edit_bone.use_connect = False
     if parentBoneName is not None:
-        bone.parent = armatureObj.data.edit_bones[parentBoneName]
-    bone.head = currentTransform @ mathutils.Vector((0, 0, 0))
-    bone.tail = bone.head + (
+        edit_bone.parent = armatureObj.data.edit_bones[parentBoneName]
+    edit_bone.head = currentTransform @ mathutils.Vector((0, 0, 0))
+    edit_bone.tail = edit_bone.head + (
         currentTransform.to_quaternion() @ mathutils.Vector((0, 1, 0)) * (0.2 if boneGroup != "DisplayList" else 0.1)
     )
 
     # Connect bone to parent if it is possible without changing parent direction.
 
     if parentBoneName is not None:
-        nodeOffsetVector = mathutils.Vector(bone.head - bone.parent.head)
+        nodeOffsetVector = mathutils.Vector(edit_bone.head - edit_bone.parent.head)
         # set fallback to nonzero to avoid creating zero length bones
-        if nodeOffsetVector.angle(bone.parent.tail - bone.parent.head, 1) < 0.0001 and loadDL:
-            for child in bone.parent.children:
-                if child != bone:
+        if nodeOffsetVector.angle(edit_bone.parent.tail - edit_bone.parent.head, 1) < 0.0001 and loadDL:
+            for child in edit_bone.parent.children:
+                if child != edit_bone:
                     child.use_connect = False
-            bone.parent.tail = bone.head
-            bone.use_connect = True
-        elif bone.head == bone.parent.head and bone.tail == bone.parent.tail:
-            bone.tail += currentTransform.to_quaternion() @ mathutils.Vector((0, 1, 0)) * 0.02
+            edit_bone.parent.tail = edit_bone.head
+            edit_bone.use_connect = True
+        elif edit_bone.head == edit_bone.parent.head and edit_bone.tail == edit_bone.parent.tail:
+            edit_bone.tail += currentTransform.to_quaternion() @ mathutils.Vector((0, 1, 0)) * 0.02
 
-    boneName = bone.name
-    addBoneToGroup(armatureObj, bone.name, boneGroup)
-    bone = armatureObj.data.bones[boneName]
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bone: bpy.types.Bone = armatureObj.data.bones[boneName]
     bone.geo_cmd = boneGroup if boneGroup is not None else "DisplayListWithOffset"
+    addBoneToGroup(armatureObj, boneName)
 
     return boneName
 
@@ -802,7 +793,7 @@ def createSwitchOption(
     bMesh = bmesh.new()
     bMesh.from_mesh(mesh)
 
-    addBoneToGroup(switchArmature, boneName, "SwitchOption")
+    addBoneToGroup(switchArmature, boneName)
 
     return boneName, (switchArmature, bMesh, obj), finalTransform, finalNextParentTransform
 

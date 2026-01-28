@@ -1,6 +1,6 @@
 # Fast64
 
-This requires Blender 3.2+. Blender 4.0+ is recommended.
+This requires Blender 3.2 - 4.5. Blender 4.0+ is recommended.
 
 Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/fast64/src).
 
@@ -22,7 +22,7 @@ We have a Discord server for support as well as development [here](https://disco
 
 ### Links to Docs / Guides for Each Game
 1. [ Super Mario 64 ](/fast64_internal/sm64/README.md)
-2. [ Ocarina Of Time ](/fast64_internal/oot/README.md)
+2. [ Ocarina Of Time ](/fast64_internal/z64/README.md)
 
 ### Installation
 Download the repository as a zip file. In Blender, go to Edit -> Preferences -> Add-Ons and click the "Install" button to install the plugin from the zip file. Find the Fast64 addon in the addon list and enable it. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
@@ -43,6 +43,12 @@ In F3D material properties, you can enable "Large Texture Mode". This will let y
 ### Decomp vs Homebrew Compatibility
 There may occur cases where code is formatted differently based on the code use case. In the tools panel under the Fast64 File Settings subheader, you can toggle homebrew compatibility.
 
+### glTF 2.0 Support
+Fast64 supports several extensions for glTF 2.0 that can be exported and imported via the glTF 2.0 io addon integrated in blender via hooks. It also implements hacks for broken versions of the addon.
+
+Currently only basic n64 material properties and F3D properties are supported, but extensions for game modes like SM64 and OOT can be added in the future.
+See the [glTF README](/fast64_internal/f3d/glTF/README.md) for details and schemas.
+
 ### Converting To F3D v5 Materials
 A new optimized shader graph was introduced to decrease processing times for material creation and exporting. If you have a project that still uses old materials, you may want to convert them to v5. To convert an old project, click the "Recreate F3D Materials As V5" operator near the top of the Fast64 tab in 3D view. This may take a while depending on the number of materials in the project. Then go to the outliner, change the display mode to "Orphan Data" (broken heart icon), then click "Purge" in the top right corner. Purge multiple times until all of the old node groups are gone.
 
@@ -60,6 +66,8 @@ Selecting F3DEX3 as your microcode unlocks a large number of additional presets 
 - `Lerp` vs. `Mult` for multitexture (water): Whether the two textures are combined by linear interpolation or multiplication.
 
 For cel shading, it is recommended to start with one of the cel shading presets, then modify the settings under the `Use Cel Shading` panel. Hover over each UI control for additional information about how that setting works.
+
+### [Repo Settings](https://fast64.readthedocs.io/en/latest/common/repo_settings/repo_settings.html)
 
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
