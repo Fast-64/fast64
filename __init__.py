@@ -30,6 +30,7 @@ from .fast64_internal.utility_anim import utility_anim_register, utility_anim_un
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
 from .fast64_internal.mk64.mk64_constants import mk64_world_defaults
 
+from .fast64_internal.f3d import F3D_Properties, f3d_register, f3d_unregister
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
     mat_register,
@@ -40,15 +41,13 @@ from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unre
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
 from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_largetexture_unregister, ui_oplargetexture
-
 from .fast64_internal.f3d_material_converter import (
-    MatUpdateConvert,
+    mat_updater_draw,
     upgrade_f3d_version_all_meshes,
-    bsdf_conv_register,
-    bsdf_conv_unregister,
-    bsdf_conv_panel_regsiter,
-    bsdf_conv_panel_unregsiter,
+    mat_updater_register,
+    mat_updater_unregister,
 )
+from .fast64_internal.f3d.bsdf_converter import bsdf_converter_panel_draw
 
 from .fast64_internal.render_settings import (
     Fast64RenderSettings_Properties,
@@ -167,6 +166,18 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         col.operator(ArmatureApplyWithMeshOperator.bl_idname)
         # col.operator(CreateMetarig.bl_idname)
         ui_oplargetexture(col, context)
+        col.separator()
+
+        box = col.box().column()
+        box.label(text="Material Updater")
+        mat_updater_draw(box, context)
+        col.separator()
+
+        box = col.box().column()
+        box.label(text="BSDF Converter")
+        bsdf_converter_panel_draw(box, context)
+        col.separator()
+
         addon_updater_ops.update_notice_box_ui(self, context)
 
 
@@ -253,6 +264,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
     mk64: bpy.props.PointerProperty(type=MK64_Properties, name="MK64 Properties")
+    f3d: bpy.props.PointerProperty(type=F3D_Properties, name="F3D Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
@@ -450,7 +462,8 @@ def register():
     initOOTActorProperties()
     utility_anim_register()
     mat_register()
-    bsdf_conv_register()
+    mat_updater_register()
+    f3d_register(True)
     sm64_register(True)
     oot_register(True)
     mk64_register(True)
@@ -462,7 +475,6 @@ def register():
     for cls in classes:
         register_class(cls)
 
-    bsdf_conv_panel_regsiter()
     f3d_writer_register()
     flipbook_register()
     f3d_parser_register()
@@ -503,10 +515,10 @@ def unregister():
     sm64_unregister(True)
     oot_unregister(True)
     mk64_unregister(True)
+    f3d_unregister(True)
     mat_unregister()
+    mat_updater_unregister()
     gltf_extension_unregister()
-    bsdf_conv_unregister()
-    bsdf_conv_panel_unregsiter()
     unregister_class(Matrix4x4Property)
 
     del bpy.types.Scene.fullTraceback
