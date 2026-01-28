@@ -1,6 +1,11 @@
 # ------------------------------------------------------------------------
 #    Header
 # ------------------------------------------------------------------------
+
+# todos
+# create textures from u8 / u16 arrays (slow, give checkbox option)
+# make layer detection work better?
+
 from __future__ import annotations
 
 
@@ -657,6 +662,9 @@ class Collision(DataParser):
     def write_water_boxes(
         self, scene: bpy.types.Scene, parent: bpy.types.Object, name: str, col: bpy.types.Collection = None
     ):
+        # water boxes don't work on hacker apparently
+        if scene.fast64.sm64.importer.export_friendly and "HackerSM64" in scene.fast64.sm64.refresh_version:
+            return
         for i, w in enumerate(self.water_boxes):
             Obj = bpy.data.objects.new("Empty", None)
             scene.collection.objects.link(Obj)
@@ -688,6 +696,7 @@ class Collision(DataParser):
         obj.ignore_render = True
         if parent:
             parentObject(parent, obj)
+        # look into making this better
         rotate_object(-90, obj, world=1)
         bpy.context.view_layer.objects.active = obj
         max = len(obj.data.polygons)
@@ -1022,6 +1031,8 @@ class GraphNodes(DataParser):
     _skipped_geo_asm_funcs = {
         "geo_movtex_pause_control",
         "geo_movtex_draw_water_regions",
+        "geo_movtex_draw_colored",
+        "geo_movtex_update_horizontal",
         "geo_cannon_circle_base",
         "geo_envfx_main",
     }
@@ -1100,9 +1111,10 @@ class GraphNodes(DataParser):
                 return root
         return None
 
+    # this gets transformed by root transform
     def get_translation(self, trans_vector: Sequence):
         translation = [float(val) for val in trans_vector]
-        return [translation[0], -translation[2], translation[1]]
+        return [translation[0], translation[2], -translation[1]]
 
     def get_rotation(self, rot_vector: Sequence):
         rotation = Euler((math.radians(float(val)) for val in rot_vector), "ZXY")
@@ -1236,6 +1248,7 @@ class GraphNodes(DataParser):
         self.set_transform(geo_obj, self.last_transform)
         return geo_obj
 
+    # Build a matrix that rotates around the z axis, then the x axis, then the y axis, and then translates and multiplies.
     def GEO_TRANSLATE_ROTATE_WITH_DL(self, macro: Macro, depth: int):
         transform = Matrix.LocRotScale(
             self.get_translation(macro.args[1:4]), self.get_rotation(macro.args[4:7]), Vector((1, 1, 1))
@@ -1492,8 +1505,10 @@ class GeoLayout(GraphNodes):
     def GEO_ASM(self, macro: Macro, depth: int):
         # envfx goes on the area root
         if "geo_envfx_main" in macro.args[1]:
-            env_fx = macro.args[1]
-            if any(env_fx is enum_fx[0] for enum_fx in enumEnvFX):
+            env_fx = macro.args[0]
+            if not env_fx or (env_fx == "ENVFX_MODE_NONE" and self.props.export_friendly):
+                return self.continue_parse
+            elif any(env_fx is enum_fx[0] for enum_fx in enumEnvFX):
                 self.area_root.envOption = env_fx
             else:
                 self.area_root.envOption = "Custom"
@@ -1752,7 +1767,6 @@ class GeoArmature(GraphNodes):
         return geo_bone
 
     def add_model(self, model_data: ModelDat, obj_name: str, geo_cmd: str, layer: int = None):
-        ind = self.get_parser(self.stream[-1]).head
         self.models.append(model_data)
         model_data.vertex_group_name = f"{self.ordered_name} {obj_name} {model_data.model_name}"
         model_data.switch_index = self.switch_index
@@ -1925,12 +1939,19 @@ def write_armature_to_bpy(
 ):
     parsed_model_data = recurse_armature(geo_armature, scene, f3d_dat, root_path, parsed_model_data, cleanup=cleanup)
 
-    objects_by_armature = dict()
-    for model_data in geo_armature.models:
-        if not objects_by_armature.get(model_data.armature_obj, None):
-            objects_by_armature[model_data.armature_obj] = [model_data.object]
-        else:
-            objects_by_armature[model_data.armature_obj].append(model_data.object)
+    def glob_models_in_arm(object_dict: dict, geo_armature: GeoArmature):
+        for model_data in geo_armature.models:
+            if not object_dict.get(model_data.armature_obj, None):
+                object_dict[model_data.armature_obj] = [model_data.object]
+            else:
+                object_dict[model_data.armature_obj].append(model_data.object)
+        if not geo_armature.children:
+            return object_dict
+        for arm in geo_armature.children:
+            object_dict = glob_models_in_arm(object_dict, arm)
+        return object_dict
+
+    objects_by_armature = glob_models_in_arm(dict(), geo_armature)
 
     for armature_obj, objects in objects_by_armature.items():
         # I don't really know the specific override needed for this to work
@@ -2039,7 +2060,15 @@ def write_geo_to_bpy(
                 mesh = bpy.data.meshes.new(name)
                 meshes[name] = mesh
                 [verts, tris] = f3d_dat.get_f3d_data_from_model(model_data.model_name, layer=layer)
-                mesh.from_pydata(verts, [], tris)
+                # don't write empty models, delete empties with no children
+                # potential mat errors if used for DL setup but current importer should account for that using last_mat system
+                if tris:
+                    mesh.from_pydata(verts, [], tris)
+                elif not geo.children:
+                    bpy.data.objects.remove(model_data.object)
+                    model_data.object = None
+                    meshes.pop(name)
+                    continue
 
             # swap out placeholder mesh data
             model_data.object.data = mesh
