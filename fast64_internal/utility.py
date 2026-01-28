@@ -209,6 +209,21 @@ def setActiveObject(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
 
 
+def parentObject(parent, child, keep=0):
+    if not keep:
+        child.parent = parent
+        child.matrix_local = child.matrix_parent_inverse
+    else:
+        bpy.ops.object.select_all(action="DESELECT")
+
+        child.select_set(True)
+        parent.select_set(True)
+        bpy.context.view_layer.objects.active = parent
+        bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
+        parent.select_set(False)
+        child.select_set(False)
+
+
 def deselectAllObjects():
     for obj in bpy.data.objects:
         obj.select_set(False)
@@ -217,14 +232,6 @@ def deselectAllObjects():
 def selectSingleObject(obj: bpy.types.Object):
     deselectAllObjects()
     setActiveObject(obj)
-
-
-def parentObject(parent, child):
-    deselectAllObjects()
-
-    child.select_set(True)
-    setActiveObject(parent)
-    bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
 
 
 def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
@@ -259,6 +266,13 @@ def getGroupNameFromIndex(obj, index):
         if group.index == index:
             return group.name
     return None
+
+
+# creates a new collection and links it to parent
+def create_collection(parent: bpy.types.Collection, name: str):
+    col = bpy.data.collections.new(name)
+    parent.children.link(col)
+    return col
 
 
 def copyPropertyCollection(from_prop, to_prop, do_clear: bool = True):
@@ -1223,6 +1237,19 @@ def doRotation(angle, axis):
     bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
 
 
+# consider checking redundancy of this with above functions?
+def rotate_object(deg: float, obj: bpy.types.Object, world: bool = 0):
+    deg = Euler((math.radians(-deg), 0, 0))
+    deg = deg.to_quaternion().to_matrix().to_4x4()
+    if world:
+        obj.matrix_world = obj.matrix_world @ deg
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.transform_apply(rotation=True)
+    else:
+        obj.matrix_basis = obj.matrix_basis @ deg
+
+
 def getAddressFromRAMAddress(RAMAddress):
     addr = RAMAddress - 0x80000000
     if addr < 0:
@@ -1719,6 +1746,18 @@ def translate_blender_to_n64(translate: mathutils.Vector):
 def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion):
     new_rot = transform_mtx_blender_to_n64() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64().inverted()
     return new_rot.to_quaternion()
+
+
+def rotate_quat_n64_to_blender(rotation: mathutils.Quaternion):
+    new_rot = transform_mtx_blender_to_n64().inverted() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64()
+    return new_rot.to_quaternion()
+
+
+# this will take a blender property, its enumprop name, and then return a list of the allowed enums
+def GetEnums(prop, enum):
+    enumProp = prop.bl_rna.properties.get(enum)
+    if enumProp:
+        return [item.identifier for item in enumProp.enum_items]
 
 
 def all_values_equal_x(vals: Iterable, test):

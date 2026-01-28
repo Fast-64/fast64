@@ -25,6 +25,7 @@ from ...utility import (
 )
 from ..sm64_constants import defaultExtendSegment4, OLD_BINARY_LEVEL_ENUMS
 from ..sm64_objects import SM64_CombinedObjectProperties
+from ..sm64_level_importer import SM64_ImportProperties
 from ..custom_cmd.properties import SM64_CustomCmdProperties, draw_custom_cmd_presets
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
@@ -102,6 +103,8 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    # importing, do I need to upgrade props for this?
+    importer: PointerProperty(type=SM64_ImportProperties)
     lighting_engine_presets: BoolProperty(name="Lighting Engine Presets")
     write_all: BoolProperty(
         name="Write All",
