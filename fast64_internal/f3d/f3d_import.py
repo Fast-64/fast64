@@ -19,7 +19,7 @@ from collections.abc import Sequence
 from ..f3d.f3d_material import F3DMaterialProperty, RDPSettings, TextureProperty
 from ..f3d.f3d_gbi import get_F3D_GBI
 
-from ..utility import hexOrDecInt
+from ..utility import hexOrDecInt, gammaInverse
 from ..utility_importer import *
 
 # ------------------------------------------------------------------------
@@ -177,7 +177,7 @@ class Mat:
         return False
 
     def convert_color(self, color: Sequence[Number]):
-        return [int(a) / 255 for a in color]
+        return (*gammaInverse([int(a) / 255 for a in color[:3]]), int(color[3]) / 255)
 
     def load_texture(self, ForceNewTex: bool, path: Path, tex: Texture):
         png = path / f"bank_{tex.Timg[0]}" / f"{tex.Timg[1]}"
@@ -517,11 +517,20 @@ class DL(DataParser):
     def gsSPLight(self, macro: Macro):
         self.NewMat = 1
         light = re.search("&.+\.", macro.args[0]).group()[1:-1]
-        light = Lights1(light, self.Lights1.get(light)[0])
+        # search light data structs in file
+        try:
+            light_struct = self.Lights1.get(light)[0]
+        except:
+            raise Exception(
+                "Could not find Light {} in levels/{}/{}leveldata.inc.c".format(
+                    light, self.scene.level_import.Level, self.scene.level_import.Prefix
+                )
+            )
+        light = Lights1(light, light_struct)
         if ".a" in macro.args[0]:
             self.last_mat.ambient_light = light.ambient
         else:
-            num = re.search("_\d", macro.args[0]).group()[1]
+            num = re.search("\d", macro.args[1]).group()
             num = int(num) if num else 1
             self.last_mat.light_col[num] = light.diffuse
         return self.continue_parse
@@ -529,14 +538,14 @@ class DL(DataParser):
     # numlights0 still gives one ambient and diffuse light
     def gsSPNumLights(self, macro: Macro):
         self.NewMat = 1
-        num = re.search("_\d", macro.args[0]).group()[1]
+        num = re.search("\d", macro.args[0]).group()
         num = int(num) if num else 1
         self.last_mat.num_lights = num
         return self.continue_parse
 
     def gsSPLightColor(self, macro: Macro):
         self.NewMat = 1
-        num = re.search("_\d", macro.args[0]).group()[1]
+        num = re.search("\d", macro.args[0]).group()
         num = int(num) if num else 1
         self.last_mat.light_col[num] = eval(macro.args[-1]).to_bytes(4, "big")
         return self.continue_parse

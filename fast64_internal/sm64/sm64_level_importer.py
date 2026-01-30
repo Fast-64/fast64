@@ -64,6 +64,7 @@ from ..utility import (
     create_collection,
     read16bitRGBA,
     hexOrDecInt,
+    gammaInverse,
 )
 from .sm64_objects import enumEnvFX
 from .sm64_constants import (
@@ -862,6 +863,9 @@ class SM64_F3D(DL):
     # Textures only contains the texture data found inside the model.inc.c file and the texture.inc.c file
     # this will add all the textures located in the /textures/ folder in decomp
     def get_generic_textures(self, root_path: Path):
+        # check that there is a textures directory
+        if not (tex_path := root_path / "textures").exists():
+            raise Exception("you must make project for /textures/ folder to exist")
         for t in [
             "cave.c",
             "effect.c",
@@ -995,7 +999,7 @@ class SM64_F3D(DL):
             l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
             # idk why this is necessary. N64 thing or something?
             l[uv_map].uv[1] = l[uv_map].uv[1] * -1 + 1
-            l[v_color] = [a / 255 for a in vcol]
+            l[v_color] = [*gammaInverse([a / 255 for a in vcol]), 255]
             l[v_alpha] = [vcol[3] / 255 for i in range(4)]
 
     # create a new f3d_mat given an SM64_Material class but don't create copies with same props
@@ -2146,6 +2150,7 @@ def construct_model_data_from_file(aggregates: list[Path], scene: bpy.types.Scen
                 lambda path: "model.inc.c" in path.name,
                 lambda path: path.match("*[0-9].inc.c"),  # deal with 1.inc.c files etc.
                 lambda path: "painting.inc.c" in path.name,  # add way to deal with 1.inc.c filees etc.
+                lambda path: "light.inc.c" in path.name,  # only in vanilla decomp in LLL for some reason
             ),
             root_path,
         )
