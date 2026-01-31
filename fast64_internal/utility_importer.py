@@ -12,6 +12,32 @@ from .utility import transform_mtx_blender_to_n64
 
 
 @dataclass
+class CDataArray:
+    """
+    Used as an iterable but also contains the name and var type if called upon
+    Generally useful for types that have aliases but functionally act the same
+    like Light1 vs Light_t
+    """
+
+    var_type: str
+    var_name: str
+    var_data: any = None
+
+    def __iter__(self):
+        for item in self.var_data:
+            yield item
+
+    def __len__(self):
+        return len(self.var_data)
+
+    def __getitem__(self, index):
+        return self.var_data[index]
+
+    def __setitem__(self, index, val):
+        self.var_data[index] = val
+
+
+@dataclass
 class Macro:
     cmd: str
     args: list[str]
@@ -105,7 +131,7 @@ def pre_parse_file(file: TextIO) -> list[str]:
     output_lines = []
     for line in file.splitlines():
         # remove line comment
-        if (comment := line.rfind("//")) > 0:
+        if (comment := line.rfind("//")) > -1:
             line = line[:comment]
         # check for macro
         if "#if" in line:
@@ -170,10 +196,12 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
     type_found = None
     var_dat_buffer = []
     for line in file_lines:
-        if type_found:
+        if type_found is not None:
             # Check for end of array
             if ";" in line:
-                output_variables[type_found[0]][type_found[1]] = "".join(var_dat_buffer)
+                output_variables[type_found.var_type][type_found.var_name] = CDataArray(
+                    type_found.var_type, type_found.var_name, "".join(var_dat_buffer)
+                )
                 type_found = None
                 var_dat_buffer = []
             else:
@@ -188,12 +216,13 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
             # there should ideally only be one collision
             type_name = type_collisions[0]
             variable_name = line[line.find(type_name) + len(type_name) : match.span()[0]].strip()
-            type_found = (type_name, variable_name)
+            type_found = CDataArray(type_name, variable_name)
     # Now remove newlines from each line, and then split macro ends
     # This makes each member of the array a single macro or array
     for data_type, delimiters in type_dict.items():
-        for variable, data in output_variables[data_type].items():
-            output_variables[data_type][variable] = format_data_arr(data, delimiters)
+        for variable_name, data_array in output_variables[data_type].items():
+            data_array.var_data = format_data_arr(data_array.var_data, delimiters)
+            output_variables[data_type][variable_name] = data_array
 
     # if collated, organize by data type, otherwise just take the various dicts raw
     return (

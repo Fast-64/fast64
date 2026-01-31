@@ -27,21 +27,51 @@ from ..utility_importer import *
 # ------------------------------------------------------------------------
 
 
-# will format light struct data passed
-class Lights1:
-    def __init__(self, name: str, data_str: str):
+# will format light struct data passed depending on type of light
+class LightParent:
+    def __init__(self, name: str, light_struct: Sequence):
         self.name = name
-        data = [eval(dat.strip()) for dat in data_str.split(",")]
-        self.ambient = [*data[0:3], 0xFF]
-        self.diffuse = [*data[3:6], 0xFF]
-        self.direction = data[9:12]
+        getattr(self, light_struct.var_type)(light_struct.var_data)
+
+    # naming matches var types
+    def Ambient_t(self, light_data: list[str]):
+        light_data = light_data[0].replace("{", "").replace("}", "").split(",")
+        data = [eval(dat.strip()) for dat in light_data]
+        self.col = self.a = self.l = [*data[0:3], 0xFF]
+
+    def Light_t(self, light_data: list[str]):
+        light_data = light_data[0].replace("{", "").replace("}", "").split(",")
+        data = [eval(dat.strip()) for dat in light_data]
+        self.col = self.a = self.l = [*data[0:3], 0xFF]
+        self.dir = data[8:11]
+
+    def Lights1(self, light_data: list[str]):
+        data = [eval(dat.strip()) for dat in light_data[0].split(",")]
+        self.a = [*data[0:3], 0xFF]
+        self.col = self.l = [*data[3:6], 0xFF]
+        self.dir = data[7:10]
+
+
+# just holds common methods for tiles & textures
+class TexBase:
+    # sometimes int args are used so convert them all to str DEFs
+    def standardize_fields(self):
+        if self.Fmt.isnumeric():
+            fmt_types = {0: "RGBA", 2: "CI", 3: "IA", 4: "I"}
+            self.Fmt = f"G_IM_FMT_{fmt_types.get(int(self.Fmt))}"
+        if self.Siz.isnumeric():
+            siz_types = {0: "4b", 1: "8b", 2: "16b", 3: "32b"}
+            self.Siz = f"G_IM_SIZ_{siz_types.get(int(self.Siz))}"
+
+    def eval_texture_format(self):
+        return f"{self.Fmt.replace('G_IM_FMT_','')}{self.Siz.replace('G_IM_SIZ_','').replace('b','')}"
 
 
 # this will hold tile properties
-class Tile:
+class Tile(TexBase):
     def __init__(self):
-        self.Fmt = "RGBA"
-        self.Siz = "16"
+        self.Fmt = "G_IM_FMT_RGBA"
+        self.Siz = "G_IM_SIZ_16"
         self.Slow = 32
         self.Tlow = 32
         self.Shigh = 32
@@ -52,17 +82,13 @@ class Tile:
         self.TShift = 0
         self.Sflags = None
         self.Tflags = None
-        self.tmem = 0
-
-    def eval_texture_format(self):
-        # make better
-        return f"{self.Fmt.replace('G_IM_FMT_','')}{self.Siz.replace('G_IM_SIZ_','').replace('b','')}"
+        self.tmem = -1  # because 0 is the start
 
 
 # this will hold texture properties, dataclass props
 # are created in order for me to make comparisons in a set
 @dataclass(init=True, eq=True, unsafe_hash=True)
-class Texture:
+class Texture(TexBase):
     Timg: tuple
     Fmt: str
     Siz: int
@@ -73,15 +99,24 @@ class Texture:
     def size(self):
         return self.Width, self.Height
 
-    def eval_texture_format(self):
-        return f"{self.Fmt.replace('G_IM_FMT_','')}{self.Siz.replace('G_IM_SIZ_','').replace('b','')}"
-
 
 # This is a data storage class and mat to f3dmat converting class
 # used when importing for kirby
 class Mat:
     # constants for lastmat layer lookup
-    base_layer = -1
+    _base_layer = -1
+    _base_combiner = (
+        # color
+        "0",
+        "0",
+        "0",
+        "SHADE",
+        # alpha
+        "0",
+        "0",
+        "0",
+        "1",
+    )
 
     def __init__(self, layer: int = None):
         self.GeoSet = []
@@ -98,7 +133,7 @@ class Mat:
         self.light_col = {}
         self.ambient_light = tuple()
         if not layer:
-            self.layer = self.base_layer
+            self.layer = self._base_layer
         else:
             self.layer = layer
 
@@ -180,14 +215,35 @@ class Mat:
         return (*gammaInverse([int(a) / 255 for a in color[:3]]), int(color[3]) / 255)
 
     def load_texture(self, ForceNewTex: bool, path: Path, tex: Texture):
-        png = path / f"bank_{tex.Timg[0]}" / f"{tex.Timg[1]}"
-        png = (*png.glob("*.png"),)
-        if png:
-            i = bpy.data.images.get(str(png[0]))
-            if not i or ForceNewTex:
-                return bpy.data.images.load(filepath=str(png[0]))
-            else:
-                return i
+        if not tex:
+            return None
+        tex_img = textures.get(tex.Timg)[0]
+        if "#include" in tex_img:
+            return self.load_texture_png(force_new_tex, textures, path, tex)
+        else:
+            self.load_texture_array(force_new_tex, textures, path, tex)
+
+    def load_texture_array(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
+        """
+        Create a new/find image object and then fill pixel buffer with array data
+        """
+        tex_img = textures.get(tex.Timg)
+        # use something better later but for now use test rgba16
+        if "RGBA16" in tex.eval_texture_format():
+            img = bpy.data.images.new(tex.Timg, tex.Width, tex.Height, alpha=True)
+            for index, texel in enumerate(tex_img):
+                pass
+                # alpha pixel
+        #                 if index % 4 == 3:
+        #                     img.pixels[index] = texel > 0.4
+        #                 else:
+        #
+        return None
+
+    # TODO: make real with reasonable basics
+    def load_texture_png(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
+        print("load tex png")
+        return None
 
     def apply_PBSDF_Mat(self, mat: bpy.types.Material, tex_path: Path, tex: Texture):
         nt = mat.node_tree
@@ -231,15 +287,20 @@ class Mat:
             if tex_index < 0:
                 continue
             tex = self.tmem.get(tile.tmem, None)
-            setattr(self, f"tex{tex_index}", tex)
+            print(tex, index)
+            if tex:
+                setattr(self, f"tex{tex_index}", tex)
 
+    # TODO: add load texture call
     def set_textures(self, f3d: F3DMaterialProperty, tex_path: Path):
         self.set_tex_scale(f3d)
         if self.tex0 and self.set_tex:
+            self.tex0.standardize_fields()
             self.set_tex_settings(
                 f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0 + self.base_tile], self.tex0.Timg
             )
         if self.tex1 and self.set_tex:
+            self.tex1.standardize_fields()
             self.set_tex_settings(
                 f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1 + self.base_tile], self.tex1.Timg
             )
@@ -292,6 +353,7 @@ class Mat:
     def set_tex_settings(
         self, tex_prop: TextureProperty, image: bpy.types.Image, tile: Tile, tex_img: Union[Sequence, str]
     ):
+        tile.standardize_fields()
         tex_prop.tex_reference = str(tex_img)  # setting prop for hash purposes
         tex_prop.tex_set = True
         tex_prop.tex = image
@@ -309,7 +371,7 @@ class Mat:
         tex_prop.S.mask = tile.SMask
         tex_prop.T.mask = tile.TMask
 
-    # rework with new render mode stuffs
+    # TODO: rework with new render mode stuffs
     def set_rendermode(self, f3d: F3DMaterialProperty):
         rdp = f3d.rdp_settings
         if hasattr(self, "RenderMode"):
@@ -327,7 +389,7 @@ class Mat:
         rdp = f3d.rdp_settings
         for prop, val in self.other_mode.items():
             setattr(rdp, prop, val)
-            # add in exception handling here
+            # TODO: add in exception handling here
 
     def set_geo_mode(self, rdp: RDPSettings, mat: bpy.types.Material):
         # texture gen has a different name than gbi
@@ -336,16 +398,19 @@ class Mat:
         for a in self.GeoClear:
             setattr(rdp, a.replace("G_TEXTURE_GEN", "G_TEX_GEN").lower().strip(), False)
 
-    # Very lazy for now
+    # TODO: Very lazy for now, deal with presets later
     def set_combiner(self, f3d: F3DMaterialProperty):
         f3d.presetName = "Custom"
         if not hasattr(self, "Combiner"):
-            f3d.combiner1.A = "TEXEL0"
-            f3d.combiner1.A_alpha = "0"
-            f3d.combiner1.C = "SHADE"
-            f3d.combiner1.C_alpha = "0"
-            f3d.combiner1.D = "0"
-            f3d.combiner1.D_alpha = "1"
+            # set default combiner per game via subclass, base is shaded solid
+            f3d.combiner1.A = self._base_combiner[0]
+            f3d.combiner1.B = self._base_combiner[1]
+            f3d.combiner1.C = self._base_combiner[2]
+            f3d.combiner1.D = self._base_combiner[3]
+            f3d.combiner1.A_alpha = self._base_combiner[4]
+            f3d.combiner1.B_alpha = self._base_combiner[5]
+            f3d.combiner1.C_alpha = self._base_combiner[6]
+            f3d.combiner1.D_alpha = self._base_combiner[7]
         else:
             f3d.combiner1.A = self.Combiner[0]
             f3d.combiner1.B = self.Combiner[1]
@@ -396,7 +461,7 @@ class DL(DataParser):
         self.Gfx = {}
         self.Light_t = {}
         self.Ambient_t = {}
-        self.Lights1 = {}
+        self.Lights = {}
         self.Textures = {}
         self.NewMat = 1
         self.f3d_gbi = get_F3D_GBI()
@@ -410,6 +475,21 @@ class DL(DataParser):
             self.last_mat = lastmat
         super().__init__()
 
+    def parse_stream_DL(self, display_list_arr: Sequence, start_name: str):
+        """
+        Initialize vars and then parse data stream
+        """
+        self.VertBuff = [0] * 32  # turbo 3d in shambles
+        self.Verts = []
+        self.Tris = []
+        self.UVs = []
+        self.VCs = []
+        self.Mats = []
+        # merge all lights into single lights dictionary
+        self.Lights.update(self.Light_t)
+        self.Lights.update(self.Ambient_t)
+        self.parse_stream(display_list_arr, start_name)
+
     def gsSPEndDisplayList(self, macro: Macro):
         return self.break_parse
 
@@ -418,7 +498,7 @@ class DL(DataParser):
         if not NewDL:
             raise Exception(
                 "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
-                    NewDL, self.scene.level_import.Level, self.scene.level_import.Prefix
+                    NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
                 )
             )
         self.reset_parser(branched_dl)
@@ -430,7 +510,7 @@ class DL(DataParser):
         if not NewDL:
             raise Exception(
                 "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
-                    NewDL, self.scene.level_import.Level, self.scene.level_import.Prefix
+                    NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
                 )
             )
         self.reset_parser(branched_dl)
@@ -452,7 +532,7 @@ class DL(DataParser):
         if not VB:
             raise Exception(
                 "Could not find VB {} in levels/{}/{}leveldata.inc.c".format(
-                    ref, self.scene.level_import.Level, self.scene.level_import.Prefix
+                    ref, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
                 )
             )
         vertex_load_start = hexOrDecInt(macro.args[2])
@@ -519,20 +599,21 @@ class DL(DataParser):
         light = re.search("&.+\.", macro.args[0]).group()[1:-1]
         # search light data structs in file
         try:
-            light_struct = self.Lights1.get(light)[0]
+            light_struct = self.Lights.get(light)
         except:
             raise Exception(
                 "Could not find Light {} in levels/{}/{}leveldata.inc.c".format(
-                    light, self.scene.level_import.Level, self.scene.level_import.Prefix
+                    light, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
                 )
             )
-        light = Lights1(light, light_struct)
-        if ".a" in macro.args[0]:
-            self.last_mat.ambient_light = light.ambient
+        light = LightParent(light, light_struct)
+        light_num = int(re.search("\d", macro.args[1]).group())
+        # period followed by any number of non whitespace chars
+        light_val = getattr(light, re.search("\\.\S+", macro.args[0]).group()[1:])
+        if light_num > self.last_mat.num_lights:
+            self.last_mat.ambient_light = light_val
         else:
-            num = re.search("\d", macro.args[1]).group()
-            num = int(num) if num else 1
-            self.last_mat.light_col[num] = light.diffuse
+            self.last_mat.light_col[light_num] = light_val
         return self.continue_parse
 
     # numlights0 still gives one ambient and diffuse light
@@ -751,7 +832,8 @@ class DL(DataParser):
         set_tex = macros.get(macro.args[-1])
         if set_tex == None:
             set_tex = hexOrDecInt(macro.args[-1])
-        self.last_mat.set_tex = set_tex == 2
+        # enable is 1 or 2 depending on microcode, 0 is always off
+        self.last_mat.set_tex = set_tex != 0
         self.last_mat.tex_scale = [
             ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in macro.args[0:2]
         ]  # signed half to unsigned half

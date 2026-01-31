@@ -2,9 +2,13 @@
 #    Header
 # ------------------------------------------------------------------------
 
-# todos
+# TODO:
 # create textures from u8 / u16 arrays (slow, give checkbox option)
 # make layer detection work better?
+# deal with direct DLs instead of geos (model metal box for example)
+# make rooms work better? (currently imports but definetly not good for export)
+# add function and class descriptors per spec (triple quotes)
+# make better naming for certain vars
 
 from __future__ import annotations
 
@@ -783,21 +787,29 @@ class SM64_Material(Mat):
     def load_texture(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         if not tex:
             return None
-        Timg = textures.get(tex.Timg)[0].split("/")[-1]
-        Timg = Timg.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
-        image = bpy.data.images.get(Timg)
+        tex_img = textures.get(tex.Timg)[0]
+        # print(tex.Timg, tex_img)
+        if "#include" in tex_img:
+            return self.load_texture_png(force_new_tex, textures, path, tex)
+        else:
+            self.load_texture_array(force_new_tex, textures, path, tex)
+
+    def load_texture_png(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
+        tex_img = textures.get(tex.Timg)[0].split("/")[-1]
+        tex_img = tex_img.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
+        image = bpy.data.images.get(tex_img)
         if not image or force_new_tex:
-            Timg = textures.get(tex.Timg)[0]
-            Timg = Timg.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
+            tex_img = textures.get(tex.Timg)[0]
+            tex_img = tex_img.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
             # deal with duplicate pathing (such as /actors/actors etc.)
             Extra = path.relative_to(Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)))
             for e in Extra.parts:
-                Timg = Timg.replace(e + "/", "")
+                tex_img = tex_img.replace(e + "/", "")
             # deal with actor import path not working for shared textures
-            if "textures" in Timg:
-                fp = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)) / Timg
+            if "textures" in tex_img:
+                fp = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)) / tex_img
             else:
-                fp = path / Timg
+                fp = path / tex_img
             return bpy.data.images.load(filepath=str(fp))
         else:
             return image
@@ -839,6 +851,7 @@ class SM64_Material(Mat):
     def set_textures(self, f3d: F3DMaterialProperty, textures: dict, tex_path: Path):
         self.set_tex_scale(f3d)
         if self.tex0 and self.set_tex:
+            self.tex0.standardize_fields()
             self.set_tex_settings(
                 f3d.tex0,
                 self.load_texture(bpy.context.scene.fast64.sm64.importer.force_new_tex, textures, tex_path, self.tex0),
@@ -846,6 +859,7 @@ class SM64_Material(Mat):
                 self.tex0.Timg,
             )
         if self.tex1 and self.set_tex:
+            self.tex1.standardize_fields()
             self.set_tex_settings(
                 f3d.tex1,
                 self.load_texture(bpy.context.scene.fast64.sm64.importer.force_new_tex, textures, tex_path, self.tex1),
@@ -900,14 +914,8 @@ class SM64_F3D(DL):
     # recursively parse the display list in order to return a bunch of model data
     def get_f3d_data_from_model(self, start: str, last_mat: SM64_Material = None, layer: int = None):
         DL = self.Gfx.get(start)
-        self.VertBuff = [0] * 32  # If you're doing some fucky shit with a larger vert buffer it sucks to suck I guess
         if not DL:
             raise Exception("Could not find DL {}".format(start))
-        self.Verts = []
-        self.Tris = []
-        self.UVs = []
-        self.VCs = []
-        self.Mats = []
         # inherit the mat based on the layer, or explicitly given one
         if last_mat:
             self.last_mat = last_mat
@@ -917,7 +925,7 @@ class SM64_F3D(DL):
                 self.last_mat = last_mat
             else:
                 self.last_mat = SM64_Material()
-        self.parse_stream(DL, start)
+        self.parse_stream_DL(DL, start)
         self.NewMat = 0
         self.StartName = start
         return [self.Verts, self.Tris]
@@ -1176,7 +1184,7 @@ class GraphNodes(DataParser):
         geo_obj = self.add_model(
             ModelDat(self.parent_transform, *macro.args), "display_list", self.display_list, macro.args[0]
         )
-        self.set_transform(geo_obj, self.last_transform)
+        self.set_transform(geo_obj, self.parent_transform)
         return self.continue_parse
 
     def GEO_BILLBOARD_WITH_PARAMS_AND_DL(self, macro: Macro, depth: int):
@@ -1564,10 +1572,10 @@ class GeoLayout(GraphNodes):
             level_root.background = skybox_name
         else:
             level_root.background = "CUSTOM"
-            # this is cringe and should be changed
-            scene.fast64.sm64.level.backgroundID = macro.args[0]
+            level_root.fast64.sm64.level.backgroundID = macro.args[0]
             # I don't have access to the bg segment, that is in level obj
-            scene.fast64.sm64.level.backgroundSegment = "unavailable srry :("
+            # level_root.fast64.sm64.level.backgroundSegment = "unavailable srry :("
+            print("background segment not set, left at default srry")
 
         return self.continue_parse
 
@@ -2119,7 +2127,7 @@ def construct_sm64_f3d_data_from_file(gfx: SM64_F3D, model_file: TextIO) -> SM64
             "Gfx": ["(", ")"],
             "Light_t": [None, None],
             "Ambient_t": [None, None],
-            "Lights1": [None, None],
+            "Lights": [None, None],
         },
         collated=True,
     )
