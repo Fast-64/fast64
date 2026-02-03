@@ -21,6 +21,7 @@ from ..f3d.f3d_gbi import get_F3D_GBI
 
 from ..utility import hexOrDecInt, gammaInverse
 from ..utility_importer import *
+from ..bin_png import convert_tex
 
 # ------------------------------------------------------------------------
 #    Classes
@@ -56,22 +57,22 @@ class LightParent:
 class TexBase:
     # sometimes int args are used so convert them all to str DEFs
     def standardize_fields(self):
-        if self.Fmt.isnumeric():
+        if self.fmt.isnumeric():
             fmt_types = {0: "RGBA", 2: "CI", 3: "IA", 4: "I"}
-            self.Fmt = f"G_IM_FMT_{fmt_types.get(int(self.Fmt))}"
-        if self.Siz.isnumeric():
+            self.fmt = f"G_IM_FMT_{fmt_types.get(int(self.fmt))}"
+        if self.siz.isnumeric():
             siz_types = {0: "4b", 1: "8b", 2: "16b", 3: "32b"}
-            self.Siz = f"G_IM_SIZ_{siz_types.get(int(self.Siz))}"
+            self.siz = f"G_IM_SIZ_{siz_types.get(int(self.siz))}"
 
     def eval_texture_format(self):
-        return f"{self.Fmt.replace('G_IM_FMT_','')}{self.Siz.replace('G_IM_SIZ_','').replace('b','')}"
+        return f"{self.fmt.replace('G_IM_FMT_','')}{self.siz.replace('G_IM_SIZ_','').replace('b','')}"
 
 
 # this will hold tile properties
 class Tile(TexBase):
     def __init__(self):
-        self.Fmt = "G_IM_FMT_RGBA"
-        self.Siz = "G_IM_SIZ_16"
+        self.fmt = "G_IM_FMT_RGBA"
+        self.siz = "G_IM_SIZ_16"
         self.Slow = 32
         self.Tlow = 32
         self.Shigh = 32
@@ -89,15 +90,59 @@ class Tile(TexBase):
 # are created in order for me to make comparisons in a set
 @dataclass(init=True, eq=True, unsafe_hash=True)
 class Texture(TexBase):
-    Timg: tuple
-    Fmt: str
-    Siz: int
-    Width: int = 0
-    Height: int = 0
-    Pal: tuple = None
+    tex_img: str
+    fmt: str
+    siz: int
+    width: int = 0
+    height: int = 0
+    pal: bool = False
+    dxt: int = 0
+    texels: int = 0
+
+    def determine_size(self):
+        # dxt is a ratio between words and lines of a texture
+        # we can use it to get the true texture width for textures
+        # loaded via loadblock
+
+        # that said sometimes dxt is used in funny ways for special effects
+        # in these cases, I will default to another measurement because
+        # dxt is no longer reliable
+        bit_size = int(re.search("\d+", self.siz).group())
+        if self.dxt == 0:
+            # this just allows export but in no way is this a normal texture
+            # nor will it properly show up in blender as an import
+            texels = self.texels
+            self.width = self.texels
+            self.height = 1
+            return
+        bit_size = math.log2(bit_size // 4)
+        if not bit_size:
+            bit_size = 0.5
+        # 32b is normally 3, but it should be 4 for math to work
+        # gbi uses a different define than the normal bitsize for this
+        if bit_size == 3:
+            bit_size = 4
+        # basically 0x800 represents the fixed notation of dxt (u1.11)
+        # 8/bit_size is the number of 64 bit chunks per texel
+        # dxt is chunks / texel in fixed point, so width = chunks / dxt * 0x800
+        width = int((0x7FF * 8 / bit_size) / (self.dxt - 1))
+        # width * bitsize can't be below one
+        if width * bit_size < 1:
+            bit_size = 1 / width
+            width = int((8 * 0x7FF / bit_size) / (self.dxt - 1))
+        # in 4bit loading, texels are faked as if they're 16 bit
+        # so each texel here is actually 4 texels
+        if bit_size == 0.5:
+            height = int(4 * (self.texels + 1) / width)
+        else:
+            height = int((self.texels + 1) / width)
+
+        print(width, height, self.tex_img, bit_size)
+        self.width = width
+        self.height = height
 
     def size(self):
-        return self.Width, self.Height
+        return self.width, self.height
 
 
 # This is a data storage class and mat to f3dmat converting class
@@ -127,6 +172,7 @@ class Mat:
         self.base_tile = 0
         self.tex0 = None
         self.tex1 = None
+        self.pal = None
         self.set_tex = False
         self.other_mode = dict()
         self.num_lights = 1
@@ -171,8 +217,8 @@ class Mat:
         )
         if hasattr(self, "Combiner"):
             MyT = ""
-            if hasattr(self.tex0, "Timg"):
-                MyT = str(self.tex0.Timg)
+            if hasattr(self.tex0, "tex_img"):
+                MyT = str(self.tex0.tex_img)
             else:
                 pass
 
@@ -221,24 +267,30 @@ class Mat:
         if "#include" in tex_img:
             return self.load_texture_png(force_new_tex, textures, path, tex)
         else:
-            self.load_texture_array(force_new_tex, textures, path, tex)
+            return self.load_texture_array(force_new_tex, textures, path, tex)
 
     def load_texture_array(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         """
         Create a new/find image object and then fill pixel buffer with array data
         """
-        tex_img = textures.get(tex.Timg)
-        # use something better later but for now use test rgba16
-        if "RGBA16" in tex.eval_texture_format():
-            img = bpy.data.images.new(tex.Timg, tex.Width, tex.Height, alpha=True)
-            for index, texel in enumerate(tex_img):
-                pass
-                # alpha pixel
-        #                 if index % 4 == 3:
-        #                     img.pixels[index] = texel > 0.4
-        #                 else:
-        #
-        return None
+        tex_img = textures.get(tex.tex_img)
+        # idk if this properly deals with multiple palettes...
+        pal_img = textures.get(self.pal.tex_img) if self.pal else None
+        if pal_img:
+            pal_stream = bytes([int(a.strip(), 0x10) for a in pal_img.var_data[0].split(",") if "0x" in a])
+            print(tex_img.var_name, pal_img.var_name, len(pal_stream))
+        tex.determine_size()
+        image_texels = convert_tex(
+            tex.fmt,
+            tex.width,
+            tex.height,
+            tex.siz,
+            tex_img.var_data[0],
+            pal_stream=pal_img.var_data[0] if pal_img else None,
+        )
+        i = bpy.data.images.new(tex.tex_img, tex.width, tex.height)
+        i.pixels = image_texels
+        return i
 
     # TODO: make real with reasonable basics
     def load_texture_png(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
@@ -287,7 +339,6 @@ class Mat:
             if tex_index < 0:
                 continue
             tex = self.tmem.get(tile.tmem, None)
-            print(tex, index)
             if tex:
                 setattr(self, f"tex{tex_index}", tex)
 
@@ -297,12 +348,12 @@ class Mat:
         if self.tex0 and self.set_tex:
             self.tex0.standardize_fields()
             self.set_tex_settings(
-                f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0 + self.base_tile], self.tex0.Timg
+                f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0 + self.base_tile], self.tex0.tex_img
             )
         if self.tex1 and self.set_tex:
             self.tex1.standardize_fields()
             self.set_tex_settings(
-                f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1 + self.base_tile], self.tex1.Timg
+                f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1 + self.base_tile], self.tex1.tex_img
             )
 
     def set_fog(self, f3d: F3DMaterialProperty):
@@ -846,7 +897,9 @@ class DL(DataParser):
             tex = self.last_mat.loadtex
             tile_index = self.eval_tile_enum(macro.args[0])
             tex.tile = self.last_mat.tiles[tile_index]
+            tex.pal = True
             self.last_mat.pal = tex
+            self.last_mat.tmem[tex.tile.tmem] = tex
         else:
             print(
                 "**--Load block before set t img, DL is partial and missing context"
@@ -860,8 +913,8 @@ class DL(DataParser):
         if hasattr(self.last_mat, "loadtex"):
             tex = self.last_mat.loadtex
             # these values aren't necessary when the texture is already in png format
-            # tex.dxt = hexOrDecInt(args[4])
-            # tex.texels = hexOrDecInt(args[3])
+            tex.dxt = hexOrDecInt(macro.args[4])
+            tex.texels = hexOrDecInt(macro.args[3])
             tile_index = self.eval_tile_enum(macro.args[0])
             tex.tile = self.last_mat.tiles[tile_index]
             self.last_mat.tmem[tex.tile.tmem] = tex
@@ -876,10 +929,10 @@ class DL(DataParser):
 
     def gsDPSetTextureImage(self, macro: Macro):
         self.NewMat = 1
-        Timg = macro.args[3]
-        Fmt = macro.args[0]
-        Siz = macro.args[1]
-        self.last_mat.loadtex = Texture(Timg, Fmt, Siz)
+        tex_img = macro.args[3]
+        fmt = macro.args[0]
+        siz = macro.args[1]
+        self.last_mat.loadtex = Texture(tex_img, fmt, siz)
         return self.continue_parse
 
     def gsDPSetTileSize(self, macro: Macro):
@@ -895,14 +948,18 @@ class DL(DataParser):
         self.NewMat = 1
         tile = self.last_mat.tiles[self.eval_tile_enum(macro.args[4])]
         tile.tmem = hexOrDecInt(macro.args[3])
-        tile.Fmt = macro.args[0].strip()
-        tile.Siz = macro.args[1].strip()
+        tile.fmt = macro.args[0].strip()
+        tile.siz = macro.args[1].strip()
         tile.Tflags = macro.args[6].strip()
         tile.TMask = self.eval_tile_enum(macro.args[7])
         tile.TShift = self.eval_tile_enum(macro.args[8])
         tile.Sflags = macro.args[9].strip()
         tile.SMask = self.eval_tile_enum(macro.args[10])
         tile.SShift = self.eval_tile_enum(macro.args[11])
+        # on a render tile 4 bit textures will change their size here
+        tex = self.last_mat.tmem.get(tile.tmem, None)
+        if tex:
+            tex.siz = tile.siz
         return self.continue_parse
 
     # combined macros

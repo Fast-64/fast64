@@ -787,19 +787,18 @@ class SM64_Material(Mat):
     def load_texture(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         if not tex:
             return None
-        tex_img = textures.get(tex.Timg)[0]
-        # print(tex.Timg, tex_img)
+        tex_img = textures.get(tex.tex_img)[0]
         if "#include" in tex_img:
             return self.load_texture_png(force_new_tex, textures, path, tex)
         else:
-            self.load_texture_array(force_new_tex, textures, path, tex)
+            return self.load_texture_array(force_new_tex, textures, path, tex)
 
     def load_texture_png(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
-        tex_img = textures.get(tex.Timg)[0].split("/")[-1]
+        tex_img = textures.get(tex.tex_img)[0].split("/")[-1]
         tex_img = tex_img.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
         image = bpy.data.images.get(tex_img)
         if not image or force_new_tex:
-            tex_img = textures.get(tex.Timg)[0]
+            tex_img = textures.get(tex.tex_img)[0]
             tex_img = tex_img.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
             # deal with duplicate pathing (such as /actors/actors etc.)
             Extra = path.relative_to(Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)))
@@ -856,7 +855,7 @@ class SM64_Material(Mat):
                 f3d.tex0,
                 self.load_texture(bpy.context.scene.fast64.sm64.importer.force_new_tex, textures, tex_path, self.tex0),
                 self.tiles[0 + self.base_tile],
-                self.tex0.Timg,
+                self.tex0.tex_img,
             )
         if self.tex1 and self.set_tex:
             self.tex1.standardize_fields()
@@ -864,7 +863,7 @@ class SM64_Material(Mat):
                 f3d.tex1,
                 self.load_texture(bpy.context.scene.fast64.sm64.importer.force_new_tex, textures, tex_path, self.tex1),
                 self.tiles[1 + self.base_tile],
-                self.tex1.Timg,
+                self.tex1.tex_img,
             )
 
 

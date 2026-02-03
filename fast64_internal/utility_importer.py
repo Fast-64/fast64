@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 import bpy
 from functools import partial
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ from pathlib import Path
 from typing import TextIO, Any, Union
 from numbers import Number
 from collections.abc import Sequence
+
 from .utility import transform_mtx_blender_to_n64
 
 
