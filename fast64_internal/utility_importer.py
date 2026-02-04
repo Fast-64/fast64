@@ -108,7 +108,28 @@ class DataParser:
 
     def c_macro_split(self, macro: str) -> list[str]:
         args_start = macro.find("(")
-        return Macro(macro[:args_start], macro[args_start + 1 : macro.rfind(")")].split(","))
+        # have to deal with nested macros, such as with calc_dxt() in f3d
+        # maybe there is a way to oneline with regex?
+        str_macro = macro[args_start + 1 : macro.rfind(")")] + ","
+        nested_paren_regex = "\w*\(([^\)]+)\),"
+        arg_regex = "[\w\s*()-]+"
+        nested_args = [*re.finditer(nested_paren_regex, str_macro)]
+        if not nested_args:
+            macro_args = macro[args_start + 1 : macro.rfind(")")].split(",")
+        else:
+            # check if found arg overlaps with a nested one, if so throw it out
+            max_pos = -1
+            macro_args = []
+            for arg in re.finditer(arg_regex, str_macro):
+                if nested_args:
+                    if arg.span()[0] > nested_args[0].span()[0] or arg.span()[1] > nested_args[0].span()[0]:
+                        max_pos = nested_args[0].span()[1]
+                        macro_args.append(nested_args[0].group())
+                        nested_args.pop(0)
+                        continue
+                if arg.span()[0] > max_pos:
+                    macro_args.append(arg.group())
+        return Macro(macro[:args_start], macro_args)
 
 
 def transform_matrix_to_bpy(transform: Matrix) -> Matrix:

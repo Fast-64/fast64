@@ -42,7 +42,6 @@ def unpack_bits(format_str: str, byte_stream: bytes, offset: int, length: int):
     for unpack_str in format_str.split(","):
         unpack_str = int(unpack_str.strip())
         dat_mask = ((1 << unpack_str) - 1) << (8 - unpack_str + length - 8)
-        # print("byte_data: 0x{:X} data mask: 0x{:X} append: 0x{:X}".format(byte_data, dat_mask, (byte_data & dat_mask) >> (8 - unpack_str + length - 8)))
         data_out.append((byte_data & dat_mask) >> (8 - unpack_str + length - 8))
         length = length - unpack_str
     return data_out
@@ -65,12 +64,24 @@ def get_palette(byte_stream: bytes, im_siz: int):
 
 # byte_stream is bin, image is png
 # Alpha changed to true because N64 graphics does not like PNGS with no alpha YES!!!
+# Intensity textures must be converted to rgba for blender
+def intensity_to_rgba(row_data: list[int]):
+    out_rows = []
+    for index, tx in enumerate(row_data):
+        # alpha texel
+        if index % 2:
+            out_rows.append(tx)
+        else:
+            out_rows.extend([tx] * 3)
+    return out_rows
+
+
 def convert_I_tex(width: int, height: int, im_siz: int, byte_stream: bytes, pal_stream: bytes = None):
     if im_siz == 8:
         rows = convert_byte_stream(byte_stream, width, height, [8], 1, 1, add_alpha=True)
     else:
         rows = convert_byte_stream(byte_stream, width, height, [4, 4], 2, 1, add_alpha=True)
-    return rows
+    return intensity_to_rgba(rows)
 
 
 def convert_IA_tex(width: int, height: int, im_siz: int, byte_stream: bytes, pal_stream: bytes = None):
@@ -80,7 +91,7 @@ def convert_IA_tex(width: int, height: int, im_siz: int, byte_stream: bytes, pal
         rows = convert_byte_stream(byte_stream, width, height, [4, 4], 1, 1)
     else:
         rows = convert_byte_stream(byte_stream, width, height, [3, 1, 3, 1], 2, 1)
-    return rows
+    return intensity_to_rgba(rows)
 
 
 def convert_RGBA_tex(width: int, height: int, im_siz: int, byte_stream: bytes, pal_stream: bytes = None):
@@ -111,28 +122,29 @@ def convert_byte_stream(
     channel_bits: list,
     tx_per_byte: int,
     byte_per_tx: int,
-    add_alpha=False,
-    is_ci=False,
+    add_alpha: bool = False,
+    is_ci: bool = False,
 ):
     data_out = []
+    channel_bits_str = ",".join([str(a) for a in channel_bits])
     for im_row in range(height):
         # you can only iterate min one byte at a time
-        # so tx_per_byte halves iteration steps for im_siz==4 textures
-        for tx in range(0, width // tx_per_byte):
+        # so half width if 4 bit texture
+        for tx in range(width // tx_per_byte):
             tx = tx + (im_row * width // tx_per_byte)
-            channels = unpack_bits(",".join([str(a) for a in channel_bits]), byte_stream, byte_per_tx * tx, byte_per_tx)
-            if add_alpha:
-                channels.append(0xFF)
+            channels = unpack_bits(channel_bits_str, byte_stream, byte_per_tx * tx, byte_per_tx)
             if is_ci:
                 data_out.extend(channels)
                 continue
             for c, s in zip(channels, channel_bits):
                 if s == 1:
                     data_out.append(OBA(c) / 255)
-                if s < 8:
+                elif s < 8:
                     data_out.append(CB_float(c, s))
-                else:
-                    data_out.append(c)
+                elif s == 8:
+                    data_out.append(c / 255)
+                if add_alpha:
+                    data_out.append(1.0)
     return data_out
 
 

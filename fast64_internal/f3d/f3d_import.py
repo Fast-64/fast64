@@ -107,13 +107,34 @@ class Texture(TexBase):
         # that said sometimes dxt is used in funny ways for special effects
         # in these cases, I will default to another measurement because
         # dxt is no longer reliable
+        # reverse load block texels to be just width * height
+        # dxs = (((fImage.width) * (fImage.height) + 3) >> 2) - 1 for 4B
+        # else
+        # dxs = (
+        #         ((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
+        #         >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
+        #     ) - 1
+        # define G_IM_SIZ_4b_SHIFT  2
+        # define G_IM_SIZ_8b_SHIFT  1
+        # define G_IM_SIZ_16b_SHIFT 0
+        # define G_IM_SIZ_32b_SHIFT 0
+
+        # define G_IM_SIZ_4b_INCR  3
+        # define G_IM_SIZ_8b_INCR  1
+        # define G_IM_SIZ_16b_INCR 0
+        # define G_IM_SIZ_32b_INCR 0
         bit_size = int(re.search("\d+", self.siz).group())
+        if bit_size == 4:
+            texels = (self.texels + 1) << 2
+        else:
+            siz_adjust = 1 if bit_size == 8 else 0
+            texels = (self.texels + 1) << siz_adjust
         if self.dxt == 0:
             # this just allows export but in no way is this a normal texture
             # nor will it properly show up in blender as an import
-            texels = self.texels
-            self.width = self.texels
-            self.height = 1
+            if not self.width:
+                self.width = 1
+            self.height = texels / self.width
             return
         bit_size = math.log2(bit_size // 4)
         if not bit_size:
@@ -128,16 +149,11 @@ class Texture(TexBase):
         width = int((0x7FF * 8 / bit_size) / (self.dxt - 1))
         # width * bitsize can't be below one
         if width * bit_size < 1:
+            print("width*bitsize < 1", self.tex_img, texels)
             bit_size = 1 / width
             width = int((8 * 0x7FF / bit_size) / (self.dxt - 1))
-        # in 4bit loading, texels are faked as if they're 16 bit
-        # so each texel here is actually 4 texels
-        if bit_size == 0.5:
-            height = int(4 * (self.texels + 1) / width)
-        else:
-            height = int((self.texels + 1) / width)
 
-        print(width, height, self.tex_img, bit_size)
+        height = int((texels + 1) / width)
         self.width = width
         self.height = height
 
@@ -276,9 +292,6 @@ class Mat:
         tex_img = textures.get(tex.tex_img)
         # idk if this properly deals with multiple palettes...
         pal_img = textures.get(self.pal.tex_img) if self.pal else None
-        if pal_img:
-            pal_stream = bytes([int(a.strip(), 0x10) for a in pal_img.var_data[0].split(",") if "0x" in a])
-            print(tex_img.var_name, pal_img.var_name, len(pal_stream))
         tex.determine_size()
         image_texels = convert_tex(
             tex.fmt,
@@ -288,7 +301,7 @@ class Mat:
             tex_img.var_data[0],
             pal_stream=pal_img.var_data[0] if pal_img else None,
         )
-        i = bpy.data.images.new(tex.tex_img, tex.width, tex.height)
+        i = bpy.data.images.new(tex.tex_img, tex.width, tex.height, alpha=True)
         i.pixels = image_texels
         return i
 
@@ -913,8 +926,16 @@ class DL(DataParser):
         if hasattr(self.last_mat, "loadtex"):
             tex = self.last_mat.loadtex
             # these values aren't necessary when the texture is already in png format
-            tex.dxt = hexOrDecInt(macro.args[4])
-            tex.texels = hexOrDecInt(macro.args[3])
+            # texels and dxt commonly use math/expressions
+            if "CALC_DXT" in macro.args[4]:
+                tex.dxt = 0
+                tex.width = re.search("\d+", macro.args[4]).group()
+            else:
+                tex.dxt = hexOrDecInt(macro.args[4])
+            if "*" in macro.args[3]:
+                tex.texels = eval(macro.args[3])
+            else:
+                tex.texels = hexOrDecInt(macro.args[3])
             tile_index = self.eval_tile_enum(macro.args[0])
             tex.tile = self.last_mat.tiles[tile_index]
             self.last_mat.tmem[tex.tile.tmem] = tex
@@ -1083,7 +1104,7 @@ class DL(DataParser):
         return eval(arg2)
 
     def eval_tile_enum(self, arg: Union[str, Number]):
-        if type(arg) is str:
+        if type(arg) is str and not arg.isdigit():
             # fix later
             return getattr(self.f3d_gbi, arg, 0)
         else:
