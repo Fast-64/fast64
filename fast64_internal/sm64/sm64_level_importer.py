@@ -338,44 +338,44 @@ class Level(DataParser):
         area_root.name = f"{self.props.level_name} Area Root {macro.args[0]}"
         self.areas[macro.args[0]] = Area(area_root, macro.args[1], self.root, int(macro.args[0]), self.scene, area_col)
         self.cur_area = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def END_AREA(self, macro: Macro, col: bpy.types.Collection):
         self.cur_area = None
-        return self.continue_parse
+        return self._continue_parse
 
     # Jumps are only taken if they're in the script.c file for now
     # continues script
     def JUMP_LINK(self, macro: Macro, col: bpy.types.Collection):
         if self.scripts.get(macro.args[0]):
             self.parse_level_script(macro.args[0], col=col)
-        return self.continue_parse
+        return self._continue_parse
 
     # ends script
     def JUMP(self, macro: Macro, col: bpy.types.Collection):
         new_entry = self.scripts.get(macro.args[-1])
         if new_entry:
             self.parse_level_script(macro.args[-1], col=col)
-        return self.break_parse
+        return self._break_parse
 
     def EXIT(self, macro: Macro, col: bpy.types.Collection):
-        return self.break_parse
+        return self._break_parse
 
     def RETURN(self, macro: Macro, col: bpy.types.Collection):
-        return self.break_parse
+        return self._break_parse
 
     # Now deal with data cmds rather than flow control ones
     def WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
         self.areas[self.cur_area].add_warp(macro.args, "Warp")
-        return self.continue_parse
+        return self._continue_parse
 
     def PAINTING_WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
         self.areas[self.cur_area].add_warp(macro.args, "Painting")
-        return self.continue_parse
+        return self._continue_parse
 
     def INSTANT_WARP(self, macro: Macro, col: bpy.types.Collection):
         self.areas[self.cur_area].add_instant_warp(macro.args)
-        return self.continue_parse
+        return self._continue_parse
 
     def OBJECT_WITH_ACTS(self, macro: Macro, col: bpy.types.Collection):
         # convert act mask from ORs of act names to a number
@@ -392,12 +392,12 @@ class Level(DataParser):
             except:
                 mask = 31
         self.areas[self.cur_area].add_object([*macro.args[:-1], mask])
-        return self.continue_parse
+        return self._continue_parse
 
     def OBJECT(self, macro: Macro, col: bpy.types.Collection):
         # Only difference is act mask, which I set to 31 to mean all acts
         self.areas[self.cur_area].add_object([*macro.args, 31])
-        return self.continue_parse
+        return self._continue_parse
 
     def TERRAIN_TYPE(self, macro: Macro, col: bpy.types.Collection):
         if not macro.args[0].isdigit():
@@ -418,17 +418,17 @@ class Level(DataParser):
                 self.areas[self.cur_area].root.terrainEnum = terrains.get(num)
             except:
                 print("could not set terrain")
-        return self.continue_parse
+        return self._continue_parse
 
     def SHOW_DIALOG(self, macro: Macro, col: bpy.types.Collection):
         root = self.areas[self.cur_area].root
         root.showStartDialog = True
         root.startDialog = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     def TERRAIN(self, macro: Macro, col: bpy.types.Collection):
         self.areas[self.cur_area].terrain = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def SET_BACKGROUND_MUSIC(self, macro: Macro, col: bpy.types.Collection):
         return self.generic_music(macro, col)
@@ -446,29 +446,29 @@ class Level(DataParser):
         root = self.areas[self.cur_area].root
         root.musicSeqEnum = "Custom"
         root.music_seq = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     # Don't support these for now
     def MACRO_OBJECTS(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def WHIRLPOOL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def SET_ECHO(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def MARIO_POS(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def SET_REG(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def GET_OR_SET(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def CHANGE_AREA_SKYBOX(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     # Don't support for now but maybe later
     def JUMP_LINK_PUSH_ARG(self, macro: Macro, col: bpy.types.Collection):
@@ -512,66 +512,66 @@ class Level(DataParser):
 
     # use group mapping to set groups eventually
     def LOAD_MIO0(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_MIO0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_TITLE_SCREEN_BG(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_GODDARD(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_BEHAVIOR_DATA(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_COMMON0(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_GROUPB(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_GROUPA(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_EFFECTS(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_SKYBOX(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_TEXTURE_BIN(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_LEVEL_DATA(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_YAY0(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_YAY0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_VANILLA_OBJECTS(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_RAW(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_RAW_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_MARIO_HEAD(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_MODEL_FROM_GEO(self, macro: Macro, col: bpy.types.Collection):
         self.loaded_geos[macro.args[0]] = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     def LOAD_MODEL_FROM_DL(self, macro: Macro, col: bpy.types.Collection):
         self.loaded_dls[macro.args[0]] = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     # throw exception saying I cannot process
     def EXECUTE(self, macro: Macro, col: bpy.types.Collection):
@@ -588,61 +588,61 @@ class Level(DataParser):
 
     # not useful for bpy, dummy these script cmds
     def CMD3A(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def STOP_MUSIC(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def GAMMA(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def BLACKOUT(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def TRANSITION(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def NOP(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def CMD23(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def PUSH_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def POP_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def SLEEP(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def ROOMS(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def MARIO(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def INIT_LEVEL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def ALLOC_LEVEL_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def FREE_LEVEL_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def CALL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def CALL_LOOP(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def CLEAR_LEVEL(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
     def SLEEP_BEFORE_EXIT(self, macro: Macro, col: bpy.types.Collection):
-        return self.continue_parse
+        return self._continue_parse
 
 
 @dataclass
@@ -731,56 +731,56 @@ class Collision(DataParser):
 
     def COL_VERTEX(self, macro: Macro):
         self.vertices.append([eval(v) / self.scale for v in macro.args])
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_TRI_INIT(self, macro: Macro):
         self.type = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_TRI(self, macro: Macro):
         self.tris.append(ColTri(self.type, [eval(a) for a in macro.args]))
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_TRI_SPECIAL(self, macro: Macro):
         self.tris.append(ColTri(self.type, [eval(a) for a in macro.args[0:3]], special_param=eval(macro.args[3])))
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_WATER_BOX(self, macro: Macro):
         # id, x1, z1, x2, z2, y
         self.water_boxes.append(macro.args)
-        return self.continue_parse
+        return self._continue_parse
 
     # not written out currently
     def SPECIAL_OBJECT(self, macro: Macro):
         self.special_objects.append((*macro.args, 0, 0))
-        return self.continue_parse
+        return self._continue_parse
 
     def SPECIAL_OBJECT_WITH_YAW(self, macro: Macro):
         self.special_objects.append((*macro.args, 0))
-        return self.continue_parse
+        return self._continue_parse
 
     def SPECIAL_OBJECT_WITH_YAW_AND_PARAM(self, macro: Macro):
         self.special_objects.append(macro.args)
-        return self.continue_parse
+        return self._continue_parse
 
     # don't do anything to bpy
     def COL_WATER_BOX_INIT(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_INIT(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_VERTEX_INIT(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_SPECIAL_INIT(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_TRI_STOP(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def COL_END(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
 
 class SM64_Material(Mat):
@@ -1154,7 +1154,7 @@ class GraphNodes(DataParser):
         if new_geo_layout:
             self.stream.append(macro.args[0])
             self.parse_stream_from_start(new_geo_layout, macro.args[0], depth)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_BRANCH(self, macro: Macro, depth: int):
         new_geo_layout = self.geo_layouts.get(macro.args[1])
@@ -1163,20 +1163,20 @@ class GraphNodes(DataParser):
             self.parse_stream_from_start(new_geo_layout, macro.args[1], depth)
         # arg 0 determines if you return and continue or end after the branch
         if eval(macro.args[0]):
-            return self.continue_parse
+            return self._continue_parse
         else:
-            return self.break_parse
+            return self._break_parse
 
     def GEO_END(self, macro: Macro, depth: int):
         self.stream = None
-        return self.break_parse
+        return self._break_parse
 
     def GEO_RETURN(self, macro: Macro, depth: int):
         self.stream.pop()
-        return self.break_parse
+        return self._break_parse
 
     def GEO_CLOSE_NODE(self, macro: Macro, depth: int):
-        return self.break_parse
+        return self._break_parse
 
     def GEO_DISPLAY_LIST(self, macro: Macro, depth: int):
         # translation, rotation, layer, model
@@ -1184,7 +1184,7 @@ class GraphNodes(DataParser):
             ModelDat(self.parent_transform, *macro.args), "display_list", self.display_list, macro.args[0]
         )
         self.set_transform(geo_obj, self.parent_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_BILLBOARD_WITH_PARAMS_AND_DL(self, macro: Macro, depth: int):
         transform = Matrix()
@@ -1199,7 +1199,7 @@ class GraphNodes(DataParser):
         else:
             geo_obj = self.setup_geo_obj("billboard", self.billboard, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_BILLBOARD_WITH_PARAMS(self, macro: Macro, depth: int):
         transform = Matrix()
@@ -1208,11 +1208,11 @@ class GraphNodes(DataParser):
 
         geo_obj = self.setup_geo_obj("billboard", self.billboard, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_BILLBOARD(self, macro: Macro, depth: int):
         self.setup_geo_obj("billboard", self.billboard, macro.args[0])
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_ANIMATED_PART(self, macro: Macro, depth: int):
         # layer, translation, DL
@@ -1228,13 +1228,13 @@ class GraphNodes(DataParser):
         else:
             geo_obj = self.setup_geo_obj("bone", self.animated_part, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_ROTATION_NODE(self, macro: Macro, depth: int):
         geo_obj = self.GEO_ROTATE(macro, depth)
         if geo_obj:
             self.set_geo_type(geo_obj, self.rotate)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_ROTATE(self, macro: Macro, depth: int):
         transform = Matrix.LocRotScale(Vector(), self.get_rotation(macro.args[1:4]), Vector((1, 1, 1)))
@@ -1243,7 +1243,7 @@ class GraphNodes(DataParser):
 
     def GEO_ROTATION_NODE_WITH_DL(self, macro: Macro, depth: int):
         geo_obj = self.GEO_ROTATE_WITH_DL(macro, depth)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_ROTATE_WITH_DL(self, macro: Macro, depth: int):
         transform = Matrix.LocRotScale(Vector(), self.get_rotation(macro.args[1:4]), Vector((1, 1, 1)))
@@ -1277,7 +1277,7 @@ class GraphNodes(DataParser):
         else:
             geo_obj = self.setup_geo_obj("trans/rotate", self.translate_rotate, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_TRANSLATE_ROTATE(self, macro: Macro, depth: int):
         transform = Matrix.LocRotScale(
@@ -1287,13 +1287,13 @@ class GraphNodes(DataParser):
 
         geo_obj = self.setup_geo_obj("trans/rotate", self.translate_rotate, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_TRANSLATE_WITH_DL(self, macro: Macro, depth: int):
         geo_obj = self.GEO_TRANSLATE_NODE_WITH_DL(macro, depth)
         if geo_obj:
             self.set_geo_type(geo_obj, self.translate_rotate)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_TRANSLATE_NODE_WITH_DL(self, macro: Macro, depth: int):
         transform = Matrix()
@@ -1314,7 +1314,7 @@ class GraphNodes(DataParser):
         obj = self.GEO_TRANSLATE_NODE(macro, depth)
         if obj:
             self.set_geo_type(geo_obj, self.translate_rotate)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_TRANSLATE_NODE(self, macro: Macro, depth: int):
         transform = Matrix()
@@ -1332,42 +1332,42 @@ class GraphNodes(DataParser):
         model = macro.args[-1]
         geo_obj = self.add_model(ModelDat(self.last_transform, macro.args[0], macro.args[-1]))
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     # these have no affect on the bpy
     def GEO_NOP_1A(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_NOP_1E(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_NOP_1F(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_NODE_START(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_NODE_SCREEN_AREA(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_ZBUFFER(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_RENDER_OBJ(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     # This should probably do something but I haven't coded it in yet
     def GEO_COPY_VIEW(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_ASSIGN_AS_VIEW(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_UPDATE_NODE_FLAGS(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_NODE_ORTHO(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     # These need special bhv for each type
     def GEO_ASM(self, macro: Macro, depth: int):
@@ -1518,26 +1518,26 @@ class GeoLayout(GraphNodes):
         if "geo_envfx_main" in macro.args[1]:
             env_fx = macro.args[0]
             if not env_fx or (env_fx == "ENVFX_MODE_NONE" and self.props.export_friendly):
-                return self.continue_parse
+                return self._continue_parse
             elif any(env_fx is enum_fx[0] for enum_fx in enumEnvFX):
                 self.area_root.envOption = env_fx
             else:
                 self.area_root.envOption = "Custom"
                 self.area_root.envType = env_fx
         if macro.args[1] in self._skipped_geo_asm_funcs and self.props.export_friendly:
-            return self.continue_parse
+            return self._continue_parse
         geo_obj = self.setup_geo_obj("asm", self.asm)
         # probably will need to be overridden by each subclass
         asm = geo_obj.fast64.sm64.geo_asm
         asm.param = macro.args[0]
         asm.func = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_SCALE(self, macro: Macro, depth: int):
         scale = eval(macro.args[1]) / 0x10000
         geo_obj = self.setup_geo_obj("scale", self.scale, macro.args[0])
         geo_obj.scale = (scale, scale, scale)
-        return self.continue_parse
+        return self._continue_parse
 
     # shadows aren't naturally supported but we can emulate them with custom geo cmds
     # change so this can be applied to mesh on root?
@@ -1547,20 +1547,20 @@ class GeoLayout(GraphNodes):
         # its probably better to just make shadows a real geo cmd or have some generic custom cmd func
         # geo_obj.customGeoCommand = "GEO_SHADOW"
         # geo_obj.customGeoCommandArgs = ", ".join(macro.args)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_SWITCH_CASE(self, macro: Macro, depth: int):
         geo_obj = self.setup_geo_obj("switch", self.switch)
         # probably will need to be overridden by each subclass
         geo_obj.switchParam = eval(macro.args[0])
         geo_obj.switchFunc = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     # can only apply type to area root
     def GEO_CAMERA(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_BACKGROUND(self, macro: Macro, depth: int):
         level_root = self.area_root.parent
@@ -1576,35 +1576,35 @@ class GeoLayout(GraphNodes):
             # level_root.fast64.sm64.level.backgroundSegment = "unavailable srry :("
             print("background segment not set, left at default srry")
 
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_BACKGROUND_COLOR(self, macro: Macro, depth: int):
         level_root = self.area_root.parent
         level_root.useBackgroundColor = True
         level_root.backgroundColor = read16bitRGBA(hexOrDecInt(macro.args[0]))
-        return self.continue_parse
+        return self._continue_parse
 
     # can only apply to meshes
     def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
         self.pass_args["render_range"] = [
             hexOrDecInt(range) / self.scene.fast64.sm64.blender_to_sm64_scale for range in macro.args
         ]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_CULLING_RADIUS(self, macro: Macro, depth: int):
         self.pass_args["culling_radius"] = hexOrDecInt(macro.args[0]) / self.scene.fast64.sm64.blender_to_sm64_scale
-        return self.continue_parse
+        return self._continue_parse
 
     # make better
     def GEO_CAMERA_FRUSTRUM(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_CAMERA_FRUSTUM_WITH_FUNC(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_OPEN_NODE(self, macro: Macro, depth: int):
         if self.obj:
@@ -1634,7 +1634,7 @@ class GeoLayout(GraphNodes):
         GeoChild.parent_transform = self.last_transform
         GeoChild.parse_stream(self.geo_layouts.get(self.stream[-1]), self.stream[-1], depth + 1)
         self.children.append(GeoChild)
-        return self.continue_parse
+        return self._continue_parse
 
 
 class GeoArmature(GraphNodes):
@@ -1802,20 +1802,20 @@ class GeoArmature(GraphNodes):
         else:
             geo_obj.func_param = int(macro.args[0])
         geo_obj.geo_func = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_SHADOW(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("shadow", self.shadow)
         geo_bone.shadow_solidity = hexOrDecInt(macro.args[1]) / 255
         geo_bone.shadow_scale = hexOrDecInt(macro.args[2])
-        return self.continue_parse
+        return self._continue_parse
 
     # cmd not supported in fast64 for some reason?
     def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("render_range", self.custom)
         geo_bone.fast64.sm64.custom_geo_cmd_macro = "GEO_RENDER_RANGE"
         geo_bone.fast64.sm64.custom_geo_cmd_args = ",".join(macro.args)
-        return self.continue_parse
+        return self._continue_parse
 
     # can switch children have their own culling radius? does it have to
     # be on the root? this currently allows each independent geo to have one
@@ -1823,14 +1823,14 @@ class GeoArmature(GraphNodes):
         geo_armature = self.get_or_init_geo_armature()
         geo_armature.use_render_area = True  # cringe name, it is cull not render area
         geo_armature.culling_radius = float(macro.args[0])
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_SWITCH_CASE(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("switch", self.switch)
         # probably will need to be overridden by each subclass
         geo_bone.func_param = eval(macro.args[0])
         geo_bone.geo_func = macro.args[1]
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_SCALE_WITH_DL(self, macro: Macro, depth: int):
         scale = eval(macro.args[1]) / 0x10000
@@ -1844,23 +1844,23 @@ class GeoArmature(GraphNodes):
             macro.args[0],
         )
         self.set_transform(geo_obj, self.last_transform)
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_SCALE(self, macro: Macro, depth: int):
         scale = eval(macro.args[1]) / 0x10000
 
         geo_bone = self.setup_geo_obj("scale", self.scale, macro.args[0])
         geo_bone.geo_scale = scale
-        return self.continue_parse
+        return self._continue_parse
 
     # can be used as a container for several nodes under a single switch child
     def GEO_NODE_START(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("start", self.start, "1")
-        return self.continue_parse
+        return self._continue_parse
 
     # add some stuff here
     def GEO_HELD_OBJECT(self, macro: Macro, depth: int):
-        return self.continue_parse
+        return self._continue_parse
 
     def GEO_OPEN_NODE(self, macro: Macro, depth: int):
         if self.bone:
@@ -1891,7 +1891,7 @@ class GeoArmature(GraphNodes):
         GeoChild.parent_transform = self.last_transform
         GeoChild.parse_stream(self.geo_layouts.get(self.stream[-1]), self.stream[-1], depth + 1)
         self.children.append(GeoChild)
-        return self.continue_parse
+        return self._continue_parse
 
 
 # ------------------------------------------------------------------------

@@ -555,7 +555,7 @@ class DL(DataParser):
         self.parse_stream(display_list_arr, start_name)
 
     def gsSPEndDisplayList(self, macro: Macro):
-        return self.break_parse
+        return self._break_parse
 
     def gsSPBranchList(self, macro: Macro):
         NewDL = self.Gfx.get(branched_dl := macro.args[0])
@@ -565,9 +565,8 @@ class DL(DataParser):
                     NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
                 )
             )
-        self.reset_parser(branched_dl)
-        self.parse_stream(NewDL, branched_dl)
-        return self.break_parse
+        self.parse_stream_from_start(NewDL, branched_dl)
+        return self._break_parse
 
     def gsSPDisplayList(self, macro: Macro):
         NewDL = self.Gfx.get(branched_dl := macro.args[0])
@@ -577,12 +576,11 @@ class DL(DataParser):
                     NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
                 )
             )
-        self.reset_parser(branched_dl)
-        self.parse_stream(NewDL, branched_dl)
-        return self.continue_parse
+        self.parse_stream_from_start(NewDL, branched_dl)
+        return self._continue_parse
 
     def gsSPEndDisplayList(self, macro: Macro):
-        return self.break_parse
+        return self._break_parse
 
     def gsSPVertex(self, macro: Macro):
         # vertex references commonly use pointer arithmatic. I will deal with that case here, but not for other things unless it somehow becomes a problem later
@@ -612,7 +610,7 @@ class DL(DataParser):
         self.UVs.extend([v[1] for v in Verts])
         self.VCs.extend([v[2] for v in Verts])
         self.LastLoad = vertex_load_length
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPModifyVertex(self, macro: Macro):
         vtx = self.VertBuff[hexOrDecInt(macro.args[0])]
@@ -631,7 +629,7 @@ class DL(DataParser):
             self.UVs.append(self.UVs[vtx])
             self.VCs.append(vertex_col)
             self.VertBuff[hexOrDecInt(macro.args[0])] = len(self.Verts)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSP2Triangles(self, macro: Macro):
         self.make_new_material()
@@ -640,14 +638,14 @@ class DL(DataParser):
         Tri2 = self.parse_tri(args[4:7])
         self.Tris.append(Tri1)
         self.Tris.append(Tri2)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSP1Triangle(self, macro: Macro):
         self.make_new_material()
         args = [hexOrDecInt(a) for a in macro.args]
         Tri = self.parse_tri(args[:3])
         self.Tris.append(Tri)
-        return self.continue_parse
+        return self._continue_parse
 
     # materials
     # Mats will be placed sequentially. The first item of the list is the triangle number
@@ -655,7 +653,7 @@ class DL(DataParser):
     def gsDPSetRenderMode(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.RenderMode = [a.strip() for a in macro.args]
-        return self.continue_parse
+        return self._continue_parse
 
     # The highest numbered light is always the ambient light
     def gsSPLight(self, macro: Macro):
@@ -678,7 +676,7 @@ class DL(DataParser):
             self.last_mat.ambient_light = light_val
         else:
             self.last_mat.light_col[light_num] = light_val
-        return self.continue_parse
+        return self._continue_parse
 
     # numlights0 still gives one ambient and diffuse light
     def gsSPNumLights(self, macro: Macro):
@@ -686,39 +684,39 @@ class DL(DataParser):
         num = re.search("\d", macro.args[0]).group()
         num = int(num) if num else 1
         self.last_mat.num_lights = num
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPLightColor(self, macro: Macro):
         self.NewMat = 1
         num = re.search("\d", macro.args[0]).group()
         num = int(num) if num else 1
         self.last_mat.light_col[num] = eval(macro.args[-1]).to_bytes(4, "big")
-        return self.continue_parse
+        return self._continue_parse
 
     # not finished yet
     def gsSPSetLights0(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights1(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights2(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights3(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights4(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights5(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights6(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetLights7(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetOtherMode(self, macro: Macro):
         self.NewMat = 1
@@ -737,101 +735,101 @@ class DL(DataParser):
                     continue
                 mode_l_attr = RDPSettings.other_mode_l_attributes[i][1]
                 self.last_mat.other_mode[mode_l_attr] = othermode.strip()
-        return self.continue_parse
+        return self._continue_parse
 
     # some independent other mode settings
     def gsDPSetTexturePersp(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_textpersp"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetDepthSource(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_zsrcsel"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetColorDither(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_rgb_dither"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetAlphaDither(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_alpha_dither"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetCombineKey(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_combkey"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTextureConvert(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_textconv"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTextureFilter(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_text_filt"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTextureLOD(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_textlod"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTextureDetail(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_textdetail"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetCycleType(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_cycletype"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTextureLUT(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_textlut"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPPipelineMode(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_pipeline"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetAlphaCompare(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.other_mode["g_mdsft_alpha_compare"] = macro.args[0]
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPFogFactor(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetFogColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.fog_color = macro.args
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPFogPosition(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.fog_pos = macro.args
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetBlendColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.blend_color = macro.args
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetPrimColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.prim_color = macro.args
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetEnvColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.env_color = macro.args
-        return self.continue_parse
+        return self._continue_parse
 
     # multiple geo modes can happen in a row that contradict each other
     # this is mostly due to culling wanting diff geo modes than drawing
@@ -843,7 +841,7 @@ class DL(DataParser):
             if a in self.last_mat.GeoSet:
                 self.last_mat.GeoSet.remove(a)
         self.last_mat.GeoClear.extend(args)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPSetGeometryMode(self, macro: Macro):
         self.NewMat = 1
@@ -852,7 +850,7 @@ class DL(DataParser):
             if a in self.last_mat.GeoClear:
                 self.last_mat.GeoClear.remove(a)
         self.last_mat.GeoSet.extend(args)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPGeometryMode(self, macro: Macro):
         self.NewMat = 1
@@ -866,7 +864,7 @@ class DL(DataParser):
                 self.last_mat.GeoClear.remove(a)
         self.last_mat.GeoClear.extend(argsC)
         self.last_mat.GeoSet.extend(argsS)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsSPLoadGeometryMode(self, macro: Macro):
         self.NewMat = 1
@@ -874,17 +872,17 @@ class DL(DataParser):
         all_geos = set(RDPSettings.geo_mode_attributes.values())
         self.last_mat.GeoSet = list(geo_set)
         self.last_mat.GeoClear = list(all_geos.difference(geo_set))
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetCombineMode(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.Combiner = self.eval_set_combine_macro(macro.args)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetCombineLERP(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.Combiner = macro.args
-        return self.continue_parse
+        return self._continue_parse
 
     # root tile, scale and set tex
     def gsSPTexture(self, macro: Macro):
@@ -902,7 +900,7 @@ class DL(DataParser):
             ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in macro.args[0:2]
         ]  # signed half to unsigned half
         self.last_mat.base_tile = self.eval_tile_enum(macro.args[-2])
-        return self.continue_parse
+        return self._continue_parse
 
     # last tex is a palette
     def gsDPLoadTLUTCmd(self, macro: Macro):
@@ -920,7 +918,7 @@ class DL(DataParser):
                 "No interpretation on file possible**--"
             )
             return None
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPLoadBlock(self, macro: Macro):
         if hasattr(self.last_mat, "loadtex"):
@@ -946,7 +944,7 @@ class DL(DataParser):
                 "No interpretation on file possible**--"
             )
             return None
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTextureImage(self, macro: Macro):
         self.NewMat = 1
@@ -954,7 +952,7 @@ class DL(DataParser):
         fmt = macro.args[0]
         siz = macro.args[1]
         self.last_mat.loadtex = Texture(tex_img, fmt, siz)
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTileSize(self, macro: Macro):
         self.NewMat = 1
@@ -963,7 +961,7 @@ class DL(DataParser):
         tile.Tlow = self.eval_image_frac(macro.args[2])
         tile.Shigh = self.eval_image_frac(macro.args[3])
         tile.Thigh = self.eval_image_frac(macro.args[4])
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPSetTile(self, macro: Macro):
         self.NewMat = 1
@@ -981,7 +979,7 @@ class DL(DataParser):
         tex = self.last_mat.tmem.get(tile.tmem, None)
         if tex:
             tex.siz = tile.siz
-        return self.continue_parse
+        return self._continue_parse
 
     # combined macros
     def gsDPLoadTLUT(self, macro: Macro):
@@ -990,7 +988,7 @@ class DL(DataParser):
         self.gsDPSetTextureImage(macro.partial("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, args[2]))
         self.gsDPSetTile(macro.partial(0, 0, 0, args[1], 7, 0, 0, 0, 0, 0, 0, 0))
         self.gsDPLoadTLUTCmd(macro.partial(7, args[0]))
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPLoadTextureBlock(self, macro: Macro):
         # 0tex, 1fmt, 2siz, 3height, 4width, 5pal, 6flags, 8masks, 10shifts
@@ -1007,7 +1005,7 @@ class DL(DataParser):
         )
         self.gsDPSetTileSize(macro.partial(7, 0, 0, (hexOrDecInt(args[4]) - 1) << 2, (hexOrDecInt(args[3]) - 1) << 2))
 
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPLoadTextureBlockS(self, macro: Macro):
         # only changes dxt and that doesn't matter here
@@ -1027,7 +1025,7 @@ class DL(DataParser):
             macro.partial(fmt, siz, 0, 0, 0, args[5], args[7], args[9], args[11], args[6], args[8], args[10])
         )
         self.gsDPSetTileSize(macro.partial(7, 0, 0, (hexOrDecInt(args[4]) - 1) << 2, (hexOrDecInt(args[3]) - 1) << 2))
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPLoadTextureBlock_4b(self, macro: Macro):
         # 0tex, 1fmt, 2height, 3width, 4pal, 5flags, 7masks, 9shifts
@@ -1044,7 +1042,7 @@ class DL(DataParser):
             macro.partial(fmt, "G_IM_SIZ_4b", 0, 0, 0, args[4], args[3], args[8], args[10], args[3], args[7], args[9])
         )
         self.gsDPSetTileSize(macro.partial(7, 0, 0, (hexOrDecInt(args[4]) - 1) << 2, (hexOrDecInt(args[3]) - 1) << 2))
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPLoadTextureBlock_4bs(self, macro: Macro):
         # only changes dxt and that doesn't matter here
@@ -1058,22 +1056,22 @@ class DL(DataParser):
 
     # syncs need no processing
     def gsSPCullDisplayList(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPPipeSync(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPLoadSync(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPTileSync(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPFullSync(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def gsDPNoOp(self, macro: Macro):
-        return self.continue_parse
+        return self._continue_parse
 
     def make_new_material(self):
         if self.NewMat:

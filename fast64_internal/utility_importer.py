@@ -12,6 +12,10 @@ from collections.abc import Sequence
 
 from .utility import transform_mtx_blender_to_n64
 
+# ------------------------------------------------------------------------
+#    Array Data parsing
+# ------------------------------------------------------------------------
+
 
 @dataclass
 class CDataArray:
@@ -68,8 +72,8 @@ class Parser:
 # basic methods and utility to parse scripts or data streams of bytecode
 class DataParser:
     # parsing flow status codes
-    continue_parse = 1
-    break_parse = 2
+    _continue_parse = 1
+    _break_parse = 2
 
     def __init__(self, parent: DataParser = None):
         # for forward referencing scripts, keep track of the stream
@@ -95,7 +99,7 @@ class DataParser:
                 raise Exception(f"Macro {cur_macro} not found in parser function")
             else:
                 flow_status = func(cur_macro, *args, **kwargs)
-            if flow_status == self.break_parse:
+            if flow_status == self._break_parse:
                 return
 
     def reset_parser(self, entry_id: Any):
@@ -134,6 +138,92 @@ class DataParser:
 
 def transform_matrix_to_bpy(transform: Matrix) -> Matrix:
     return transform_mtx_blender_to_n64().inverted() @ transform @ transform_mtx_blender_to_n64()
+
+
+# ------------------------------------------------------------------------
+#    Binary Classes
+# ------------------------------------------------------------------------
+
+
+# just a base class that holds some binary processing
+# this class is focused on reading data
+class BinProcess:
+    # unpack type
+    def unpack_type(self, offset, type, length, iter=False):
+        a = struct.unpack(type, self.file[offset : offset + length])
+        if iter:
+            return a
+        if len(a) == 1:
+            return a[0]
+        else:
+            return a
+
+    @staticmethod
+    def seg2phys(num):
+        if num >> 24 == 4:
+            return num & 0xFFFFFF
+        else:
+            return num
+
+    # get list of pointers, stop at ARR_TERMINATOR
+    def get_referece_list(self, start, stop=0):
+        x = 0
+        start = self.seg2phys(start)
+        ref = []
+        r = self.unpack_type(start, ">L", 4)
+        while r != stop:
+            x += 4
+            ref.append(r)
+            r = self.unpack_type(start + x, ">L", 4)
+        ref.append(r)
+        return ref
+
+    # using a list of labels, find which symbol corresponds to pointer
+    def get_symbol_from_locations(self, symbol_dict, pointer, size=8):
+        # throw out non pointers
+        if pointer == 0:
+            return 0
+        closest = None
+        chosen_str = None
+        for format_str, symbols in symbol_dict.items():
+            for sym in symbols:
+                if not closest:
+                    closest = sym if sym < pointer else None
+                    chosen_str = format_str
+                    continue
+                if sym > pointer:
+                    continue
+                if (pointer - sym) < (pointer - closest):
+                    closest = sym
+                    chosen_str = format_str
+        if not closest:
+            closest = min([sym for sym in symbols for symbols in symbol_dict.values()])
+        return chosen_str.format(f"{closest:X}", f"[{(pointer - closest) // size}]")
+
+    # turn dict into an array. usually to be fed into a named tuple
+    # dict is: key - offset, value - func->type, name, func->len, arr = None
+    # returns: list[ints]
+    def extract_dict(self, start, dict):
+        output = []
+        for k, v in dict.items():
+            try:
+                # if a function is used for member 4, then call with current results
+                if callable(v[3]):
+                    # variable length structs are always at the end, and should be arrays
+                    # since unpack_type sometimes is not a list and sometimes is, I will
+                    # force this result to be a list
+                    num = v[3](output)
+                    output.append(self.unpack_type(start + k, v[0].format(num), v[2] * num, iter=True))
+                else:
+                    output.append(self.unpack_type(start + k, v[0], v[2]))
+            except:
+                output.append(self.unpack_type(start + k, v[0], v[2]))
+        return output
+
+
+# ------------------------------------------------------------------------
+#    C file scrubbing/processing
+# ------------------------------------------------------------------------
 
 
 # make something more generic here where user can supply their own function
