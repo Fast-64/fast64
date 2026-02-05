@@ -68,9 +68,15 @@ class Parser:
             self.head += 1
             yield self.cur_stream[self.head]
 
+    def stream_binary(self):
+        pass
+
+    def update_head(self, adv):
+        self.head += adv
+
 
 # basic methods and utility to parse scripts or data streams of bytecode
-class DataParser:
+class DataParser(BinProcess):
     # parsing flow status codes
     _continue_parse = 1
     _break_parse = 2
@@ -102,13 +108,46 @@ class DataParser:
             if flow_status == self._break_parse:
                 return
 
+    # entry id in this instance is a pointer, converted to physical address, e.g. file offset
+    def parse_stream_binary(self, bin_file: BinaryIO, entry_id: Any, *args, **kwargs):
+        parser = self.parsed_streams.get(entry_id)
+        if not parser:
+            self.parsed_streams[entry_id] = (parser := Parser(bin_file))
+        for line in parser.stream_binary():
+            cmd_type, cmd_len = self.binary_cmd_get(parser)
+            # get a specific decoding function to make a macro
+            func = getattr(self, f"decode_cmd_{cmd_type}_bin", None)
+            # use a generic class (const?) var tuple to decode into a macro
+            if func:
+                cur_macro = func(parser)
+            else:
+                unpack_str = getattr(self, f"unpack_cmd_{cmd_type}_bin", None)
+                # if still no func
+                if not unpack_str:
+                    raise Exception(f"No decoding for cmd {cmd_type}")
+                cur_macro = self.unpack_type(parser.cur_stream, parser.head, *unpack_str)
+            else:
+                flow_status = func(cur_macro, *args, **kwargs)
+            parser.update_head(cmd_len)
+            if flow_status == self._break_parse:
+                return
+
     def reset_parser(self, entry_id: Any):
         self.parsed_streams[entry_id] = None
 
-    def get_parser(self, entry_id: Any, relative_offset: int = 0):
+    def get_parser(self, entry_id: Any, relative_offset: int = 0) -> Parser:
         parser = self.parsed_streams[entry_id]
         parser.head += relative_offset
         return parser
+
+    # MSB is cmd type, use cmd type to execute class specific logic for length
+    # default is 2nd MSB is length, used in level scripts and geo layouts
+    def binary_cmd_get(self, parser: Parser) -> tuple[int, int]:
+        cmd_type, cmd_len = self.unpack_type(parser.cur_stream, parser.head, ">BB", 2)
+        func = getattr(self, f"cmd_len_{cmd_type}_bin", None)
+        if func:
+            cmd_len = func(bin_file, offset, cmd_type)
+        return cmd_type, cmd_len
 
     def c_macro_split(self, macro: str) -> list[str]:
         args_start = macro.find("(")
@@ -149,8 +188,8 @@ def transform_matrix_to_bpy(transform: Matrix) -> Matrix:
 # this class is focused on reading data
 class BinProcess:
     # unpack type
-    def unpack_type(self, offset, type, length, iter=False):
-        a = struct.unpack(type, self.file[offset : offset + length])
+    def unpack_type(self, file, offset, type, length, iter=False):
+        a = struct.unpack(type, file[offset : offset + length])
         if iter:
             return a
         if len(a) == 1:
