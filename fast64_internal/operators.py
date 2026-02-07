@@ -3,8 +3,7 @@ from pstats import SortKey, Stats
 from typing import TypeVar, Iterable, Optional
 
 import bpy, mathutils
-from bpy.types import Operator, Context, UILayout, EnumProperty
-from bpy.utils import register_class, unregister_class
+from bpy.types import Operator, Context, UILayout
 from bpy.props import IntProperty, StringProperty
 
 from .utility import (
@@ -15,11 +14,13 @@ from .utility import (
     store_original_meshes,
     store_original_mtx,
     deselectAllObjects,
+    copyPropertyGroup,
 )
-from .f3d.f3d_material import createF3DMat
 
 
-def addMaterialByName(obj, matName, preset):
+def addMaterialByName(obj, matName, preset):  # TODO: why is this here
+    from .f3d.f3d_material import createF3DMat
+
     if matName in bpy.data.materials:
         bpy.ops.object.material_slot_add()
         obj.material_slots[0].material = bpy.data.materials[matName]

@@ -220,6 +220,11 @@ def inherit_light_and_fog():
     return is_ucode_t3d(bpy.context.scene.f3d_type)
 
 
+def is_mat_f3d(material: Material):
+    assert material is None or isinstance(material, Material)
+    return material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION
+
+
 def getDefaultMaterialPreset(category):
     game = bpy.context.scene.gameEditorMode
     if game in defaultMaterialPresets[category]:
@@ -378,9 +383,11 @@ def is_blender_doing_fog(settings: "RDPSettings") -> bool:
     )
 
 
-def get_output_method(material: bpy.types.Material) -> str:
+def get_output_method(material: bpy.types.Material, check_decal=False) -> str:
     rendermode_preset_to_advanced(material)  # Make sure advanced settings are updated
     settings = material.f3d_mat.rdp_settings
+    if check_decal and settings.zmode == "ZMODE_DEC":
+        return "DECAL"
     if settings.cvg_x_alpha:
         return "CLIP"
     if settings.force_bl and is_blender_equation_equal(
@@ -390,26 +397,35 @@ def get_output_method(material: bpy.types.Material) -> str:
     return "OPA"
 
 
-def update_blend_method(material: Material, context):
-    blend_mode = get_output_method(material)
-    if material.f3d_mat.rdp_settings.zmode == "ZMODE_DEC":
-        blend_mode = "DECAL"
+def set_blend_to_output_method(material: Material, output_method: str):
     if bpy.app.version >= (4, 2, 0):
-        if blend_mode == "CLIP":
+        if output_method == "CLIP":
             material.surface_render_method = "DITHERED"
         else:
             material.surface_render_method = "BLENDED"
-    elif blend_mode == "OPA":
+    elif output_method == "OPA":
         material.blend_method = "OPAQUE"
-    elif blend_mode == "CLIP":
+    elif output_method == "CLIP":
         material.blend_method = "CLIP"
-    elif blend_mode in {"XLU", "DECAL"}:
+    elif output_method in {"XLU", "DECAL"}:
         material.blend_method = "BLEND"
+
+
+def update_blend_method(material: Material, _context):
+    set_blend_to_output_method(material, get_output_method(material, True))
 
 
 class DrawLayerProperty(PropertyGroup):
     sm64: bpy.props.EnumProperty(items=sm64EnumDrawLayers, default="1", update=update_draw_layer)
     oot: bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque", update=update_draw_layer)
+
+    def set_generic_draw_layer(self, output_method: str):
+        if output_method == "CLIP":
+            self.sm64, self.oot = "4", "Opaque"
+        elif output_method == "XLU":
+            self.sm64, self.oot = "5", "Transparent"
+        else:
+            self.sm64, self.oot = "1", "Opaque"
 
     def key(self):
         return (self.sm64, self.oot)
@@ -2683,7 +2699,7 @@ def add_f3d_mat_to_obj(obj: bpy.types.Object, material, index=None):
                 bpy.context.object.active_material_index = index
 
 
-def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
+def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None, append=True):
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
 
@@ -2697,7 +2713,8 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
 
     createScenePropertiesForMaterial(material)
 
-    add_f3d_mat_to_obj(obj, material, index)
+    if append:
+        add_f3d_mat_to_obj(obj, material, index)
 
     material.is_f3d = True
     material.mat_ver = F3D_MAT_CUR_VERSION
