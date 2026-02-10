@@ -71,6 +71,7 @@ from ..utility import (
     gammaInverse,
 )
 from .sm64_objects import enumEnvFX
+from .sm64_utility import import_rom_checks
 from .sm64_constants import (
     enumVersionDefs,
     enumLevelNames,
@@ -141,10 +142,11 @@ class Area:
         col: bpy.types.Collection,
     ):
         self.root = root
-        self.geo = geo.strip()
+        self.geo = geo
         self.num = num
         self.scene = scene
         self.props = scene.fast64.sm64.importer
+        self.col_file = None
         # Set level root as parent
         parentObject(levelRoot, root)
         # set default vars
@@ -162,17 +164,14 @@ class Area:
         warp = self.root.warpNodes[0]
         warp.warpID = args[0]
         warp.destNode = args[3]
-        level = args[1].strip().replace("LEVEL_", "").lower()
+        level = get_level_name(args[1]).replace("LEVEL_", "").lower()
+        print(level)
         if level == "castle":
             level = "castle_inside"
-        if level.isdigit():
-            level = LEVEL_ID_NUMBERS.get(eval(level))
-            if not level:
-                level = "bob"
         warp.warpType = type
         warp.destLevelEnum = level
         warp.destArea = args[2]
-        chkpoint = args[-1].strip()
+        chkpoint = args[-1]
         # Sorry for the hex users here
         if "WARP_NO_CHECKPOINT" in chkpoint or int(chkpoint.isdigit() * chkpoint + "0") == 0:
             warp.warpFlagEnum = "WARP_NO_CHECKPOINT"
@@ -195,8 +194,9 @@ class Area:
         pos = (
             Vector(hexOrDecInt(arg) for arg in args[1:4]) / self.scene.fast64.sm64.blender_to_sm64_scale
         ) @ transform_mtx_blender_to_n64()
-        angle = Euler([math.radians(eval(a.strip())) for a in args[4:7]], "ZXY")
+        angle = Euler([math.radians(eval_or_int(a)) for a in args[4:7]], "ZXY")
         angle = rotate_quat_n64_to_blender(angle).to_euler("XYZ")
+        # print(pos, angle)
         self.objects.append(Object(args[0], pos, angle, *args[7:]))
 
     def place_objects(self, col_name: str = None, actor_models: dict[model_name, bpy.Types.Object] = None):
@@ -237,7 +237,7 @@ class Area:
             else:
                 bpy_obj.sm64_special_enum = "Custom"
                 bpy_obj.sm64_obj_preset = special[0]
-            loc = [eval(a.strip()) / self.scene.fast64.sm64.blender_to_sm64_scale for a in special[1:4]]
+            loc = [eval_or_int(a) / self.scene.fast64.sm64.blender_to_sm64_scale for a in special[1:4]]
             # rotate to fit sm64s axis
             bpy_obj.location = [loc[0], -loc[2], loc[1]]
             bpy_obj.rotation_euler[2] = hexOrDecInt(special[4])
@@ -245,7 +245,7 @@ class Area:
             if special[5]:
                 bpy_obj.sm64_obj_set_bparam = True
                 bpy_obj.fast64.sm64.game_object.use_individual_params = False
-                bpy_obj.fast64.sm64.game_object.bparams = str(special[5])
+                bpy_obj.fast64.sm64.game_object.bparams = special[5]
             self.placed_special_objects.append(bpy_obj)
 
     def place_object(self, object: Object, col: bpy.types.Collection):
@@ -255,7 +255,7 @@ class Area:
         bpy_obj.name = "Object {} {}".format(object.behavior, object.model)
         bpy_obj.sm64_obj_type = "Object"
         bpy_obj.sm64_behaviour_enum = "Custom"
-        bpy_obj.sm64_obj_behaviour = object.behavior.strip()
+        bpy_obj.sm64_obj_behaviour = object.behavior.strip() if type(object.behavior) is str else hex(object.behavior)
         #  change this to look at props version number?
         if hasattr(bpy_obj, "sm64_obj_bparam"):
             bpy_obj.sm64_obj_bparam = object.bparam
@@ -267,7 +267,7 @@ class Area:
         # set act mask, !fix this for hacker versions
         mask = object.act_mask
         if type(mask) == str and mask.isdigit():
-            mask = eval(mask)
+            mask = eval_or_int(mask)
         form = "sm64_obj_use_act{}"
         if mask == 31:
             for i in range(1, 7, 1):
@@ -308,8 +308,133 @@ class Area:
 
 
 class Level(DataParser):
-    def __init__(self, scripts: dict[str, list[str]], scene: bpy.types.Scene, root: bpy.types.Object):
-        self.scripts = scripts
+    # class data
+    _skippable_cmds = {
+        "LOAD_MARIO_HEAD",
+        "SET_REG",
+        "FIXED_LOAD",
+        "CMD3A",
+        "STOP_MUSIC",
+        "GAMMA",
+        "BLACKOUT",
+        "TRANSITION",
+        "NOP",
+        "CMD23",
+        "PUSH_POOL",
+        "POP_POOL",
+        "SLEEP",
+        "ROOMS",
+        "MARIO",
+        "INIT_LEVEL",
+        "ALLOC_LEVEL_POOL",
+        "FREE_LEVEL_POOL",
+        "CALL",
+        "CLEAR_LEVEL",
+        "SLEEP_BEFORE_EXIT",
+        "LOAD_AREA",
+        "UNLOAD_AREA",
+        "UNLOAD_MARIO_AREA",
+        # hacker only cmds with no support needed
+        "CHANGE_AREA_SKYBOX",
+        "SET_ECHO",
+        "LOAD_TITLE_SCREEN_BG",
+        "LOAD_GODDARD",
+        "LOAD_BEHAVIOR_DATA",
+        "LOAD_COMMON0",
+        "LOAD_GROUPB",
+        "LOAD_GROUPA",
+        "LOAD_EFFECTS",
+        "LOAD_SKYBOX",
+        "LOAD_TEXTURE_BIN",
+        "LOAD_LEVEL_DATA",
+        "LOAD_YAY0",
+        "LOAD_YAY0_TEXTURE",
+        "LOAD_VANILLA_OBJECTS",
+        "LOAD_RAW_WITH_CODE",
+    }
+    # MSB: (name, PackedFormat)
+    _lvl_cmds_bin_format = {
+        0x0: ("EXECUTE", PackedFormat(">H3L", make_str=False)),  # seg script_start script_end entry_ptr
+        0x1: ("EXIT_AND_EXECUTE", PackedFormat(">H3L", make_str=False)),  # seg script_start script_end entry_ptr
+        0x2: ("EXIT", PackedFormat(">H")),  # pad
+        0x3: ("SLEEP", PackedFormat(">H")),  # frames
+        0x4: ("SLEEP_BEFORE_EXIT", PackedFormat(">H")),  # frames
+        0x5: ("JUMP", PackedFormat(">HL", (1,))),  # pad script_ptr
+        0x6: ("JUMP_LINK", PackedFormat(">HL", (1,))),  # pad script_ptr
+        0x7: ("RETURN", PackedFormat(">H")),  # pad
+        0x8: (
+            "JUMP_LINK_PUSH_ARG",
+            PackedFormat(">H"),
+        ),  # arg
+        0x9: ("JUMP_N_TIMES", PackedFormat(">H")),  # pad
+        0xA: ("LOOP_BEGIN", PackedFormat(">H")),  # pad
+        0xB: ("LOOP_UNTIL", PackedFormat(">BBl")),  # op pad arg
+        0xC: ("JUMP_IF", PackedFormat(">BBlL", (3,), make_str=False)),  # op pad arg script_ptr
+        0xD: ("JUMP_LINK_IF", PackedFormat(">BBlL")),  # op pad arg script_ptr
+        0xE: ("SKIP_IF", PackedFormat(">BBl")),  # op pad arg
+        0xF: ("SKIP", PackedFormat(">H")),  # pad
+        0x10: ("SKIP_NOP", PackedFormat(">H")),  # pad
+        0x11: ("CALL", PackedFormat(">HL")),  # arg script_ptr
+        0x12: ("CALL_LOOP", PackedFormat(">HL", make_str=False)),  # arg script_ptr
+        0x13: ("SET_REG", PackedFormat(">H")),  # value
+        0x14: ("PUSH_POOL", PackedFormat(">H")),  # pad
+        0x15: ("POP_POOL", PackedFormat(">H")),  # pad
+        0x16: ("FIXED_LOAD", PackedFormat(">H3L")),  # load_addr start_ptr end_ptr
+        0x17: ("LOAD_RAW", PackedFormat(">H2L", make_str=False)),  # seg start_ptr end_ptr
+        0x18: ("LOAD_MIO0", PackedFormat(">H2L", make_str=False)),  # seg start_ptr end_ptr
+        0x19: ("LOAD_MARIO_HEAD", PackedFormat(">H")),  # set head
+        0x1A: ("LOAD_MIO0_TEXTURE", PackedFormat(">H2L", make_str=False)),  # seg start_ptr end_ptr
+        0x1B: ("INIT_LEVEL", PackedFormat(">H")),  # pad
+        0x1C: ("CLEAR_LEVEL", PackedFormat(">H")),  # pad
+        0x1D: ("ALLOC_LEVEL_POOL", PackedFormat(">H")),  # pad
+        0x1E: ("FREE_LEVEL_POOL", PackedFormat(">H")),  # pad
+        0x1F: ("AREA", PackedFormat(">2BL", (2,))),  # index, pad, geo_ptr
+        0x20: ("END_AREA", PackedFormat(">H")),  # pad
+        0x21: ("LOAD_MODEL_FROM_DL", PackedFormat(">Hl")),  # model|layer dl_ptr
+        0x22: ("LOAD_MODEL_FROM_GEO", PackedFormat(">HL", (1,))),  # model geo_ptr
+        0x23: ("CMD23", PackedFormat(">HLl")),  # pad ptr unk
+        0x24: (
+            "OBJECT_WITH_ACTS",
+            PackedFormat(">2B6hLL", (9,), reorder=(1, 2, 3, 4, 5, 6, 7, 8, 9, 0)),
+        ),  # model posXYZ angleXYZ beh_param beh acts)  # acts model posXYZ angleXYZ beh_param beh
+        0x25: ("MARIO", PackedFormat(">BBlL")),  # pad unk beh_param beh_ptr
+        0x26: ("WARP_NODE", PackedFormat(">6B")),  # id dest_level dest_area dest_node flags pad
+        0x27: ("PAINTING_WARP_NODE", PackedFormat(">6B")),  # id dest_level dest_area dest_node flags pad
+        0x28: ("INSTANT_WARP", PackedFormat(">2B4h")),  # index dest_area displaceXYZ pad
+        0x29: ("LOAD_AREA", PackedFormat(">H")),  # area
+        0x2A: ("UNLOAD_AREA", PackedFormat(">H")),  # area
+        0x2B: ("MARIO_POS", PackedFormat(">BB4h")),  # area pad yaw posXYZ
+        0x2C: ("UNLOAD_MARIO_AREA", PackedFormat(">H")),  # pad
+        0x2D: "UPDATE_OBJECTS",
+        0x2E: ("TERRAIN", PackedFormat(">HL", (1,))),  # pad col_ptr
+        0x2F: ("ROOMS", PackedFormat(">HL")),  # pad rooms_ptr
+        0x30: ("SHOW_DIALOG", PackedFormat(">BB")),  # index dialog_id
+        0x31: ("TERRAIN_TYPE", PackedFormat(">H")),  # terrain type
+        0x32: ("NOP", PackedFormat(">H")),  # pad
+        0x33: ("TRANSITION", PackedFormat(">6B")),  # trans_type time rgb_col pad
+        0x34: ("BLACKOUT", PackedFormat(">BB")),  # enable pad
+        0x35: ("GAMMA", PackedFormat(">BB")),  # enable pad
+        0x36: ("SET_BACKGROUND_MUSIC", PackedFormat(">3H")),  # preset seq pad
+        0x37: ("SET_MENU_MUSIC", PackedFormat(">H")),  # seq
+        0x38: ("STOP_MUSIC", PackedFormat(">H")),  # fade_time
+        0x39: ("MACRO_OBJECTS", PackedFormat(">HL", (1,))),  # pad object_list_ptr
+        0x3A: ("CMD3A", PackedFormat(">5H")),  # 5 pads
+        0x3B: ("WHIRLPOOL", PackedFormat(">2B3hH")),  # index condition posXYZ strength
+        0x3C: ("GET_OR_SET", PackedFormat(">BB")),  # op var
+        # these are hacker cmds only
+        0x3D: "PUPPYVOLUME",
+        0x3E: "CHANGE_AREA_SKYBOX",
+        0x3F: "SET_ECHO",
+    }
+
+    def __init__(
+        self,
+        scripts: dict[str, list[str]],
+        scene: bpy.types.Scene,
+        root: bpy.types.Object,
+        parse_target: int = DataParser._c_parsing,
+    ):
+        self.scripts = scripts  # for binary, this will be empty
         self.scene = scene
         self.props = scene.fast64.sm64.importer
         self.areas: dict[area_index:int, Area] = {}
@@ -317,15 +442,131 @@ class Level(DataParser):
         self.root = root
         self.loaded_geos: dict[model_name:str, geo_name:str] = dict()
         self.loaded_dls: dict[model_name:str, dl_name:str] = dict()
-        super().__init__()
+        self.banks = get_bank_loads(reset=True)
+        super().__init__(parse_target=parse_target)
 
+    # parsing funcs, see utility_importer for how parsing works
     def parse_level_script(self, entry: str, col: bpy.types.Collection = None):
-        script_stream = self.scripts[entry]
-        scale = self.scene.fast64.sm64.blender_to_sm64_scale
         if not col:
             col = self.scene.collection
+        script_stream = self.get_new_stream(entry)
         self.parse_stream_from_start(script_stream, entry, col)
-        return self.areas
+
+    def get_new_stream(self, entry: Union[str, int]) -> Union[Sequence, None]:
+        if type(entry) is str:
+            return self.scripts[entry]
+        else:
+            return None
+
+    """
+    binary parsing funcs:
+        * run parse_stream_from_start(dat_stream, entry, *args) w/ dat_stream = None, entry = rom_ptr: int
+        * binary_cmd_get(parser) -> cmd_name and cmd_format, update parser.head manually to advanced num bytes read
+        * binary_cmd_unpack/f"_decode_cmd_{cmd_name.lower()}_bin"(parser, PackedFormat) -> cmd_args
+        * parser head is advanced the length of PackedFormat! Make sure all bytes are read, even padding
+        * call Macro function
+    """
+
+    def binary_cmd_get(self, parser: Parser) -> tuple[cmd_name:str, PackedFormat]:
+        cmd_type = self.unpack_type(parser.cur_stream, parser.head, ">B", make_str=False)
+        cmd_name, packed_fmt = self._lvl_cmds_bin_format.get(cmd_type)
+        # update head to go past cmd type and cmd length bytes
+        parser.advance_head(2)
+        return cmd_name, packed_fmt
+
+    def load_segment_two(self, bin_file: BinaryIO):
+        start = self.unpack_type(bin_file, 0x3AC2, ">H", make_str=False) << 16
+        start += self.unpack_type(bin_file, 0x3ACE, ">H", make_str=False)
+        end = self.unpack_type(bin_file, 0x3AC6, ">H", make_str=False) << 16
+        end += self.unpack_type(bin_file, 0x3ACA, ">H", make_str=False)
+        # mio0 for seg2 just happens to expand start by 0x3156 idk how it really works
+        self.banks.tlb[2] = [start + 0x3156, end + 0x3156]
+
+    # macro parsing funcs
+    # jump to new script, goes back via EXIT, not RETURN
+    # shouldn't matter though as long as game follows its own rules, can use normal recursion
+    def EXECUTE(self, macro: Macro, col: bpy.types.Collection):
+        self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
+        if type(macro.args[-1]) is int:
+            macro.args[-1] = self.seg2phys(macro.args[-1])
+        if macro.args[-1]:
+            self.parse_level_script(macro.args[-1], col=col)
+        return self._continue_parse
+
+    def EXIT_AND_EXECUTE(self, macro: Macro, col: bpy.types.Collection):
+        self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
+        if type(macro.args[-1]) is int:
+            macro.args[-1] = self.seg2phys(macro.args[-1])
+        if macro.args[-1]:
+            self.parse_level_script(macro.args[-1], col=col)
+        return self._break_parse
+
+    # hackersm64 alias of EXECUTE
+    def EXECUTE_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
+        return self.EXECUTE(macro, col)
+
+    # hackersm64 alias of EXIT_AND_EXECUTE
+    def EXIT_AND_EXECUTE_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
+        return self.EXIT_AND_EXECUTE(macro, col)
+
+    def EXIT(self, macro: Macro, col: bpy.types.Collection):
+        return self._break_parse
+
+    # ends script
+    def JUMP(self, macro: Macro, col: bpy.types.Collection):
+        if macro.args[-1]:
+            self.parse_level_script(macro.args[-1], col=col)
+        return self._break_parse
+
+    # Jumps are only taken if they're in the script.c file for now
+    # continues script
+    def JUMP_LINK(self, macro: Macro, col: bpy.types.Collection):
+        if macro.args[-1]:
+            self.parse_level_script(macro.args[-1], col=col)
+        return self._continue_parse
+
+    def RETURN(self, macro: Macro, col: bpy.types.Collection):
+        return self._break_parse
+
+    # only used once, don't need to process
+    def LOOP_BEGIN(self, macro: Macro, col: bpy.types.Collection):
+        return self._continue_parse
+
+    # only used once, signals end of script parsing because script will repeat until game over
+    def LOOP_UNTIL(self, macro: Macro, col: bpy.types.Collection):
+        return self._exit_parse
+
+    # this is where we jump to our level specific script, only necessary in binary processing
+    def JUMP_IF(self, macro: Macro, col: bpy.types.Collection):
+        target_level = get_level_name(macro.args[-2])
+        if macro.args[0] in {"OP_EQ", 2} and target_level == self.props.level_name:
+            if macro.args[-1]:
+                # reset areas so file select area isn't written out
+                self.areas = dict()
+                self.cur_area = None
+                self.parse_level_script(macro.args[-1], col=col)
+        return self._continue_parse
+
+    # used to run the, execute_level_script func, e.g. start the level
+    # will represent the end of parsing, check for specific func
+    def CALL_LOOP(self, macro: Macro, col: bpy.types.Collection):
+        if macro.args[-1] == 0x8024BCD8:
+            return self._exit_parse
+        else:
+            return self._continue_parse
+
+    # use group mapping to set groups eventually
+    def LOAD_RAW(self, macro: Macro, col: bpy.types.Collection):
+        self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
+        return self._continue_parse
+
+    def LOAD_MIO0(self, macro: Macro, col: bpy.types.Collection):
+        self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
+        return self._continue_parse
+
+    def LOAD_MIO0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
+        self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
+        return self._continue_parse
 
     def AREA(self, macro: Macro, col: bpy.types.Collection):
         area_root = bpy.data.objects.new("Empty", None)
@@ -336,7 +577,7 @@ class Level(DataParser):
             area_col = col
         area_col.objects.link(area_root)
         area_root.name = f"{self.props.level_name} Area Root {macro.args[0]}"
-        self.areas[macro.args[0]] = Area(area_root, macro.args[1], self.root, int(macro.args[0]), self.scene, area_col)
+        self.areas[macro.args[0]] = Area(area_root, macro.args[-1], self.root, int(macro.args[0]), self.scene, area_col)
         self.cur_area = macro.args[0]
         return self._continue_parse
 
@@ -344,43 +585,18 @@ class Level(DataParser):
         self.cur_area = None
         return self._continue_parse
 
-    # Jumps are only taken if they're in the script.c file for now
-    # continues script
-    def JUMP_LINK(self, macro: Macro, col: bpy.types.Collection):
-        if self.scripts.get(macro.args[0]):
-            self.parse_level_script(macro.args[0], col=col)
+    def LOAD_MODEL_FROM_DL(self, macro: Macro, col: bpy.types.Collection):
+        self.loaded_dls[macro.args[0]] = macro.args[1]
         return self._continue_parse
 
-    # ends script
-    def JUMP(self, macro: Macro, col: bpy.types.Collection):
-        new_entry = self.scripts.get(macro.args[-1])
-        if new_entry:
-            self.parse_level_script(macro.args[-1], col=col)
-        return self._break_parse
-
-    def EXIT(self, macro: Macro, col: bpy.types.Collection):
-        return self._break_parse
-
-    def RETURN(self, macro: Macro, col: bpy.types.Collection):
-        return self._break_parse
-
-    # Now deal with data cmds rather than flow control ones
-    def WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
-        self.areas[self.cur_area].add_warp(macro.args, "Warp")
-        return self._continue_parse
-
-    def PAINTING_WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
-        self.areas[self.cur_area].add_warp(macro.args, "Painting")
-        return self._continue_parse
-
-    def INSTANT_WARP(self, macro: Macro, col: bpy.types.Collection):
-        self.areas[self.cur_area].add_instant_warp(macro.args)
+    def LOAD_MODEL_FROM_GEO(self, macro: Macro, col: bpy.types.Collection):
+        self.loaded_geos[macro.args[0]] = macro.args[1]
         return self._continue_parse
 
     def OBJECT_WITH_ACTS(self, macro: Macro, col: bpy.types.Collection):
         # convert act mask from ORs of act names to a number
         mask = macro.args[-1]
-        if not mask.isdigit():
+        if type(mask) is str and not mask.isdigit():
             mask = mask.replace("ACT_", "")
             mask = mask.split("|")
             # Attempt for safety I guess
@@ -394,13 +610,39 @@ class Level(DataParser):
         self.areas[self.cur_area].add_object([*macro.args[:-1], mask])
         return self._continue_parse
 
+    # alias of object with acts, no bin decode
     def OBJECT(self, macro: Macro, col: bpy.types.Collection):
         # Only difference is act mask, which I set to 31 to mean all acts
         self.areas[self.cur_area].add_object([*macro.args, 31])
         return self._continue_parse
 
+    def WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
+        self.areas[self.cur_area].add_warp(macro.args, "Warp")
+        return self._continue_parse
+
+    def PAINTING_WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
+        self.areas[self.cur_area].add_warp(macro.args, "Painting")
+        return self._continue_parse
+
+    def INSTANT_WARP(self, macro: Macro, col: bpy.types.Collection):
+        self.areas[self.cur_area].add_instant_warp(macro.args)
+        return self._continue_parse
+
+    def MARIO_POS(self, macro: Macro, col: bpy.types.Collection):
+        return self._continue_parse
+
+    def TERRAIN(self, macro: Macro, col: bpy.types.Collection):
+        self.areas[self.cur_area].terrain = macro.args[-1]
+        return self._continue_parse
+
+    def SHOW_DIALOG(self, macro: Macro, col: bpy.types.Collection):
+        root = self.areas[self.cur_area].root
+        root.showStartDialog = True
+        root.startDialog = macro.args[1]
+        return self._continue_parse
+
     def TERRAIN_TYPE(self, macro: Macro, col: bpy.types.Collection):
-        if not macro.args[0].isdigit():
+        if type(macro.args[0]) is str and not macro.args[0].isdigit():
             self.areas[self.cur_area].root.terrainEnum = macro.args[0]
         else:
             terrains = {
@@ -414,33 +656,29 @@ class Level(DataParser):
                 7: "TERRAIN_MASK",
             }
             try:
-                num = eval(macro.args[0])
+                num = eval_or_int(macro.args[0])
                 self.areas[self.cur_area].root.terrainEnum = terrains.get(num)
             except:
                 print("could not set terrain")
         return self._continue_parse
 
-    def SHOW_DIALOG(self, macro: Macro, col: bpy.types.Collection):
-        root = self.areas[self.cur_area].root
-        root.showStartDialog = True
-        root.startDialog = macro.args[1]
-        return self._continue_parse
-
-    def TERRAIN(self, macro: Macro, col: bpy.types.Collection):
-        self.areas[self.cur_area].terrain = macro.args[0]
-        return self._continue_parse
-
     def SET_BACKGROUND_MUSIC(self, macro: Macro, col: bpy.types.Collection):
         return self.generic_music(macro, col)
 
+    # alias of set menu music
     def SET_MENU_MUSIC_WITH_REVERB(self, macro: Macro, col: bpy.types.Collection):
-        return self.generic_music(macro, col)
+        return self.SET_MENU_MUSIC(macro, col)
 
+    # alias of set bg music
     def SET_BACKGROUND_MUSIC_WITH_REVERB(self, macro: Macro, col: bpy.types.Collection):
         return self.generic_music(macro, col)
 
+    # woops no area root
     def SET_MENU_MUSIC(self, macro: Macro, col: bpy.types.Collection):
-        return self.generic_music(macro, col)
+        # root = self.areas[self.cur_area].root
+        # root.musicSeqEnum = "Custom"
+        # root.music_seq = macro.args[0]
+        return self._continue_parse
 
     def generic_music(self, macro: Macro, col: bpy.types.Collection):
         root = self.areas[self.cur_area].root
@@ -449,41 +687,21 @@ class Level(DataParser):
         return self._continue_parse
 
     # Don't support these for now
+
     def MACRO_OBJECTS(self, macro: Macro, col: bpy.types.Collection):
         return self._continue_parse
 
     def WHIRLPOOL(self, macro: Macro, col: bpy.types.Collection):
         return self._continue_parse
 
-    def SET_ECHO(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def MARIO_POS(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def SET_REG(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
     def GET_OR_SET(self, macro: Macro, col: bpy.types.Collection):
         return self._continue_parse
 
-    def CHANGE_AREA_SKYBOX(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    # Don't support for now but maybe later
+    # unused cmds, if someone put one in somehow would mess up flow
     def JUMP_LINK_PUSH_ARG(self, macro: Macro, col: bpy.types.Collection):
         raise Exception("no support yet woops")
 
     def JUMP_N_TIMES(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def LOOP_BEGIN(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def LOOP_UNTIL(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def JUMP_IF(self, macro: Macro, col: bpy.types.Collection):
         raise Exception("no support yet woops")
 
     def JUMP_LINK_IF(self, macro: Macro, col: bpy.types.Collection):
@@ -498,152 +716,6 @@ class Level(DataParser):
     def SKIP_NOP(self, macro: Macro, col: bpy.types.Collection):
         raise Exception("no support yet woops")
 
-    def LOAD_AREA(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def UNLOAD_AREA(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def UNLOAD_MARIO_AREA(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def UNLOAD_AREA(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    # use group mapping to set groups eventually
-    def LOAD_MIO0(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_MIO0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_TITLE_SCREEN_BG(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_GODDARD(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_BEHAVIOR_DATA(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_COMMON0(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_GROUPB(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_GROUPA(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_EFFECTS(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_SKYBOX(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_TEXTURE_BIN(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_LEVEL_DATA(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_YAY0(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_YAY0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_VANILLA_OBJECTS(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_RAW(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_RAW_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_MARIO_HEAD(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def LOAD_MODEL_FROM_GEO(self, macro: Macro, col: bpy.types.Collection):
-        self.loaded_geos[macro.args[0]] = macro.args[1]
-        return self._continue_parse
-
-    def LOAD_MODEL_FROM_DL(self, macro: Macro, col: bpy.types.Collection):
-        self.loaded_dls[macro.args[0]] = macro.args[1]
-        return self._continue_parse
-
-    # throw exception saying I cannot process
-    def EXECUTE(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("Processing of EXECUTE macro is not currently supported")
-
-    def EXIT_AND_EXECUTE(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("Processing of EXIT_AND_EXECUTE macro is not currently supported")
-
-    def EXECUTE_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("Processing of EXECUTE_WITH_CODE macro is not currently supported")
-
-    def EXIT_AND_EXECUTE_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("Processing of EXIT_AND_EXECUTE_WITH_CODE macro is not currently supported")
-
-    # not useful for bpy, dummy these script cmds
-    def CMD3A(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def STOP_MUSIC(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def GAMMA(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def BLACKOUT(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def TRANSITION(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def NOP(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def CMD23(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def PUSH_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def POP_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def SLEEP(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def ROOMS(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def MARIO(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def INIT_LEVEL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def ALLOC_LEVEL_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def FREE_LEVEL_POOL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def CALL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def CALL_LOOP(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def CLEAR_LEVEL(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
-    def SLEEP_BEFORE_EXIT(self, macro: Macro, col: bpy.types.Collection):
-        return self._continue_parse
-
 
 @dataclass
 class ColTri:
@@ -654,7 +726,7 @@ class ColTri:
 
 class Collision(DataParser):
     def __init__(self, collision: list[str], scale: float):
-        self.collision = collision
+        self.collision = collision  # will be none in binary
         self.scale = scale
         self.vertices = []
         # key=type,value=tri data
@@ -676,11 +748,11 @@ class Collision(DataParser):
             parentObject(parent, Obj)
             Obj.name = "WaterBox_{}_{}".format(name, i)
             Obj.sm64_obj_type = "Water Box"
-            x1 = eval(w[1]) / (self.scale)
-            x2 = eval(w[3]) / (self.scale)
-            z1 = eval(w[2]) / (self.scale)
-            z2 = eval(w[4]) / (self.scale)
-            y = eval(w[5]) / (self.scale)
+            x1 = eval_or_int(w[1]) / (self.scale)
+            x2 = eval_or_int(w[3]) / (self.scale)
+            z1 = eval_or_int(w[2]) / (self.scale)
+            z2 = eval_or_int(w[4]) / (self.scale)
+            y = eval_or_int(w[5]) / (self.scale)
             Xwidth = abs(x2 - x1) / (2)
             Zwidth = abs(z2 - z1) / (2)
             loc = [x2 - Xwidth, -(z2 - Zwidth), y - 1]
@@ -695,6 +767,7 @@ class Collision(DataParser):
             col = scene.collection
         self.write_water_boxes(scene, parent, name, col)
         mesh = bpy.data.meshes.new(f"{name} data")
+        print(len(self.vertices), len(self.tris))
         mesh.from_pydata(self.vertices, [], [tri.verts for tri in self.tris])
         obj = bpy.data.objects.new(f"{name} mesh", mesh)
         col.objects.link(obj)
@@ -719,7 +792,7 @@ class Collision(DataParser):
                 mat.f3d_mat.default_light_color = [a / 255 for a in (hash(id(int(i))) & 0xFFFFFFFF).to_bytes(4, "big")]
                 if col_tri.special_param is not None:
                     mat.use_collision_param = True
-                    mat.collision_param = str(col_tri.special_param)
+                    mat.collision_param = col_tri.special_param
                 # I don't think I care about this. It makes program slow
                 # with bpy.context.temp_override(material=mat):
                 # bpy.ops.material.update_f3d_nodes()
@@ -729,8 +802,103 @@ class Collision(DataParser):
     def parse_collision(self):
         self.parse_stream(self.collision, 0)
 
+    def parse_collision_binary(self, bin_file: BinaryIO, entry_id: int):
+        # can't use the generic parser since this uses a cmd_len -> dat array format
+        self.parsed_streams[entry_id] = (parser := Parser(bin_file))
+        parser.head = entry_id
+        cmd_name = self.binary_cmd_get(parser)
+        if cmd_name == "COL_INIT":
+            self.parse_vertices(parser)
+        else:
+            raise Exception("Collision init not detected at col start")
+        self.parse_triangles(parser)
+        while True:
+            cmd_name = self.binary_cmd_get(parser)
+            if cmd_name == "COL_END":
+                return
+            elif cmd_name == "COL_WATER_BOX_INIT":
+                self.parse_water_boxes(parser)
+            elif cmd_name == "COL_SPECIAL_INIT":
+                self.parse_special_objects(parser)
+            else:
+                raise Exception("Unhandled collision type")
+
+    def parse_special_objects(self, parser: Parser):
+        # parsing this requires knowing all the special object presets, will get to later
+        obj_nm = self.unpack_type(parser.cur_stream, parser.head, ">H", make_str=False)
+        parser.advance_head(2)
+        raise ParseException()
+        # for i in range(obj_nm):
+        #     args = self.unpack_type(parser.cur_stream, parser.head, ">h5H")
+        #     parser.advance_head(12)
+        #     self.COL_VERTEX(Macro("COL_WATER_BOX", args))
+
+    def parse_water_boxes(self, parser: Parser):
+        box_num = self.unpack_type(parser.cur_stream, parser.head, ">H", make_str=False)
+        parser.advance_head(2)
+        for i in range(box_num):
+            args = self.unpack_type(parser.cur_stream, parser.head, ">h5H", make_str=False)
+            parser.advance_head(12)
+            self.COL_WATER_BOX(Macro("COL_WATER_BOX", args))
+
+    def parse_vertices(self, parser: Parser):
+        vtx_num = self.unpack_type(parser.cur_stream, parser.head, ">H", make_str=False)
+        parser.advance_head(2)
+        for i in range(vtx_num):
+            args = self.unpack_type(parser.cur_stream, parser.head, ">3h", make_str=False)
+            parser.advance_head(6)
+            self.COL_VERTEX(Macro("COL_VERTEX", args))
+
+    def parse_triangles(self, parser: Parser):
+        while True:
+            surf_type, tri_num = self.unpack_type(parser.cur_stream, parser.head, ">2H", make_str=False)
+            # COL_TRI_STOP
+            if surf_type == 0x41:
+                parser.advance_head(2)
+                return
+            self.type = hex(surf_type)
+            parser.advance_head(4)
+            # special col types in vanilla
+            if self.type in {0xE, 0x24, 0x25, 0x27, 0x2C, 0x2D}:
+                cmd_len = 4
+                cmd_suffix = "_SPECIAL"
+            else:
+                cmd_len = 3
+                cmd_suffix = ""
+            for i in range(tri_num):
+                args = self.unpack_type(parser.cur_stream, parser.head, f">{cmd_len}H", make_str=False)
+                parser.advance_head(cmd_len * 2)
+                func = getattr(self, f"COL_TRI{cmd_suffix}")
+                func(Macro(f"COL_TRI{cmd_suffix}", args))
+
+    # MSB is cmd type, use cmd type to execute class specific logic for length
+    # default is 2nd MSB is length, used in level scripts and geo layouts
+    def binary_cmd_get(self, parser: Parser) -> tuple[int, int]:
+        cmd_type = self.unpack_type(parser.cur_stream, parser.head, ">H", make_str=False)
+        cmd_name = self.get_cmd_name(cmd_type)
+        parser.advance_head(2)
+        return cmd_name
+
+    def get_cmd_name(self, cmd_type):
+        col_cmds = {
+            0x0040: "COL_INIT",
+            0x0041: "COL_TRI_STOP",
+            0x0042: "COL_END",
+            0x0043: "COL_SPECIAL_INIT",
+            0x0044: "COL_WATER_BOX_INIT",
+        }
+        return col_cmds.get(cmd_type)
+
+    _skippable_cmds = {
+        "COL_WATER_BOX_INIT",
+        "COL_INIT",
+        "COL_VERTEX_INIT",
+        "COL_SPECIAL_INIT",
+        "COL_TRI_STOP",
+    }
+
     def COL_VERTEX(self, macro: Macro):
-        self.vertices.append([eval(v) / self.scale for v in macro.args])
+        self.vertices.append([eval_or_int(v) / self.scale for v in macro.args])
         return self._continue_parse
 
     def COL_TRI_INIT(self, macro: Macro):
@@ -738,15 +906,19 @@ class Collision(DataParser):
         return self._continue_parse
 
     def COL_TRI(self, macro: Macro):
-        self.tris.append(ColTri(self.type, [eval(a) for a in macro.args]))
+        self.tris.append(ColTri(self.type, [eval_or_int(a) for a in macro.args]))
         return self._continue_parse
 
     def COL_TRI_SPECIAL(self, macro: Macro):
-        self.tris.append(ColTri(self.type, [eval(a) for a in macro.args[0:3]], special_param=eval(macro.args[3])))
+        self.tris.append(
+            ColTri(self.type, [eval_or_int(a) for a in macro.args[0:3]], special_param=eval_or_int(macro.args[3]))
+        )
         return self._continue_parse
 
+    def COL_END(self, macro: Macro):
+        return self._break_parse
+
     def COL_WATER_BOX(self, macro: Macro):
-        # id, x1, z1, x2, z2, y
         self.water_boxes.append(macro.args)
         return self._continue_parse
 
@@ -761,25 +933,6 @@ class Collision(DataParser):
 
     def SPECIAL_OBJECT_WITH_YAW_AND_PARAM(self, macro: Macro):
         self.special_objects.append(macro.args)
-        return self._continue_parse
-
-    # don't do anything to bpy
-    def COL_WATER_BOX_INIT(self, macro: Macro):
-        return self._continue_parse
-
-    def COL_INIT(self, macro: Macro):
-        return self._continue_parse
-
-    def COL_VERTEX_INIT(self, macro: Macro):
-        return self._continue_parse
-
-    def COL_SPECIAL_INIT(self, macro: Macro):
-        return self._continue_parse
-
-    def COL_TRI_STOP(self, macro: Macro):
-        return self._continue_parse
-
-    def COL_END(self, macro: Macro):
         return self._continue_parse
 
 
@@ -868,10 +1021,10 @@ class SM64_Material(Mat):
 
 
 class SM64_F3D(DL):
-    def __init__(self, scene):
+    def __init__(self, scene, parse_target: int = DataParser._c_parsing):
         self.scene = scene
         self.props = scene.fast64.sm64.importer
-        super().__init__(lastmat=SM64_Material())
+        super().__init__(lastmat=SM64_Material(), parse_target=parse_target)
 
     # Textures only contains the texture data found inside the model.inc.c file and the texture.inc.c file
     # this will add all the textures located in the /textures/ folder in decomp
@@ -912,9 +1065,6 @@ class SM64_F3D(DL):
 
     # recursively parse the display list in order to return a bunch of model data
     def get_f3d_data_from_model(self, start: str, last_mat: SM64_Material = None, layer: int = None):
-        DL = self.Gfx.get(start)
-        if not DL:
-            raise Exception("Could not find DL {}".format(start))
         # inherit the mat based on the layer, or explicitly given one
         if last_mat:
             self.last_mat = last_mat
@@ -924,7 +1074,7 @@ class SM64_F3D(DL):
                 self.last_mat = last_mat
             else:
                 self.last_mat = SM64_Material()
-        self.parse_stream_DL(DL, start)
+        self.parse_stream_DL(start)
         self.NewMat = 0
         self.StartName = start
         return [self.Verts, self.Tris]
@@ -932,7 +1082,7 @@ class SM64_F3D(DL):
     # turn member of vtx str arr into vtx args
     def parse_vert(self, Vert: str):
         v = Vert.replace("{", "").replace("}", "").split(",")
-        num = lambda x: [eval(a) for a in x]
+        num = lambda x: [eval_or_int(a) for a in x]
         pos = num(v[:3])
         uv = num(v[4:6])
         vc = num(v[6:10])
@@ -1039,6 +1189,7 @@ class ModelDat:
 
 # base class for geo layouts and armatures
 class GraphNodes(DataParser):
+    # class data
     _skipped_geo_asm_funcs = {
         "geo_movtex_pause_control",
         "geo_movtex_draw_water_regions",
@@ -1046,6 +1197,78 @@ class GraphNodes(DataParser):
         "geo_movtex_update_horizontal",
         "geo_cannon_circle_base",
         "geo_envfx_main",
+        "2150433248"  # geo_movtex_pause_control
+        "2150436940"  # geo_movtex_draw_water_regions
+        "2150064592",  # geo_envfx_main
+    }
+    _skippable_cmds = {
+        "GEO_NOP_1A",
+        "GEO_NOP_1E",
+        "GEO_NOP_1F",
+        "GEO_NODE_START",
+        "GEO_NODE_SCREEN_AREA",
+        "GEO_ZBUFFER",
+        "GEO_RENDER_OBJ",
+    }
+
+    # geo layouts use first byte to determine if a DL is added
+    @staticmethod
+    def cmd_rm_dl(format_data, cmd_bytes):
+        if (cmd_bytes[1] & 0x80) != 0x80:
+            format_data = format_data[:-1]
+        return format_data
+
+    # only used for cmd 0xA
+    @staticmethod
+    def cmd_rm_func(format_data, cmd_bytes):
+        if cmd_bytes[1] != 1:
+            format_data = format_data[:-1]
+        return format_data
+
+    # for binary importing, MSB, name, PackedFormat
+    _geo_cmds_bin_format = {
+        0x00: ("GEO_BRANCH_AND_LINK", PackedFormat(">BhL", (2,))),
+        0x01: ("GEO_END", PackedFormat(">Bh")),
+        0x02: ("GEO_BRANCH", PackedFormat(">BhL", (2,))),
+        0x03: ("GEO_RETURN", PackedFormat(">Bh")),
+        0x04: ("GEO_OPEN_NODE", PackedFormat(">Bh")),
+        0x05: ("GEO_CLOSE_NODE", PackedFormat(">Bh")),
+        0x06: ("GEO_ASSIGN_AS_VIEW", PackedFormat(">h")),
+        0x07: ("GEO_UPDATE_NODE_FLAGS", PackedFormat(">Bh")),
+        0x08: ("GEO_NODE_SCREEN_AREA", PackedFormat(">B5h")),
+        0x09: ("GEO_NODE_ORTHO", PackedFormat(">Bh")),
+        0x0A: ("GEO_CAMERA_FRUSTUM", PackedFormat(f">B3hL", tuple(), lambda x, y: GraphNodes.cmd_rm_func(x, y))),
+        0x0B: ("GEO_START", PackedFormat(">Bh")),
+        0x0C: ("GEO_ZBUFFER", PackedFormat(">Bh")),
+        0x0D: ("GEO_RENDER_RANGE", PackedFormat(">B3h")),
+        0x0E: ("GEO_SWITCH_CASE", PackedFormat(">BhL")),
+        0x0F: ("GEO_CAMERA", PackedFormat(">B7hL")),
+        0x10: (
+            "GEO_TRANSLATE_ROTATE",
+            PackedFormat(">B"),
+        ),  # use a specific function to decode this one, format in dict is dummy
+        0x11: (
+            "GEO_TRANSLATE_NODE_BIN",
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y)),
+        ),
+        0x12: (
+            "GEO_ROTATION_NODE_BIN",
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y)),
+        ),
+        0x13: ("GEO_ANIMATED_PART", PackedFormat(f">B3hL", (4,))),
+        0x14: ("GEO_BILLBOARD_BIN", PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y))),
+        0x15: ("GEO_DISPLAY_LIST", PackedFormat(">BhL", (2,))),
+        0x16: ("GEO_SHADOW", PackedFormat(">B3h")),
+        0x17: ("GEO_RENDER_OBJ", PackedFormat(">Bh")),
+        0x18: ("GEO_ASM", PackedFormat(">BhL")),
+        0x19: ("GEO_BACKGROUND_BIN", PackedFormat(">BhL")),
+        0x1A: ("GEO_NOP", PackedFormat(">B3h")),
+        0x1B: ("GEO_COPY_VIEW", PackedFormat(">Bh")),
+        0x1C: ("GEO_HELD_OBJECT", PackedFormat(">B3hL")),
+        0x1D: ("GEO_SCALE", PackedFormat(f">BhlL", (3,), lambda x, y: GraphNodes.cmd_rm_dl(x, y))),
+        0x1E: ("GEO_NOP", PackedFormat(">B3h")),
+        0x1F: ("GEO_NOP", PackedFormat(">B7h")),
+        0x20: ("GEO_CULLING_RADIUS", PackedFormat(">Bh")),
     }
 
     def __init__(
@@ -1057,12 +1280,14 @@ class GraphNodes(DataParser):
         parent_bone: bpy.types.Bone = None,
         geo_parent: GeoArmature = None,
         stream: list[Any] = None,
+        parse_target: int = DataParser._c_parsing,
     ):
         self.geo_layouts = geo_layouts
         self.models = []
         self.children = []
         self.scene = scene
         self.props = scene.fast64.sm64.importer
+        self.banks = get_bank_loads()
         if not stream:
             stream = list()
         self.stream = stream
@@ -1070,7 +1295,7 @@ class GraphNodes(DataParser):
         self.last_transform = transform_mtx_blender_to_n64().inverted()
         self.name = name
         self.col = col
-        super().__init__(parent=geo_parent)
+        super().__init__(parent=geo_parent, parse_target=parse_target)
 
     # pick the right subclass given contents of geo layout
     @staticmethod
@@ -1079,6 +1304,7 @@ class GraphNodes(DataParser):
         scene: bpy.types.Scene,
         layout_name: str,
         col: bpy.types.Collection = None,
+        parse_target: int = DataParser._c_parsing,
     ) -> Union[GeoLayout, GeoArmature]:
         geo_layout = geo_layout_dict.get(layout_name)
         if not geo_layout:
@@ -1091,15 +1317,56 @@ class GraphNodes(DataParser):
                 name = f"Actor {layout_name}"
                 arm_obj = bpy.data.objects.new(name, bpy.data.armatures.new(name))
                 col.objects.link(arm_obj)
-                geo_armature = GeoArmature(geo_layout_dict, arm_obj, scene, layout_name, col)
+                geo_armature = GeoArmature(geo_layout_dict, arm_obj, scene, layout_name, col, parse_target=parse_target)
                 geo_armature.parse_armature(layout_name, scene.fast64.sm64.importer)
                 return geo_armature
         else:
-            geo_layout = GeoLayout(geo_layout_dict, None, scene, layout_name, None, col=col)
+            geo_layout = GeoLayout(geo_layout_dict, None, scene, layout_name, None, col=col, parse_target=parse_target)
             geo_layout.parse_level_geo(layout_name)
             return geo_layout
 
-    def parse_layer(self, layer: str):
+    # parsing funcs
+    def parse_geo_from_start(self, entry: str, depth: int):
+        self.stream.append(entry)
+        script_stream = self.get_new_stream(entry)
+        self.parse_stream_from_start(script_stream, entry, depth)
+
+    # if binary, entry is a int and self.scripts is None
+    def get_new_stream(self, entry: Union[str, int]) -> Union[Sequence, None]:
+        if type(entry) is str:
+            return self.geo_layouts[entry]
+        else:
+            return None
+
+    """
+    binary parsing funcs:
+        * run parse_stream_from_start(dat_stream, entry, *args) w/ dat_stream = None, entry = rom_ptr: int
+        * binary_cmd_get(parser) -> cmd_name and cmd_format, update parser.head manually to advanced num bytes read
+        * binary_cmd_unpack/f"_decode_cmd_{cmd_name.lower()}_bin"(parser, PackedFormat) -> cmd_args
+        * parser head is advanced the length of PackedFormat! Make sure all bytes are read, even padding
+        * call Macro function
+    """
+
+    def binary_cmd_get(self, parser: Parser) -> tuple[cmd_name:str, PackedFormat]:
+        cmd_type = self.unpack_type(parser.cur_stream, parser.head, ">B", make_str=False)
+        cmd_name, packed_cmd = self._geo_cmds_bin_format.get(cmd_type)
+        first_word = self.unpack_type(parser.cur_stream, parser.head, ">4B", make_str=False)
+        packed_cmd.edit_format(first_word)
+        parser.advance_head(1)
+        return cmd_name, packed_cmd
+
+    def binary_cmd_unpack(self, parser: Parser, cmd_name: str, packed_fmt: PackedFormat) -> tuple[list, int]:
+        cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
+        return cmd_args, packed_fmt.format_size
+
+    def fix_bin_cmd_dls(self, macro: Macro) -> Macro:
+        if (macro.args[0] & 0x80) == 0x80:
+            return macro
+        else:
+            return macro.partial([*macro.args, "NULL"])
+
+    # macro parsing helpers
+    def parse_layer(self, layer: str) -> int:
         if not layer.isdigit():
             layer = Layers.get(layer)
             if not layer:
@@ -1107,11 +1374,11 @@ class GraphNodes(DataParser):
         return layer
 
     @property
-    def ordered_name(self):
+    def ordered_name(self) -> str:
         return f"{self.get_parser(self.stream[-1]).head}_{self.name}"
 
     @property
-    def first_obj(self):
+    def first_obj(self) -> bpy.types.Object:
         if self.root:
             return self.root
         for model in self.models:
@@ -1149,20 +1416,17 @@ class GraphNodes(DataParser):
     def add_model(self, *args):
         raise Exception("you must call this function from a sublcass")
 
+    # macro parsing
     def GEO_BRANCH_AND_LINK(self, macro: Macro, depth: int):
-        new_geo_layout = self.geo_layouts.get(macro.args[0])
-        if new_geo_layout:
-            self.stream.append(macro.args[0])
-            self.parse_stream_from_start(new_geo_layout, macro.args[0], depth)
+        if macro.args[-1]:
+            self.parse_geo_from_start(macro.args[-1], depth)
         return self._continue_parse
 
     def GEO_BRANCH(self, macro: Macro, depth: int):
-        new_geo_layout = self.geo_layouts.get(macro.args[1])
-        if new_geo_layout:
-            self.stream.append(macro.args[1])
-            self.parse_stream_from_start(new_geo_layout, macro.args[1], depth)
+        if macro.args[-1]:
+            self.parse_geo_from_start(macro.args[-1], depth)
         # arg 0 determines if you return and continue or end after the branch
-        if eval(macro.args[0]):
+        if eval_or_int(macro.args[0]):
             return self._continue_parse
         else:
             return self._break_parse
@@ -1180,8 +1444,9 @@ class GraphNodes(DataParser):
 
     def GEO_DISPLAY_LIST(self, macro: Macro, depth: int):
         # translation, rotation, layer, model
+        model = macro.args[-1]
         geo_obj = self.add_model(
-            ModelDat(self.parent_transform, *macro.args), "display_list", self.display_list, macro.args[0]
+            ModelDat(self.parent_transform, macro.args[0], model), "display_list", self.display_list, macro.args[1]
         )
         self.set_transform(geo_obj, self.parent_transform)
         return self._continue_parse
@@ -1214,6 +1479,9 @@ class GraphNodes(DataParser):
         self.setup_geo_obj("billboard", self.billboard, macro.args[0])
         return self._continue_parse
 
+    def GEO_BILLBOARD_BIN(self, macro: Macro, depth: int):
+        return self.GEO_BILLBOARD_WITH_PARAMS_AND_DL(self.fix_bin_cmd_dls(macro), depths)
+
     def GEO_ANIMATED_PART(self, macro: Macro, depth: int):
         # layer, translation, DL
         transform = Matrix()
@@ -1229,6 +1497,9 @@ class GraphNodes(DataParser):
             geo_obj = self.setup_geo_obj("bone", self.animated_part, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
         return self._continue_parse
+
+    def GEO_ROTATION_NODE_BIN(self, macro: Macro, depth: int):
+        return self.GEO_ROTATE_WITH_DL(self.fix_bin_cmd_dls(macro), depth)
 
     def GEO_ROTATION_NODE(self, macro: Macro, depth: int):
         geo_obj = self.GEO_ROTATE(macro, depth)
@@ -1258,6 +1529,32 @@ class GraphNodes(DataParser):
             geo_obj = self.setup_geo_obj("rotate", self.translate_rotate, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
         return geo_obj
+
+    def _decode_cmd_geo_translate_rotate_bin(self, parser: Parser):
+        cmd_flags = self.unpack_type(parser.cur_stream, parser.head, ">B")
+        # translate rotate
+        if (cmd_flags & 0x30) == 0x00:
+            packed_fmt = PackedFormat(">B6h")
+            cmd_name = "GEO_TRANSLATE_ROTATE"
+        # translate
+        elif (cmd_flags & 0x10) == 0x10:
+            packed_fmt = PackedFormat(">B3h")
+            cmd_name = "GEO_TRANSLATE"
+        # rotate
+        elif (cmd_flags & 0x20) == 0x20:
+            packed_fmt = PackedFormat(">B3h")
+            cmd_name = "GEO_ROTATE"
+        # rotate_y
+        elif cmd_flags & 0x30:
+            packed_fmt = PackedFormat(">Bh")
+            cmd_name = "GEO_ROTATE_Y"
+        # has_dl
+        if (cmd_flags & 0x80) == 0x80:
+            packed_fmt.format_str += "L"
+            packed_fmt.ptr_indices = tuple(len(format_str - 1))
+            cmd_name += "_WITH_DL"
+        cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt)
+        return cmd_name, cmd_args, packed_fmt
 
     # Build a matrix that rotates around the z axis, then the x axis, then the y axis, and then translates and multiplies.
     def GEO_TRANSLATE_ROTATE_WITH_DL(self, macro: Macro, depth: int):
@@ -1316,44 +1613,23 @@ class GraphNodes(DataParser):
             self.set_geo_type(geo_obj, self.translate_rotate)
         return self._continue_parse
 
+    def GEO_TRANSLATE_NODE_BIN(self, macro: Macro, depth: int):
+        return self.GEO_TRANSLATE_NODE_WITH_DL(self.fix_bin_cmd_dls(macro), depth)
+
     def GEO_TRANSLATE_NODE(self, macro: Macro, depth: int):
         transform = Matrix()
         transform.translation = self.get_translation(macro.args[1:4])
         self.last_transform = self.parent_transform @ transform
-
         geo_obj = self.setup_geo_obj("translate", self.translate, macro.args[0])
         self.set_transform(geo_obj, self.last_transform)
         return geo_obj
 
     def GEO_SCALE_WITH_DL(self, macro: Macro, depth: int):
-        scale = eval(macro.args[1]) / 0x10000
+        scale = eval_or_int(macro.args[1]) / 0x10000
         self.last_transform = scale * self.last_transform
-
         model = macro.args[-1]
         geo_obj = self.add_model(ModelDat(self.last_transform, macro.args[0], macro.args[-1]))
         self.set_transform(geo_obj, self.last_transform)
-        return self._continue_parse
-
-    # these have no affect on the bpy
-    def GEO_NOP_1A(self, macro: Macro, depth: int):
-        return self._continue_parse
-
-    def GEO_NOP_1E(self, macro: Macro, depth: int):
-        return self._continue_parse
-
-    def GEO_NOP_1F(self, macro: Macro, depth: int):
-        return self._continue_parse
-
-    def GEO_NODE_START(self, macro: Macro, depth: int):
-        return self._continue_parse
-
-    def GEO_NODE_SCREEN_AREA(self, macro: Macro, depth: int):
-        return self._continue_parse
-
-    def GEO_ZBUFFER(self, macro: Macro, depth: int):
-        return self._continue_parse
-
-    def GEO_RENDER_OBJ(self, macro: Macro, depth: int):
         return self._continue_parse
 
     # This should probably do something but I haven't coded it in yet
@@ -1394,7 +1670,7 @@ class GraphNodes(DataParser):
     def GEO_CAMERA(self, macro: Macro, depth: int):
         raise Exception("you must call this function from a sublcass")
 
-    def GEO_CAMERA_FRUSTRUM(self, macro: Macro, depth: int):
+    def GEO_CAMERA_FRUSTUM(self, macro: Macro, depth: int):
         raise Exception("you must call this function from a sublcass")
 
     def GEO_CAMERA_FRUSTUM_WITH_FUNC(self, macro: Macro, depth: int):
@@ -1432,6 +1708,7 @@ class GeoLayout(GraphNodes):
         geo_parent: GeoLayout = None,
         stream: list[Any] = None,
         pass_args: dict = None,
+        parse_target: int = DataParser._c_parsing,
     ):
         self.parent = root
         self.area_root = area_root  # for properties that can only be written to area
@@ -1446,7 +1723,7 @@ class GeoLayout(GraphNodes):
             col = area_root.users_collection[0]
         else:
             col = col
-        super().__init__(geo_layouts, scene, name, col, geo_parent=geo_parent, stream=stream)
+        super().__init__(geo_layouts, scene, name, col, geo_parent=geo_parent, stream=stream, parse_target=parse_target)
 
     def set_transform(self, geo_obj: bpy.types.Object, transform: Matrix):
         if not geo_obj:
@@ -1510,31 +1787,38 @@ class GeoLayout(GraphNodes):
                 ),
                 "pass_linked_export",
             )
-        self.stream.append(start)
-        self.parse_stream_from_start(geo_layout, start, 0)
+        self.parse_geo_from_start(start, 0)
 
     def GEO_ASM(self, macro: Macro, depth: int):
         # envfx goes on the area root
-        if "geo_envfx_main" in macro.args[1]:
-            env_fx = macro.args[0]
-            if not env_fx or (env_fx == "ENVFX_MODE_NONE" and self.props.export_friendly):
+        func = macro.args[-1]
+        param = macro.args[-2]
+        if "geo_envfx_main" in func:
+            if not param or (param == "ENVFX_MODE_NONE" and self.props.export_friendly):
                 return self._continue_parse
-            elif any(env_fx is enum_fx[0] for enum_fx in enumEnvFX):
-                self.area_root.envOption = env_fx
+            elif any(param is enum_fx[0] for enum_fx in enumEnvFX):
+                self.area_root.envOption = param
             else:
                 self.area_root.envOption = "Custom"
-                self.area_root.envType = env_fx
-        if macro.args[1] in self._skipped_geo_asm_funcs and self.props.export_friendly:
+                self.area_root.envType = param
+        if func in self._skipped_geo_asm_funcs and self.props.export_friendly:
             return self._continue_parse
         geo_obj = self.setup_geo_obj("asm", self.asm)
         # probably will need to be overridden by each subclass
         asm = geo_obj.fast64.sm64.geo_asm
-        asm.param = macro.args[0]
-        asm.func = macro.args[1]
+        asm.param = param
+        asm.func = func
         return self._continue_parse
 
+    def GEO_SCALE_BIN(self, macro: Macro, depth: int):
+        macro = self.fix_bin_cmd_dls(macro)
+        if macro.args[-1] != "NULL":
+            return self.GEO_SCALE_WITH_DL(macro, depth)
+        else:
+            return self.GEO_SCALE(macro, depth)
+
     def GEO_SCALE(self, macro: Macro, depth: int):
-        scale = eval(macro.args[1]) / 0x10000
+        scale = eval_or_int(macro.args[1]) / 0x10000
         geo_obj = self.setup_geo_obj("scale", self.scale, macro.args[0])
         geo_obj.scale = (scale, scale, scale)
         return self._continue_parse
@@ -1552,26 +1836,33 @@ class GeoLayout(GraphNodes):
     def GEO_SWITCH_CASE(self, macro: Macro, depth: int):
         geo_obj = self.setup_geo_obj("switch", self.switch)
         # probably will need to be overridden by each subclass
-        geo_obj.switchParam = eval(macro.args[0])
-        geo_obj.switchFunc = macro.args[1]
+        geo_obj.switchParam = eval_or_int(macro.args[-2])
+        geo_obj.switchFunc = macro.args[-1]
         return self._continue_parse
 
     # can only apply type to area root
     def GEO_CAMERA(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
-        self.area_root.camType = macro.args[0]
+        self.area_root.camType = macro.args[-8]
         return self._continue_parse
+
+    def GEO_BACKGROUND_BIN(self, macro: Macro, depth: int):
+        if macro.args[-1] != 0:
+            self.GEO_BACKGROUND(macro.partial(*macro.args[1:]), depth)
+        else:
+            self.GEO_BACKGROUND_COLOR(macro.partial(*macro.args[1:]), depth)
 
     def GEO_BACKGROUND(self, macro: Macro, depth: int):
         level_root = self.area_root.parent
         # check if in enum
-        skybox_name = macro.args[0].replace("BACKGROUND_", "")
+        background_id = macro.args[0]
+        skybox_name = background_id.replace("BACKGROUND_", "")
         bg_enums = {enum.identifier for enum in level_root.bl_rna.properties["background"].enum_items}
         if skybox_name in bg_enums:
             level_root.background = skybox_name
         else:
             level_root.background = "CUSTOM"
-            level_root.fast64.sm64.level.backgroundID = macro.args[0]
+            level_root.fast64.sm64.level.backgroundID = background_id
             # I don't have access to the bg segment, that is in level obj
             # level_root.fast64.sm64.level.backgroundSegment = "unavailable srry :("
             print("background segment not set, left at default srry")
@@ -1587,16 +1878,16 @@ class GeoLayout(GraphNodes):
     # can only apply to meshes
     def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
         self.pass_args["render_range"] = [
-            hexOrDecInt(range) / self.scene.fast64.sm64.blender_to_sm64_scale for range in macro.args
+            hexOrDecInt(rndr_range) / self.scene.fast64.sm64.blender_to_sm64_scale for rndr_range in macro.args[-2:]
         ]
         return self._continue_parse
 
     def GEO_CULLING_RADIUS(self, macro: Macro, depth: int):
-        self.pass_args["culling_radius"] = hexOrDecInt(macro.args[0]) / self.scene.fast64.sm64.blender_to_sm64_scale
+        self.pass_args["culling_radius"] = hexOrDecInt(macro.args[-1]) / self.scene.fast64.sm64.blender_to_sm64_scale
         return self._continue_parse
 
     # make better
-    def GEO_CAMERA_FRUSTRUM(self, macro: Macro, depth: int):
+    def GEO_CAMERA_FRUSTUM(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
         return self._continue_parse
@@ -1632,7 +1923,7 @@ class GeoLayout(GraphNodes):
                 pass_args=self.pass_args,
             )
         GeoChild.parent_transform = self.last_transform
-        GeoChild.parse_stream(self.geo_layouts.get(self.stream[-1]), self.stream[-1], depth + 1)
+        GeoChild.parse_stream(self.get_new_stream(self.stream[-1]), self.stream[-1], depth + 1)
         self.children.append(GeoChild)
         return self._continue_parse
 
@@ -1666,6 +1957,7 @@ class GeoArmature(GraphNodes):
         geo_parent: GeoArmature = None,
         switch_armatures: dict[int, bpy.types.Object] = None,
         stream: Any = None,
+        parse_target: int = DataParser._c_parsing,
     ):
         self.armature = armature_obj
         self.parent_bone = None if not parent_bone else parent_bone.name
@@ -1678,7 +1970,7 @@ class GeoArmature(GraphNodes):
             self.switch_armatures = dict()
         else:
             self.switch_armatures = switch_armatures
-        super().__init__(geo_layouts, scene, name, col, geo_parent=geo_parent, stream=stream)
+        super().__init__(geo_layouts, scene, name, col, geo_parent=geo_parent, stream=stream, parse_target=parse_target)
 
     @property
     def first_obj(self):
@@ -1792,29 +2084,28 @@ class GeoArmature(GraphNodes):
                 )
             )
         bpy.context.view_layer.objects.active = self.get_or_init_geo_armature()
-        self.stream.append(start)
-        self.parse_stream_from_start(geo_layout, start, 0)
+        self.parse_geo_from_start(start, 0)
 
     def GEO_ASM(self, macro: Macro, depth: int):
         geo_obj = self.setup_geo_obj("asm", self.asm)
         if not macro.args[0].isdigit():
             print("could not convert geo asm arg")
         else:
-            geo_obj.func_param = int(macro.args[0])
-        geo_obj.geo_func = macro.args[1]
+            geo_obj.func_param = int(macro.args[-2])
+        geo_obj.geo_func = macro.args[-1]
         return self._continue_parse
 
     def GEO_SHADOW(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("shadow", self.shadow)
-        geo_bone.shadow_solidity = hexOrDecInt(macro.args[1]) / 255
-        geo_bone.shadow_scale = hexOrDecInt(macro.args[2])
+        geo_bone.shadow_solidity = hexOrDecInt(macro.args[-2]) / 255
+        geo_bone.shadow_scale = hexOrDecInt(macro.args[-1])
         return self._continue_parse
 
     # cmd not supported in fast64 for some reason?
     def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("render_range", self.custom)
         geo_bone.fast64.sm64.custom_geo_cmd_macro = "GEO_RENDER_RANGE"
-        geo_bone.fast64.sm64.custom_geo_cmd_args = ",".join(macro.args)
+        geo_bone.fast64.sm64.custom_geo_cmd_args = ",".join(macro.args[-2:])
         return self._continue_parse
 
     # can switch children have their own culling radius? does it have to
@@ -1822,23 +2113,30 @@ class GeoArmature(GraphNodes):
     def GEO_CULLING_RADIUS(self, macro: Macro, depth: int):
         geo_armature = self.get_or_init_geo_armature()
         geo_armature.use_render_area = True  # cringe name, it is cull not render area
-        geo_armature.culling_radius = float(macro.args[0])
+        geo_armature.culling_radius = float(macro.args[-1])
         return self._continue_parse
 
     def GEO_SWITCH_CASE(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("switch", self.switch)
         # probably will need to be overridden by each subclass
-        geo_bone.func_param = eval(macro.args[0])
-        geo_bone.geo_func = macro.args[1]
+        geo_bone.func_param = eval_or_int(macro.args[-2])
+        geo_bone.geo_func = macro.args[-1]
         return self._continue_parse
 
+    def GEO_SCALE_BIN(self, macro: Macro, depth: int):
+        macro = self.fix_bin_cmd_dls(macro)
+        if macro.args[-1] != "NULL":
+            return self.GEO_SCALE_WITH_DL(macro, depth)
+        else:
+            return self.GEO_SCALE(macro, depth)
+
     def GEO_SCALE_WITH_DL(self, macro: Macro, depth: int):
-        scale = eval(macro.args[1]) / 0x10000
+        scale = eval_or_int(macro.args[1]) / 0x10000
         self.last_transform = [(0, 0, 0), self.last_transform[1]]
 
         model = macro.args[-1]
         geo_obj = self.add_model(
-            ModelDat((0, 0, 0), (0, 0, 0), macro.args[0], macro.args[-1], scale=scale),
+            ModelDat((0, 0, 0), (0, 0, 0), macro.args[0], model, scale=scale),
             "scale",
             self.scale,
             macro.args[0],
@@ -1847,7 +2145,7 @@ class GeoArmature(GraphNodes):
         return self._continue_parse
 
     def GEO_SCALE(self, macro: Macro, depth: int):
-        scale = eval(macro.args[1]) / 0x10000
+        scale = eval_or_int(macro.args[1]) / 0x10000
 
         geo_bone = self.setup_geo_obj("scale", self.scale, macro.args[0])
         geo_bone.geo_scale = scale
@@ -1886,10 +2184,9 @@ class GeoArmature(GraphNodes):
                 self.col,
                 geo_parent=self,
                 stream=self.stream,
-                # switch_armatures=self.switch_armatures, # I think double open node won't cause an issue here?
             )
         GeoChild.parent_transform = self.last_transform
-        GeoChild.parse_stream(self.geo_layouts.get(self.stream[-1]), self.stream[-1], depth + 1)
+        GeoChild.parse_stream(self.get_new_stream(self.stream[-1]), self.stream[-1], depth + 1)
         self.children.append(GeoChild)
         return self._continue_parse
 
@@ -1911,8 +2208,25 @@ def get_all_aggregates(aggregate_path: Path, filenames: tuple[callable], root_pa
     return caught_files
 
 
-# given a path, get a level object by parsing the script.c file
-def parse_level_script(script_files: list[Path], scene: bpy.types.Scene, col: bpy.types.Collection = None):
+def get_level_name(level_arg: Union[int, str]) -> str:
+    if type(level_arg) is not str or level_arg.isdigit():
+        level_arg = eval_or_int(level_arg)
+        print(level_arg, LEVEL_ID_NUMBERS.get(level_arg, level_arg))
+        return LEVEL_ID_NUMBERS.get(level_arg)
+    else:
+        return level_arg
+
+
+def get_and_check_rom(scene: bpy.types.Scene) -> filepathIO:
+    rom_path = Path(bpy.path.abspath(scene.fast64.sm64.import_rom))
+    if not rom_path:
+        return None
+    import_rom_checks(rom_path)
+    return rom_path
+
+
+# given a rom, parse the level script
+def parse_level_script_binary(bin_file: BinaryIO, scene: bpy.types.Scene, col: bpy.types.Collection = None) -> Level:
     root = bpy.data.objects.new("Empty", None)
     if not col:
         scene.collection.objects.link(root)
@@ -1921,16 +2235,62 @@ def parse_level_script(script_files: list[Path], scene: bpy.types.Scene, col: bp
     props = scene.fast64.sm64.importer
     root.name = f"Level Root {props.level_name}"
     root.sm64_obj_type = "Level Root"
+    lvl = Level(None, scene, root, DataParser._binary_parsing)
+    # seg 2 loaded via asm, so update it now
+    lvl.load_segment_two(bin_file)
+    lvl.bin_file = bin_file
+    entry = 0x108A10  # the expected value for SM64, will not work for roms that mess with this (basically none tbh)
+    try:
+        lvl.parse_level_script(entry, col=col)
+    except Exception as exc:
+        if type(exc) is not ParseException:
+            raise exc
+    return lvl
+
+
+# given a path, get a level object by parsing the script.c file
+def parse_level_script_c(script_files: list[Path], scene: bpy.types.Scene, col: bpy.types.Collection = None) -> Level:
+    props = scene.fast64.sm64.importer
+    root = bpy.data.objects.new("Empty", None)
+    if not col:
+        scene.collection.objects.link(root)
+    else:
+        col.objects.link(root)
+    root.name = f"Level Root {props.level_name}"
+    root.sm64_obj_type = "Level Root"
     # Now parse the script and get data about the level
     # Store data in attribute of a level class then assign later and return class
     scripts = dict()
     for script_file in script_files:
         with open(script_file, "r", newline="") as script_file:
             scripts.update(get_data_types_from_file(script_file, {"LevelScript": ["(", ")"]}))
-    lvl = Level(scripts, scene, root)
+    lvl = Level(scripts, scene, root, DataParser._c_parsing)
     entry = props.entry.format(props.level_name)
-    lvl.parse_level_script(entry, col=col)
+    try:
+        lvl.parse_level_script(entry, col=col)
+    except Exception as exc:
+        if type(exc) is not ParseException:
+            raise exc
     return lvl
+
+
+# generate level object
+def parse_level_script(
+    script_files: list[Path],
+    decomp_path: Path,
+    bin_path: Path,
+    scene: bpy.types.Scene,
+    col: bpy.types.Collection = None,
+) -> Level:
+    props = scene.fast64.sm64.importer
+    if props.import_target == "C":
+        return parse_level_script_c(
+            [script_files, decomp_path / "levels" / "scripts.c"], scene, col=col
+        )  # returns level class
+    elif props.import_target == "Binary":
+        with open(bin_path, "rb") as bin_file:
+            bin_file = bin_file.read()
+            return parse_level_script_binary(bin_file, scene, col=col)
 
 
 # write the objects from a level object
@@ -2250,9 +2610,35 @@ def find_level_models_from_geo(
     return lvl
 
 
+def find_level_models_binary(lvl: Level, scene: bpy.types.Scene, root_path: Path, col_name: str = None) -> Level:
+    props = scene.fast64.sm64.importer
+    for area_index, area in lvl.areas.items():
+        if col_name:
+            col = create_collection(area.root.users_collection[0], col_name)
+        else:
+            col = None
+        geo = GeoLayout(
+            None,
+            area.root,
+            scene,
+            f"GeoRoot {props.level_name} {area_index}",
+            area.root,
+            col=col,
+            parse_target=DataParser._binary_parsing,
+        )
+        geo.bin_file = lvl.bin_file
+        try:
+            geo.parse_geo_from_start(area.geo, 0)
+        except Exception as exc:
+            if type(exc) is not ParseException:
+                raise exc
+        area.geo = geo
+    return lvl
+
+
 # import level graphics given geo.c file, and a level object
 def import_level_graphics(
-    geo_paths: list[Path],
+    bin_path: list[Path],
     lvl: Level,
     scene: bpy.types.Scene,
     root_path: Path,
@@ -2260,13 +2646,22 @@ def import_level_graphics(
     cleanup: bool = False,
     col_name: str = None,
 ) -> Level:
-    lvl = find_level_models_from_geo(geo_paths, lvl, scene, root_path, col_name=col_name)
-    models = construct_model_data_from_file(aggregates, scene, root_path)
-    # just a try, in case you are importing from something other than base decomp repo (like RM2C output folder)
-    try:
-        models.get_generic_textures(root_path)
-    except:
-        print("could not import genric textures, if this errors later from missing textures this may be why")
+    if lvl.props.import_target == "C":
+        lvl = find_level_models_from_geo(geo_paths, lvl, scene, root_path, col_name=col_name)
+        models = construct_model_data_from_file(aggregates, scene, root_path)
+        # just a try, in case you are importing from something other than base decomp repo (like RM2C output folder)
+        try:
+            models.get_generic_textures(root_path)
+        except:
+            print("could not import genric textures, if this errors later from missing textures this may be why")
+    elif lvl.props.import_target == "Binary":
+        lvl = find_level_models_binary(lvl, scene, root_path, col_name=col_name)
+        # dummy f3d_gbi for class initialization
+        f3d_option = scene.f3d_type
+        scene.f3d_type = "F3D"
+        models = SM64_F3D(scene, DataParser._binary_parsing)
+        models.bin_file = lvl.bin_file
+        scene.f3d_type = f3d_option
     lvl = write_level_to_bpy(lvl, scene, root_path, models, cleanup=cleanup)
     return lvl
 
@@ -2282,8 +2677,8 @@ def find_collision_data_from_path(aggregate: Path, lvl: Level, scene: bpy.types.
             col_data.update(get_data_types_from_file(col_file, {"Collision": ["(", ")"]}))
     # search for the area terrain from available collision data
     for area in lvl.areas.values():
-        area.ColFile = col_data.get(area.terrain, None)
-        if not area.ColFile:
+        area.col_file = col_data.get(area.terrain, None)
+        if not area.col_file:
             props = scene.fast64.sm64.importer
             raise Exception(
                 f"Collision {area.terrain} not found in levels/{props.level_name}/{props.level_prefix}leveldata.c"
@@ -2303,8 +2698,15 @@ def write_level_collision_to_bpy(
             col = area.root.users_collection[0]
         else:
             col = create_collection(area.root.users_collection[0], col_name)
-        col_parser = Collision(area.ColFile, scene.fast64.sm64.blender_to_sm64_scale)
-        col_parser.parse_collision()
+        col_parser = Collision(area.col_file, scene.fast64.sm64.blender_to_sm64_scale)
+        if lvl.props.import_target == "C":
+            col_parser.parse_collision()
+        else:
+            try:
+                col_parser.parse_collision_binary(lvl.bin_file, area.terrain)
+            except Exception as exc:
+                if type(exc) is not ParseException:
+                    raise exc
         name = "SM64 {} Area {} Col".format(scene.fast64.sm64.importer.level_name, area_index)
         obj = col_parser.write_collision(scene, name, area.root, col)
         area.write_special_objects(col_parser.special_objects, col)
@@ -2323,11 +2725,18 @@ def write_level_collision_to_bpy(
 
 # import level collision given a level script
 def import_level_collision(
-    aggregate: Path, lvl: Level, scene: bpy.types.Scene, root_path: Path, cleanup: bool, col_name: str = None
+    aggregate: Path,
+    lvl: Level,
+    scene: bpy.types.Scene,
+    root_path: Path,
+    cleanup: bool,
+    col_name: str = None,
 ) -> Level:
-    lvl = find_collision_data_from_path(
-        aggregate, lvl, scene, root_path
-    )  # Now Each area has its collision file nicely formatted
+    if lvl.props.import_target == "C":
+        lvl = find_collision_data_from_path(
+            aggregate, lvl, scene, root_path
+        )  # Now Each area has its collision file nicely formatted
+    # in binary, the collision is at the bin_file, area.terrain ptr
     write_level_collision_to_bpy(lvl, scene, cleanup, col_name=col_name)
     return lvl
 
@@ -2407,12 +2816,10 @@ class SM64_LvlImport(Operator):
         else:
             obj_col = gfx_col = col_col = None
 
+        rom_path = get_and_check_rom(scene)
         decomp_path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         level_data_path, script_path, geo_path = get_operator_paths(props, decomp_path)
-
-        lvl = parse_level_script(
-            [script_path, decomp_path / "levels" / "scripts.c"], scene, col=col
-        )  # returns level class
+        lvl = parse_level_script(script_path, decomp_path, rom_path, scene, col)
 
         if props.import_linked_actors:
             unique_model_ids = {model for model in lvl.loaded_geos.keys()}
@@ -2486,12 +2893,10 @@ class SM64_LvlGfxImport(Operator):
         else:
             gfx_col = None
 
+        rom_path = get_and_check_rom(scene)
         decomp_path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         model_data_path, script_path, geo_path = get_operator_paths(props, decomp_path)
-
-        lvl = parse_level_script(
-            [script_path, decomp_path / "levels" / "scripts.c"], scene, col=col
-        )  # returns level class
+        lvl = parse_level_script(script_path, decomp_path, rom_path, scene, gfx_col)
         lvl = import_level_graphics(
             [geo_path], lvl, scene, decomp_path, [model_data_path], cleanup=self.cleanup, col_name=gfx_col
         )
@@ -2514,12 +2919,10 @@ class SM64_LvlColImport(Operator):
         else:
             col_col = None
 
+        rom_path = get_and_check_rom(scene)
         decomp_path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         level_data_path, script_path, _ = get_operator_paths(props, decomp_path)
-
-        lvl = parse_level_script(
-            [script_path, decomp_path / "levels" / "scripts.c"], scene, col=col
-        )  # returns level class
+        lvl = parse_level_script(script_path, decomp_path, rom_path, scene, col_col)
         lvl = import_level_collision(level_data_path, lvl, scene, decomp_path, self.cleanup, col_name=col_col)
         return {"FINISHED"}
 
@@ -2538,12 +2941,10 @@ class SM64_ObjImport(Operator):
         else:
             obj_col = None
 
+        rom_path = get_and_check_rom(scene)
         decomp_path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         _, script_path, _ = get_operator_paths(props, decomp_path)
-
-        lvl = parse_level_script(
-            [script_path, decomp_path / "levels" / "scripts.c"], scene, col=col
-        )  # returns level class
+        lvl = parse_level_script(script_path, decomp_path, rom_path, scene, obj_col)
         write_level_objects(lvl, col_name=obj_col)
         return {"FINISHED"}
 
@@ -2786,9 +3187,13 @@ class SM64_ImportProperties(PropertyGroup):
         name="Import Actors", description="Imports the models of actors. Actor models will be duplicates", default=True
     )
     linked_groups: CollectionProperty(type=SM64_GroupProperties)
-    # add collection property for groups to look through
-    # add method to collect all groups and then turn those into paths
-    # look through all those path aggregates to get includes for actor importing
+
+    import_target: EnumProperty(
+        name="Import Target",
+        description="Choose a level",
+        items=[("C", "C", "C"), ("Binary", "Binary", "Binary")],
+        default="C",
+    )
 
     @property
     def level_name(self):
@@ -2831,19 +3236,23 @@ class SM64_ImportProperties(PropertyGroup):
             box.prop(self, "geo_layout_str")
         else:
             box.prop(self, self.geo_group_name)
-        box.prop(self, "version")
-        box.prop(self, "target")
+        if self.import_target is "C":
+            box.prop(self, "version")
+            box.prop(self, "target")
 
     def draw_level(self, layout: bpy.types.UILayout):
+        prop_split(layout, self, "import_target", "Import Target")
+        layout.separator()
         box = layout.box()
         box.label(text="Level Importer")
         box.prop(self, "level_enum")
         if self.level_enum == "Custom":
             box.prop(self, "level_custom")
-        box.prop(self, "entry")
-        box.prop(self, "level_prefix")
-        box.prop(self, "version")
-        box.prop(self, "target")
+        if self.import_target is "C":
+            box.prop(self, "entry")
+            box.prop(self, "level_prefix")
+            box.prop(self, "version")
+            box.prop(self, "target")
         row = box.row()
         row.prop(self, "force_new_tex")
         row.prop(self, "as_obj")

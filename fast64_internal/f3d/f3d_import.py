@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------
 #    Header
 # ------------------------------------------------------------------------
+from __future__ import annotations
 
 import bpy
 
@@ -519,8 +520,17 @@ class Mat:
 # should be inherited into a larger F3d class which wraps DL processing
 # does not deal with flow control or gathering the data containers (VB, Geo cls etc.)
 class DL(DataParser):
+    _skippable_cmds = {
+        "gsDPNoOp",
+        "gsDPFullSync",
+        "gsDPTileSync",
+        "gsDPPipeSync",
+        "gsDPLoadSync",
+        "gsSPCullDisplayList",
+    }
+
     # the min needed for this class to work for importing
-    def __init__(self, lastmat: dict[any, Mat] = None):
+    def __init__(self, lastmat: dict[any, Mat] = None, parse_target: int = DataParser._c_parsing):
         self.Vtx = {}
         self.Gfx = {}
         self.Light_t = {}
@@ -528,7 +538,7 @@ class DL(DataParser):
         self.Lights = {}
         self.Textures = {}
         self.NewMat = 1
-        self.f3d_gbi = get_F3D_GBI()
+        self.f3d_gbi = get_F3D_GBI()  # make sure to set this to the right version for your game!
         # use the dict in subclasses to keep track of mats per layer when parsing in render order
         self.last_mat_dict = dict()
         if not lastmat:
@@ -537,9 +547,159 @@ class DL(DataParser):
             self.last_mat.name = 0
         else:
             self.last_mat = lastmat
-        super().__init__()
+        super().__init__(parse_target=parse_target)
 
-    def parse_stream_DL(self, display_list_arr: Sequence, start_name: str):
+    # MSB: (name, PackedFormat), ones empty PackedFormat have no support yet
+    # f3d class changes its var values based on f3d type, so f3d_gbi.G_TRI1 matches correct MSB
+    def setup_unpack_dicts(self):
+        f3d_gbi = self.f3d_gbi
+        if f3d_gbi.F3DEX_GBI_2:
+            self.f3dex2_cmd_gbi_names = {
+                self.G_DMA_IO: ("gsSPDma_io", PackedFormat()),
+                self.G_LOAD_UCODE: ("gsSPLoadUcodeEx", PackedFormat()),
+            }
+        else:
+            self.f3dex2_cmd_gbi_names = dict()
+        if f3d_gbi.F3DEX_GBI or f3d_gbi.F3DLP_GBI or f3d_gbi.F3DEX_GBI_2:
+            self.f3dex_cmd_gbi_names = {
+                f3d_gbi.G_GEOMETRYMODE: ("gsSPGeometryMode", PackedFormat()),
+                f3d_gbi.G_MODIFYVTX: ("gsSPModifyVertex", PackedFormat(">BHl")),  # enum buf_index new_val
+                f3d_gbi.G_CULLDL: ("gsSPCullDisplayList", PackedFormat()),
+                f3d_gbi.G_BRANCH_Z: ("gsSPBranchLessZrg", PackedFormat()),
+                f3d_gbi.G_VTX: ("gsSPVertex", PackedFormat()),
+                f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat()),
+                f3d_gbi.G_TRI2: ("gsSP2Triangles", PackedFormat(">7B")),  # v123 pad v456
+                f3d_gbi.G_QUAD: ("gsSP1Quadrangle", PackedFormat(">7B")),  # v123 pad v456
+                f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">7B")),
+                f3d_gbi.G_TEXTURE: ("gsSPTexture", PackedFormat()),
+            }
+            self.f3d_cmd_gbi_names = dict()
+        else:
+            self.f3dex_cmd_gbi_names = dict()
+            self.f3d_cmd_gbi_names = {
+                f3d_gbi.G_SETGEOMETRYMODE: ("gsSPSetGeometryMode", PackedFormat()),
+                f3d_gbi.G_CLEARGEOMETRYMODE: ("gsSPClearGeometryMode", PackedFormat()),
+                f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat()),
+                f3d_gbi.G_VTX: ("gsSPVertex", PackedFormat()),
+                f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">7B")),  # pads
+                f3d_gbi.G_TEXTURE: ("gsSPTexture", PackedFormat()),
+            }
+        self.common_cmd_gbi_names = {
+            f3d_gbi.G_NOOP: ("gsDPNoOp", PackedFormat(">7B")),  # pads
+            f3d_gbi.G_SPNOOP: ("gsDPNoOp", PackedFormat(">7B")),  # pads
+            f3d_gbi.G_ENDDL: ("gsSPEndDisplayList", PackedFormat(">7B")),  # pads
+            f3d_gbi.G_DL: ("gsSPDisplayList", PackedFormat(">BhL", (2,))),  # branch pad dl_ptr
+            f3d_gbi.G_MOVEMEM: ("gsDma1p", PackedFormat()),  # handle more properly?
+            f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat()),
+            f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat()),
+        }
+        self.rdp_cmd_gbi_names = {
+            f3d_gbi.G_SETCIMG: ("gsDPSetColorImage", PackedFormat(">7B")),  # bpy ignores
+            f3d_gbi.G_SETZIMG: ("gsDPSetDepthImage", PackedFormat(">7B")),  # bpy ignores
+            f3d_gbi.G_SETTIMG: (
+                "gsDPSetTextureImage",
+                PackedFormat(">7B", (3,), bit_packing=(3, 2, 19, 32)),
+            ),  # fmt siz pad im_ptr
+            f3d_gbi.G_SETCOMBINE: (
+                "gsDPSetCombineMode",
+                PackedFormat(">7B", bit_packing=(4, 5, 3, 3, 4, 5, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3)),
+            ),  # clr_a_1 clr_c_1 alpha_a_1 alpha_c_1 clr_a_2 clr_c_2 clr_b_1 clr_d_1 alpha_b_1 alpha_d_1 clr_b_2 alpha_a_2 alpha_c_2 clr_d_2 alpha_b_2 alpha_d_2
+            f3d_gbi.G_SETENVCOLOR: ("gsDPSetEnvColor", PackedFormat(">Bh4B")),  # pad pad rgba
+            f3d_gbi.G_SETPRIMCOLOR: ("gsDPSetPrimColor", PackedFormat(">7B")),  # pad minLod loc_frac rgba
+            f3d_gbi.G_SETBLENDCOLOR: ("gsDPSetBlendColor", PackedFormat(">Bh4B")),  # pad pad rgba
+            f3d_gbi.G_SETFOGCOLOR: ("gsDPSetFogColor", PackedFormat(">Bh4B")),  # pad pad rgba
+            f3d_gbi.G_SETFILLCOLOR: ("gsDPSetFillColor", PackedFormat(">Bh4B")),  # pad pad rgba
+            f3d_gbi.G_FILLRECT: (
+                "gsDPFillRectangle",
+                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
+            ),  # ul_s ul_t pad tile width height
+            f3d_gbi.G_SETTILE: (
+                "gsDPSetTile",
+                PackedFormat(">7B", bit_packing=(3, 2, 1, 9, 9, 5, 3, 4, 2, 4, 4, 2, 4, 4)),
+            ),  # fmt siz pad num_64_bit_vals tmem pad tile palette t_flag t_mask t_shift s_flag s_mask s_shift
+            f3d_gbi.G_LOADTILE: (
+                "gsDPLoadTile",
+                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
+            ),  # ul_s ul_t pad tile width height
+            f3d_gbi.G_LOADBLOCK: (
+                "gsDPLoadBlock",
+                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
+            ),  # ul_s ul_t pad tile width height
+            f3d_gbi.G_SETTILESIZE: (
+                "gsDPSetTileSize",
+                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
+            ),  # ul_s ul_t pad tile width height
+            f3d_gbi.G_LOADTLUT: (
+                "gsDPLoadTLUTCmd",
+                PackedFormat(">7B", bit_packing=(28, 4, 12, 12)),
+            ),  # pad tile clr_cnt pad
+            f3d_gbi.G_RDPSETOTHERMODE: (
+                "gsSPSetOtherMode",
+                PackedFormat(">3BL"),
+            ),  # higher_bits (need to combine) lower_bits
+            f3d_gbi.G_SETPRIMDEPTH: ("gsDPSetPrimDepth", PackedFormat(">B3h")),  # pad pad z_val delta_z
+            f3d_gbi.G_SETSCISSOR: (
+                "gsDPSetScissor",
+                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
+            ),  # ul_x ul_y pad interpolation lr_x lr_y
+            f3d_gbi.G_SETCONVERT: (
+                "gsDPSetConvert",
+                PackedFormat(">7B", bit_packing=(2, 9, 9, 9, 9, 9, 9)),
+            ),  # k0 k1 k2 k3 k4 k5
+            f3d_gbi.G_SETKEYR: (
+                "gsDPSetKeyR",
+                PackedFormat(">7B", bit_packing=(28, 12, 8, 8)),
+            ),  # pad wnd_r int_r soft_r
+            f3d_gbi.G_SETKEYGB: (
+                "gsDPSetKeyGB",
+                PackedFormat(">7B", bit_packing=(12, 12, 8, 8, 8, 8)),
+            ),  # wnd_g wnd_b int_g soft_g int_b soft_b (get proper names for args from gbi)
+            f3d_gbi.G_RDPFULLSYNC: ("gsDPFullSync", PackedFormat(">7B")),  # bpy ignores
+            f3d_gbi.G_RDPTILESYNC: ("gsDPTileSync", PackedFormat(">7B")),  # bpy ignores
+            f3d_gbi.G_RDPPIPESYNC: ("gsDPPipeSync", PackedFormat(">7B")),  # bpy ignores
+            f3d_gbi.G_RDPLOADSYNC: ("gsDPLoadSync", PackedFormat(">7B")),  # bpy ignores
+            # these are ignored in bpy but I unpack them anyway...
+            f3d_gbi.G_TEXRECTFLIP: (
+                "gsDPTextureRectangleFlip",
+                PackedFormat(">23B", bit_packing=(12, 12, 4, 4, 12, 12, 32, 16, 16, 32, 16, 16)),
+            ),  # lr_x lr_y pad tile, ul_x ul_y pad ul_s ul_t pad delta_t delta_s
+            f3d_gbi.G_TEXRECT: (
+                "gsDPTextureRectangle",
+                PackedFormat(">23B", bit_packing=(12, 12, 4, 4, 12, 12, 32, 16, 16, 32, 16, 16)),
+            ),  # lr_x lr_y pad tile, ul_x ul_y pad ul_s ul_t pad delta_s delta_t
+        }
+        self.all_f3d_gbi_cmds = {
+            **self.common_cmd_gbi_names,
+            **self.rdp_cmd_gbi_names,
+            **self.f3d_cmd_gbi_names,
+            **self.f3dex_cmd_gbi_names,
+            **self.f3dex2_cmd_gbi_names,
+        }
+
+    # if binary, entry is a int and self.Gfx is empty
+    def get_new_stream(self, entry: Union[str, int]):
+        if type(entry) is str:
+            return self.Gfx[entry]
+        else:
+            return None
+
+    def binary_cmd_get(self, parser: Parser) -> tuple[cmd_name:str, PackedFormat]:
+        cmd_type = self.unpack_type(parser.cur_stream, parser.head, ">B", make_str=False)
+        cmd_name = self.f3d_gbi.all_f3d_gbi_cmds.get(cmd_type)
+        # tex rects and maybe other cmds are longer
+        return cmd_name, 8
+
+    def binary_cmd_unpack(
+        self, parser: Parser, cmd_name: str, packed_fmt: PackedFormat
+    ) -> tuple[cmd_args, cmd_len:int]:
+        # no cmd data
+        if not packed_fmt.format_str:
+            cmd_args = []
+        else:
+            cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
+        return cmd_args, packed_fmt.format_size
+
+    def parse_stream_DL(self, start_name: str):
         """
         Initialize vars and then parse data stream
         """
@@ -552,7 +712,7 @@ class DL(DataParser):
         # merge all lights into single lights dictionary
         self.Lights.update(self.Light_t)
         self.Lights.update(self.Ambient_t)
-        self.parse_stream(display_list_arr, start_name)
+        self.parse_stream(self.get_new_stream(start_name), start_name)
 
     def gsSPEndDisplayList(self, macro: Macro):
         return self._break_parse
@@ -578,9 +738,6 @@ class DL(DataParser):
             )
         self.parse_stream_from_start(NewDL, branched_dl)
         return self._continue_parse
-
-    def gsSPEndDisplayList(self, macro: Macro):
-        return self._break_parse
 
     def gsSPVertex(self, macro: Macro):
         # vertex references commonly use pointer arithmatic. I will deal with that case here, but not for other things unless it somehow becomes a problem later
@@ -652,7 +809,7 @@ class DL(DataParser):
     # The second is the material class
     def gsDPSetRenderMode(self, macro: Macro):
         self.NewMat = 1
-        self.last_mat.RenderMode = [a.strip() for a in macro.args]
+        self.last_mat.RenderMode = macro.args
         return self._continue_parse
 
     # The highest numbered light is always the ambient light
@@ -816,15 +973,21 @@ class DL(DataParser):
         self.last_mat.fog_pos = macro.args
         return self._continue_parse
 
+    _unpack_cmd_gsDPSetBlendColor_bin = PackedFormat(">Bh4B")  # pad pad rgba
+
     def gsDPSetBlendColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.blend_color = macro.args
         return self._continue_parse
 
+    _unpack_cmd_gsDPSetPrimColor_bin = PackedFormat(">7B")  # pad min_lod lod_frac rgba
+
     def gsDPSetPrimColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.prim_color = macro.args
         return self._continue_parse
+
+    _unpack_cmd_gsDPSetEnvColor_bin = PackedFormat(">Bh4B")  # pad pad rgba
 
     def gsDPSetEnvColor(self, macro: Macro):
         self.NewMat = 1
@@ -874,6 +1037,8 @@ class DL(DataParser):
         self.last_mat.GeoClear = list(all_geos.difference(geo_set))
         return self._continue_parse
 
+    # uses bitwise unpacking
+
     def gsDPSetCombineMode(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.Combiner = self.eval_set_combine_macro(macro.args)
@@ -883,6 +1048,8 @@ class DL(DataParser):
         self.NewMat = 1
         self.last_mat.Combiner = macro.args
         return self._continue_parse
+
+    _unpack_cmd_gsSPTexture_bin = PackedFormat(">2B2h")  # pad tile en s_scale t_scale
 
     # root tile, scale and set tex
     def gsSPTexture(self, macro: Macro):
@@ -1053,25 +1220,6 @@ class DL(DataParser):
     # _gsDPLoadTextureBlockTile
     # gsDPLoadMultiBlock
     # gsDPLoadMultiBlockS
-
-    # syncs need no processing
-    def gsSPCullDisplayList(self, macro: Macro):
-        return self._continue_parse
-
-    def gsDPPipeSync(self, macro: Macro):
-        return self._continue_parse
-
-    def gsDPLoadSync(self, macro: Macro):
-        return self._continue_parse
-
-    def gsDPTileSync(self, macro: Macro):
-        return self._continue_parse
-
-    def gsDPFullSync(self, macro: Macro):
-        return self._continue_parse
-
-    def gsDPNoOp(self, macro: Macro):
-        return self._continue_parse
 
     def make_new_material(self):
         if self.NewMat:
