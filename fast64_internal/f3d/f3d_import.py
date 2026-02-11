@@ -554,44 +554,98 @@ class DL(DataParser):
     def setup_unpack_dicts(self):
         f3d_gbi = self.f3d_gbi
         if f3d_gbi.F3DEX_GBI_2:
-            self.f3dex2_cmd_gbi_names = {
-                self.G_DMA_IO: ("gsSPDma_io", PackedFormat()),
-                self.G_LOAD_UCODE: ("gsSPLoadUcodeEx", PackedFormat()),
-            }
-        else:
-            self.f3dex2_cmd_gbi_names = dict()
-        if f3d_gbi.F3DEX_GBI or f3d_gbi.F3DLP_GBI or f3d_gbi.F3DEX_GBI_2:
-            self.f3dex_cmd_gbi_names = {
-                f3d_gbi.G_GEOMETRYMODE: ("gsSPGeometryMode", PackedFormat()),
-                f3d_gbi.G_MODIFYVTX: ("gsSPModifyVertex", PackedFormat(">BHl")),  # enum buf_index new_val
-                f3d_gbi.G_CULLDL: ("gsSPCullDisplayList", PackedFormat()),
-                f3d_gbi.G_BRANCH_Z: ("gsSPBranchLessZrg", PackedFormat()),
-                f3d_gbi.G_VTX: ("gsSPVertex", PackedFormat()),
-                f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat()),
-                f3d_gbi.G_TRI2: ("gsSP2Triangles", PackedFormat(">7B")),  # v123 pad v456
-                f3d_gbi.G_QUAD: ("gsSP1Quadrangle", PackedFormat(">7B")),  # v123 pad v456
-                f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">7B")),
-                f3d_gbi.G_TEXTURE: ("gsSPTexture", PackedFormat()),
-            }
+            self.f3dex_cmd_gbi_names = dict()
             self.f3d_cmd_gbi_names = dict()
+
+            self.f3dex2_cmd_gbi_names = {
+                f3d_gbi.G_VTX: (
+                    "gsSPVertex",
+                    PackedFormat(">7B", bit_packing=(4, 8, 4, 8, 32)),
+                ),  # pad num_v offset+num seg_ptr
+                f3d_gbi.G_DMA_IO: (
+                    "gsSPDma_io",
+                    PackedFormat(">7B", bit_packing=(1, 10, 1, 12, 32)),
+                ),  # i/o dmem_addr siz dram_addr
+                f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">3BL")),  # pad123 num_mtx
+                f3d_gbi.G_GEOMETRYMODE: ("gsSPGeometryMode", PackedFormat(">7B", bit_packing=(24, 32))),  # clear set
+                f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">3BL", (3,))),  # pad pad type seg_ptr
+                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">BHL", (2,))),  # dmem_index offset seg_ptr
+                # set other modes
+            }
+        elif f3d_gbi.F3DEX_GBI:
+            self.f3dex2_cmd_gbi_names = dict()
+            self.f3d_cmd_gbi_names = dict()
+
+            self.f3dex_cmd_gbi_names = {
+                f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">BhL", (2,))),  # type pad seg_ptr
+                f3d_gbi.G_VTX: (
+                    "gsSPVertex",
+                    PackedFormat(">7B", (3,), bit_packing=(8, 6, 10, 32)),
+                ),  # buf_start num_vert len_dat vtx_ptr
+                f3d_gbi.G_SETGEOMETRYMODE: (
+                    "gsSPSetGeometryMode",
+                    PackedFormat(">7B", bit_packing=(24, 32)),
+                ),  # pad word
+                f3d_gbi.G_CLEARGEOMETRYMODE: (
+                    "gsSPClearGeometryMode",
+                    PackedFormat(">7B", bit_packing=(24, 32)),
+                ),  # word pad
+                # set other mode, L and H?
+                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,))),  # offset dmem_index seg_ptr
+            }
         else:
             self.f3dex_cmd_gbi_names = dict()
+            self.f3dex2_cmd_gbi_names = dict()
+
             self.f3d_cmd_gbi_names = {
-                f3d_gbi.G_SETGEOMETRYMODE: ("gsSPSetGeometryMode", PackedFormat()),
-                f3d_gbi.G_CLEARGEOMETRYMODE: ("gsSPClearGeometryMode", PackedFormat()),
-                f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat()),
-                f3d_gbi.G_VTX: ("gsSPVertex", PackedFormat()),
+                f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">BhL", (2,))),  # type pad seg_ptr
+                f3d_gbi.G_MOVEMEM: ("gsMoveMem", PackedFormat(">BHL", (2,))),  # dmem_index siz mem_ptr
+                f3d_gbi.G_VTX: (
+                    "gsSPVertex",
+                    PackedFormat(">7B", (3,), bit_packing=(4, 4, 16, 32)),
+                ),  # num_vert buf_start len_dat vtx_ptr
+                f3d_gbi.G_SETGEOMETRYMODE: (
+                    "gsSPSetGeometryMode",
+                    PackedFormat(">7B", bit_packing=(24, 32)),
+                ),  # pad word
+                f3d_gbi.G_CLEARGEOMETRYMODE: (
+                    "gsSPClearGeometryMode",
+                    PackedFormat(">7B", bit_packing=(24, 32)),
+                ),  # pad word
+                # set other mode, L and H?
+                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,))),  # offset dmem_index seg_ptr
                 f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">7B")),  # pads
-                f3d_gbi.G_TEXTURE: ("gsSPTexture", PackedFormat()),
+                f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat(">7B")),  # pad1234 v123
             }
+        if f3d_gbi.F3DEX_GBI or f3d_gbi.F3DLP_GBI or f3d_gbi.F3DEX_GBI_2:
+            self.f3dex_cmd_gbi_names.update(
+                {
+                    f3d_gbi.G_MOVEMEM: ("gsMoveMem", PackedFormat(">3BL", (3,))),  # size offset dmem_index seg_ptr
+                    f3d_gbi.G_MODIFYVTX: ("gsSPModifyVertex", PackedFormat(">BHl")),  # enum buf_index new_val
+                    f3d_gbi.G_CULLDL: ("gsSPCullDisplayList", PackedFormat(">7B")),  # I'll just be ignoring this anyway
+                    f3d_gbi.G_BRANCH_Z: (
+                        "gsSPBranchLessZrg",
+                        PackedFormat(">15B"),
+                    ),  # leads w/ rdp half cmd, deal with later
+                    f3d_gbi.G_LOAD_UCODE: (
+                        "gsSPLoadUcodeEx",
+                        PackedFormat(">15B"),
+                    ),  # leads w/ rdp half cmd, deal with later
+                    f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat(">7B")),  # v123 pad4567
+                    f3d_gbi.G_TRI2: ("gsSP2Triangles", PackedFormat(">7B")),  # v123 pad v456
+                    f3d_gbi.G_QUAD: ("gsSP1Quadrangle", PackedFormat(">7B")),  # v123 pad v456
+                    f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">3BL")),  # pad123 num_mtx
+                }
+            )
         self.common_cmd_gbi_names = {
             f3d_gbi.G_NOOP: ("gsDPNoOp", PackedFormat(">7B")),  # pads
             f3d_gbi.G_SPNOOP: ("gsDPNoOp", PackedFormat(">7B")),  # pads
             f3d_gbi.G_ENDDL: ("gsSPEndDisplayList", PackedFormat(">7B")),  # pads
             f3d_gbi.G_DL: ("gsSPDisplayList", PackedFormat(">BhL", (2,))),  # branch pad dl_ptr
-            f3d_gbi.G_MOVEMEM: ("gsDma1p", PackedFormat()),  # handle more properly?
-            f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat()),
-            f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat()),
+            f3d_gbi.G_TEXTURE: (
+                "gsSPTexture",
+                PackedFormat(">7B", bit_packing=(10, 3, 3, 8, 16, 16)),
+            ),  # pad lod_lvl tile en s
         }
         self.rdp_cmd_gbi_names = {
             f3d_gbi.G_SETCIMG: ("gsDPSetColorImage", PackedFormat(">7B")),  # bpy ignores
@@ -685,9 +739,9 @@ class DL(DataParser):
 
     def binary_cmd_get(self, parser: Parser) -> tuple[cmd_name:str, PackedFormat]:
         cmd_type = self.unpack_type(parser.cur_stream, parser.head, ">B", make_str=False)
-        cmd_name = self.f3d_gbi.all_f3d_gbi_cmds.get(cmd_type)
+        cmd_name, packed_fmt = self.f3d_gbi.all_f3d_gbi_cmds.get(cmd_type)
         # tex rects and maybe other cmds are longer
-        return cmd_name, 8
+        return cmd_name, packed_fmt
 
     def binary_cmd_unpack(
         self, parser: Parser, cmd_name: str, packed_fmt: PackedFormat
