@@ -22,7 +22,7 @@ from ..f3d.f3d_gbi import get_F3D_GBI
 
 from ..utility import hexOrDecInt, gammaInverse
 from ..utility_importer import *
-from ..bin_png import convert_tex
+from ..bin_png import convert_tex_c, convert_tex_bin
 
 # ------------------------------------------------------------------------
 #    Classes
@@ -47,7 +47,8 @@ class LightParent:
         self.col = self.a = self.l = [*data[0:3], 0xFF]
         self.dir = data[8:11]
 
-    def Lights1(self, light_data: list[str]):
+    # handles all Lights* type data structures, support for Lights1 rn
+    def Lights(self, light_data: list[str]):
         data = [eval(dat.strip()) for dat in light_data[0].split(",")]
         self.a = [*data[0:3], 0xFF]
         self.col = self.l = [*data[3:6], 0xFF]
@@ -99,6 +100,7 @@ class Texture(TexBase):
     pal: bool = False
     dxt: int = 0
     texels: int = 0
+    num_bytes: int = 0 # to be filled in after self.determine_size
 
     def determine_size(self):
         # dxt is a ratio between words and lines of a texture
@@ -135,7 +137,7 @@ class Texture(TexBase):
             # nor will it properly show up in blender as an import
             if not self.width:
                 self.width = 1
-            self.height = texels / self.width
+            self.height = texels // self.width
             return
         bit_size = math.log2(bit_size // 4)
         if not bit_size:
@@ -157,6 +159,7 @@ class Texture(TexBase):
         height = int((texels + 1) / width)
         self.width = width
         self.height = height
+        self.num_bytes = int(bit_size * width * height)
 
     def size(self):
         return self.width, self.height
@@ -180,7 +183,7 @@ class Mat:
         "1",
     )
 
-    def __init__(self, layer: int = None):
+    def __init__(self, layer: int = None, bin_file: BinaryIO = None):
         self.GeoSet = []
         self.GeoClear = []
         self.tiles = [Tile() for a in range(8)]
@@ -199,6 +202,7 @@ class Mat:
             self.layer = self._base_layer
         else:
             self.layer = layer
+        self.bin_file = bin_file # theoretically could be different for each mat
 
     # calc the hash for an f3d mat and see if its equal to this mats hash
     def mat_hash_f3d(self, f3d: F3DMaterialProperty):
@@ -284,25 +288,51 @@ class Mat:
         if "#include" in tex_img:
             return self.load_texture_png(force_new_tex, textures, path, tex)
         else:
-            return self.load_texture_array(force_new_tex, textures, path, tex)
+            return self.load_texture_array(force_new_tex, textures, path, tex, DataParser._c_parsing)
 
-    def load_texture_array(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
+    def load_texture_array(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture, parse_target: int):
         """
         Create a new/find image object and then fill pixel buffer with array data
         """
-        tex_img = textures.get(tex.tex_img)
-        # idk if this properly deals with multiple palettes...
-        pal_img = textures.get(self.pal.tex_img) if self.pal else None
         tex.determine_size()
-        image_texels = convert_tex(
-            tex.fmt,
-            tex.width,
-            tex.height,
-            tex.siz,
-            tex_img.var_data[0],
-            pal_stream=pal_img.var_data[0] if pal_img else None,
-        )
-        i = bpy.data.images.new(tex.tex_img, tex.width, tex.height, alpha=True)
+        # for some reason I can't get the parsing target to be what I want, so read props instead
+        # based on naming structure, you shouldn't have repeat texture names since they're ROM addresses
+        if parse_target == DataParser._binary_parsing:
+            name = f"tex_img_0x{tex.tex_img:X}"
+            if (i := bpy.data.images.get(name, None)):
+                return i
+            tex_img = tex.tex_img
+            tex_img = self.bin_file[tex_img:tex_img + tex.num_bytes]
+            # idk if this properly deals with multiple palettes...
+            pal_img = self.pal.tex_img if self.pal else None
+            if pal_img:
+                # determine if CI4 or CI8 and num colors
+                pal_img = self.bin_file[pal_img:pal_img + 32]
+            image_texels = convert_tex_bin(
+                tex.fmt,
+                tex.width,
+                tex.height,
+                tex.siz,
+                tex_img,
+                pal_stream=pal_img if pal_img else None,
+            )
+            name = f"tex_img_0x{tex.tex_img:X}"
+        else:
+            name = tex.tex_img
+            if (i := bpy.data.images.get(name, None)) and not force_new_tex:
+                return i
+            tex_img = textures.get(tex.tex_img)
+            # idk if this properly deals with multiple palettes...
+            pal_img = textures.get(self.pal.tex_img) if self.pal else None
+            image_texels = convert_tex_c(
+                tex.fmt,
+                tex.width,
+                tex.height,
+                tex.siz,
+                tex_img.var_data[0],
+                pal_stream=pal_img.var_data[0] if pal_img else None,
+            )
+        i = bpy.data.images.new(name, tex.width, tex.height, alpha=True)
         i.pixels = image_texels
         return i
 
@@ -539,10 +569,11 @@ class DL(DataParser):
         self.Textures = {}
         self.NewMat = 1
         self.f3d_gbi = get_F3D_GBI()  # make sure to set this to the right version for your game!
+        self.setup_unpack_dicts()
         # use the dict in subclasses to keep track of mats per layer when parsing in render order
         self.last_mat_dict = dict()
         if not lastmat:
-            self.last_mat = Mat()
+            self.last_mat = Mat(parse_target = parse_target)
             self.last_mat_dict[Mat.base_mat] = self.last_mat
             self.last_mat.name = 0
         else:
@@ -559,9 +590,9 @@ class DL(DataParser):
 
             self.f3dex2_cmd_gbi_names = {
                 f3d_gbi.G_VTX: (
-                    "gsSPVertex",
-                    PackedFormat(">7B", bit_packing=(4, 8, 4, 8, 32)),
-                ),  # pad num_v offset+num seg_ptr
+                    "gsSPVertexBin",
+                    PackedFormat(">7B", (3,), reorder = (1, 2, 3), make_str = False, bit_packing=(4, 8, 4, 8, 32)),
+                ),  # pad num_v offset+num seg_ptr, reorder -> num offset ptr
                 f3d_gbi.G_DMA_IO: (
                     "gsSPDma_io",
                     PackedFormat(">7B", bit_packing=(1, 10, 1, 12, 32)),
@@ -579,9 +610,9 @@ class DL(DataParser):
             self.f3dex_cmd_gbi_names = {
                 f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">BhL", (2,))),  # type pad seg_ptr
                 f3d_gbi.G_VTX: (
-                    "gsSPVertex",
-                    PackedFormat(">7B", (3,), bit_packing=(8, 6, 10, 32)),
-                ),  # buf_start num_vert len_dat vtx_ptr
+                    "gsSPVertexBin",
+                    PackedFormat(">7B", (3,), reorder = (1, 0, 3), make_str = False, bit_packing=(8, 6, 10, 32)),
+                ),  # buf_start num_vert len_dat vtx_ptr, reorder -> num offset ptr
                 f3d_gbi.G_SETGEOMETRYMODE: (
                     "gsSPSetGeometryMode",
                     PackedFormat(">7B", bit_packing=(24, 32)),
@@ -599,11 +630,11 @@ class DL(DataParser):
 
             self.f3d_cmd_gbi_names = {
                 f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">BhL", (2,))),  # type pad seg_ptr
-                f3d_gbi.G_MOVEMEM: ("gsMoveMem", PackedFormat(">BHL", (2,))),  # dmem_index siz mem_ptr
+                f3d_gbi.G_MOVEMEM: ("gsSPMoveMem", PackedFormat(">BHL", (2,))),  # dmem_index siz mem_ptr
                 f3d_gbi.G_VTX: (
-                    "gsSPVertex",
-                    PackedFormat(">7B", (3,), bit_packing=(4, 4, 16, 32)),
-                ),  # num_vert buf_start len_dat vtx_ptr
+                    "gsSPVertexBin",
+                    PackedFormat(">7B", (3,), reorder = (0, 1, 3), make_str = False, bit_packing=(4, 4, 16, 32), post_unpack = self.f3d_g_vertex_parse),
+                ),  # num_vert buf_start len_dat vtx_ptr, reorder -> num offset ptr
                 f3d_gbi.G_SETGEOMETRYMODE: (
                     "gsSPSetGeometryMode",
                     PackedFormat(">7B", bit_packing=(24, 32)),
@@ -615,12 +646,12 @@ class DL(DataParser):
                 # set other mode, L and H?
                 f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,))),  # offset dmem_index seg_ptr
                 f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">7B")),  # pads
-                f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat(">7B")),  # pad1234 v123
+                f3d_gbi.G_TRI1: ("gsSP1Triangle", PackedFormat(">7B", make_str = False, reorder = (4, 5, 6, 3), post_unpack = lambda args: [a//10 for a in args])),  # pad123 flag v123, reorder v123 flag
             }
         if f3d_gbi.F3DEX_GBI or f3d_gbi.F3DLP_GBI or f3d_gbi.F3DEX_GBI_2:
             self.f3dex_cmd_gbi_names.update(
                 {
-                    f3d_gbi.G_MOVEMEM: ("gsMoveMem", PackedFormat(">3BL", (3,))),  # size offset dmem_index seg_ptr
+                    f3d_gbi.G_MOVEMEM: ("gsSPMoveMem", PackedFormat(">3BL", (3,), reorder=(0, 2, 3, 1))),  # size offset dmem_index seg_ptr, reorder -> index siz seg_ptr offset
                     f3d_gbi.G_MODIFYVTX: ("gsSPModifyVertex", PackedFormat(">BHl")),  # enum buf_index new_val
                     f3d_gbi.G_CULLDL: ("gsSPCullDisplayList", PackedFormat(">7B")),  # I'll just be ignoring this anyway
                     f3d_gbi.G_BRANCH_Z: (
@@ -631,9 +662,9 @@ class DL(DataParser):
                         "gsSPLoadUcodeEx",
                         PackedFormat(">15B"),
                     ),  # leads w/ rdp half cmd, deal with later
-                    f3d_gbi.G_TRI1: ("gsSP1Triangles", PackedFormat(">7B")),  # v123 pad4567
-                    f3d_gbi.G_TRI2: ("gsSP2Triangles", PackedFormat(">7B")),  # v123 pad v456
-                    f3d_gbi.G_QUAD: ("gsSP1Quadrangle", PackedFormat(">7B")),  # v123 pad v456
+                    f3d_gbi.G_TRI1: ("gsSP1Triangle", PackedFormat(">7B", make_str = False, post_unpack = lambda args: [a//2 for a in args])),  # v123 flag pad567
+                    f3d_gbi.G_TRI2: ("gsSP2Triangles", PackedFormat(">7B", make_str = False, post_unpack = lambda args: [a//2 for a in args])),  # v123 flag v456
+                    f3d_gbi.G_QUAD: ("gsSP1Quadrangle", PackedFormat(">7B", make_str = False, post_unpack = lambda args: [a//2 for a in args])),  # v123 flag v456
                     f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">3BL")),  # pad123 num_mtx
                 }
             )
@@ -641,11 +672,11 @@ class DL(DataParser):
             f3d_gbi.G_NOOP: ("gsDPNoOp", PackedFormat(">7B")),  # pads
             f3d_gbi.G_SPNOOP: ("gsDPNoOp", PackedFormat(">7B")),  # pads
             f3d_gbi.G_ENDDL: ("gsSPEndDisplayList", PackedFormat(">7B")),  # pads
-            f3d_gbi.G_DL: ("gsSPDisplayList", PackedFormat(">BhL", (2,))),  # branch pad dl_ptr
+            f3d_gbi.G_DL: ("gsSPDisplayListBin", PackedFormat(">BhL", (2,))),  # branch pad dl_ptr
             f3d_gbi.G_TEXTURE: (
                 "gsSPTexture",
-                PackedFormat(">7B", bit_packing=(10, 3, 3, 8, 16, 16)),
-            ),  # pad lod_lvl tile en s
+                PackedFormat(">7B", reorder=(4, 5, 1, 2, 3), bit_packing=(10, 3, 3, 8, 16, 16)),
+            ),  # pad lod_lvl tile en s t, reorder s t lod_lvl tile en
         }
         self.rdp_cmd_gbi_names = {
             f3d_gbi.G_SETCIMG: ("gsDPSetColorImage", PackedFormat(">7B")),  # bpy ignores
@@ -669,24 +700,24 @@ class DL(DataParser):
             ),  # ul_s ul_t pad tile width height
             f3d_gbi.G_SETTILE: (
                 "gsDPSetTile",
-                PackedFormat(">7B", bit_packing=(3, 2, 1, 9, 9, 5, 3, 4, 2, 4, 4, 2, 4, 4)),
-            ),  # fmt siz pad num_64_bit_vals tmem pad tile palette t_flag t_mask t_shift s_flag s_mask s_shift
+                PackedFormat(">7B", reorder = (0, 1, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13), bit_packing=(3, 2, 1, 9, 9, 5, 3, 4, 2, 4, 4, 2, 4, 4)),
+            ),  # fmt siz pad num_64_bit_vals tmem pad tile palette t_flag t_mask t_shift s_flag s_mask s_shift, reoder -> remove pads
             f3d_gbi.G_LOADTILE: (
                 "gsDPLoadTile",
                 PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
             ),  # ul_s ul_t pad tile width height
             f3d_gbi.G_LOADBLOCK: (
                 "gsDPLoadBlock",
-                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
-            ),  # ul_s ul_t pad tile width height
+                PackedFormat(">7B", reorder = (3, 0, 1, 4, 5), bit_packing=(12, 12, 4, 4, 12, 12)),
+            ),  # ul_s ul_t pad tile texels dxt, reorder -> tile ul_s ul_t texels dxt
             f3d_gbi.G_SETTILESIZE: (
                 "gsDPSetTileSize",
-                PackedFormat(">7B", bit_packing=(12, 12, 4, 4, 12, 12)),
-            ),  # ul_s ul_t pad tile width height
+                PackedFormat(">7B", bit_packing=(12, 12, 8, 12, 12)),
+            ),  # ul_s ul_t tile width height
             f3d_gbi.G_LOADTLUT: (
                 "gsDPLoadTLUTCmd",
-                PackedFormat(">7B", bit_packing=(28, 4, 12, 12)),
-            ),  # pad tile clr_cnt pad
+                PackedFormat(">7B", reorder = (1, 2), bit_packing=(28, 4, 12, 12)),
+            ),  # pad tile clr_cnt pad, reorder -> tile clr_cnt
             f3d_gbi.G_RDPSETOTHERMODE: (
                 "gsSPSetOtherMode",
                 PackedFormat(">3BL"),
@@ -739,7 +770,8 @@ class DL(DataParser):
 
     def binary_cmd_get(self, parser: Parser) -> tuple[cmd_name:str, PackedFormat]:
         cmd_type = self.unpack_type(parser.cur_stream, parser.head, ">B", make_str=False)
-        cmd_name, packed_fmt = self.f3d_gbi.all_f3d_gbi_cmds.get(cmd_type)
+        cmd_name, packed_fmt = self.all_f3d_gbi_cmds.get(cmd_type)
+        parser.advance_head(1)
         # tex rects and maybe other cmds are longer
         return cmd_name, packed_fmt
 
@@ -753,7 +785,7 @@ class DL(DataParser):
             cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
         return cmd_args, packed_fmt.format_size
 
-    def parse_stream_DL(self, start_name: str):
+    def parse_stream_DL(self, start_name: Union[str, int]):
         """
         Initialize vars and then parse data stream
         """
@@ -766,31 +798,55 @@ class DL(DataParser):
         # merge all lights into single lights dictionary
         self.Lights.update(self.Light_t)
         self.Lights.update(self.Ambient_t)
+        self.last_mat.bin_file = self.bin_file
         self.parse_stream(self.get_new_stream(start_name), start_name)
 
     def gsSPEndDisplayList(self, macro: Macro):
         return self._break_parse
 
+    def gsSPDisplayListBin(self, macro: Macro):
+        if macro.args[0] == 0:
+            return self.gsSPBranchList(macro.partial(macro.args[2]))
+        else:
+            return self.gsSPDisplayList(macro.partial(macro.args[2]))
+
     def gsSPBranchList(self, macro: Macro):
-        NewDL = self.Gfx.get(branched_dl := macro.args[0])
-        if not NewDL:
-            raise Exception(
-                "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
-                    NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
-                )
-            )
+        NewDL = self.get_new_stream(branched_dl := macro.args[0])
+        # if not NewDL:
+        #     raise Exception(
+        #         "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
+        #             NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
+        #         )
+        #     )
         self.parse_stream_from_start(NewDL, branched_dl)
         return self._break_parse
 
     def gsSPDisplayList(self, macro: Macro):
-        NewDL = self.Gfx.get(branched_dl := macro.args[0])
-        if not NewDL:
-            raise Exception(
-                "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
-                    NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
-                )
-            )
+        NewDL = self.get_new_stream(branched_dl := macro.args[0])
+        # if not NewDL:
+        #     raise Exception(
+        #         "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
+        #             NewDL, self.scene.fast64.sm64.importer.level_name, self.scene.fast64.sm64.importer.level_prefix
+        #         )
+        #     )
         self.parse_stream_from_start(NewDL, branched_dl)
+        return self._continue_parse
+
+    def f3d_g_vertex_parse(self, args: list[int]):
+        return [args[0] + 1, *args[1:]]
+
+    def gsSPVertexBin(self, macro: Macro):
+        start = macro.args[1]
+        length = macro.args[0]
+        v_data = [self.unpack_type(self.bin_file, macro.args[2] + off*0x10, ">3hH2h4B", make_str = False) for off in range(length)]
+
+        for k, i in enumerate(range(start, length, 1)):
+            self.VertBuff[i] = [v_data[k], start]
+        # These are all independent data blocks in blender
+        self.Verts.extend([v[0:3] for v in v_data])
+        self.UVs.extend([v[4:6] for v in v_data])
+        self.VCs.extend([v[6:10] for v in v_data])
+        self.LastLoad = length
         return self._continue_parse
 
     def gsSPVertex(self, macro: Macro):
@@ -866,6 +922,13 @@ class DL(DataParser):
         self.last_mat.RenderMode = macro.args
         return self._continue_parse
 
+    # not a real gbi cmd, but the binary version that utilizes G_MOVEMEM
+    def gsSPMoveMem(self, macro: Macro):
+        # just check for G_MV_L0 for now
+        # if macro.args[0] = self.f3d_gbi.G_MV_L0:
+        #     return self.gsSPLight(macro)
+        return self._continue_parse
+
     # The highest numbered light is always the ambient light
     def gsSPLight(self, macro: Macro):
         self.NewMat = 1
@@ -910,6 +973,7 @@ class DL(DataParser):
 
     def gsSPSetLights1(self, macro: Macro):
         return self._continue_parse
+
 
     def gsSPSetLights2(self, macro: Macro):
         return self._continue_parse
@@ -1027,21 +1091,15 @@ class DL(DataParser):
         self.last_mat.fog_pos = macro.args
         return self._continue_parse
 
-    _unpack_cmd_gsDPSetBlendColor_bin = PackedFormat(">Bh4B")  # pad pad rgba
-
     def gsDPSetBlendColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.blend_color = macro.args
         return self._continue_parse
 
-    _unpack_cmd_gsDPSetPrimColor_bin = PackedFormat(">7B")  # pad min_lod lod_frac rgba
-
     def gsDPSetPrimColor(self, macro: Macro):
         self.NewMat = 1
         self.last_mat.prim_color = macro.args
         return self._continue_parse
-
-    _unpack_cmd_gsDPSetEnvColor_bin = PackedFormat(">Bh4B")  # pad pad rgba
 
     def gsDPSetEnvColor(self, macro: Macro):
         self.NewMat = 1
@@ -1103,8 +1161,6 @@ class DL(DataParser):
         self.last_mat.Combiner = macro.args
         return self._continue_parse
 
-    _unpack_cmd_gsSPTexture_bin = PackedFormat(">2B2h")  # pad tile en s_scale t_scale
-
     # root tile, scale and set tex
     def gsSPTexture(self, macro: Macro):
         self.NewMat = 1
@@ -1148,7 +1204,7 @@ class DL(DataParser):
             # texels and dxt commonly use math/expressions
             if "CALC_DXT" in macro.args[4]:
                 tex.dxt = 0
-                tex.width = re.search("\d+", macro.args[4]).group()
+                tex.width = hexOrDecInt(re.search("\d+", macro.args[4]).group())
             else:
                 tex.dxt = hexOrDecInt(macro.args[4])
             if "*" in macro.args[3]:
@@ -1275,15 +1331,26 @@ class DL(DataParser):
     # gsDPLoadMultiBlock
     # gsDPLoadMultiBlockS
 
+    # turn member of vtx str arr into vtx args
+    def parse_vert(self, Vert: str):
+        v = Vert.replace("{", "").replace("}", "").split(",")
+        num = lambda x: [eval_or_int(a) for a in x]
+        pos = num(v[:3])
+        uv = num(v[4:6])
+        vc = num(v[6:10])
+        return [pos, uv, vc]
+
+    # given tri args in gbi cmd, give appropriate tri indices in vert list
+    def parse_tri(self, Tri: list[int]):
+        L = len(self.Verts)
+        return [a + L - self.LastLoad for a in Tri]
+
     def make_new_material(self):
         if self.NewMat:
             self.NewMat = 0
             self.Mats.append([len(self.Tris) - 1, self.last_mat])
             self.last_mat = deepcopy(self.last_mat)  # for safety
             self.last_mat_dict[self.last_mat.layer] = self.last_mat
-
-    def parse_tri(self, Tri: Sequence[int]):
-        return [self.VertBuff[a] for a in Tri]
 
     # if someone uses just the int these catch that
     def eval_timg_format(self, fmt: str):

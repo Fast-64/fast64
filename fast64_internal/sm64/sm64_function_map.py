@@ -50963,7 +50963,7 @@ func_map = {
         "007cc6c0": "_common0_geoSegmentRomStart",
         "0f000000": "blue_coin_switch_geo",
         "0f000020": "test_platform_geo",
-        "0f000028": "amp_geo",
+        "0f000028": "dAmpGeo",
         "0f0001a8": "cannon_base_geo",
         "0f0001c0": "cannon_barrel_geo",
         "0f0001d8": "chuckya_geo",

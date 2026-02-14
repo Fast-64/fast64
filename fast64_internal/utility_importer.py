@@ -64,6 +64,8 @@ class PackedFormat:
         default_factory=tuple
     )  # use a packed bitfield to unpack, each item is num bits, unpacked sequentially, make format all bytes
     post_unpack: callable = None  # called after unpacking, used for doing math to args, useful for f3d
+    # it may instead be more convenient to just change the macro name to <macro>BIN for specific processing
+    # usually in the case where a binary cmd can be one of several equivalent C macros the pre processor simplifies
 
     @property
     def format_size(self):
@@ -81,14 +83,14 @@ class PackedFormat:
         if self.bit_packing:
             args = self.unpack_bits(args)
         if self.post_unpack:
-            self.post_unpack(args)
+            args = self.post_unpack(args)
         return args
 
     # format_str must be list of unsigned bytes
     def unpack_bits(self, args: list):
         # combined bytes into one bit chunk of data
         dat = 0
-        for byte, shift in enumerate(args):
+        for shift, byte in enumerate(reversed(args)):
             dat += byte << (shift * 8)
         # unpack in reverse order using bitmask, then shifting data
         args = []
@@ -341,7 +343,7 @@ class DataParser(BinProcess):
     def parse_stream_binary(self, bin_file: BinaryIO, entry_id: Any, *args, **kwargs):
         """
         Binary parsing works in the following order:
-            * set class.parse_target to DataParser._binary_parsing, and class.bin_file to rom
+            * set class.parse_target to DataParser._binary_parsing, cls.banks to tlb mapping and class.bin_file to rom
             * run parse_stream_from_start(dat_stream, entry, *args) w/ dat_stream = None, entry = rom_ptr: int
             * binary_cmd_unpack/f"_decode_cmd_{cmd_name.lower()}_bin"(parser, PackedFormat) -> cmd_args
             * cmd specific func or binary_cmd_unpack unpacks cmd using stream and PackedFormat -> cmd_args
@@ -359,15 +361,15 @@ class DataParser(BinProcess):
             cmd_name, packed_fmt = self.binary_cmd_get(parser)  # adv head if MSB not included in packed format
             arg_decode_func = getattr(self, f"_decode_cmd_{cmd_name.lower()}_bin", None)
             if arg_decode_func:
-                cmd_name, cmd_args, cmd_len = arg_decode_func(parser)
+                cmd_name, cmd_args, cmd_len = arg_decode_func(packed_fmt, parser)
             else:
                 cmd_args, cmd_len = self.binary_cmd_unpack(parser, cmd_name, packed_fmt)
             parser.advance_head(cmd_len)
             if cmd_name in self._skippable_cmds:
                 continue
             cur_macro = Macro(cmd_name, cmd_args)
-            print(cur_macro)
             func = getattr(self, cur_macro.cmd, None)
+            print(cur_macro)
             if not func:
                 raise Exception(f"Macro {cur_macro} not found in parser function")
             flow_status = func(cur_macro, *args, **kwargs)
@@ -525,7 +527,9 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
         if match and type_collisions:
             # there should ideally only be one collision
             type_name = type_collisions[0]
-            variable_name = line[line.find(type_name) + len(type_name) : match.span()[0]].strip()
+            # type_name plus any extra chars(non greedy) until a space
+            name_start = re.search(f"{type_name}.*?\s", line, flags=re.IGNORECASE).span()[1]
+            variable_name = line[name_start : match.span()[0]].strip()
             type_found = CDataArray(type_name, variable_name)
     # Now remove newlines from each line, and then split macro ends
     # This makes each member of the array a single macro or array

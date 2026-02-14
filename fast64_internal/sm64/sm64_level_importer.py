@@ -3,12 +3,17 @@
 # ------------------------------------------------------------------------
 
 # TODO:
-# create textures from u8 / u16 arrays (slow, give checkbox option)
-# make layer detection work better?
+# fix materials for binary (mostly render modes, color combiners and lights)
+# clean up code base, remove existing sm64 binary importer
+# make sure props play nice in prop updating system
+
+# stretch goals
 # deal with direct DLs instead of geos (model metal box for example)
 # make rooms work better? (currently imports but definetly not good for export)
+# make layer detection work better?
 # add function and class descriptors per spec (triple quotes)
 # make better naming for certain vars
+# try to fix edge cases and any weird importing stuff (basically lots of testing, it feels mostly good but this must be done last)
 
 from __future__ import annotations
 
@@ -52,8 +57,6 @@ from typing import TextIO
 from numbers import Number
 from collections.abc import Sequence
 
-# from SM64classes import *
-
 from ..f3d.f3d_import import *
 from ..f3d.f3d_material import update_node_values_of_material, getDefaultMaterialPreset, createF3DMat
 from ..panels import SM64_Panel
@@ -71,33 +74,15 @@ from ..utility import (
     gammaInverse,
 )
 from .sm64_objects import enumEnvFX
-from .sm64_utility import import_rom_checks
+from .sm64_utility import import_rom_checks, convert_addr_to_func
 from .sm64_constants import (
+    ACTOR_PRESET_INFO,
+    ModelInfo,
     enumVersionDefs,
     enumLevelNames,
     enumSpecialsNames,
     LEVEL_ID_NUMBERS,
-    groups_obj_export,
-    group_0_geos,
-    group_1_geos,
-    group_2_geos,
-    group_3_geos,
-    group_4_geos,
-    group_5_geos,
-    group_6_geos,
-    group_7_geos,
-    group_8_geos,
-    group_9_geos,
-    group_10_geos,
-    group_11_geos,
-    group_12_geos,
-    group_13_geos,
-    group_14_geos,
-    group_15_geos,
-    group_16_geos,
-    group_17_geos,
-    common_0_geos,
-    common_1_geos,
+    groups_obj_export
 )
 
 # ------------------------------------------------------------------------
@@ -143,6 +128,7 @@ class Area:
     ):
         self.root = root
         self.geo = geo
+        self.geo_data = None
         self.num = num
         self.scene = scene
         self.props = scene.fast64.sm64.importer
@@ -165,7 +151,6 @@ class Area:
         warp.warpID = args[0]
         warp.destNode = args[3]
         level = get_level_name(args[1]).replace("LEVEL_", "").lower()
-        print(level)
         if level == "castle":
             level = "castle_inside"
         warp.warpType = type
@@ -196,7 +181,6 @@ class Area:
         ) @ transform_mtx_blender_to_n64()
         angle = Euler([math.radians(eval_or_int(a)) for a in args[4:7]], "ZXY")
         angle = rotate_quat_n64_to_blender(angle).to_euler("XYZ")
-        # print(pos, angle)
         self.objects.append(Object(args[0], pos, angle, *args[7:]))
 
     def place_objects(self, col_name: str = None, actor_models: dict[model_name, bpy.Types.Object] = None):
@@ -380,15 +364,15 @@ class Level(DataParser):
         0x14: ("PUSH_POOL", PackedFormat(">H")),  # pad
         0x15: ("POP_POOL", PackedFormat(">H")),  # pad
         0x16: ("FIXED_LOAD", PackedFormat(">H3L")),  # load_addr start_ptr end_ptr
-        0x17: ("LOAD_RAW", PackedFormat(">H2L", make_str=False)),  # seg start_ptr end_ptr
-        0x18: ("LOAD_MIO0", PackedFormat(">H2L", make_str=False)),  # seg start_ptr end_ptr
+        0x17: ("LOAD_RAW", PackedFormat(">2B2L", reorder = (1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
+        0x18: ("LOAD_MIO0", PackedFormat(">2B2L", reorder = (1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
         0x19: ("LOAD_MARIO_HEAD", PackedFormat(">H")),  # set head
-        0x1A: ("LOAD_MIO0_TEXTURE", PackedFormat(">H2L", make_str=False)),  # seg start_ptr end_ptr
+        0x1A: ("LOAD_MIO0_TEXTURE", PackedFormat(">2B2L", reorder = (1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
         0x1B: ("INIT_LEVEL", PackedFormat(">H")),  # pad
         0x1C: ("CLEAR_LEVEL", PackedFormat(">H")),  # pad
         0x1D: ("ALLOC_LEVEL_POOL", PackedFormat(">H")),  # pad
         0x1E: ("FREE_LEVEL_POOL", PackedFormat(">H")),  # pad
-        0x1F: ("AREA", PackedFormat(">2BL", (2,))),  # index, pad, geo_ptr
+        0x1F: ("AREA", PackedFormat(">2BL", make_str=False)),  # index, pad, geo_ptr, delay ptr retrieval because hacks do
         0x20: ("END_AREA", PackedFormat(">H")),  # pad
         0x21: ("LOAD_MODEL_FROM_DL", PackedFormat(">Hl")),  # model|layer dl_ptr
         0x22: ("LOAD_MODEL_FROM_GEO", PackedFormat(">HL", (1,))),  # model geo_ptr
@@ -406,7 +390,7 @@ class Level(DataParser):
         0x2B: ("MARIO_POS", PackedFormat(">BB4h")),  # area pad yaw posXYZ
         0x2C: ("UNLOAD_MARIO_AREA", PackedFormat(">H")),  # pad
         0x2D: "UPDATE_OBJECTS",
-        0x2E: ("TERRAIN", PackedFormat(">HL", (1,))),  # pad col_ptr
+        0x2E: ("TERRAIN", PackedFormat(">HL", make_str=False)),  # pad col_ptr, delay ptr retrieval because hacks do
         0x2F: ("ROOMS", PackedFormat(">HL")),  # pad rooms_ptr
         0x30: ("SHOW_DIALOG", PackedFormat(">BB")),  # index dialog_id
         0x31: ("TERRAIN_TYPE", PackedFormat(">H")),  # terrain type
@@ -479,8 +463,51 @@ class Level(DataParser):
         start += self.unpack_type(bin_file, 0x3ACE, ">H", make_str=False)
         end = self.unpack_type(bin_file, 0x3AC6, ">H", make_str=False) << 16
         end += self.unpack_type(bin_file, 0x3ACA, ">H", make_str=False)
-        # mio0 for seg2 just happens to expand start by 0x3156 idk how it really works
+        # mio0 for seg2 expands by 0x3156, from mio0 header 0xC
         self.banks.tlb[2] = [start + 0x3156, end + 0x3156]
+
+    def check_rom_manager(self, editor: bool = False, rom_manager: bool = True):
+        """
+        # custom hacks override the level script execute jump table (0x8038B914 -> 0x00108694) cmd 0x17 LOAD_RAW with a cmd in custom memory
+        # in vanilla it is 0x8037ECA4 -> 0x00FBA24
+        # the function goes to 0x80402000 -> 0x1204000
+        # in editor the override goes to 0x80401500 -> 0x1201500
+        # other versions of editor/rom manager may use other overrides but I doubt it's that common
+        # for debugging purposes, sSegmentTable is 0x8033B400
+
+        # check for version based on args, default is rom manager. False for vanilla, True if matching specific tool
+        """
+        load_raw_func_addr = self.unpack_type(self.bin_file, 0x00108694, ">L", make_str=False)
+        if load_raw_func_addr == 0x8037ECA4:
+            return False
+        if load_raw_func_addr == 0x80402000 and rom_manager:
+            return True
+        else:
+            return editor
+
+    # update area terrain and geo_ptr
+    def update_col_ptr(self, area_index: int):
+        if self.areas[area_index].terrain:
+            self.areas[area_index].terrain = self.seg2phys(self.areas[area_index].terrain)
+
+    def update_geo_ptr(self, area_index: int):
+        if self.areas[area_index].geo:
+            self.areas[area_index].geo = self.seg2phys(self.areas[area_index].geo)
+
+    def load_segment_E(self, area_index: int):
+        # for RM custom levels, segment 0xE has a hook on the CALL level script to dma new data to seg 0xE
+        # for blender purposes, this can just be emulated by calling this func before each area is parsed
+        is_rm = self.check_rom_manager()
+        if not is_rm:
+            return
+        # if it is a custom level it is using bank 0x19
+        if not self.banks.tlb.get(0x19, None):
+            return
+        area_index = int(area_index)
+        load_addr = self.seg2phys(0x19005f00)
+        start = self.unpack_type(self.bin_file, load_addr+area_index*16, ">L", make_str=False)
+        end = self.unpack_type(self.bin_file, load_addr+4+area_index*16, ">L", make_str=False)
+        self.banks.tlb[0x0E] = [start,end]
 
     # macro parsing funcs
     # jump to new script, goes back via EXIT, not RETURN
@@ -559,6 +586,16 @@ class Level(DataParser):
     def LOAD_RAW(self, macro: Macro, col: bpy.types.Collection):
         self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
         return self._continue_parse
+
+    # mio0 header is sig, len, comp_off decomp_off. Add decomp_off to bank start
+    def _decode_cmd_load_mio0_texture_bin(self, packed_fmt: PackedFormat, parser: Parser) -> tuple[cmd_name: str, cmd_args: list[int], cmd_len: int]:
+        return self._decode_cmd_load_mio0_bin(packed_fmt, parser)
+
+    def _decode_cmd_load_mio0_bin(self, packed_fmt: PackedFormat, parser: Parser) -> tuple[cmd_name: str, cmd_args: list[int], cmd_len: int]:
+        cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
+        mio0_header = cmd_args[1]
+        mio0_offset = self.unpack_type(parser.cur_stream, mio0_header + 0xC, ">L", make_str = False)
+        return ("LOAD_MIO0", [cmd_args[0], cmd_args[1] + mio0_offset, cmd_args[2] + mio0_offset], packed_fmt.format_size)
 
     def LOAD_MIO0(self, macro: Macro, col: bpy.types.Collection):
         self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
@@ -725,7 +762,7 @@ class ColTri:
 
 
 class Collision(DataParser):
-    def __init__(self, collision: list[str], scale: float):
+    def __init__(self, collision: list[str], scale: float, parse_target = DataParser._c_parsing):
         self.collision = collision  # will be none in binary
         self.scale = scale
         self.vertices = []
@@ -734,7 +771,7 @@ class Collision(DataParser):
         self.type: str = None
         self.special_objects = []
         self.water_boxes = []
-        super().__init__()
+        super().__init__(parse_target = parse_target)
 
     def write_water_boxes(
         self, scene: bpy.types.Scene, parent: bpy.types.Object, name: str, col: bpy.types.Collection = None
@@ -767,7 +804,6 @@ class Collision(DataParser):
             col = scene.collection
         self.write_water_boxes(scene, parent, name, col)
         mesh = bpy.data.meshes.new(f"{name} data")
-        print(len(self.vertices), len(self.tris))
         mesh.from_pydata(self.vertices, [], [tri.verts for tri in self.tris])
         obj = bpy.data.objects.new(f"{name} mesh", mesh)
         col.objects.link(obj)
@@ -940,7 +976,12 @@ class SM64_Material(Mat):
     def load_texture(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         if not tex:
             return None
-        tex_img = textures.get(tex.tex_img)[0]
+        # for some reason I can't get the parsing target to be what I want, so read props instead
+        # would like for this to be better
+        if bpy.context.scene.fast64.sm64.importer.import_target == "Binary":
+            return self.load_texture_array(force_new_tex, textures, path, tex, DataParser._binary_parsing)
+        else:
+            tex_img = textures.get(tex.tex_img)[0]
         if "#include" in tex_img:
             return self.load_texture_png(force_new_tex, textures, path, tex)
         else:
@@ -1079,20 +1120,6 @@ class SM64_F3D(DL):
         self.StartName = start
         return [self.Verts, self.Tris]
 
-    # turn member of vtx str arr into vtx args
-    def parse_vert(self, Vert: str):
-        v = Vert.replace("{", "").replace("}", "").split(",")
-        num = lambda x: [eval_or_int(a) for a in x]
-        pos = num(v[:3])
-        uv = num(v[4:6])
-        vc = num(v[6:10])
-        return [pos, uv, vc]
-
-    # given tri args in gbi cmd, give appropriate tri indices in vert list
-    def parse_tri(self, Tri: list[int]):
-        L = len(self.Verts)
-        return [a + L - self.LastLoad for a in Tri]
-
     def apply_mesh_data(self, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, tex_path: Path):
         bpy.context.view_layer.objects.active = obj
         ind = -1
@@ -1209,6 +1236,7 @@ class GraphNodes(DataParser):
         "GEO_NODE_SCREEN_AREA",
         "GEO_ZBUFFER",
         "GEO_RENDER_OBJ",
+        "GEO_START",
     }
 
     # geo layouts use first byte to determine if a DL is added
@@ -1299,7 +1327,42 @@ class GraphNodes(DataParser):
 
     # pick the right subclass given contents of geo layout
     @staticmethod
-    def new_subclass_dyn(
+    def new_subclass_dyn_bin(
+        bin_file: BinaryIO,
+        scene: bpy.types.Scene,
+        entry_ptr: int,
+        col: bpy.types.Collection = None,
+        parse_target: int = DataParser._binary_parsing,
+    ) -> Union[GeoLayout, GeoArmature]:
+        if not bin_file:
+            raise Exception(
+                "no binary file included for geo export",
+                "pass_linked_export",
+            )
+        offset = 0
+        # hopefully this doesn't go on long
+        while offset < 0x40:
+            cmd_type = struct.unpack(">B", bin_file[entry_ptr+offset:entry_ptr+1+offset])[0]
+            cmd_name, packed_cmd = GraphNodes._geo_cmds_bin_format.get(cmd_type)
+            offset += packed_cmd.format_size + 1
+            # this won't be perfect but it'll avoid having to parse the entire geo layout
+            if cmd_name in {"GEO_ANIMATED_PART", "GEO_SHADOW", "GEO_SWITCH_CASE", "GEO_SCALE", "GEO_BILLBOARD_BIN"}:
+                arm_obj = bpy.data.objects.new(f"geo_arm_{entry_ptr}", bpy.data.armatures.new(f"geo_arm_{entry_ptr}"))
+                col.objects.link(arm_obj)
+                geo_layout = GeoArmature(None, arm_obj, scene, entry_ptr, col=col, parse_target=parse_target)
+                bpy.context.view_layer.objects.active = geo_layout.get_or_init_geo_armature()
+                break
+            elif cmd_name in {"GEO_END", "GEO_BRANCH_AND_LINK", "GEO_BRANCH", "GEO_TRANSLATE_ROTATE", "GEO_ROTATION_NODE_BIN", "GEO_TRANSLATE_NODE_BIN"} or offset > 0x40:
+                geo_layout = GeoLayout(None, None, scene, entry_ptr, None, col=col, parse_target=parse_target)
+                break
+
+        geo_layout.bin_file = bin_file
+        geo_layout.parse_geo_from_start(entry_ptr, 0)
+        return geo_layout
+
+    # pick the right subclass given contents of geo layout
+    @staticmethod
+    def new_subclass_dyn_c(
         geo_layout_dict: dict[geo_name:str, geo_data : list[str]],
         scene: bpy.types.Scene,
         layout_name: str,
@@ -1530,7 +1593,7 @@ class GraphNodes(DataParser):
         self.set_transform(geo_obj, self.last_transform)
         return geo_obj
 
-    def _decode_cmd_geo_translate_rotate_bin(self, parser: Parser):
+    def _decode_cmd_geo_translate_rotate_bin(self, packed_fmt: PackedFormat, parser: Parser):
         cmd_flags = self.unpack_type(parser.cur_stream, parser.head, ">B")
         # translate rotate
         if (cmd_flags & 0x30) == 0x00:
@@ -1702,7 +1765,7 @@ class GeoLayout(GraphNodes):
         geo_layouts: dict,
         root: bpy.types.Object,
         scene: bpy.types.Scene,
-        name: str,
+        name: Union[str, int],
         area_root: bpy.types.Object,
         col: bpy.types.Collection = None,
         geo_parent: GeoLayout = None,
@@ -1950,7 +2013,7 @@ class GeoArmature(GraphNodes):
         geo_layouts: dict,
         armature_obj: bpy.types.Armature,
         scene: bpy.types.Scene,
-        name: str,
+        name: Union[str, int],
         col: bpy.types.Collection,
         is_switch_child: bool = False,
         parent_bone: bpy.types.Bone = None,
@@ -2198,6 +2261,8 @@ class GeoArmature(GraphNodes):
 
 # parse aggregate files, and search for sm64 specific fast64 export name schemes
 def get_all_aggregates(aggregate_path: Path, filenames: tuple[callable], root_path: Path) -> list[Path]:
+    if not aggregate_path or not aggregate_path.exists():
+        return []
     with open(aggregate_path, "r", newline="") as file:
         caught_files = parse_aggregate_file(file, filenames, root_path, aggregate_path)
         # catch fast64 includes
@@ -2211,7 +2276,6 @@ def get_all_aggregates(aggregate_path: Path, filenames: tuple[callable], root_pa
 def get_level_name(level_arg: Union[int, str]) -> str:
     if type(level_arg) is not str or level_arg.isdigit():
         level_arg = eval_or_int(level_arg)
-        print(level_arg, LEVEL_ID_NUMBERS.get(level_arg, level_arg))
         return LEVEL_ID_NUMBERS.get(level_arg)
     else:
         return level_arg
@@ -2455,8 +2519,8 @@ def write_geo_to_bpy(
 
 # write the gfx for a level given the level data, and f3d data
 def write_level_to_bpy(lvl: Level, scene: bpy.types.Scene, root_path: Path, f3d_dat: SM64_F3D, cleanup: bool = False):
-    for area in lvl.areas.values():
-        write_geo_to_bpy(area.geo, scene, f3d_dat, root_path, dict(), cleanup=cleanup)
+    for area_index, area in lvl.areas.items():
+        write_geo_to_bpy(area.geo_data, scene, f3d_dat, root_path, dict(), cleanup=cleanup)
     return lvl
 
 
@@ -2569,7 +2633,7 @@ def find_actor_models_from_model_ids(
             print(f"could not find model {model}")
             continue
         try:
-            geo_layout = GraphNodes.new_subclass_dyn(geo_layout_dict, scene, layout_name, col)
+            geo_layout = GraphNodes.new_subclass_dyn_c(geo_layout_dict, scene, layout_name, col)
             geo_layout_per_model[model] = geo_layout
         except Exception as exc:
             if exc.args[1] == "pass_linked_export":
@@ -2588,7 +2652,18 @@ def find_actor_models_from_geo(
     col: bpy.types.Collection = None,
 ) -> GeoLayout:
     geo_layout_dict = construct_geo_layouts_from_file(geo_paths, root_path)
-    return GraphNodes.new_subclass_dyn(geo_layout_dict, scene, layout_name, col)
+    return GraphNodes.new_subclass_dyn_c(geo_layout_dict, scene, layout_name, col)
+
+
+# Parse an aggregate group file or level data file for geo layouts
+def find_actor_models_binary(
+    bin_file: BinaryIO,
+    entry: int,
+    scene: bpy.types.Scene,
+    root_path: Path,
+    col: bpy.types.Collection = None,
+) -> GeoLayout:
+    return GraphNodes.new_subclass_dyn_bin(bin_file, scene, entry, col)
 
 
 # Find DL references given a level geo file and a path to a level folder
@@ -2613,6 +2688,8 @@ def find_level_models_from_geo(
 def find_level_models_binary(lvl: Level, scene: bpy.types.Scene, root_path: Path, col_name: str = None) -> Level:
     props = scene.fast64.sm64.importer
     for area_index, area in lvl.areas.items():
+        lvl.load_segment_E(area_index)
+        lvl.update_geo_ptr(area_index)
         if col_name:
             col = create_collection(area.root.users_collection[0], col_name)
         else:
@@ -2632,13 +2709,13 @@ def find_level_models_binary(lvl: Level, scene: bpy.types.Scene, root_path: Path
         except Exception as exc:
             if type(exc) is not ParseException:
                 raise exc
-        area.geo = geo
+        area.geo_data = geo
     return lvl
 
 
 # import level graphics given geo.c file, and a level object
 def import_level_graphics(
-    bin_path: list[Path],
+    geo_paths: list[Path],
     lvl: Level,
     scene: bpy.types.Scene,
     root_path: Path,
@@ -2661,6 +2738,7 @@ def import_level_graphics(
         scene.f3d_type = "F3D"
         models = SM64_F3D(scene, DataParser._binary_parsing)
         models.bin_file = lvl.bin_file
+        models.banks = lvl.banks
         scene.f3d_type = f3d_option
     lvl = write_level_to_bpy(lvl, scene, root_path, models, cleanup=cleanup)
     return lvl
@@ -2694,6 +2772,8 @@ def write_level_collision_to_bpy(
     actor_models: dict[model_name, bpy.Types.Mesh] = None,
 ):
     for area_index, area in lvl.areas.items():
+        lvl.load_segment_E(area_index)
+        lvl.update_col_ptr(area_index)
         if not col_name:
             col = area.root.users_collection[0]
         else:
@@ -2758,6 +2838,7 @@ class SM64_ActImport(Operator):
         rt_col = context.collection
         props = scene.fast64.sm64.importer
 
+        rom_path = get_and_check_rom(scene)
         decomp_path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
 
         group_prefix = props.group_prefix
@@ -2772,10 +2853,25 @@ class SM64_ActImport(Operator):
             decomp_path / "levels" / level_name / (level_prefix + "leveldata.c"),
         )
 
-        geo_layout = find_actor_models_from_geo(
-            geo_paths, props.geo_layout, scene, decomp_path, col=rt_col
-        )  # return geo layout class and write the geo layout
-        models = construct_model_data_from_file(model_data_paths, scene, decomp_path)
+        if props.import_target == "C":
+            geo_layout = find_actor_models_from_geo(
+                geo_paths, props.geo_layout, scene, decomp_path, col=rt_col
+            )  # return geo layout class and write the geo layout
+            models = construct_model_data_from_file(model_data_paths, scene, decomp_path)
+        elif props.import_target == "Binary":
+            # levels need to be parsed to get the rom bank loads, choose level object is used in
+            lvl = parse_level_script(None, None, rom_path, scene, rt_col)
+            entry = lvl.seg2phys(props.geo_layout_binary)
+            geo_layout = find_actor_models_binary(
+                lvl.bin_file, entry, scene, decomp_path, col=rt_col
+            )  # return geo layout class and write the geo layout
+            f3d_option = scene.f3d_type
+            scene.f3d_type = "F3D"
+            models = SM64_F3D(scene, DataParser._binary_parsing)
+            models.bin_file = lvl.bin_file
+            models.banks = lvl.banks
+            scene.f3d_type = f3d_option
+
         # just a try, in case you are importing from not the base decomp repo
         try:
             models.get_generic_textures(decomp_path)
@@ -3021,115 +3117,29 @@ class SM64_GroupProperties(PropertyGroup):
             row.operator("scene.remove_group", text="Remove Group").option = index
 
 
+def get_sm64_geos():
+    # model_name, common name, description
+    enum_list = []
+    for name, actor in ACTOR_PRESET_INFO.items():
+        if not actor.models:
+            continue
+        if type(actor.models) is ModelInfo:
+            enum_list.append((name, name, name))
+        else:
+            for model in actor.models.keys():
+                enum_list.append((model, model, name))
+    return enum_list
+
 class SM64_ImportProperties(PropertyGroup):
     # actor props
-    geo_layout_str: StringProperty(name="geo_layout", description="Name of GeoLayout")
+    custom_geo_layout_str: StringProperty(name="Geo Layout Name", description="Name of GeoLayout")
+    custom_geo_layout_addr: StringProperty(name="Geo Layout Address", description="Address of GeoLayout")
 
-    group_preset: EnumProperty(
-        name="group preset", description="The group you want to load geo from", items=groups_obj_export
+    actor_preset :EnumProperty(
+        name="actor preset", description="Actor to import", items=[*get_sm64_geos(), ("Custom", "Custom", "Custom")]
     )
-    group_0_geo_enum: EnumProperty(
-        name="group 0 geos",
-        description="preset geos from vanilla in group 0",
-        items=[*group_0_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_1_geo_enum: EnumProperty(
-        name="group 1 geos",
-        description="preset geos from vanilla in group 1",
-        items=[*group_1_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_2_geo_enum: EnumProperty(
-        name="group 2 geos",
-        description="preset geos from vanilla in group 2",
-        items=[*group_2_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_3_geo_enum: EnumProperty(
-        name="group 3 geos",
-        description="preset geos from vanilla in group 3",
-        items=[*group_3_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_4_geo_enum: EnumProperty(
-        name="group 4 geos",
-        description="preset geos from vanilla in group 4",
-        items=[*group_4_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_5_geo_enum: EnumProperty(
-        name="group 5 geos",
-        description="preset geos from vanilla in group 5",
-        items=[*group_5_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_6_geo_enum: EnumProperty(
-        name="group 6 geos",
-        description="preset geos from vanilla in group 6",
-        items=[*group_6_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_7_geo_enum: EnumProperty(
-        name="group 7 geos",
-        description="preset geos from vanilla in group 7",
-        items=[*group_7_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_8_geo_enum: EnumProperty(
-        name="group 8 geos",
-        description="preset geos from vanilla in group 8",
-        items=[*group_8_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_9_geo_enum: EnumProperty(
-        name="group 9 geos",
-        description="preset geos from vanilla in group 9",
-        items=[*group_9_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_10_geo_enum: EnumProperty(
-        name="group 10 geos",
-        description="preset geos from vanilla in group 10",
-        items=[*group_10_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_11_geo_enum: EnumProperty(
-        name="group 11 geos",
-        description="preset geos from vanilla in group 11",
-        items=[*group_11_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_12_geo_enum: EnumProperty(
-        name="group 12 geos",
-        description="preset geos from vanilla in group 12",
-        items=[*group_12_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_13_geo_enum: EnumProperty(
-        name="group 13 geos",
-        description="preset geos from vanilla in group 13",
-        items=[*group_13_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_14_geo_enum: EnumProperty(
-        name="group 14 geos",
-        description="preset geos from vanilla in group 14",
-        items=[*group_14_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_15_geo_enum: EnumProperty(
-        name="group 15 geos",
-        description="preset geos from vanilla in group 15",
-        items=[*group_15_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_16_geo_enum: EnumProperty(
-        name="group 16 geos",
-        description="preset geos from vanilla in group 16",
-        items=[*group_16_geos, ("Custom", "Custom", "Custom")],
-    )
-    group_17_geo_enum: EnumProperty(
-        name="group 17 geos",
-        description="preset geos from vanilla in group 17",
-        items=[*group_17_geos, ("Custom", "Custom", "Custom")],
-    )
-    common_0_geo_enum: EnumProperty(
-        name="common 0 geos",
-        description="preset geos from vanilla in common 0",
-        items=[*common_0_geos, ("Custom", "Custom", "Custom")],
-    )
-    common_1_geo_enum: EnumProperty(
-        name="common 1 geos",
-        description="preset geos from vanilla in common 1",
-        items=[*common_1_geos, ("Custom", "Custom", "Custom")],
-    )
-    actor_prefix_custom: StringProperty(
-        name="Prefix",
+    custom_actor_prefix: StringProperty(
+        name="File Prefix",
         description="Prefix before expected aggregator files like script.c, leveldata.c and geo.c. Enter group name if not using dropdowns.",
         default="",
     )
@@ -3144,13 +3154,13 @@ class SM64_ImportProperties(PropertyGroup):
 
     # level props
     level_enum: EnumProperty(name="Level", description="Choose a level", items=enumLevelNames, default="bob")
-    level_custom: StringProperty(
+    custom_level_name: StringProperty(
         name="Custom Level Name",
         description="Custom level name",
         default="",
     )
     level_prefix: StringProperty(
-        name="Prefix",
+        name="Level Prefix",
         description="Prefix before expected aggregator files like script.c, leveldata.c and geo.c. Leave blank unless using custom files",
         default="",
     )
@@ -3195,48 +3205,67 @@ class SM64_ImportProperties(PropertyGroup):
         default="C",
     )
 
+    def get_actor_preset(self):
+        enumProp = self.bl_rna.properties.get("actor_preset")
+        chosen_enum = None
+        for enum in enumProp.enum_items:
+            if self.actor_preset == enum.name:
+                chosen_enum = enum
+                break
+        else:
+            return None
+        return ACTOR_PRESET_INFO[chosen_enum.description]
+
     @property
     def level_name(self):
         if self.level_enum == "Custom":
-            return self.level_custom
+            return self.custom_level_name
         else:
             return self.level_enum
 
     @property
-    def geo_group_name(self):
-        if self.group_preset == "Custom":
-            return None
-        if self.group_preset == "common0":
-            return "common_0_geo_enum"
-        if self.group_preset == "common1":
-            return "common_1_geo_enum"
-        else:
-            return f"group_{self.group_preset.removeprefix('group')}_geo_enum"
-
-    @property
     def group_prefix(self):
-        if self.group_preset == "custom":
-            return self.actor_prefix_custom
+        if self.actor_preset == "Custom":
+            return self.custom_actor_prefix
         else:
-            return self.group_preset
+            preset_full = self.get_actor_preset()
+            model_info = preset_full.get_model_info(self.actor_preset)
+            return preset_full.group
 
     @property
     def geo_layout(self):
-        if self.group_preset == "custom":
-            return self.geo_layout_str
+        if self.actor_preset == "Custom":
+            return self.custom_geo_layout_str
         else:
-            return getattr(self, self.geo_group_name)
+            preset_full = self.get_actor_preset()
+            model_info = preset_full.get_model_info(self.actor_preset)
+            return convert_addr_to_func(f"{model_info.geolayout:08x}")
+
+    @property
+    def geo_layout_binary(self):
+        if self.actor_preset == "Custom":
+            convert_addr_to_func(self.custom_geo_layout_addr)
+            return self.custom_geo_layout_str
+        else:
+            preset_full = self.get_actor_preset()
+            model_info = preset_full.get_model_info(self.actor_preset)
+            return model_info.geolayout
 
     def draw_actor(self, layout: bpy.types.UILayout):
         box = layout.box()
         box.label(text="SM64 Actor Importer")
-        box.prop(self, "group_preset")
-        if self.group_preset == "Custom":
-            box.prop(self, "actor_prefix_custom")
-            box.prop(self, "geo_layout_str")
-        else:
-            box.prop(self, self.geo_group_name)
-        if self.import_target is "C":
+        box.prop(self, "actor_preset")
+        if self.actor_preset == "Custom":
+            if self.import_target == "C":
+                box.prop(self, "custom_actor_prefix")
+                box.prop(self, "custom_geo_layout_str")
+                box.prop(self, "level_prefix")
+                note = box.box()
+                note.label(text=f"Geo must be in /levels/{self.level_name}/{self.level_prefix}geo.c")
+                note.label(text=f"or in /actors/{self.group_prefix}_geo.c")
+            else:
+                box.prop(self, "custom_geo_layout_addr")
+        if self.import_target == "C":
             box.prop(self, "version")
             box.prop(self, "target")
 
@@ -3247,8 +3276,8 @@ class SM64_ImportProperties(PropertyGroup):
         box.label(text="Level Importer")
         box.prop(self, "level_enum")
         if self.level_enum == "Custom":
-            box.prop(self, "level_custom")
-        if self.import_target is "C":
+            box.prop(self, "custom_level_name")
+        if self.import_target == "C":
             box.prop(self, "entry")
             box.prop(self, "level_prefix")
             box.prop(self, "version")
