@@ -3986,6 +3986,7 @@ def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
     rdp_defaults = world.rdp_defaults
     col = layout.column()
     col.box().label(text="RDP Default Settings", icon="WORLD")
+    col.label(text="Saved to Repo Settings file", icon="PROPERTIES")
     multilineLabel(
         col,
         text="If a material setting is the same as the default setting\n"

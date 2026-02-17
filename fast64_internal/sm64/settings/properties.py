@@ -16,6 +16,7 @@ from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
 from ...utility import (
+    as_posix,
     directory_path_checks,
     directory_ui_warnings,
     prop_split,
@@ -43,7 +44,7 @@ def decomp_path_update(self, context: Context):
     if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
     directory_path_checks(self.abs_decomp_path)
-    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
+    fast64_settings.repo_settings_path = as_posix(self.abs_repo_file_path)
 
 
 class SM64_Properties(PropertyGroup):
@@ -118,8 +119,12 @@ class SM64_Properties(PropertyGroup):
         return self.export_type in {"Binary", "Insertable Binary"}
 
     @property
-    def abs_decomp_path(self) -> Path:
+    def abs_decomp_path(self):
         return Path(abspath(self.decomp_path))
+
+    @property
+    def abs_repo_file_path(self):
+        return self.abs_decomp_path / "fast64.json"
 
     @property
     def hackersm64(self) -> bool:
@@ -224,7 +229,19 @@ class SM64_Properties(PropertyGroup):
                 self.custom_cmds.add()
                 self.custom_cmds[-1].from_dict(preset_data)
 
-    def draw_repo_settings(self, layout: UILayout):
+    def draw_repo_settings(self, layout: UILayout, context: Context):
+        from ...repo_settings import draw_repo_settings
+
+        col = layout.column()
+        path = self.abs_repo_file_path
+        if path is None:
+            return
+        draw_repo_settings(col, context, path=path, game="SM64", draw_tab=False)
+        col.separator()
+
+        self.draw_repo_settings_props(col)
+
+    def draw_repo_settings_props(self, layout: UILayout):
         col = layout.column()
         if not self.binary_export:
             col.prop(self, "disable_scroll")

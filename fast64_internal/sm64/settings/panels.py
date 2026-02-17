@@ -19,7 +19,7 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
             # because we want to draw those specfic properties in the repo settings box
             box = col.box().column()
             if draw_and_check_tab(box, sm64_props, "sm64_repo_settings_tab", icon="PROPERTIES"):
-                sm64_props.draw_repo_settings(box)
+                sm64_props.draw_repo_settings(box, context)
                 col.separator()
 
             sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab or sm64_props.binary_export)

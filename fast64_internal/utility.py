@@ -2062,7 +2062,9 @@ def wrap_func_with_error_message(error_message: Callable):
 
 
 def as_posix(path: Path) -> str:
-    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
+    if isinstance(path, Path):
+        path = path.as_posix()
+    return path.replace("\\", "/")  # Windows path sometimes still has backslashes?
 
 
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
