@@ -18,6 +18,7 @@ from ...render_settings import on_update_render_settings
 from ...utility import (
     directory_path_checks,
     directory_ui_warnings,
+    multilineLabel,
     prop_split,
     set_prop_if_in_data,
     upgrade_old_prop,
@@ -130,6 +131,14 @@ class SM64_Properties(PropertyGroup):
         return self.designated_prop or self.hackersm64
 
     @property
+    def show_matstack_fix(self) -> bool:
+        return not self.hackersm64 and self.export_type == "C"
+
+    @property
+    def use_matstack_fix(self) -> bool:
+        return (self.matstack_fix or self.hackersm64) and self.export_type == "C"
+
+    @property
     def gfx_write_method(self):
         from ...f3d.f3d_gbi import GfxMatWriteMethod
 
@@ -200,9 +209,9 @@ class SM64_Properties(PropertyGroup):
         data["refresh_version"] = self.refresh_version
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
-        data["matstack_fix"] = self.matstack_fix
-        if self.matstack_fix:
-            data["lighting_engine_presets"] = self.lighting_engine_presets
+        if self.show_matstack_fix:
+            data["matstack_fix"] = self.matstack_fix
+        data["lighting_engine_presets"] = self.lighting_engine_presets
         data["write_all"] = self.write_all
         if not self.hackersm64:
             data["designated"] = self.designated_prop
@@ -215,8 +224,8 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
-        set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "write_all", data, "write_all")
+        set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
         if "custom_cmds" in data:
             self.custom_cmds.clear()
@@ -231,10 +240,18 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "compression_format", "Compression Format")
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
-        col.prop(self, "matstack_fix")
-        if self.matstack_fix:
-            col.prop(self, "lighting_engine_presets")
-        col.prop(self, "write_all")
+        col.separator()
+
+        # people feel the need to tick random checkboxes
+        warning = col.column()
+        warning.alert = True
+        multilineLabel(warning, text="Only enable these if you know what\nyou're doing.", icon="ERROR")
+        warning.prop(self, "write_all")
+        if self.show_matstack_fix:
+            warning.prop(self, "matstack_fix")
+        warning.prop(self, "lighting_engine_presets")
+        col.separator()
+
         draw_custom_cmd_presets(self, col.box())
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
