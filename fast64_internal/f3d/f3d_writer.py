@@ -1720,7 +1720,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
         renderModeSet = DPSetRenderMode(flagList, blender)
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
-        if defaultRenderMode is not None and fMaterial.revert is not None:
+        if defaultRenderMode is not None and fMaterial.revert is not None and flagList != defaultRenderMode:
             fMaterial.revert.commands.append(DPSetRenderMode(defaultRenderMode, None))
 
 
