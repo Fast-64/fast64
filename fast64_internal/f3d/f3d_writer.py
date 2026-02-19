@@ -917,6 +917,8 @@ def cel_shading_checks(f3d_mat):
         if uses_decal:
             raise PluginError("Must use Lighter and Darker cel levels before duplicating either of them")
 
+    return uses_decal
+
 
 # existingVertexData is used for cases where we want to assume the presence of vertex data
 # loaded in from a previous matrix transform (ex. sm64 skinning)
@@ -1055,7 +1057,7 @@ class TriangleConverter:
         f3d = get_F3D_GBI()
 
         try:
-            cel_shading_checks(f3dMat)
+            usesDecal = cel_shading_checks(f3dMat)
         except Exception as exc:
             raise PluginError(f"Material {self.material.name}: {str(exc)}") from exc
 
