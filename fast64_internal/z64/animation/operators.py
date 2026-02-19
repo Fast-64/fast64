@@ -95,10 +95,14 @@ def ootImportAnimationC(
                 basePath,
                 f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/misc/link_animetion/link_animetion.c",
             )
-            animHeaderFilepath = os.path.join(
-                basePath,
-                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/gameplay_keep/gameplay_keep.c",
-            )
+
+            # starting with zeldaret/oot dbe1a80541173652c344f20226310a8bf90f3086 gameplay_keep is split and committed
+            animHeaderFilepath = f"{basePath}/assets/objects/gameplay_keep/player_anim_headers.c"
+            if not os.path.exists(animHeaderFilepath):
+                animHeaderFilepath = os.path.join(
+                    basePath,
+                    f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/gameplay_keep/gameplay_keep.c",
+                )
         else:
             animFilepath = filepath
             animHeaderFilepath = filepath
