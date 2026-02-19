@@ -157,7 +157,6 @@ def convert_tex_bin(fmt: str, width: int, height: int, im_siz: int, byte_stream:
         "G_IM_FMT_RGBA": convert_RGBA_tex,
     }
     im_siz = int(re.search("\d+", im_siz).group())
-    print(im_siz, width, height, len(byte_stream))
     return funcs.get(fmt)(int(width), int(height), im_siz, byte_stream, pal_stream)
 
 def convert_tex_c(fmt: str, width: int, height: int, im_siz: int, byte_stream: bytes, pal_stream: bytes = None):

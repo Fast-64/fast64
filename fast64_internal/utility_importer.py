@@ -59,7 +59,7 @@ class PackedFormat:
     make_str: bool = True  # convert args to strings for blender prop compat
     reorder: tuple = field(
         default_factory=tuple
-    )  # reorders args after unpacking, called after post_unpack ptr addressing and make_str
+    )  # reorders args after unpacking, called right after bit unpacking, before post_unpack
     bit_packing: tuple = field(
         default_factory=tuple
     )  # use a packed bitfield to unpack, each item is num bits, unpacked sequentially, make format all bytes
@@ -82,6 +82,7 @@ class PackedFormat:
         args = list(struct.unpack(self.format_str, bin_data))
         if self.bit_packing:
             args = self.unpack_bits(args)
+        args = self.reorder_args(args)
         if self.post_unpack:
             args = self.post_unpack(args)
         return args
@@ -134,7 +135,6 @@ class BinProcess:
         args = unpack_str.make_args_str(args)
         for index in unpack_str.ptr_indices:
             args[index] = self.seg2phys(args[index])
-        args = unpack_str.reorder_args(args)
 
         if ret_iterable:
             return args
@@ -369,7 +369,7 @@ class DataParser(BinProcess):
                 continue
             cur_macro = Macro(cmd_name, cmd_args)
             func = getattr(self, cur_macro.cmd, None)
-            print(cur_macro)
+            # print(cur_macro)
             if not func:
                 raise Exception(f"Macro {cur_macro} not found in parser function")
             flow_status = func(cur_macro, *args, **kwargs)

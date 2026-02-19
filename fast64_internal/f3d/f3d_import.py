@@ -35,6 +35,20 @@ class LightParent:
         self.name = name
         getattr(self, light_struct.var_type)(light_struct.var_data)
 
+    # I'm not 100% sure this covers all kinds of light struct from movemem cmd
+    @staticmethod
+    def ambient_from_binary(bin_file: BinaryIO, macro: Macro):
+        # just get first color
+        col = [*struct.unpack(">3B", bin_file[macro.args[2]:macro.args[2] + 3]), 0xFF]
+        return col
+
+    @staticmethod
+    def diffuse_from_binary(bin_file: BinaryIO, macro: Macro):
+        # just get first color
+        # cls.dir = [*struct.unpack(">3B", bin_file[macro.args[2] + 8:macro.args[2] + 11]), 0xFF]
+        col = [*struct.unpack(">3B", bin_file[macro.args[2]:macro.args[2] + 3]), 0xFF]
+        return col
+
     # naming matches var types
     def Ambient_t(self, light_data: list[str]):
         light_data = light_data[0].replace("{", "").replace("}", "").split(",")
@@ -420,6 +434,9 @@ class Mat:
             f3d.set_lights = True
             if self.light_col.get(1):
                 f3d.default_light_color = self.convert_color(self.light_col[1])
+        if self.ambient_light:
+            f3d.set_ambient_from_light = False
+            f3d.ambient_light_color = self.convert_color(self.ambient_light)
         if hasattr(self, "blend_color"):
             f3d.set_blend = True
             f3d.blend_color = self.convert_color(self.blend_color)
@@ -591,16 +608,16 @@ class DL(DataParser):
             self.f3dex2_cmd_gbi_names = {
                 f3d_gbi.G_VTX: (
                     "gsSPVertexBin",
-                    PackedFormat(">7B", (3,), reorder = (1, 2, 3), make_str = False, bit_packing=(4, 8, 4, 8, 32)),
+                    PackedFormat(">7B", (2,), reorder = (1, 2, 3), make_str = False, bit_packing=(4, 8, 4, 8, 32)),
                 ),  # pad num_v offset+num seg_ptr, reorder -> num offset ptr
                 f3d_gbi.G_DMA_IO: (
                     "gsSPDma_io",
                     PackedFormat(">7B", bit_packing=(1, 10, 1, 12, 32)),
                 ),  # i/o dmem_addr siz dram_addr
                 f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">3BL")),  # pad123 num_mtx
-                f3d_gbi.G_GEOMETRYMODE: ("gsSPGeometryMode", PackedFormat(">7B", bit_packing=(24, 32))),  # clear set
+                f3d_gbi.G_GEOMETRYMODE: ("gsSPGeometryMode", PackedFormat(">7B", bit_packing=(24, 32), post_unpack = self.parse_geo_flags)),  # clear set
                 f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">3BL", (3,))),  # pad pad type seg_ptr
-                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">BHL", (2,))),  # dmem_index offset seg_ptr
+                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">BHL", (2,), make_str = False)),  # dmem_index offset seg_ptr
                 # set other modes
             }
         elif f3d_gbi.F3DEX_GBI:
@@ -611,18 +628,18 @@ class DL(DataParser):
                 f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">BhL", (2,))),  # type pad seg_ptr
                 f3d_gbi.G_VTX: (
                     "gsSPVertexBin",
-                    PackedFormat(">7B", (3,), reorder = (1, 0, 3), make_str = False, bit_packing=(8, 6, 10, 32)),
+                    PackedFormat(">7B", (2,), reorder = (1, 0, 3), make_str = False, bit_packing=(8, 6, 10, 32)),
                 ),  # buf_start num_vert len_dat vtx_ptr, reorder -> num offset ptr
                 f3d_gbi.G_SETGEOMETRYMODE: (
                     "gsSPSetGeometryMode",
-                    PackedFormat(">7B", bit_packing=(24, 32)),
+                    PackedFormat(">7B", bit_packing=(24, 32), reorder = (1,), post_unpack = self.parse_geo_flags),
                 ),  # pad word
                 f3d_gbi.G_CLEARGEOMETRYMODE: (
                     "gsSPClearGeometryMode",
-                    PackedFormat(">7B", bit_packing=(24, 32)),
+                    PackedFormat(">7B", bit_packing=(24, 32), reorder = (1,), post_unpack = self.parse_geo_flags),
                 ),  # word pad
                 # set other mode, L and H?
-                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,))),  # offset dmem_index seg_ptr
+                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,), make_str = False)),  # offset dmem_index seg_ptr
             }
         else:
             self.f3dex_cmd_gbi_names = dict()
@@ -630,28 +647,28 @@ class DL(DataParser):
 
             self.f3d_cmd_gbi_names = {
                 f3d_gbi.G_MTX: ("gsSPMatrix", PackedFormat(">BhL", (2,))),  # type pad seg_ptr
-                f3d_gbi.G_MOVEMEM: ("gsSPMoveMem", PackedFormat(">BHL", (2,))),  # dmem_index siz mem_ptr
+                f3d_gbi.G_MOVEMEM: ("gsSPMoveMem", PackedFormat(">BHL", (2,), make_str = False)),  # dmem_index siz mem_ptr
                 f3d_gbi.G_VTX: (
                     "gsSPVertexBin",
-                    PackedFormat(">7B", (3,), reorder = (0, 1, 3), make_str = False, bit_packing=(4, 4, 16, 32), post_unpack = self.f3d_g_vertex_parse),
+                    PackedFormat(">7B", (2,), reorder = (0, 1, 3), make_str = False, bit_packing=(4, 4, 16, 32), post_unpack = self.f3d_g_vertex_parse),
                 ),  # num_vert buf_start len_dat vtx_ptr, reorder -> num offset ptr
                 f3d_gbi.G_SETGEOMETRYMODE: (
                     "gsSPSetGeometryMode",
-                    PackedFormat(">7B", bit_packing=(24, 32)),
+                    PackedFormat(">7B", bit_packing=(24, 32), reorder = (1,), post_unpack = self.parse_geo_flags),
                 ),  # pad word
                 f3d_gbi.G_CLEARGEOMETRYMODE: (
                     "gsSPClearGeometryMode",
-                    PackedFormat(">7B", bit_packing=(24, 32)),
+                    PackedFormat(">7B", bit_packing=(24, 32), reorder = (1,), post_unpack = self.parse_geo_flags),
                 ),  # pad word
                 # set other mode, L and H?
-                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,))),  # offset dmem_index seg_ptr
+                f3d_gbi.G_MOVEWORD: ("gsMoveWd", PackedFormat(">HBL", (2,), make_str = False)),  # offset dmem_index seg_ptr
                 f3d_gbi.G_POPMTX: ("gsSPPopMatrix", PackedFormat(">7B")),  # pads
                 f3d_gbi.G_TRI1: ("gsSP1Triangle", PackedFormat(">7B", make_str = False, reorder = (4, 5, 6, 3), post_unpack = lambda args: [a//10 for a in args])),  # pad123 flag v123, reorder v123 flag
             }
         if f3d_gbi.F3DEX_GBI or f3d_gbi.F3DLP_GBI or f3d_gbi.F3DEX_GBI_2:
             self.f3dex_cmd_gbi_names.update(
                 {
-                    f3d_gbi.G_MOVEMEM: ("gsSPMoveMem", PackedFormat(">3BL", (3,), reorder=(0, 2, 3, 1))),  # size offset dmem_index seg_ptr, reorder -> index siz seg_ptr offset
+                    f3d_gbi.G_MOVEMEM: ("gsSPMoveMem", PackedFormat(">3BL", (3,), make_str = False, reorder=(0, 2, 3, 1))),  # size offset dmem_index seg_ptr, reorder -> index siz seg_ptr offset
                     f3d_gbi.G_MODIFYVTX: ("gsSPModifyVertex", PackedFormat(">BHl")),  # enum buf_index new_val
                     f3d_gbi.G_CULLDL: ("gsSPCullDisplayList", PackedFormat(">7B")),  # I'll just be ignoring this anyway
                     f3d_gbi.G_BRANCH_Z: (
@@ -686,8 +703,8 @@ class DL(DataParser):
                 PackedFormat(">7B", (3,), bit_packing=(3, 2, 19, 32)),
             ),  # fmt siz pad im_ptr
             f3d_gbi.G_SETCOMBINE: (
-                "gsDPSetCombineMode",
-                PackedFormat(">7B", bit_packing=(4, 5, 3, 3, 4, 5, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3)),
+                "gsDPSetCombineLERP",
+                PackedFormat(">7B", bit_packing=(4, 5, 3, 3, 4, 5, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3), reorder = (0, 6, 1, 10, 2, 11, 3, 12, 4, 7, 5, 13, 8, 14, 9, 15), post_unpack = self.parse_color_combiner),
             ),  # clr_a_1 clr_c_1 alpha_a_1 alpha_c_1 clr_a_2 clr_c_2 clr_b_1 clr_d_1 alpha_b_1 alpha_d_1 clr_b_2 alpha_a_2 alpha_c_2 clr_d_2 alpha_b_2 alpha_d_2
             f3d_gbi.G_SETENVCOLOR: ("gsDPSetEnvColor", PackedFormat(">Bh4B")),  # pad pad rgba
             f3d_gbi.G_SETPRIMCOLOR: ("gsDPSetPrimColor", PackedFormat(">7B")),  # pad minLod loc_frac rgba
@@ -922,11 +939,22 @@ class DL(DataParser):
         self.last_mat.RenderMode = macro.args
         return self._continue_parse
 
-    # not a real gbi cmd, but the binary version that utilizes G_MOVEMEM
+    # TODO: add support at some point, affects fog, and light color
+    def gsMoveWd(self, macro: Macro):
+        return self._continue_parse
+
+    # aliased in gbi C macros, the binary version affects lights and matrices
     def gsSPMoveMem(self, macro: Macro):
-        # just check for G_MV_L0 for now
-        # if macro.args[0] = self.f3d_gbi.G_MV_L0:
-        #     return self.gsSPLight(macro)
+        # dmem_index siz mem_ptr
+        # just check for lights
+        dmem_indices = {12: 'G_MV_POINT', 14: 'G_MV_MATRIX', 0: 'G_MV_LOOKATX', 24: 'G_MV_LOOKATY', 48: 'G_MV_L0', 72: 'G_MV_L1', 96: 'G_MV_L2', 120: 'G_MV_L3', 144: 'G_MV_L5', 168: 'G_MV_L5', 192: 'G_MV_L6', 216: 'G_MV_L7', 128: 'G_MV_VIEWPORT', 130: 'G_MV_LOOKATY', 132: 'G_MV_LOOKATX', 134: 'G_MV_L0', 136: 'G_MV_L1', 138: 'G_MV_L2', 140: 'G_MV_L3', 142: 'G_MV_L4', 146: 'G_MV_L6', 148: 'G_MV_L7', 150: 'G_MV_TXTATT', 158: 'G_MV_MATRIX_1', 152: 'G_MV_MATRIX_2', 154: 'G_MV_MATRIX_3', 156: 'G_MV_MATRIX_4'}
+        index = dmem_indices.get(macro.args[0], None)
+        if "G_MV_L" in index:
+            light_num = int(re.search("\d", index).group())
+            if light_num >= self.last_mat.num_lights:
+                self.last_mat.ambient_light =  LightParent.ambient_from_binary(self.bin_file, macro)
+            else:
+                self.last_mat.light_col[light_num] = LightParent.diffuse_from_binary(self.bin_file, macro)
         return self._continue_parse
 
     # The highest numbered light is always the ambient light
@@ -1109,6 +1137,16 @@ class DL(DataParser):
     # multiple geo modes can happen in a row that contradict each other
     # this is mostly due to culling wanting diff geo modes than drawing
     # but sometimes using the same vertices
+    def parse_geo_flags(self, args: list[int]):
+        def get_flags(arg: int):
+            used_flags = []
+            for flag in self.f3d_gbi.allGeomModeFlags:
+                flag_val = getattr(self.f3d_gbi, flag, None)
+                if flag_val and ((arg & flag_val) == flag_val):
+                    used_flags.append(flag)
+            return " | ".join(used_flags)
+        return [get_flags(arg) for arg in args]
+
     def gsSPClearGeometryMode(self, macro: Macro):
         self.NewMat = 1
         args = [a.strip() for a in macro.args[0].split("|")]
@@ -1150,6 +1188,15 @@ class DL(DataParser):
         return self._continue_parse
 
     # uses bitwise unpacking
+    def parse_color_combiner(self, args: list[int]):
+        a = {0: 'COMBINED', 1: 'TEXEL0', 2: 'TEXEL1', 3: 'PRIMITIVE', 4: 'SHADE', 5: 'ENVIRONMENT', 6: '1', 7: 'NOISE'}
+        b = {0: 'COMBINED', 1: 'TEXEL0', 2: 'TEXEL1', 3: 'PRIMITIVE', 4: 'SHADE', 5: 'ENVIRONMENT', 6: 'CENTER', 7: 'K4'}
+        c = {0: 'COMBINED', 1: 'TEXEL0', 2: 'TEXEL1', 3: 'PRIMITIVE', 4: 'SHADE', 5: 'ENVIRONMENT', 6: 'SCALE', 7: 'COMBINED_ALPHA', 8: 'TEXEL0_ALPHA', 9: 'TEXEL1_ALPHA', 10: 'PRIMITIVE_ALPHA', 11: 'SHADE_ALPHA', 12: 'ENV_ALPHA', 13: 'LOD_FRACTION', 14: 'PRIM_LOD_FRAC', 15: 'K5'}
+        d = {0: 'COMBINED', 1: 'TEXEL0', 2: 'TEXEL1', 3: 'PRIMITIVE', 4: 'SHADE', 5: 'ENVIRONMENT', 6: '1', 7: '0'}
+        aa = {0: 'COMBINED', 1: 'TEXEL0', 2: 'TEXEL1', 3: 'PRIMITIVE', 4: 'SHADE', 5: 'ENVIRONMENT', 6: '1', 7: '0'}
+        ba = {0: 'COMBINED', 1: 'TEXEL0', 2: 'TEXEL1', 3: 'PRIMITIVE', 4: 'SHADE', 5: 'ENVIRONMENT', 6: '1', 7: '0'}
+        ca = da= aa
+        return [d.get(val, 0) for val, d in zip(args, [a,b,c,d,aa,ba,ca,da]*2)]
 
     def gsDPSetCombineMode(self, macro: Macro):
         self.NewMat = 1

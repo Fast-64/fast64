@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------
 
 # TODO:
-# fix materials for binary (mostly render modes, color combiners and lights)
+# fix set tile flags for binary?
 # clean up code base, remove existing sm64 binary importer
 # make sure props play nice in prop updating system
 
@@ -380,7 +380,7 @@ class Level(DataParser):
         0x24: (
             "OBJECT_WITH_ACTS",
             PackedFormat(">2B6hLL", (9,), reorder=(1, 2, 3, 4, 5, 6, 7, 8, 9, 0)),
-        ),  # model posXYZ angleXYZ beh_param beh acts)  # acts model posXYZ angleXYZ beh_param beh
+        ),  # model posXYZ angleXYZ beh_param beh acts, reorder -> acts model posXYZ angleXYZ beh_param beh
         0x25: ("MARIO", PackedFormat(">BBlL")),  # pad unk beh_param beh_ptr
         0x26: ("WARP_NODE", PackedFormat(">6B")),  # id dest_level dest_area dest_node flags pad
         0x27: ("PAINTING_WARP_NODE", PackedFormat(">6B")),  # id dest_level dest_area dest_node flags pad
@@ -1182,7 +1182,11 @@ class SM64_F3D(DL):
             # scale verts
             l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
             # idk why this is necessary. N64 thing or something?
-            l[uv_map].uv[1] = l[uv_map].uv[1] * -1 + 1
+            if self.parsing_target == DataParser._binary_parsing:
+                flip = 1
+            else:
+                flip = -1
+            l[uv_map].uv[1] = l[uv_map].uv[1] * flip + 1
             l[v_color] = [*gammaInverse([a / 255 for a in vcol]), 255]
             l[v_alpha] = [vcol[3] / 255 for i in range(4)]
 
@@ -1277,14 +1281,14 @@ class GraphNodes(DataParser):
         ),  # use a specific function to decode this one, format in dict is dummy
         0x11: (
             "GEO_TRANSLATE_NODE_BIN",
-            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y)),
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False),
         ),
         0x12: (
             "GEO_ROTATION_NODE_BIN",
-            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y)),
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False),
         ),
         0x13: ("GEO_ANIMATED_PART", PackedFormat(f">B3hL", (4,))),
-        0x14: ("GEO_BILLBOARD_BIN", PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y))),
+        0x14: ("GEO_BILLBOARD_BIN", PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False)),
         0x15: ("GEO_DISPLAY_LIST", PackedFormat(">BhL", (2,))),
         0x16: ("GEO_SHADOW", PackedFormat(">B3h")),
         0x17: ("GEO_RENDER_OBJ", PackedFormat(">Bh")),
@@ -1293,7 +1297,7 @@ class GraphNodes(DataParser):
         0x1A: ("GEO_NOP", PackedFormat(">B3h")),
         0x1B: ("GEO_COPY_VIEW", PackedFormat(">Bh")),
         0x1C: ("GEO_HELD_OBJECT", PackedFormat(">B3hL")),
-        0x1D: ("GEO_SCALE", PackedFormat(f">BhlL", (3,), lambda x, y: GraphNodes.cmd_rm_dl(x, y))),
+        0x1D: ("GEO_SCALE", PackedFormat(f">BhlL", (3,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False)),
         0x1E: ("GEO_NOP", PackedFormat(">B3h")),
         0x1F: ("GEO_NOP", PackedFormat(">B7h")),
         0x20: ("GEO_CULLING_RADIUS", PackedFormat(">Bh")),
@@ -1426,7 +1430,7 @@ class GraphNodes(DataParser):
         if (macro.args[0] & 0x80) == 0x80:
             return macro
         else:
-            return macro.partial([*macro.args, "NULL"])
+            return macro.partial(*macro.args, "NULL")
 
     # macro parsing helpers
     def parse_layer(self, layer: str) -> int:
@@ -1508,9 +1512,10 @@ class GraphNodes(DataParser):
     def GEO_DISPLAY_LIST(self, macro: Macro, depth: int):
         # translation, rotation, layer, model
         model = macro.args[-1]
-        geo_obj = self.add_model(
-            ModelDat(self.parent_transform, macro.args[0], model), "display_list", self.display_list, macro.args[1]
-        )
+        if model != "NULL":
+            geo_obj = self.add_model(
+                ModelDat(self.parent_transform, macro.args[0], model), "display_list", self.display_list, macro.args[1]
+            )
         self.set_transform(geo_obj, self.parent_transform)
         return self._continue_parse
 
@@ -1543,7 +1548,7 @@ class GraphNodes(DataParser):
         return self._continue_parse
 
     def GEO_BILLBOARD_BIN(self, macro: Macro, depth: int):
-        return self.GEO_BILLBOARD_WITH_PARAMS_AND_DL(self.fix_bin_cmd_dls(macro), depths)
+        return self.GEO_BILLBOARD_WITH_PARAMS_AND_DL(self.fix_bin_cmd_dls(macro), depth)
 
     def GEO_ANIMATED_PART(self, macro: Macro, depth: int):
         # layer, translation, DL
@@ -1552,7 +1557,7 @@ class GraphNodes(DataParser):
         self.last_transform = self.parent_transform @ transform
         model = macro.args[-1]
 
-        if model != "NULL":
+        if model != "NULL" and model != 0:
             geo_obj = self.add_model(
                 ModelDat(self.last_transform, macro.args[0], model), "bone", self.animated_part, macro.args[0]
             )
@@ -2189,9 +2194,9 @@ class GeoArmature(GraphNodes):
     def GEO_SCALE_BIN(self, macro: Macro, depth: int):
         macro = self.fix_bin_cmd_dls(macro)
         if macro.args[-1] != "NULL":
-            return self.GEO_SCALE_WITH_DL(macro, depth)
+            return self.GEO_SCALE_WITH_DL(macro.partial(macro[1:]), depth)
         else:
-            return self.GEO_SCALE(macro, depth)
+            return self.GEO_SCALE(macro.partial(macro.args[0], macro.args[2]), depth)
 
     def GEO_SCALE_WITH_DL(self, macro: Macro, depth: int):
         scale = eval_or_int(macro.args[1]) / 0x10000
@@ -2681,7 +2686,7 @@ def find_level_models_from_geo(
             geo_layout_dict, area.root, scene, f"GeoRoot {props.level_name} {area_index}", area.root, col=col
         )
         geo.parse_level_geo(area.geo)
-        area.geo = geo
+        area.geo_data = geo
     return lvl
 
 
@@ -2917,7 +2922,7 @@ class SM64_LvlImport(Operator):
         level_data_path, script_path, geo_path = get_operator_paths(props, decomp_path)
         lvl = parse_level_script(script_path, decomp_path, rom_path, scene, col)
 
-        if props.import_linked_actors:
+        if props.import_linked_actors and props.import_target == "C":
             unique_model_ids = {model for model in lvl.loaded_geos.keys()}
             unique_model_ids.update({model for model in lvl.loaded_dls.keys()})
             unique_model_ids.update({object.model for area in lvl.areas.values() for object in area.objects})
@@ -3286,9 +3291,10 @@ class SM64_ImportProperties(PropertyGroup):
         row.prop(self, "force_new_tex")
         row.prop(self, "as_obj")
         row.prop(self, "export_friendly")
-        row.prop(self, "import_linked_actors")
+        if self.import_target == "C":
+            row.prop(self, "import_linked_actors")
         row.prop(self, "use_collection")
-        if self.import_linked_actors:
+        if self.import_linked_actors and self.import_target == "C":
             box = box.box()
             box.operator("scene.add_group", text="Add Group Load")
             for index, group in enumerate(self.linked_groups):
