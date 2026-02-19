@@ -276,6 +276,10 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         filepaths.append(ootGetObjectPath(isCustomImport, "", "gameplay_keep", True))
         filepaths.append(ootGetObjectHeaderPath(isCustomImport, "", "gameplay_keep", True))
 
+        # starting with zeldaret/oot dbe1a80541173652c344f20226310a8bf90f3086 gameplay_keep is split and committed
+        filepaths.append(f"{bpy.context.scene.ootDecompPath}/assets/objects/gameplay_keep/link_textures.c")
+        filepaths.append(f"{bpy.context.scene.ootDecompPath}/assets/objects/gameplay_keep/link_textures.h")
+
         if (Path(bpy.context.scene.ootDecompPath) / "assets/objects" / folderName).exists():
             filepaths.extend(
                 [
