@@ -159,6 +159,7 @@ def convert_tex_bin(fmt: str, width: int, height: int, im_siz: int, byte_stream:
     im_siz = int(re.search("\d+", im_siz).group())
     return funcs.get(fmt)(int(width), int(height), im_siz, byte_stream, pal_stream)
 
+
 def convert_tex_c(fmt: str, width: int, height: int, im_siz: int, byte_stream: bytes, pal_stream: bytes = None):
     # I dislike this formulation but calling globals() is worse
     funcs = {

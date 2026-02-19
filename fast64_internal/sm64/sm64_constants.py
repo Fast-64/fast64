@@ -2321,6 +2321,7 @@ def validate_dict(val: DictOrVal, val_type: type):
 def validate_list(val: ListOrVal, val_type: type):
     return all(isinstance(v, val_type) for v in as_list(val))
 
+
 @dataclasses.dataclass
 class AnimInfo:
     address: int
@@ -2435,6 +2436,7 @@ class ActorPresetInfo:
             return self.models.get(name)
         else:
             return self.models
+
 
 ACTOR_PRESET_INFO = {
     "Amp": ActorPresetInfo(

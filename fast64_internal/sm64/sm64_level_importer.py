@@ -82,7 +82,7 @@ from .sm64_constants import (
     enumLevelNames,
     enumSpecialsNames,
     LEVEL_ID_NUMBERS,
-    groups_obj_export
+    groups_obj_export,
 )
 
 # ------------------------------------------------------------------------
@@ -364,15 +364,21 @@ class Level(DataParser):
         0x14: ("PUSH_POOL", PackedFormat(">H")),  # pad
         0x15: ("POP_POOL", PackedFormat(">H")),  # pad
         0x16: ("FIXED_LOAD", PackedFormat(">H3L")),  # load_addr start_ptr end_ptr
-        0x17: ("LOAD_RAW", PackedFormat(">2B2L", reorder = (1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
-        0x18: ("LOAD_MIO0", PackedFormat(">2B2L", reorder = (1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
+        0x17: ("LOAD_RAW", PackedFormat(">2B2L", reorder=(1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
+        0x18: ("LOAD_MIO0", PackedFormat(">2B2L", reorder=(1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
         0x19: ("LOAD_MARIO_HEAD", PackedFormat(">H")),  # set head
-        0x1A: ("LOAD_MIO0_TEXTURE", PackedFormat(">2B2L", reorder = (1, 2, 3), make_str=False)),  # pad seg start_ptr end_ptr
+        0x1A: (
+            "LOAD_MIO0_TEXTURE",
+            PackedFormat(">2B2L", reorder=(1, 2, 3), make_str=False),
+        ),  # pad seg start_ptr end_ptr
         0x1B: ("INIT_LEVEL", PackedFormat(">H")),  # pad
         0x1C: ("CLEAR_LEVEL", PackedFormat(">H")),  # pad
         0x1D: ("ALLOC_LEVEL_POOL", PackedFormat(">H")),  # pad
         0x1E: ("FREE_LEVEL_POOL", PackedFormat(">H")),  # pad
-        0x1F: ("AREA", PackedFormat(">2BL", make_str=False)),  # index, pad, geo_ptr, delay ptr retrieval because hacks do
+        0x1F: (
+            "AREA",
+            PackedFormat(">2BL", make_str=False),
+        ),  # index, pad, geo_ptr, delay ptr retrieval because hacks do
         0x20: ("END_AREA", PackedFormat(">H")),  # pad
         0x21: ("LOAD_MODEL_FROM_DL", PackedFormat(">Hl")),  # model|layer dl_ptr
         0x22: ("LOAD_MODEL_FROM_GEO", PackedFormat(">HL", (1,))),  # model geo_ptr
@@ -504,10 +510,10 @@ class Level(DataParser):
         if not self.banks.tlb.get(0x19, None):
             return
         area_index = int(area_index)
-        load_addr = self.seg2phys(0x19005f00)
-        start = self.unpack_type(self.bin_file, load_addr+area_index*16, ">L", make_str=False)
-        end = self.unpack_type(self.bin_file, load_addr+4+area_index*16, ">L", make_str=False)
-        self.banks.tlb[0x0E] = [start,end]
+        load_addr = self.seg2phys(0x19005F00)
+        start = self.unpack_type(self.bin_file, load_addr + area_index * 16, ">L", make_str=False)
+        end = self.unpack_type(self.bin_file, load_addr + 4 + area_index * 16, ">L", make_str=False)
+        self.banks.tlb[0x0E] = [start, end]
 
     # macro parsing funcs
     # jump to new script, goes back via EXIT, not RETURN
@@ -588,14 +594,22 @@ class Level(DataParser):
         return self._continue_parse
 
     # mio0 header is sig, len, comp_off decomp_off. Add decomp_off to bank start
-    def _decode_cmd_load_mio0_texture_bin(self, packed_fmt: PackedFormat, parser: Parser) -> tuple[cmd_name: str, cmd_args: list[int], cmd_len: int]:
+    def _decode_cmd_load_mio0_texture_bin(
+        self, packed_fmt: PackedFormat, parser: Parser
+    ) -> tuple[cmd_name:str, cmd_args : list[int], cmd_len:int]:
         return self._decode_cmd_load_mio0_bin(packed_fmt, parser)
 
-    def _decode_cmd_load_mio0_bin(self, packed_fmt: PackedFormat, parser: Parser) -> tuple[cmd_name: str, cmd_args: list[int], cmd_len: int]:
+    def _decode_cmd_load_mio0_bin(
+        self, packed_fmt: PackedFormat, parser: Parser
+    ) -> tuple[cmd_name:str, cmd_args : list[int], cmd_len:int]:
         cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
         mio0_header = cmd_args[1]
-        mio0_offset = self.unpack_type(parser.cur_stream, mio0_header + 0xC, ">L", make_str = False)
-        return ("LOAD_MIO0", [cmd_args[0], cmd_args[1] + mio0_offset, cmd_args[2] + mio0_offset], packed_fmt.format_size)
+        mio0_offset = self.unpack_type(parser.cur_stream, mio0_header + 0xC, ">L", make_str=False)
+        return (
+            "LOAD_MIO0",
+            [cmd_args[0], cmd_args[1] + mio0_offset, cmd_args[2] + mio0_offset],
+            packed_fmt.format_size,
+        )
 
     def LOAD_MIO0(self, macro: Macro, col: bpy.types.Collection):
         self.banks.tlb[macro.args[0]] = (macro.args[1], macro.args[2])
@@ -762,7 +776,7 @@ class ColTri:
 
 
 class Collision(DataParser):
-    def __init__(self, collision: list[str], scale: float, parse_target = DataParser._c_parsing):
+    def __init__(self, collision: list[str], scale: float, parse_target=DataParser._c_parsing):
         self.collision = collision  # will be none in binary
         self.scale = scale
         self.vertices = []
@@ -771,7 +785,7 @@ class Collision(DataParser):
         self.type: str = None
         self.special_objects = []
         self.water_boxes = []
-        super().__init__(parse_target = parse_target)
+        super().__init__(parse_target=parse_target)
 
     def write_water_boxes(
         self, scene: bpy.types.Scene, parent: bpy.types.Object, name: str, col: bpy.types.Collection = None
@@ -1281,14 +1295,17 @@ class GraphNodes(DataParser):
         ),  # use a specific function to decode this one, format in dict is dummy
         0x11: (
             "GEO_TRANSLATE_NODE_BIN",
-            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False),
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str=False),
         ),
         0x12: (
             "GEO_ROTATION_NODE_BIN",
-            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False),
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str=False),
         ),
         0x13: ("GEO_ANIMATED_PART", PackedFormat(f">B3hL", (4,))),
-        0x14: ("GEO_BILLBOARD_BIN", PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False)),
+        0x14: (
+            "GEO_BILLBOARD_BIN",
+            PackedFormat(f">B3hL", (4,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str=False),
+        ),
         0x15: ("GEO_DISPLAY_LIST", PackedFormat(">BhL", (2,))),
         0x16: ("GEO_SHADOW", PackedFormat(">B3h")),
         0x17: ("GEO_RENDER_OBJ", PackedFormat(">Bh")),
@@ -1297,7 +1314,7 @@ class GraphNodes(DataParser):
         0x1A: ("GEO_NOP", PackedFormat(">B3h")),
         0x1B: ("GEO_COPY_VIEW", PackedFormat(">Bh")),
         0x1C: ("GEO_HELD_OBJECT", PackedFormat(">B3hL")),
-        0x1D: ("GEO_SCALE", PackedFormat(f">BhlL", (3,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str = False)),
+        0x1D: ("GEO_SCALE", PackedFormat(f">BhlL", (3,), lambda x, y: GraphNodes.cmd_rm_dl(x, y), make_str=False)),
         0x1E: ("GEO_NOP", PackedFormat(">B3h")),
         0x1F: ("GEO_NOP", PackedFormat(">B7h")),
         0x20: ("GEO_CULLING_RADIUS", PackedFormat(">Bh")),
@@ -1346,7 +1363,7 @@ class GraphNodes(DataParser):
         offset = 0
         # hopefully this doesn't go on long
         while offset < 0x40:
-            cmd_type = struct.unpack(">B", bin_file[entry_ptr+offset:entry_ptr+1+offset])[0]
+            cmd_type = struct.unpack(">B", bin_file[entry_ptr + offset : entry_ptr + 1 + offset])[0]
             cmd_name, packed_cmd = GraphNodes._geo_cmds_bin_format.get(cmd_type)
             offset += packed_cmd.format_size + 1
             # this won't be perfect but it'll avoid having to parse the entire geo layout
@@ -1356,7 +1373,18 @@ class GraphNodes(DataParser):
                 geo_layout = GeoArmature(None, arm_obj, scene, entry_ptr, col=col, parse_target=parse_target)
                 bpy.context.view_layer.objects.active = geo_layout.get_or_init_geo_armature()
                 break
-            elif cmd_name in {"GEO_END", "GEO_BRANCH_AND_LINK", "GEO_BRANCH", "GEO_TRANSLATE_ROTATE", "GEO_ROTATION_NODE_BIN", "GEO_TRANSLATE_NODE_BIN"} or offset > 0x40:
+            elif (
+                cmd_name
+                in {
+                    "GEO_END",
+                    "GEO_BRANCH_AND_LINK",
+                    "GEO_BRANCH",
+                    "GEO_TRANSLATE_ROTATE",
+                    "GEO_ROTATION_NODE_BIN",
+                    "GEO_TRANSLATE_NODE_BIN",
+                }
+                or offset > 0x40
+            ):
                 geo_layout = GeoLayout(None, None, scene, entry_ptr, None, col=col, parse_target=parse_target)
                 break
 
@@ -3135,12 +3163,13 @@ def get_sm64_geos():
                 enum_list.append((model, model, name))
     return enum_list
 
+
 class SM64_ImportProperties(PropertyGroup):
     # actor props
     custom_geo_layout_str: StringProperty(name="Geo Layout Name", description="Name of GeoLayout")
     custom_geo_layout_addr: StringProperty(name="Geo Layout Address", description="Address of GeoLayout")
 
-    actor_preset :EnumProperty(
+    actor_preset: EnumProperty(
         name="actor preset", description="Actor to import", items=[*get_sm64_geos(), ("Custom", "Custom", "Custom")]
     )
     custom_actor_prefix: StringProperty(
