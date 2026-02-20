@@ -81,6 +81,7 @@ from ..f3d.f3d_writer import (
 )
 
 from ..f3d.f3d_gbi import (
+    FMaterialKey,
     get_F3D_GBI,
     GfxList,
     GfxListTag,
@@ -2440,7 +2441,7 @@ def saveModelGivenVertexGroup(
         for material_index, bFaces in sorted(materialFaces.items()):
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
-            fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+            fMaterial = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
             if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
                 currentGroupIndex = saveMeshWithLargeTexturesByFaces(
                     material,
@@ -2503,9 +2504,8 @@ def save_override_draw(
     g_tex_gen = False
 
     if override_mat is not None:
-        f_override_mat, override_tex_dimensions = saveOrGetF3DMaterial(
-            override_mat, f_model, None, new_layer, convert_texture_data
-        )
+        f_override_mat = saveOrGetF3DMaterial(override_mat, f_model, None, new_layer, convert_texture_data)
+        override_tex_dimensions = f_override_mat.texDimensions
         g_tex_gen = override_mat.f3d_mat.rdp_settings.g_tex_gen
 
     name = f"{fMesh.name}{prefix}"
@@ -2531,17 +2531,17 @@ def save_override_draw(
             continue
         # get the material referenced, and then check if it should be overriden
         # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
-        bpy_material, fmaterial = find_material_from_jump_cmd(f_model.getAllMaterials().items(), command)
+        bpy_material, fmaterial, _key = find_material_from_jump_cmd(f_model.getAllMaterials().items(), command)
         should_modify = override_mat is not None and (
             (override_type == "Specific" and bpy_material in specific_mats)
             or (override_type == "All" and bpy_material not in specific_mats)
         )
 
         if should_modify and bpy_material is not None and override_tex_dimensions is not None and not g_tex_gen:
-            _, tex_dimensions = saveOrGetF3DMaterial(bpy_material, f_model, None, new_layer, convert_texture_data)
-            if tex_dimensions != override_tex_dimensions:
+            f_material = saveOrGetF3DMaterial(bpy_material, f_model, None, new_layer, convert_texture_data)
+            if f_material.texDimensions != override_tex_dimensions:
                 raise PluginError(
-                    f'Material "{bpy_material.name}" has a texture with dimensions of {tex_dimensions}\n'
+                    f'Material "{bpy_material.name}" has a texture with dimensions of {f_material.texDimensions}\n'
                     f'but is being overriden by material "{override_mat.name}" with dimensions of {override_tex_dimensions}.\n'
                     + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
                     + "Make sure that all overrides have the same texture dimensions as the original material.\n"
@@ -2559,9 +2559,7 @@ def save_override_draw(
                 preset = (rdp.rendermode_preset_cycle_1, rdp.rendermode_preset_cycle_2)
                 cur_preset = f_model.getRenderMode(new_layer)
                 if rdp.set_rendermode and (rdp.rendermode_advanced_enabled or preset != cur_preset):
-                    new_mat: FMaterial = saveOrGetF3DMaterial(
-                        cur_bpy_material, f_model, None, new_layer, convert_texture_data
-                    )[0]
+                    new_mat = saveOrGetF3DMaterial(cur_bpy_material, f_model, None, new_layer, convert_texture_data)
                     if override_mat is None:
                         new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
                         new_mat.material.tag |= GfxListTag.NoExport
@@ -2686,6 +2684,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
     loopDict = {}
     for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         # These MUST be arrays (not dicts) as order is important
+        # TODO: in modern python dicts are ordered, is this really still needed?
         inGroupVerts = []
         inGroupVertArray.append([material_index, inGroupVerts])
 
@@ -2693,7 +2692,7 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
         notInGroupVertArray.append([material_index, notInGroupVerts])
 
         material = obj.material_slots[material_index].material
-        fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+        saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 
         convertInfo = LoopConvertInfo(uv_data, obj, material)
         for skinnedFace in skinnedFaceArray:
@@ -2725,7 +2724,7 @@ def getGroupVertCount(group):
 
 def saveSkinnedMeshByMaterial(
     skinnedFaces,
-    fModel,
+    fModel: SM64Model,
     meshName,
     skinnedMeshName,
     obj,
@@ -2779,8 +2778,8 @@ def saveSkinnedMeshByMaterial(
         else:
             drawLayerKey = None
 
-        materialKey = (material, drawLayerKey, fModel.global_data.getCurrentAreaKey(f3dMat))
-        fMaterial, texDimensions = fModel.getMaterialAndHandleShared(materialKey)
+        materialKey = FMaterialKey(material, drawLayerKey, fModel.global_data.getCurrentAreaKey(f3dMat))
+        fMaterial = fModel.getMaterialAndHandleShared(materialKey)
         isPointSampled = isTexturePointSampled(material)
 
         skinnedTriGroup = fSkinnedMesh.tri_group_new(fMaterial)
@@ -2795,7 +2794,7 @@ def saveSkinnedMeshByMaterial(
             skinnedTriGroup.vertexList.vertices.append(
                 bufferVert.f3dVert.toVtx(
                     obj.data,
-                    texDimensions,
+                    fMaterial.texDimensions,
                     parentMatrix,
                     isPointSampled,
                 )
@@ -2816,7 +2815,7 @@ def saveSkinnedMeshByMaterial(
     for material_index, skinnedFaceArray in sorted(skinnedFaces.items()):
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
-        fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+        fMaterial = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
         if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             saveMeshWithLargeTexturesByFaces(
                 material,

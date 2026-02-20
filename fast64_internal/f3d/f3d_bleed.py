@@ -20,6 +20,7 @@ from .f3d_gbi import (
     DPSetTextureLOD,
     DPSetTextureLUT,
     DPSetTexturePersp,
+    FMaterialKey,
     GfxMatWriteMethod,
     GfxTag,
     GfxListTag,
@@ -127,7 +128,7 @@ class BleedGraphics:
     def __init__(self):
         self.bled_gfx_lists = dict()
         self.reset_gfx_lists = set()
-        self.not_inlined_bleed: dict[tuple, FMaterial] = {}
+        self.not_inlined_bleed: dict[int, list[tuple[list[GbiMacro], FMaterial]]] = {}
         # build world default cmds to compare against, f3d types needed for reset cmd building
         self.f3d = get_F3D_GBI()
         self.is_f3d_old = bpy.context.scene.f3d_type == "F3D"
@@ -269,6 +270,9 @@ class BleedGraphics:
             # bleed mat and tex
             if jump_list_cmd.displayList.tag & GfxListTag.MaterialRevert:
                 revert_bpy_mat, mat, _ = find_material_from_jump_cmd(fmodel_materials, jump_list_cmd)
+                if revert_bpy_mat is None:
+                    # wtf
+                    assert False
                 bleed_props = revert_bpy_mat.fast64.f3d.bleed
 
                 if bleed_props.inline:
@@ -289,7 +293,7 @@ class BleedGraphics:
                     last_fmat, last_bpy_mat = mat, revert_bpy_mat
 
             if jump_list_cmd.displayList.tag & GfxListTag.Material:
-                cur_bpy_mat, cur_fmat, entry = find_material_from_jump_cmd(fmodel_materials, jump_list_cmd)
+                cur_bpy_mat, cur_fmat, material_key = find_material_from_jump_cmd(fmodel_materials, jump_list_cmd)
                 if not cur_fmat:
                     # make better error msg
                     print("could not find material used in fmesh draw")
@@ -329,20 +333,38 @@ class BleedGraphics:
                 if not inline:
                     # when we dont inline we need to create a new display list
                     # for each possible bleed variation
-                    key = hash((id(cur_fmat), id(last_fmat), id(start_cmds), is_independent))
-                    if key in self.not_inlined_bleed:
-                        cmd_list.commands.append(SPDisplayList(self.not_inlined_bleed[key].material))
-                        continue
+
+                    # find equal displaylist if there is one to not duplicate
+                    # this is allowed to be as slow as needed
+                    commands = bleed_gfx_lists.bled_mats + bleed_gfx_lists.bled_tex
+                    materials_dict = self.not_inlined_bleed.setdefault(id(cur_fmat), [])
+                    if materials_dict:
+                        found = False
+                        for other_cmd_list, not_inlined_fmat in materials_dict:
+                            if commands != other_cmd_list:
+                                continue
+                            cmd_list.commands.append(SPDisplayList(not_inlined_fmat.material))
+                            found = True
+                            break
+                        if found:
+                            continue
+
                     name = fModel.dedup_name(cur_fmat.material.name + "_bleed", fModel.material_names)
                     new: FMaterial = copy.copy(cur_fmat)
                     new.material = copy.copy(cur_fmat.material)
                     new.material.commands = [*bleed_gfx_lists.bled_tex, *bleed_gfx_lists.bled_mats]
                     new.material.tag &= ~GfxListTag.NoExport
                     new.material.name = name
-                    # TODO: this wont won´t work, it will remove the material from the material list which is really bad
-                    fModel.materials[entry[0]] = new, entry[1][1]
+                    fModel.materials[
+                        FMaterialKey(
+                            material_key.bpy_mat,
+                            material_key.draw_layer,
+                            material_key.area_data,
+                            bleed_clone_hash=hash((id(last_fmat), id(start_cmds), is_independent)),
+                        )
+                    ] = new
                     fModel.onMaterialAdd(new)
-                    self.not_inlined_bleed[key] = new
+                    materials_dict.append((commands, new))
                     cur_fmat = new
                     cmd_list.commands.append(SPDisplayList(new.material))
 
@@ -784,24 +806,23 @@ class BleedGraphics:
 # small containers for data used in inline Gfx
 @dataclass
 class BleedGfxLists:
-    bled_mats: GfxList = field(default_factory=list)
-    bled_tex: GfxList = field(default_factory=list)
+    bled_mats: list[GbiMacro] = field(default_factory=list)
+    bled_tex: list[GbiMacro] = field(default_factory=list)
 
 
 # helper function used for sm64
 def find_material_from_jump_cmd(
-    material_list: tuple[tuple[bpy.types.Material, str], tuple[FMaterial, tuple[int, int]]],
+    material_list: list[tuple[FMaterialKey, FMaterial]],
     dl_jump: SPDisplayList,
 ):
     if dl_jump.displayList.tag & GfxListTag.Geometry:
         return None, None, None
-    for mat in material_list:
-        fmaterial, texDimensions = mat[1]
-        bpy_material = mat[0][0]
-        if dl_jump.displayList.tag & GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
-            return bpy_material, fmaterial, mat
-        elif dl_jump.displayList.tag & GfxListTag.Material and fmaterial.material == dl_jump.displayList:
-            return bpy_material, fmaterial, mat
+    for key, mat in material_list:
+        bpy_material = key.bpy_mat
+        if dl_jump.displayList.tag & GfxListTag.MaterialRevert and mat.revert == dl_jump.displayList:
+            return bpy_material, mat, key
+        elif dl_jump.displayList.tag & GfxListTag.Material and mat.material == dl_jump.displayList:
+            return bpy_material, mat, key
     return None, None, None
 
 
