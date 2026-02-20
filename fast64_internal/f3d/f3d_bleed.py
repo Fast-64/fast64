@@ -335,9 +335,11 @@ class BleedGraphics:
                         continue
                     name = fModel.dedup_name(cur_fmat.material.name + "_bleed", fModel.material_names)
                     new: FMaterial = copy.copy(cur_fmat)
+                    new.material = copy.copy(cur_fmat.material)
                     new.material.commands = [*bleed_gfx_lists.bled_tex, *bleed_gfx_lists.bled_mats]
                     new.material.tag &= ~GfxListTag.NoExport
                     new.material.name = name
+                    # TODO: this wont won´t work, it will remove the material from the material list which is really bad
                     fModel.materials[entry[0]] = new, entry[1][1]
                     fModel.onMaterialAdd(new)
                     self.not_inlined_bleed[key] = new
@@ -351,7 +353,7 @@ class BleedGraphics:
                 tri_list = jump_list_cmd.displayList
                 self.bleed_tri_group(tri_list, cur_fmat, bleed_state)
                 bleed_props = (cur_bpy_mat.fast64.f3d.bleed) if cur_bpy_mat else None
-                if bleed_props.inline:
+                if bleed_props is None or bleed_props.inline:
                     jump_list_cmd.displayList.tag |= GfxListTag.NoExport
                     self.inline_triGroup(tri_list, bleed_gfx_lists, cmd_list)
                 else:
@@ -364,6 +366,7 @@ class BleedGraphics:
         cmd_list.commands.extend(fmesh_static_cmds)  # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
         [self.add_reset_cmd(self.f3d, cmd, reset_cmd_dict, mat_write_method) for cmd in cmd_list.commands]
+        self.optimize_syncs(cmd_list)
         self.bled_gfx_lists[id(cmd_list)] = cur_fmat
         return last_fmat, last_bpy_mat
 
@@ -805,8 +808,14 @@ def find_material_from_jump_cmd(
 class MaterialBleedProperties(bpy.types.PropertyGroup):
     """Material.fast64.f3d.bleed"""
 
-    independent: bpy.props.BoolProperty(default=False, name="independently")
-    inline: bpy.props.BoolProperty(default=True, name="Inline displaylists")
+    independent: bpy.props.BoolProperty(
+        default=False, name="Independent", description="Independent material, does not bleed from previous material"
+    )
+    inline: bpy.props.BoolProperty(
+        default=True,
+        name="Inline displaylists",
+        description="Inline material, tri groups and revert into the main displaylist",
+    )
 
     def draw_props(self, layout: bpy.types.UILayout):
         col = layout.column()
