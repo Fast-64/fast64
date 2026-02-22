@@ -1321,7 +1321,7 @@ class GraphNodes(DataParser):
                 "pass_linked_export",
             )
         for line in geo_layout:
-            if "GEO_ANIMATED_PART" in line:
+            if "GEO_ANIMATED_PART" in line or "GEO_SWITCH_CASE" in line:
                 name = f"Actor {layout_name}"
                 arm_obj = bpy.data.objects.new(name, bpy.data.armatures.new(name))
                 col.objects.link(arm_obj)
@@ -1383,7 +1383,7 @@ class GraphNodes(DataParser):
 
     @property
     def ordered_name(self) -> str:
-        return f"{self.get_parser(self.stream[-1]).head}_{self.name}"
+        return f"{self.get_parser(self.stream[-1]).head:04}_{self.name}"
 
     @property
     def first_obj(self) -> bpy.types.Object:
@@ -1694,7 +1694,7 @@ class GraphNodes(DataParser):
 
 class GeoLayout(GraphNodes):
     switch = "Switch"
-    translate_rotate = "Geo Translate/Rotat"
+    translate_rotate = "Geo Translate/Rotate"
     translate = "Geo Translate Node"
     rotate = "Geo Rotation Node"
     billboard = "Geo Billboard"
@@ -1703,7 +1703,6 @@ class GeoLayout(GraphNodes):
     asm = "Geo ASM"
     scale = "Geo Scale"
     animated_part = "Geo Translate Node"
-    custom_animated = "Custom"
     custom = "Custom"
 
     def __init__(
@@ -1932,6 +1931,7 @@ class GeoLayout(GraphNodes):
                 pass_args=self.pass_args,
             )
         GeoChild.parent_transform = self.last_transform
+        GeoChild.last_transform = self.last_transform
         GeoChild.parse_stream(self.get_new_stream(self.stream[-1]), self.stream[-1], depth + 1)
         self.children.append(GeoChild)
         return self._continue_parse
@@ -1951,8 +1951,7 @@ class GeoArmature(GraphNodes):
     scale = "Scale"
     render_area = "StartRenderArea"
     animated_part = "DisplayListWithOffset"
-    custom_animated = "CustomAnimated"
-    custom = "CustomNonAnimated"
+    custom = "Custom"
 
     def __init__(
         self,
@@ -2004,6 +2003,8 @@ class GeoArmature(GraphNodes):
             name = f"{self.ordered_name} switch_option"
             switch_armature = bpy.data.objects.new(name, bpy.data.armatures.new(name))
             self.col.objects.link(switch_armature)
+            # offset the location
+            switch_armature.location += Vector((2.0 * self.switch_index, 0, 0))
             self.switch_armatures[self.switch_index] = switch_armature
 
             self.enter_edit_mode(switch_armature)
@@ -2061,7 +2062,7 @@ class GeoArmature(GraphNodes):
         eb_name = edit_bone.name
         # give it a non zero length
         edit_bone.head = (0, 0, 0)
-        edit_bone.tail = (0, 0, 1)
+        edit_bone.tail = (0, 0, 0.1)
         # use self.switch_option_bone as parent, this does not logically follow from sm64 graph
         # but is due to fast64 rules, where switch option acts as "virtual" bone in between child and parent
         if self.switch_option_bone or self.parent_bone:
@@ -2112,9 +2113,10 @@ class GeoArmature(GraphNodes):
 
     # cmd not supported in fast64 for some reason?
     def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
-        geo_bone = self.setup_geo_obj("render_range", self.custom)
-        geo_bone.fast64.sm64.custom_geo_cmd_macro = "GEO_RENDER_RANGE"
-        geo_bone.fast64.sm64.custom_geo_cmd_args = ",".join(macro.args[-2:])
+        # don't bother tbh
+        # geo_bone = self.setup_geo_obj("render_range", self.custom)
+        # geo_bone.fast64.sm64.custom.dl_command = "GEO_RENDER_RANGE"
+        # geo_bone.fast64.sm64.custom_geo_cmd_args = ",".join(macro.args[-2:])
         return self._continue_parse
 
     # can switch children have their own culling radius? does it have to
@@ -2195,6 +2197,7 @@ class GeoArmature(GraphNodes):
                 stream=self.stream,
             )
         GeoChild.parent_transform = self.last_transform
+        GeoChild.last_transform = self.last_transform
         GeoChild.parse_stream(self.get_new_stream(self.stream[-1]), self.stream[-1], depth + 1)
         self.children.append(GeoChild)
         return self._continue_parse
@@ -2343,14 +2346,14 @@ def write_armature_to_bpy(
 
     for armature_obj, objects in objects_by_armature.items():
         # I don't really know the specific override needed for this to work
-        override = {**bpy.context.copy(), "selected_editable_objects": objects, "active_object": objects[0]}
-        with bpy.context.temp_override(**override):
-            bpy.ops.object.join()
+        if len(objects) > 1:
+            override = {**bpy.context.copy(), "selected_editable_objects": objects, "active_object": objects[0]}
+            with bpy.context.temp_override(**override):
+                bpy.ops.object.join()
 
         obj = objects[0]
-        parentObject(armature_obj, obj)
-        obj.scale *= 1 / scene.fast64.sm64.blender_to_sm64_scale
-        rotate_object(-90, obj)
+        obj.location += armature_obj.location
+        parentObject(armature_obj, obj, keep=1)
         obj.ignore_collision = True
         # armature deform
         mod = obj.modifiers.new("deform", "ARMATURE")
@@ -2816,6 +2819,7 @@ class SM64_ActImport(Operator):
         )
 
         if props.import_target == "C":
+            print(props.geo_layout)
             geo_layout = find_actor_models_from_geo(
                 geo_paths, props.geo_layout, scene, decomp_path, col=rt_col
             )  # return geo layout class and write the geo layout
@@ -3202,6 +3206,7 @@ class SM64_ImportProperties(PropertyGroup):
         else:
             preset_full = self.get_actor_preset()
             model_info = preset_full.get_model_info(self.actor_preset)
+            print(f"preset: {self.actor_preset}, geo: {model_info.geolayout:08x}")
             return convert_addr_to_func(f"{model_info.geolayout:08x}")
 
     @property

@@ -1605,7 +1605,7 @@ class DL(DataParser):
         self.gsDPSetTextureImage(macro.partial(fmt, siz, 1, args[0]))
         self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 7, 0, args[7], args[9], args[11], args[6], args[8], args[10]))
         # self.gsDPLoadSync(macro)
-        self.gsDPLoadBlock(macro.partial(7, 0, 0, 0, 0))  # I don't need args
+        self.gsDPLoadBlock(macro.partial(7, 0, 0, "0", "0"))  # I don't need args
         # self.gsDPPipeSync(macro)
         self.gsDPSetTile(
             macro.partial(fmt, siz, 0, 0, 0, args[5], args[7], args[9], args[11], args[6], args[8], args[10])
@@ -1626,7 +1626,7 @@ class DL(DataParser):
         self.gsDPSetTextureImage(macro.partial(fmt, siz, 1, args[0]))
         self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 7, 0, args[8], args[10], args[12], args[7], args[9], args[11]))
         # self.gsDPLoadSync(macro)
-        self.gsDPLoadBlock(macro.partial(7, 0, 0, 0, 0))
+        self.gsDPLoadBlock(macro.partial(7, 0, 0, "0", "0"))
         # self.gsDPPipeSync(macro)
         self.gsDPSetTile(
             macro.partial(fmt, siz, 0, 0, 0, args[5], args[7], args[9], args[11], args[6], args[8], args[10])
@@ -1643,7 +1643,7 @@ class DL(DataParser):
             macro.partial(fmt, "G_IM_SIZ_16b", 0, 0, 7, 0, args[6], args[8], args[10], args[5], args[7], args[9])
         )
         # self.gsDPLoadSync(macro)
-        self.gsDPLoadBlock(macro.partial(7, 0, 0, 0, 0))
+        self.gsDPLoadBlock(macro.partial(7, 0, 0, "0", "0"))
         # self.gsDPPipeSync(macro)
         self.gsDPSetTile(
             macro.partial(fmt, "G_IM_SIZ_4b", 0, 0, 0, args[4], args[3], args[8], args[10], args[3], args[7], args[9])
