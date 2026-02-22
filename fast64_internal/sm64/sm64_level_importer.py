@@ -3,7 +3,6 @@
 # ------------------------------------------------------------------------
 
 # TODO:
-# fix set tile flags for binary?
 # clean up code base, remove existing sm64 binary importer
 # make sure props play nice in prop updating system
 
@@ -45,16 +44,12 @@ import cProfile, pstats, io
 from pstats import SortKey
 
 import os, sys, math, re, typing
-from array import array
 from struct import *
-from shutil import copy
 from pathlib import Path
-from types import ModuleType
 from mathutils import Vector, Euler, Matrix, Quaternion
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TextIO
-from numbers import Number
+from typing import TextIO, BinaryIO
 from collections.abc import Sequence
 
 from ..f3d.f3d_import import *
@@ -995,11 +990,13 @@ class SM64_Material(Mat):
         if bpy.context.scene.fast64.sm64.importer.import_target == "Binary":
             return self.load_texture_array(force_new_tex, textures, path, tex, DataParser._binary_parsing)
         else:
-            tex_img = textures.get(tex.tex_img)[0]
-        if "#include" in tex_img:
+            tex_img = textures.get(tex.tex_img)
+        if tex_img and "#include" in tex_img[0]:
             return self.load_texture_png(force_new_tex, textures, path, tex)
-        else:
+        elif tex_img:
             return self.load_texture_array(force_new_tex, textures, path, tex)
+        else:
+            print(f"No tex_img found for tex {tex}")
 
     def load_texture_png(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         tex_img = textures.get(tex.tex_img)[0].split("/")[-1]
@@ -1114,6 +1111,7 @@ class SM64_F3D(DL):
                         "u8": [None, None],
                         "s16": [None, None],
                     },
+                    macro_check=self.props.version,
                 )
             )
             t.close()
@@ -1133,91 +1131,6 @@ class SM64_F3D(DL):
         self.NewMat = 0
         self.StartName = start
         return [self.Verts, self.Tris]
-
-    def apply_mesh_data(self, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, tex_path: Path):
-        bpy.context.view_layer.objects.active = obj
-        ind = -1
-        new = -1
-        UVmap = obj.data.uv_layers.new(name="UVMap")
-        # I can get the available enums for color attrs with this func
-        vcol_enums = GetEnums(bpy.types.FloatColorAttribute, "data_type")
-        # enums were changed in a blender version, this should future proof it a little
-        if "FLOAT_COLOR" in vcol_enums:
-            e = "FLOAT_COLOR"
-        else:
-            e = "COLOR"
-        Vcol = obj.data.color_attributes.get("Col")
-        if not Vcol:
-            Vcol = obj.data.color_attributes.new(name="Col", type=e, domain="CORNER")
-        Valph = obj.data.color_attributes.get("Alpha")
-        if not Valph:
-            Valph = obj.data.color_attributes.new(name="Alpha", type=e, domain="CORNER")
-
-        b_mesh = bmesh.new()
-        b_mesh.from_mesh(mesh)
-        tris = b_mesh.faces
-        tris.ensure_lookup_table()
-        uv_map = b_mesh.loops.layers.uv.active
-        v_color = b_mesh.loops.layers.float_color["Col"]
-        v_alpha = b_mesh.loops.layers.float_color["Alpha"]
-
-        self.Mats.append([len(tris), 0])
-        for i, t in enumerate(tris):
-            if i > self.Mats[ind + 1][0]:
-                new = self.create_new_f3d_mat(self.Mats[ind + 1][1], obj)
-                ind += 1
-                if not new:
-                    new = len(mesh.materials) - 1
-                    mat = mesh.materials[new]
-                    mat.name = "sm64 F3D Mat {} {}".format(obj.name, new)
-                    self.Mats[new][1].apply_material_settings(mat, self.Textures, tex_path, layer)
-                else:
-                    # I tried to re use mat slots but it is much slower, and not as accurate
-                    # idk if I was just doing it wrong or the search is that much slower, but this is easier
-                    mesh.materials.append(new)
-                    new = len(mesh.materials) - 1
-            # if somehow there is no material assigned to the triangle or something is lost
-            if new != -1:
-                self.apply_loop_data(new, mesh, t, uv_map, v_color, v_alpha)
-        b_mesh.to_mesh(mesh)
-
-    def apply_loop_data(self, mat: bpy.Types.Material, mesh: bpy.Types.Mesh, tri, uv_map, v_color, v_alpha):
-        tri.material_index = mat
-        # Get texture size or assume 32, 32 otherwise
-        i = mesh.materials[mat].f3d_mat.tex0.tex
-        if not i:
-            WH = (32, 32)
-        else:
-            WH = i.size
-        # Set UV data and Vertex Color Data
-        for v, l in zip(tri.verts, tri.loops):
-            uv = self.UVs[v.index]
-            vcol = self.VCs[v.index]
-            # scale verts
-            l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
-            # idk why this is necessary. N64 thing or something?
-            if self.parsing_target == DataParser._binary_parsing:
-                flip = 1
-            else:
-                flip = -1
-            l[uv_map].uv[1] = l[uv_map].uv[1] * flip + 1
-            l[v_color] = [*gammaInverse([a / 255 for a in vcol]), 255]
-            l[v_alpha] = [vcol[3] / 255 for i in range(4)]
-
-    # create a new f3d_mat given an SM64_Material class but don't create copies with same props
-    def create_new_f3d_mat(self, mat: SM64_Material, obj: bpy.types.Object):
-        if not self.props.force_new_tex:
-            # check if this mat was used already in another mesh (or this mat if DL is suboptimal or something)
-            # even looping n^2 is probably faster than duping 3 mats with blender speed
-            for j, F3Dmat in enumerate(bpy.data.materials):
-                if F3Dmat.is_f3d:
-                    dupe = mat.mat_hash_f3d(F3Dmat.f3d_mat)
-                    if dupe:
-                        return F3Dmat
-        # make new mat
-        preset = getDefaultMaterialPreset("Shaded Solid")
-        createF3DMat(obj, preset)
-        return None
 
 
 # holds model found by geo
@@ -2296,13 +2209,18 @@ class GeoArmature(GraphNodes):
 def get_all_aggregates(aggregate_path: Path, filenames: tuple[callable], root_path: Path) -> list[Path]:
     if not aggregate_path or not aggregate_path.exists():
         return []
+    version = bpy.context.scene.fast64.sm64.importer.version
     with open(aggregate_path, "r", newline="") as file:
-        caught_files = parse_aggregate_file(file, filenames, root_path, aggregate_path)
+        caught_files = parse_aggregate_file(file, filenames, root_path, aggregate_path, macro_check=version)
         # catch fast64 includes
-        fast64 = parse_aggregate_file(file, (lambda path: "leveldata.inc.c" in path.name,), root_path, aggregate_path)
+        fast64 = parse_aggregate_file(
+            file, (lambda path: "leveldata.inc.c" in path.name,), root_path, aggregate_path, macro_check=version
+        )
         if fast64:
             with open(fast64[0], "r", newline="") as fast64_dat:
-                caught_files.extend(parse_aggregate_file(fast64_dat, filenames, root_path, aggregate_path))
+                caught_files.extend(
+                    parse_aggregate_file(fast64_dat, filenames, root_path, aggregate_path, macro_check=version)
+                )
     return caught_files
 
 
@@ -2360,7 +2278,9 @@ def parse_level_script_c(script_files: list[Path], scene: bpy.types.Scene, col: 
     scripts = dict()
     for script_file in script_files:
         with open(script_file, "r", newline="") as script_file:
-            scripts.update(get_data_types_from_file(script_file, {"LevelScript": ["(", ")"]}))
+            scripts.update(
+                get_data_types_from_file(script_file, {"LevelScript": ["(", ")"]}, macro_check=props.version)
+            )
     lvl = Level(scripts, scene, root, DataParser._c_parsing)
     entry = props.entry.format(props.level_name)
     try:
@@ -2441,7 +2361,7 @@ def write_armature_to_bpy(
 def apply_mesh_data(
     f3d_dat: SM64_F3D, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, root_path: Path, cleanup: bool = False
 ):
-    f3d_dat.apply_mesh_data(obj, mesh, layer, root_path)
+    f3d_dat.apply_mesh_data(obj, mesh, layer, root_path, f3d_dat.props.force_new_tex)
     if cleanup:
         mesh = obj.data
         # clean up after applying dat
@@ -2570,7 +2490,11 @@ def construct_geo_layouts_from_file(geo_paths: list[Path], root_path: Path) -> d
     geo_layout_data = {}  # stores cleaned up geo layout lines
     for geo_file in geo_layout_files:
         with open(geo_file, "r", newline="") as geo_file:
-            geo_layout_data.update(get_data_types_from_file(geo_file, {"GeoLayout": ["(", ")"]}))
+            geo_layout_data.update(
+                get_data_types_from_file(
+                    geo_file, {"GeoLayout": ["(", ")"]}, macro_check=bpy.context.scene.fast64.sm64.importer.version
+                )
+            )
     return geo_layout_data
 
 
@@ -2585,6 +2509,7 @@ def construct_sm64_f3d_data_from_file(gfx: SM64_F3D, model_file: TextIO) -> SM64
             "Ambient_t": [None, None],
             "Lights": [None, None],
         },
+        macro_check=gfx.props.version,
         collated=True,
     )
     for key, value in gfx_dat.items():
@@ -2598,6 +2523,7 @@ def construct_sm64_f3d_data_from_file(gfx: SM64_F3D, model_file: TextIO) -> SM64
                 "u8": [None, None],
                 "s16": [None, None],
             },
+            macro_check=gfx.props.version,
         )
     )
     return gfx
@@ -2643,6 +2569,7 @@ def construct_model_data_from_file(aggregates: list[Path], scene: bpy.types.Scen
                         "u8": [None, None],
                         "s16": [None, None],
                     },
+                    macro_check=sm64_f3d_data.props.version,
                 )
             )
     return sm64_f3d_data
@@ -2785,7 +2712,9 @@ def find_collision_data_from_path(aggregate: Path, lvl: Level, scene: bpy.types.
         if not os.path.isfile(col_file):
             continue
         with open(col_file, "r", newline="") as col_file:
-            col_data.update(get_data_types_from_file(col_file, {"Collision": ["(", ")"]}))
+            col_data.update(
+                get_data_types_from_file(col_file, {"Collision": ["(", ")"]}, macro_check=lvl.props.version)
+            )
     # search for the area terrain from available collision data
     for area in lvl.areas.values():
         area.col_file = col_data.get(area.terrain, None)

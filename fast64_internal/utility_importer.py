@@ -4,7 +4,7 @@ import re, struct
 
 import bpy
 from functools import partial
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import TextIO, Any, Union
 from numbers import Number
@@ -16,6 +16,14 @@ from .utility import transform_mtx_blender_to_n64
 # ------------------------------------------------------------------------
 #    Generic helper
 # ------------------------------------------------------------------------
+
+
+def is_arr(val):
+    if type(val) == str:
+        return False
+    if hasattr(val, "__iter__"):
+        return True
+    return False
 
 
 # eval line if not integer
@@ -188,22 +196,56 @@ class BinProcess:
     # turn dict into an array. usually to be fed into a named tuple
     # dict is: key - offset, value - func->type, name, func->len, arr = None
     # returns: list[ints]
-    def extract_dict(self, start, dict):
+    def extract_dict(self, start, type_dict):
         output = []
-        for k, v in dict.items():
+        for k, v in type_dict.items():
             try:
                 # if a function is used for member 4, then call with current results
-                if callable(v[3]):
+                if callable(v[2]):
                     # variable length structs are always at the end, and should be arrays
                     # since unpack_type sometimes is not a list and sometimes is, I will
                     # force this result to be a list
-                    num = v[3](output)
-                    output.append(self.unpack_type(start + k, v[0].format(num), v[2] * num, iter=True))
+                    num = v[2](output)
+                    output.append(self.unpack_type(start + k, v[1].format(num), ret_iterable=True))
                 else:
-                    output.append(self.unpack_type(start + k, v[0], v[2]))
+                    output.append(self.unpack_type(start + k, v[1], make_str=False))
             except:
-                output.append(self.unpack_type(start + k, v[0], v[2]))
+                output.append(self.unpack_type(start + k, v[1], make_str=False))
         return output
+
+
+class BinWrite:
+    def type_declare(self, type_name: str, var_name: str):
+        return f"static {type_name} {var_name}[{len(data_arr)}] = {{\n"
+
+    def unroll_iter(self, data):
+        if type(data) is str:
+            return data
+        if not is_arr(data):
+            return f"{hex(data) if type(data) is int else str(data)}" + "}"
+        else:
+            return "{" + ", ".join([f"{self.unroll_iter(a)}" for a in data]) + "}"
+
+    def dataclass_str(self, cls):
+        return ", ".join([f"/* {a.name} */ {self.unroll_iter(getattr(cls, a.name))}" for a in fields(cls)])
+
+    def dataclass_arr(self, data_arr):
+        out = str()
+        for data in data_arr:
+            out += f"\t{{{self.dataclass_str(data)}}},\n"
+        out += "};\n\n"
+        return out
+
+    def dataclass_write(self, data):
+        out = f"\t{self.dataclass_str(data)},\n"
+        out += "};\n\n"
+        return out
+
+    def simple_write(self, data: Sequence, no_arr=False):
+        if not is_arr(data) or no_arr:
+            return f"{data}\n"
+        for dat in data:
+            return f"{dat}\n"
 
 
 # ------------------------------------------------------------------------
@@ -425,18 +467,16 @@ class DataParser(BinProcess):
 # ------------------------------------------------------------------------
 
 
-# make something more generic here where user can supply their own function
-def evaluate_macro(line: str):
-    props = bpy.context.scene.fast64.sm64.importer
-    if props.version in line:
+def evaluate_macro(line: str, macro_check: str):
+    if macro_check in line:
         return False
-    if props.target in line:
+    if macro_check in line:
         return False
     return True
 
 
 # gets rid of comments, whitespace and macros in a file
-def pre_parse_file(file: TextIO) -> list[str]:
+def pre_parse_file(file: TextIO, macro_check: str) -> list[str]:
     multi_line_comment_regx = "/\*[^*]*\*+(?:[^/*][^*]*\*+)*/"
     file = re.sub(multi_line_comment_regx, "", file.read())
     skip_macro = 0  # bool to skip during macros
@@ -447,12 +487,12 @@ def pre_parse_file(file: TextIO) -> list[str]:
             line = line[:comment]
         # check for macro
         if "#if" in line:
-            skip_macro = evaluate_macro(line)
+            skip_macro = evaluate_macro(line, macro_check)
         if "#ifdef" in line:
-            skip_macro = evaluate_macro(line)
+            skip_macro = evaluate_macro(line, macro_check)
             continue
         if "#elif" in line:
-            skip_macro = evaluate_macro(line)
+            skip_macro = evaluate_macro(line, macro_check)
             continue
         if "#else" in line or "#endif" in line:
             skip_macro = 0
@@ -464,11 +504,11 @@ def pre_parse_file(file: TextIO) -> list[str]:
 
 # given an aggregate file that imports many files, find files with the name of type <filename>
 def parse_aggregate_file(
-    agg_file: TextIO, file_catches: tuple[callable], root_path: Path, aggregate_path: Path
+    agg_file: TextIO, file_catches: tuple[callable], root_path: Path, aggregate_path: Path, macro_check: str
 ) -> list[Path]:
     agg_file.seek(0)  # so it may be read multiple times
 
-    file_lines = pre_parse_file(agg_file)
+    file_lines = pre_parse_file(agg_file, macro_check)
     # remove include and quotes
     remove = {"#include", '"', "'"}
     caught_files = []
@@ -499,9 +539,9 @@ def parse_aggregate_file(
 
 # Search through a C file to find data of typeName[] and split it into a list
 # of data types with all comments removed
-def get_data_types_from_file(file: TextIO, type_dict, collated=False):
+def get_data_types_from_file(file: TextIO, type_dict, macro_check: str, collated=False):
     # from a raw file, create a dict of types. Types should all be arrays
-    file_lines = pre_parse_file(file)
+    file_lines = pre_parse_file(file, macro_check)
     array_bounds_regx = "\[[0-9a-fx]*\]"  # basically [] with any valid number in it
     equality_regx = "\s*="  # finds the first char before the equals sign
     output_variables = {type_name: dict() for type_name in type_dict.keys()}
@@ -531,6 +571,74 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
             name_start = re.search(f"{type_name}.*?\s", line, flags=re.IGNORECASE).span()[1]
             variable_name = line[name_start : match.span()[0]].strip()
             type_found = CDataArray(type_name, variable_name)
+    # Now remove newlines from each line, and then split macro ends
+    # This makes each member of the array a single macro or array
+    for data_type, delimiters in type_dict.items():
+        for variable_name, data_array in output_variables[data_type].items():
+            data_array.var_data = format_data_arr(data_array.var_data, delimiters)
+            output_variables[data_type][variable_name] = data_array
+
+    # if collated, organize by data type, otherwise just take the various dicts raw
+    return (
+        output_variables
+        if collated
+        else {vd_key: vd_value for var_dict in output_variables.values() for vd_key, vd_value in var_dict.items()}
+    )
+
+
+# Search through a C file to find data of struct/enum typeName{ <data> };
+# merge this with the above function at some point
+def get_enum_struct_data_from_file(file: TextIO, type_dict, macro_check: str, collated=False):
+    # from a raw file, create a dict of types. Types should all be arrays
+    file_lines = pre_parse_file(file, macro_check)
+    array_bounds_regx = "\[[0-9a-fx]*\]"  # basically [] with any valid number in it
+    equality_regx = "\\s*="  # finds the first char before the equals sign
+    output_variables = {type_name: dict() for type_name in type_dict.keys()}
+    type_found = None
+    enum_found = None
+    var_dat_buffer = []
+    for line in file_lines:
+        if type_found is not None:
+            # Check for end of array
+            if ";" in line:
+                output_variables[type_found.var_type][type_found.var_name] = CDataArray(
+                    type_found.var_type, type_found.var_name, "".join(var_dat_buffer)
+                )
+                type_found = None
+                var_dat_buffer = []
+            else:
+                var_dat_buffer.append(line)
+            continue
+        # name ends at the array bounds, or the equals sign
+        match = re.search(array_bounds_regx, line, flags=re.IGNORECASE)
+        if not match:
+            match = re.search(equality_regx, line, flags=re.IGNORECASE)
+        type_collisions = [type_name for type_name in type_dict.keys() if type_name in line]
+        if match and type_collisions:
+            # there should ideally only be one collision
+            type_name = type_collisions[0]
+            # type_name plus any extra chars(non greedy) until a space
+            name_start = re.search(f"{type_name}.*?\\s", line, flags=re.IGNORECASE).span()[1]
+            variable_name = line[name_start : match.span()[0]].strip()
+            type_found = CDataArray(type_name, variable_name)
+            continue
+        # if no equals sign just check for line to have a '{'
+        # this is a bit hokey I think but it works for the current purposes
+        if type_collisions:
+            enum_found = type_collisions[0]
+            name_start = re.search(f"{enum_found}.*?\\s", line, flags=re.IGNORECASE)
+            # caught a typedef probably or var declaration
+            if not name_start or ";" in line or "(" in line:
+                enum_found = None
+                continue
+            name_start = name_start.span()[1]
+            # get var name
+            match = re.search("\\S+?\\b", line[name_start:], flags=re.IGNORECASE)
+            variable_name = match.group().strip()
+            enum_found = CDataArray(type_collisions[0], variable_name)
+        if enum_found is not None and "{" in line:
+            type_found = enum_found
+            enum_found = None
     # Now remove newlines from each line, and then split macro ends
     # This makes each member of the array a single macro or array
     for data_type, delimiters in type_dict.items():

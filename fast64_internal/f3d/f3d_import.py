@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------
 from __future__ import annotations
 
-import bpy
+import bpy, bmesh
 
 import os, struct, math
 
@@ -17,7 +17,7 @@ from re import findall
 from numbers import Number
 from collections.abc import Sequence
 
-from ..f3d.f3d_material import F3DMaterialProperty, RDPSettings, TextureProperty
+from ..f3d.f3d_material import F3DMaterialProperty, RDPSettings, TextureProperty, getDefaultMaterialPreset, createF3DMat
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_enums import (
     enumAlphaCompare,
@@ -33,7 +33,7 @@ from ..f3d.f3d_enums import (
     enumPipelineMode,
 )
 
-from ..utility import hexOrDecInt, gammaInverse
+from ..utility import hexOrDecInt, gammaInverse, GetEnums
 from ..utility_importer import *
 from ..bin_png import convert_tex_c, convert_tex_bin
 
@@ -84,8 +84,14 @@ class LightParent:
 
 # just holds common methods for tiles & textures
 class TexBase:
+    def check_tex_hack(self):
+        # check for hacky 4b loading
+        if "RGBA" in self.fmt and "4b" in self.siz:
+            self.siz = "16b"
+
     # sometimes int args are used so convert them all to str DEFs
     def standardize_fields(self):
+        self.check_tex_hack()
         if self.fmt.isnumeric():
             fmt_types = {0: "RGBA", 2: "CI", 3: "IA", 4: "I"}
             self.fmt = f"G_IM_FMT_{fmt_types.get(int(self.fmt))}"
@@ -94,6 +100,7 @@ class TexBase:
             self.siz = f"G_IM_SIZ_{siz_types.get(int(self.siz))}"
 
     def eval_texture_format(self):
+        self.check_tex_hack()
         return f"{self.fmt.replace('G_IM_FMT_','')}{self.siz.replace('G_IM_SIZ_','').replace('b','')}"
 
 
@@ -308,14 +315,21 @@ class Mat:
     def convert_color(self, color: Sequence[Number]):
         return (*gammaInverse([int(a) / 255 for a in color[:3]]), int(color[3]) / 255)
 
-    def load_texture(self, ForceNewTex: bool, path: Path, tex: Texture):
+    def load_texture(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         if not tex:
             return None
-        tex_img = textures.get(tex.Timg)[0]
-        if "#include" in tex_img:
+        tex_img = textures.get(tex.tex_img)
+        if tex_img and "#include" in tex_img[0]:
             return self.load_texture_png(force_new_tex, textures, path, tex)
-        else:
-            return self.load_texture_array(force_new_tex, textures, path, tex, DataParser._c_parsing)
+        # TODO improve this
+        elif tex_img or self.bin_file:
+            return self.load_texture_array(
+                force_new_tex,
+                textures,
+                path,
+                tex,
+                DataParser._c_parsing if not self.bin_file else DataParser._binary_parsing,
+            )
 
     def load_texture_array(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture, parse_target: int):
         """
@@ -382,12 +396,12 @@ class Mat:
         if image:
             tex_node.image = image
 
-    def apply_material_settings(self, mat: bpy.types.Material, tex_path: Path):
+    def apply_material_settings(self, mat: bpy.types.Material, textures: dict, tex_path: Path):
         f3d = mat.f3d_mat
 
         self.set_texture_tile_mapping()
         self.set_register_settings(mat, f3d)
-        self.set_textures(f3d)
+        self.set_textures(f3d, textures, tex_path)
 
         with bpy.context.temp_override(material=mat):
             bpy.ops.material.update_f3d_nodes()
@@ -414,17 +428,23 @@ class Mat:
                 setattr(self, f"tex{tex_index}", tex)
 
     # TODO: add load texture call
-    def set_textures(self, f3d: F3DMaterialProperty, tex_path: Path):
+    def set_textures(self, f3d: F3DMaterialProperty, textures: dict, tex_path: Path):
         self.set_tex_scale(f3d)
         if self.tex0 and self.set_tex:
             self.tex0.standardize_fields()
             self.set_tex_settings(
-                f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0 + self.base_tile], self.tex0.tex_img
+                f3d.tex0,
+                self.load_texture(0, textures, tex_path, self.tex0),
+                self.tiles[0 + self.base_tile],
+                self.tex0.tex_img,
             )
         if self.tex1 and self.set_tex:
             self.tex1.standardize_fields()
             self.set_tex_settings(
-                f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1 + self.base_tile], self.tex1.tex_img
+                f3d.tex1,
+                self.load_texture(0, textures, tex_path, self.tex1),
+                self.tiles[1 + self.base_tile],
+                self.tex1.tex_img,
             )
 
     def set_fog(self, f3d: F3DMaterialProperty):
@@ -609,6 +629,93 @@ class DL(DataParser):
         else:
             self.last_mat = lastmat
         super().__init__(parse_target=parse_target)
+
+    def apply_mesh_data(
+        self, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, tex_path: Path, force_new_tex: bool = False
+    ):
+        bpy.context.view_layer.objects.active = obj
+        ind = -1
+        new = -1
+        UVmap = obj.data.uv_layers.new(name="UVMap")
+        # I can get the available enums for color attrs with this func
+        vcol_enums = GetEnums(bpy.types.FloatColorAttribute, "data_type")
+        # enums were changed in a blender version, this should future proof it a little
+        if "FLOAT_COLOR" in vcol_enums:
+            e = "FLOAT_COLOR"
+        else:
+            e = "COLOR"
+        Vcol = obj.data.color_attributes.get("Col")
+        if not Vcol:
+            Vcol = obj.data.color_attributes.new(name="Col", type=e, domain="CORNER")
+        Valph = obj.data.color_attributes.get("Alpha")
+        if not Valph:
+            Valph = obj.data.color_attributes.new(name="Alpha", type=e, domain="CORNER")
+
+        b_mesh = bmesh.new()
+        b_mesh.from_mesh(mesh)
+        tris = b_mesh.faces
+        tris.ensure_lookup_table()
+        uv_map = b_mesh.loops.layers.uv.active
+        v_color = b_mesh.loops.layers.float_color["Col"]
+        v_alpha = b_mesh.loops.layers.float_color["Alpha"]
+
+        self.Mats.append([len(tris), 0])
+        for i, t in enumerate(tris):
+            if i > self.Mats[ind + 1][0]:
+                new = self.create_new_f3d_mat(self.Mats[ind + 1][1], obj, force_new_tex)
+                ind += 1
+                if not new:
+                    new = len(mesh.materials) - 1
+                    mat = mesh.materials[new]
+                    mat.name = "F3D Mat {} {}".format(obj.name, new)
+                    self.Mats[new][1].apply_material_settings(mat, self.Textures, tex_path, layer)
+                else:
+                    # I tried to re use mat slots but it is much slower, and not as accurate
+                    # idk if I was just doing it wrong or the search is that much slower, but this is easier
+                    mesh.materials.append(new)
+                    new = len(mesh.materials) - 1
+            # if somehow there is no material assigned to the triangle or something is lost
+            if new != -1:
+                self.apply_loop_data(new, mesh, t, uv_map, v_color, v_alpha)
+        b_mesh.to_mesh(mesh)
+
+    def apply_loop_data(self, mat: bpy.Types.Material, mesh: bpy.Types.Mesh, tri, uv_map, v_color, v_alpha):
+        tri.material_index = mat
+        # Get texture size or assume 32, 32 otherwise
+        i = mesh.materials[mat].f3d_mat.tex0.tex
+        if not i:
+            WH = (32, 32)
+        else:
+            WH = i.size
+        # Set UV data and Vertex Color Data
+        for v, l in zip(tri.verts, tri.loops):
+            uv = self.UVs[v.index]
+            vcol = self.VCs[v.index]
+            # scale verts
+            l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
+            # idk why this is necessary. N64 thing or something?
+            if self.parsing_target == DataParser._binary_parsing:
+                flip = 1
+            else:
+                flip = -1
+            l[uv_map].uv[1] = l[uv_map].uv[1] * flip + 1
+            l[v_color] = [*gammaInverse([a / 255 for a in vcol]), 255]
+            l[v_alpha] = [vcol[3] / 255 for i in range(4)]
+
+    # create a new f3d_mat given an SM64_Material class but don't create copies with same props
+    def create_new_f3d_mat(self, mat: SM64_Material, obj: bpy.types.Object, force_new_tex: bool):
+        if not force_new_tex:
+            # check if this mat was used already in another mesh (or this mat if DL is suboptimal or something)
+            # even looping n^2 is probably faster than duping 3 mats with blender speed
+            for j, F3Dmat in enumerate(bpy.data.materials):
+                if F3Dmat.is_f3d:
+                    dupe = mat.mat_hash_f3d(F3Dmat.f3d_mat)
+                    if dupe:
+                        return F3Dmat
+        # make new mat
+        preset = getDefaultMaterialPreset("Shaded Solid")
+        createF3DMat(obj, preset)
+        return None
 
     # MSB: (name, PackedFormat), ones empty PackedFormat have no support yet
     # f3d class changes its var values based on f3d type, so f3d_gbi.G_TRI1 matches correct MSB
@@ -1123,8 +1230,8 @@ class DL(DataParser):
         return [val[0] for val in enum]
 
     def gsSPSetOtherMode_H(self, macro: Macro):
-        mask = ((1 << args[2]) - 1) << args[1]
-        data = args[3] & mask
+        mask = ((1 << macro.args[2]) - 1) << macro.args[1]
+        data = macro.args[3] & mask
 
         def set_mode_data(shift: int, num_bits: int, enum: list[tuple], call: callable, vals: list = None):
             mode_bits = ((1 << num_bits) - 1) << shift
@@ -1133,26 +1240,26 @@ class DL(DataParser):
                 vals = range(2**num_bits)
             if mask & mode_bits:
                 mode_data = data & mode_bits
-                mode_options = {a << shift: first_from_enum(enum) for a in vals}
-                call(Macro("", [mode_options.get(mode_data)]))
+                mode_options = {a << shift: self.first_from_enum(enum) for a in vals}
+                call(Macro("", mode_options.get(mode_data)))
 
-        set_mode_data(self.f3d.G_MDSFT_ALPHADITHER, 2, enumAlphaDither)
-        set_mode_data(self.f3d.G_MDSFT_RGBDITHER, 2, enumRGBDither)
-        set_mode_data(self.f3d.G_MDSFT_COMBKEY, 1, enumCombKey)
-        set_mode_data(self.f3d.G_MDSFT_TEXTCONV, 3, enumTextConv, vals=[0, 5, 6])
-        set_mode_data(self.f3d.G_MDSFT_TEXTFILT, 2, enumTextFilt, vals=[0, 2, 3])
-        set_mode_data(self.f3d.G_MDSFT_TEXTLUT, 2, enumTextLUT, vals=[0, 2, 3])
-        set_mode_data(self.f3d.G_MDSFT_TEXTLOD, 1, enumRGBDither)
-        set_mode_data(self.f3d.G_MDSFT_TEXTDETAIL, 2, enumTextDetail, vals=[0, 2, 3])
-        set_mode_data(self.f3d.G_MDSFT_TEXTPERSP, 1, enumTextPersp)
-        set_mode_data(self.f3d.G_MDSFT_CYCLETYPE, 2, enumCycleType)
-        set_mode_data(self.f3d.G_MDSFT_COLORDITHER, 1, enumColorDither)
-        set_mode_data(self.f3d.G_MDSFT_PIPELINE, 1, enumPipelineMode)
+        set_mode_data(self.f3d_gbi.G_MDSFT_ALPHADITHER, 2, enumAlphaDither, self.gsDPSetAlphaCompare)
+        set_mode_data(self.f3d_gbi.G_MDSFT_RGBDITHER, 2, enumRGBDither, self.gsDPSetColorDither)
+        set_mode_data(self.f3d_gbi.G_MDSFT_COMBKEY, 1, enumCombKey, self.gsDPSetCombineKey)
+        set_mode_data(self.f3d_gbi.G_MDSFT_TEXTCONV, 3, enumTextConv, self.gsDPSetTextureConvert, vals=[0, 5, 6])
+        set_mode_data(self.f3d_gbi.G_MDSFT_TEXTFILT, 2, enumTextFilt, self.gsDPSetTextureFilter, vals=[0, 2, 3])
+        set_mode_data(self.f3d_gbi.G_MDSFT_TEXTLUT, 2, enumTextLUT, self.gsDPSetTextureLUT, vals=[0, 2, 3])
+        set_mode_data(self.f3d_gbi.G_MDSFT_TEXTLOD, 1, enumTextLOD, self.gsDPSetTextureLOD)
+        set_mode_data(self.f3d_gbi.G_MDSFT_TEXTDETAIL, 2, enumTextDetail, self.gsDPSetTextureDetail, vals=[0, 2, 3])
+        set_mode_data(self.f3d_gbi.G_MDSFT_TEXTPERSP, 1, enumTextPersp, self.gsDPSetTexturePersp)
+        set_mode_data(self.f3d_gbi.G_MDSFT_CYCLETYPE, 2, enumCycleType, self.gsDPSetCycleType)
+        set_mode_data(self.f3d_gbi.G_MDSFT_COLORDITHER, 1, enumColorDither, self.gsDPSetColorDither)
+        set_mode_data(self.f3d_gbi.G_MDSFT_PIPELINE, 1, enumPipelineMode, self.gsDPPipelineMode)
         return self._continue_parse
 
     def gsSPSetOtherMode_L(self, macro: Macro):
-        mask = ((1 << args[2]) - 1) << args[1]
-        data = args[3] & mask
+        mask = ((1 << macro.args[2]) - 1) << macro.args[1]
+        data = macro.args[3] & mask
         # ignore this for now
         if mask & 0xFFFFFFF8:
             render_mode = data & 0xFFFFFFF8
@@ -1163,8 +1270,8 @@ class DL(DataParser):
             mode_data = data & 0x3
             mode_options = {
                 0: "G_AC_NONE",
-                1 << self.f3d.G_MDSFT_ALPHACOMPARE: "G_AC_THRESHOLD",
-                3 << self.f3d.G_MDSFT_ALPHACOMPARE: "G_AC_DITHER",
+                1 << self.f3d_gbi.G_MDSFT_ALPHACOMPARE: "G_AC_THRESHOLD",
+                3 << self.f3d_gbi.G_MDSFT_ALPHACOMPARE: "G_AC_DITHER",
             }
             self.gsDPSetAlphaCompare(macro.partial(mode_options.get(mode_data)))
         return self._continue_parse
