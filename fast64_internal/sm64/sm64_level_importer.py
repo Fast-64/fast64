@@ -2809,12 +2809,20 @@ class SM64_ActImport(Operator):
         group_prefix = props.group_prefix
         level_name = props.level_name
         level_prefix = props.level_prefix
+
+        # add in common actor paths for actors that use stars or mario hat
         geo_paths = (
             decomp_path / "actors" / (group_prefix + "_geo.c"),
+            decomp_path / "actors" / "common0_geo.c",
+            decomp_path / "actors" / "common1_geo.c",
+            decomp_path / "actors" / "group0_geo.c",
             decomp_path / "levels" / level_name / (level_prefix + "geo.c"),
         )
         model_data_paths = (
             decomp_path / "actors" / (group_prefix + ".c"),
+            decomp_path / "actors" / "common0.c",
+            decomp_path / "actors" / "common1.c",
+            decomp_path / "actors" / "group0.c",
             decomp_path / "levels" / level_name / (level_prefix + "leveldata.c"),
         )
 
@@ -3206,13 +3214,11 @@ class SM64_ImportProperties(PropertyGroup):
         else:
             preset_full = self.get_actor_preset()
             model_info = preset_full.get_model_info(self.actor_preset)
-            print(f"preset: {self.actor_preset}, geo: {model_info.geolayout:08x}")
-            return convert_addr_to_func(f"{model_info.geolayout:08x}")
+            return convert_addr_to_func(f"{model_info.geolayout:08x}", self.actor_preset.replace(" ", "_").lower())
 
     @property
     def geo_layout_binary(self):
         if self.actor_preset == "Custom":
-            convert_addr_to_func(self.custom_geo_layout_addr)
             return self.custom_geo_layout_str
         else:
             preset_full = self.get_actor_preset()
