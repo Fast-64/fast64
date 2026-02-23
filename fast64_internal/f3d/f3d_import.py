@@ -1,6 +1,3 @@
-# ------------------------------------------------------------------------
-#    Header
-# ------------------------------------------------------------------------
 from __future__ import annotations
 
 import bpy, bmesh
@@ -42,8 +39,9 @@ from ..bin_png import convert_tex_c, convert_tex_bin
 # ------------------------------------------------------------------------
 
 
-# will format light struct data passed depending on type of light
 class LightParent:
+    """format light struct data passed depending on type of light"""
+
     def __init__(self, name: str, light_struct: Sequence):
         self.name = name
         getattr(self, light_struct.var_type)(light_struct.var_data)
@@ -82,8 +80,9 @@ class LightParent:
         self.dir = data[7:10]
 
 
-# just holds common methods for tiles & textures
 class TexBase:
+    """Holds common methods for tiles & textures"""
+
     def check_tex_hack(self):
         # check for hacky 4b loading
         if "RGBA" in self.fmt and "4b" in self.siz:
@@ -103,8 +102,44 @@ class TexBase:
         self.check_tex_hack()
         return f"{self.fmt.replace('G_IM_FMT_','')}{self.siz.replace('G_IM_SIZ_','').replace('b','')}"
 
+    # if someone uses just the int these catch that
+    @staticmethod
+    def parse_timg_format(fmt: str):
+        GBI_fmt_ints = {
+            "0": "G_IM_FMT_RGBA",
+            "1": "G_IM_FMT_YUV",
+            "2": "G_IM_FMT_CI",
+            "3": "G_IM_FMT_IA",
+            "4": "G_IM_FMT_I",
+        }
+        return GBI_fmt_ints.get(fmt, fmt)
 
-# this will hold tile properties
+    @staticmethod
+    def parse_tile_flags(fmt: str):
+        GBI_flag_ints = {
+            "0": "G_TX_NOMIRROR",
+            "1": "G_TX_MIRROR",
+            "2": "G_TX_CLAMP",
+        }
+        return GBI_flag_ints.get(fmt, fmt)
+
+    @staticmethod
+    def parse_image_frac(arg: Union[str, Number]):
+        if type(arg) == int:
+            return arg
+        arg2 = arg.replace("G_TEXTURE_IMAGE_FRAC", "2")
+        # evals bad probably
+        return eval(arg2)
+
+    @staticmethod
+    def parse_tile_enum(f3d_gbi: F3D, arg: Union[str, Number]):
+        if type(arg) is str and not arg.isdigit():
+            # fix later
+            return getattr(f3d_gbi, arg, 0)
+        else:
+            return hexOrDecInt(arg)
+
+
 class Tile(TexBase):
     def __init__(self):
         self.fmt = "G_IM_FMT_RGBA"
@@ -122,10 +157,12 @@ class Tile(TexBase):
         self.tmem = -1  # because 0 is the start
 
 
-# this will hold texture properties, dataclass props
-# are created in order for me to make comparisons in a set
 @dataclass(init=True, eq=True, unsafe_hash=True)
 class Texture(TexBase):
+    """this will hold texture properties
+    dataclass props are created in order for me to make comparisons in a set
+    """
+
     tex_img: str
     fmt: str
     siz: int
@@ -137,29 +174,22 @@ class Texture(TexBase):
     num_bytes: int = 0  # to be filled in after self.determine_size
 
     def determine_size(self):
-        # dxt is a ratio between words and lines of a texture
-        # we can use it to get the true texture width for textures
-        # loaded via loadblock
+        """Calculate image size using load block values and texture format
+        dxt is a ratio between words and lines of a texture
+        we can use it to get the true texture width for textures
+        loaded via loadblock
 
-        # that said sometimes dxt is used in funny ways for special effects
-        # in these cases, I will default to another measurement because
-        # dxt is no longer reliable
-        # reverse load block texels to be just width * height
-        # dxs = (((fImage.width) * (fImage.height) + 3) >> 2) - 1 for 4B
-        # else
-        # dxs = (
-        #         ((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
-        #         >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
-        #     ) - 1
-        # define G_IM_SIZ_4b_SHIFT  2
-        # define G_IM_SIZ_8b_SHIFT  1
-        # define G_IM_SIZ_16b_SHIFT 0
-        # define G_IM_SIZ_32b_SHIFT 0
-
-        # define G_IM_SIZ_4b_INCR  3
-        # define G_IM_SIZ_8b_INCR  1
-        # define G_IM_SIZ_16b_INCR 0
-        # define G_IM_SIZ_32b_INCR 0
+        that said sometimes dxt is used in funny ways for special effects
+        in these cases, I will default to another measurement because
+        dxt is no longer reliable
+        reverse load block texels to be just width * height
+        dxs = (((fImage.width) * (fImage.height) + 3) >> 2) - 1 for 4B
+        else
+        dxs = (
+                ((fImage.width) * (fImage.height) + f3d.G_IM_SIZ_VARS[siz + "_INCR"])
+                >> f3d.G_IM_SIZ_VARS[siz + "_SHIFT"]
+            ) - 1
+        """
         bit_size = int(re.search("\d+", self.siz).group())
         if bit_size == 4:
             texels = (self.texels + 1) << 2
@@ -199,9 +229,9 @@ class Texture(TexBase):
         return self.width, self.height
 
 
-# This is a data storage class and mat to f3dmat converting class
-# used when importing for kirby
 class Mat:
+    """Holds parsed material data to be written out to fast64 f3d materials with method apply_material_settings"""
+
     # constants for lastmat layer lookup
     _base_layer = -1
     _base_combiner = (
@@ -596,10 +626,13 @@ class Mat:
         return x
 
 
-# handles DL import processing, specifically built to process each cmd into the mat class
-# should be inherited into a larger F3d class which wraps DL processing
-# does not deal with flow control or gathering the data containers (VB, Geo cls etc.)
 class DL(DataParser):
+    """handles DL import processing, specifically built to process each cmd into the mat class
+
+    should be inherited into a larger F3d class which wraps DL processing
+    does not deal with flow control or gathering the data containers (VB, Geo cls etc.)
+    """
+
     _skippable_cmds = {
         "gsDPNoOp",
         "gsDPFullSync",
@@ -695,10 +728,10 @@ class DL(DataParser):
             l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
             # idk why this is necessary. N64 thing or something?
             if self.parsing_target == DataParser._binary_parsing:
-                flip = 1
+                flip = lambda x: x
             else:
-                flip = -1
-            l[uv_map].uv[1] = l[uv_map].uv[1] * flip + 1
+                flip = lambda x: x * -1 + 1
+            l[uv_map].uv[1] = flip(l[uv_map].uv[1])
             l[v_color] = [*gammaInverse([a / 255 for a in vcol]), 255]
             l[v_alpha] = [vcol[3] / 255 for i in range(4)]
 
@@ -1506,14 +1539,14 @@ class DL(DataParser):
         self.last_mat.tex_scale = [
             ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in macro.args[0:2]
         ]  # signed half to unsigned half
-        self.last_mat.base_tile = self.eval_tile_enum(macro.args[-2])
+        self.last_mat.base_tile = TexBase.parse_tile_enum(self.f3d_gbi, macro.args[-2])
         return self._continue_parse
 
     # last tex is a palette
     def gsDPLoadTLUTCmd(self, macro: Macro):
         if hasattr(self.last_mat, "loadtex"):
             tex = self.last_mat.loadtex
-            tile_index = self.eval_tile_enum(macro.args[0])
+            tile_index = TexBase.parse_tile_enum(self.f3d_gbi, macro.args[0])
             tex.tile = self.last_mat.tiles[tile_index]
             tex.pal = True
             self.last_mat.pal = tex
@@ -1541,7 +1574,7 @@ class DL(DataParser):
                 tex.texels = eval(macro.args[3])
             else:
                 tex.texels = hexOrDecInt(macro.args[3])
-            tile_index = self.eval_tile_enum(macro.args[0])
+            tile_index = TexBase.parse_tile_enum(self.f3d_gbi, macro.args[0])
             tex.tile = self.last_mat.tiles[tile_index]
             self.last_mat.tmem[tex.tile.tmem] = tex
         else:
@@ -1563,25 +1596,25 @@ class DL(DataParser):
 
     def gsDPSetTileSize(self, macro: Macro):
         self.NewMat = 1
-        tile = self.last_mat.tiles[self.eval_tile_enum(macro.args[0])]
-        tile.Slow = self.eval_image_frac(macro.args[1])
-        tile.Tlow = self.eval_image_frac(macro.args[2])
-        tile.Shigh = self.eval_image_frac(macro.args[3])
-        tile.Thigh = self.eval_image_frac(macro.args[4])
+        tile = self.last_mat.tiles[TexBase.parse_tile_enum(self.f3d_gbi, macro.args[0])]
+        tile.Slow = tile.parse_image_frac(macro.args[1])
+        tile.Tlow = tile.parse_image_frac(macro.args[2])
+        tile.Shigh = tile.parse_image_frac(macro.args[3])
+        tile.Thigh = tile.parse_image_frac(macro.args[4])
         return self._continue_parse
 
     def gsDPSetTile(self, macro: Macro):
         self.NewMat = 1
-        tile = self.last_mat.tiles[self.eval_tile_enum(macro.args[4])]
+        tile = self.last_mat.tiles[TexBase.parse_tile_enum(self.f3d_gbi, macro.args[4])]
         tile.tmem = hexOrDecInt(macro.args[3])
         tile.fmt = macro.args[0].strip()
         tile.siz = macro.args[1].strip()
-        tile.Tflags = macro.args[6].strip()
-        tile.TMask = self.eval_tile_enum(macro.args[7])
-        tile.TShift = self.eval_tile_enum(macro.args[8])
-        tile.Sflags = macro.args[9].strip()
-        tile.SMask = self.eval_tile_enum(macro.args[10])
-        tile.SShift = self.eval_tile_enum(macro.args[11])
+        tile.Tflags = tile.parse_tile_flags(macro.args[6].strip())
+        tile.TMask = tile.parse_tile_enum(self.f3d_gbi, macro.args[7])
+        tile.TShift = tile.parse_tile_enum(self.f3d_gbi, macro.args[8])
+        tile.Sflags = tile.parse_tile_flags(macro.args[9].strip())
+        tile.SMask = tile.parse_tile_enum(self.f3d_gbi, macro.args[10])
+        tile.SShift = tile.parse_tile_enum(self.f3d_gbi, macro.args[11])
         # on a render tile 4 bit textures will change their size here
         tex = self.last_mat.tmem.get(tile.tmem, None)
         if tex:
@@ -1600,8 +1633,8 @@ class DL(DataParser):
     def gsDPLoadTextureBlock(self, macro: Macro):
         # 0tex, 1fmt, 2siz, 3height, 4width, 5pal, 6flags, 8masks, 10shifts
         args = macro.args
-        fmt = self.eval_timg_format(args[1])
-        siz = self.eval_timg_format(args[2])
+        fmt = TexBase.parse_timg_format(args[1])
+        siz = TexBase.parse_timg_format(args[2])
         self.gsDPSetTextureImage(macro.partial(fmt, siz, 1, args[0]))
         self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 7, 0, args[7], args[9], args[11], args[6], args[8], args[10]))
         # self.gsDPLoadSync(macro)
@@ -1621,8 +1654,8 @@ class DL(DataParser):
     def _gsDPLoadTextureBlock(self, macro: Macro):
         # 0tex, 1tmem, 2fmt, 3siz, 4height, 5width, 6pal, 7flags, 9masks, 11shifts
         args = macro.args
-        fmt = eval_timg_format(args[2])
-        siz = eval_timg_format(args[3])
+        fmt = TexBase.parse_timg_format(args[2])
+        siz = TexBase.parse_timg_format(args[3])
         self.gsDPSetTextureImage(macro.partial(fmt, siz, 1, args[0]))
         self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 7, 0, args[8], args[10], args[12], args[7], args[9], args[11]))
         # self.gsDPLoadSync(macro)
@@ -1637,7 +1670,7 @@ class DL(DataParser):
     def gsDPLoadTextureBlock_4b(self, macro: Macro):
         # 0tex, 1fmt, 2height, 3width, 4pal, 5flags, 7masks, 9shifts
         args = macro.args
-        fmt = eval_timg_format(args[1])
+        fmt = TexBase.parse_timg_format(args[1])
         self.gsDPSetTextureImage(macro.partial(fmt, "G_IM_SIZ_16b", 1, args[0]))
         self.gsDPSetTile(
             macro.partial(fmt, "G_IM_SIZ_16b", 0, 0, 7, 0, args[6], args[8], args[10], args[5], args[7], args[9])
@@ -1681,31 +1714,6 @@ class DL(DataParser):
             self.Mats.append([len(self.Tris) - 1, self.last_mat])
             self.last_mat = deepcopy(self.last_mat)  # for safety
             self.last_mat_dict[self.last_mat.layer] = self.last_mat
-
-    # if someone uses just the int these catch that
-    def eval_timg_format(self, fmt: str):
-        GBI_fmt_ints = {
-            "0": "G_IM_FMT_RGBA",
-            "1": "G_IM_FMT_YUV",
-            "2": "G_IM_FMT_CI",
-            "3": "G_IM_FMT_IA",
-            "4": "G_IM_FMT_I",
-        }
-        return GBI_fmt_ints.get(fmt, fmt)
-
-    def eval_image_frac(self, arg: Union[str, Number]):
-        if type(arg) == int:
-            return arg
-        arg2 = arg.replace("G_TEXTURE_IMAGE_FRAC", "2")
-        # evals bad probably
-        return eval(arg2)
-
-    def eval_tile_enum(self, arg: Union[str, Number]):
-        if type(arg) is str and not arg.isdigit():
-            # fix later
-            return getattr(self.f3d_gbi, arg, 0)
-        else:
-            return hexOrDecInt(arg)
 
     def eval_set_combine_macro(self, arg: str):
         return getattr(self.f3d_gbi, arg[0], ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "SHADE", "0"]) + getattr(

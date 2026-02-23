@@ -2437,6 +2437,12 @@ class ActorPresetInfo:
         else:
             return self.models
 
+    def get_collision_info(self, name: str):
+        if type(self.collision) == dict:
+            return self.collision.get(name, None)
+        else:
+            return self.collision
+
 
 ACTOR_PRESET_INFO = {
     "Amp": ActorPresetInfo(
