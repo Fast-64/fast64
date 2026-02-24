@@ -1,0 +1,36 @@
+name: Black lint and suggest changes
+
+on: [pull_request, push]
+
+jobs:
+  black-lint-and-suggest:
+    permissions: # needed in forks? https://github.com/parkerbxyz/suggest-changes/issues/33
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip' # caching pip dependencies
+      - run: pip install black==23.12.1
+      
+      - name: Run black
+        run: black . # if this fails nothing else will run, this is correct behavior
+
+      - name: Suggest changes via comment
+        if: github.event_name == 'pull_request' # Only run for PRs
+        uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: 'Please commit the suggested changes from black.'
+      
+      - name: Fail if changes were made
+        run: |
+          if git diff --quiet; then
+            echo "Black formatting applied no changes."
+            exit 0
+          else
+            echo "Black formatting applied changes. Please format with black."
+            exit 1
+          fi
