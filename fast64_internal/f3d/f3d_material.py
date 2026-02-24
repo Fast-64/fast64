@@ -182,6 +182,7 @@ F3DEX3_GEO_MODES = {
 }
 
 T3D_GEO_MODES = {
+    "lighting": "g_lighting",
     "cullFront": "g_cull_front",
     "cullBack": "g_cull_back",
     "fog": "g_fog",
@@ -575,7 +576,11 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         draw_mode(inputGroup, "g_shade_smooth")
 
-        c = indentGroup(inputGroup, "g_lighting", False)
+        if f3d.F3D_GBI:
+            c = indentGroup(inputGroup, "g_lighting", False)
+        else:  # don't indent outside f3d
+            c = inputGroup
+            draw_mode(c, "g_lighting")
         if ccWarnings and not shadeInCC and is_on("g_lighting") and not is_on("g_tex_gen"):
             multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
         draw_mode(c, "g_packed_normals", "g_lighting_specular", "g_ambocclusion", "g_fresnel_color")
@@ -1936,7 +1941,7 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if (settings.is_geo_mode_on("g_lighting") or inherit_light_and_fog()) and settings.is_geo_mode_on("g_tex_gen"):
+    if (settings.is_geo_mode_on("g_lighting")) and settings.is_geo_mode_on("g_tex_gen"):
         if settings.is_geo_mode_on("g_tex_gen_linear"):
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
@@ -1956,8 +1961,6 @@ def update_node_values_of_material(material: Material, context):
         "g_lighting",
     ]:
         shdcol_inputs[propName.upper()].default_value = f3dMat.rdp_settings.is_geo_mode_on(propName)
-    if is_ucode_t3d(bpy.context.scene.f3d_type):  # Tiny3d always uses lighting * vertex color
-        shdcol_inputs["G_LIGHTING"].default_value = shdcol_inputs["G_PACKED_NORMALS"].default_value = True
 
     shdcol_inputs["AO Ambient"].default_value = f3dMat.ao_ambient
     shdcol_inputs["AO Directional"].default_value = f3dMat.ao_directional
