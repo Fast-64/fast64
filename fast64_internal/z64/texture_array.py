@@ -1,5 +1,7 @@
-import os, re
+import re
+
 from typing import Callable
+from pathlib import Path
 from ..utility import hexOrDecInt, removeComments
 
 from .model_classes import (
@@ -16,7 +18,7 @@ from .model_classes import (
 # z_en_xc: one texture is not stored in any array.
 # skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple skeletons
 def ootReadTextureArrays(
-    basePath: str,
+    basePath: Path,
     overlayName: str,
     skeletonName: str,
     f3dContext: OOTF3DContext,
@@ -28,7 +30,7 @@ def ootReadTextureArrays(
         currentPaths = ootGetActorDataPaths(basePath, overlayName)
     else:
         actorData = ootGetLinkData(basePath)
-        currentPaths = [os.path.join(basePath, f"src/code/z_player_lib.c")]
+        currentPaths = [basePath / f"src/code/z_player_lib.c"]
     actorData = ootGetIncludedAssetData(basePath, currentPaths, actorData) + actorData
 
     actorData = removeComments(actorData)

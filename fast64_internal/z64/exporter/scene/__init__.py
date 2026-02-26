@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from typing import Optional
+from pathlib import Path
 
 from ....game_data import game_data
 from ....utility import PluginError, CData, indent
@@ -347,7 +348,7 @@ class Scene:
 
         return self.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
 
-    def getNewSceneFile(self, path: str, isSingleFile: bool, textureExportSettings: TextureExportSettings):
+    def getNewSceneFile(self, path: Path, isSingleFile: bool, textureExportSettings: TextureExportSettings):
         """Returns a new scene file containing the C data"""
 
         sceneMainData = self.getSceneMainC()

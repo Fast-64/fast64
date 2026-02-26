@@ -1,7 +1,5 @@
-import os
-
 from dataclasses import dataclass
-from ...utility import writeFile
+from pathlib import Path
 
 
 @dataclass
@@ -13,7 +11,7 @@ class RoomFile:
     roomModel: str
     roomModelInfo: str
     singleFileExport: bool
-    path: str
+    path: Path
     header: str
 
     def write(self):
@@ -24,10 +22,14 @@ class RoomFile:
             self.roomMain += self.roomModelInfo + self.roomModel
         else:
             roomMainPath = f"{self.name}_main.c"
-            writeFile(os.path.join(self.path, f"{self.name}_model_info.c"), self.roomModelInfo)
-            writeFile(os.path.join(self.path, f"{self.name}_model.c"), self.roomModel)
+            path = self.path / f"{self.name}_model_info.c"
+            path.write_text(self.roomModelInfo)
 
-        writeFile(os.path.join(self.path, roomMainPath), self.roomMain)
+            path = self.path / f"{self.name}_model.c"
+            path.write_text(self.roomModel)
+
+        path = self.path / roomMainPath
+        path.write_text(self.roomMain)
 
 
 @dataclass
@@ -41,7 +43,7 @@ class SceneFile:
     sceneTextures: str
     roomList: dict[int, RoomFile]
     singleFileExport: bool
-    path: str
+    path: Path
     header: str
 
     def hasCutscenes(self):
@@ -101,14 +103,21 @@ class SceneFile:
                 self.sceneMain += self.sceneTextures
         else:
             sceneMainPath = f"{self.name}_main.c"
-            writeFile(os.path.join(self.path, f"{self.name}_col.c"), self.sceneCollision)
+            path = self.path / f"{self.name}_col.c"
+            path.write_text(self.sceneCollision)
+
             if self.hasCutscenes():
                 for i, cs in enumerate(self.sceneCutscenes):
-                    writeFile(os.path.join(self.path, f"{self.name}_cs_{i}.c"), cs)
-            if self.hasSceneTextures():
-                writeFile(os.path.join(self.path, f"{self.name}_tex.c"), self.sceneTextures)
+                    path = self.path / f"{self.name}_cs_{i}.c"
+                    path.write_text(cs)
 
-        writeFile(os.path.join(self.path, sceneMainPath), self.sceneMain)
+            if self.hasSceneTextures():
+                path = self.path / f"{self.name}_tex.c"
+                path.write_text(self.sceneTextures)
+
+        path = self.path / sceneMainPath
+        path.write_text(self.sceneMain)
 
         self.header += "\n#endif\n"
-        writeFile(os.path.join(self.path, f"{self.name}.h"), self.header)
+        path = self.path / f"{self.name}.h"
+        path.write_text(self.header)

@@ -17,15 +17,7 @@ from ....utility import (
     cleanupDuplicatedObjects,
     indent,
 )
-
-from ...utility import (
-    OOTObjectCategorizer,
-    convertIntTo2sComplement,
-    ootDuplicateHierarchy,
-    ootGetPath,
-    ootGetObjectPath,
-)
-
+from ...utility import OOTObjectCategorizer, PathUtils, convertIntTo2sComplement, ootDuplicateHierarchy
 from ...collision.properties import OOTCollisionExportSettings
 from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
@@ -249,9 +241,17 @@ class CollisionHeader:
         """Exports collision data as C files, this should be called to do a separate export from the scene."""
         name = toAlnum(original_obj.name)
         filename = settings.filename if settings.isCustomFilename else f"{name}_collision"
-        exportPath = ootGetObjectPath(
-            settings.customExport, bpy.path.abspath(settings.exportPath), settings.folder, True
+
+        path = (
+            Path(bpy.path.abspath(settings.exportPath)).resolve()
+            if settings.customExport
+            else bpy.context.scene.fast64.oot.get_decomp_path()
         )
+        with PathUtils(False, path, "assets/objects/", settings.folder, settings.customExport) as path_utils:
+            exportPath = path_utils.get_object_source_path(check_extracted=False)
+
+            path_utils.set_base_path(exportPath)
+            base_path = path_utils.get_assets_path(check_extracted=False, with_decomp_path=True)
 
         if bpy.context.scene.exportHiddenGeometry:
             hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
@@ -275,9 +275,6 @@ class CollisionHeader:
             )
 
             filedata = col_header.get_file(filename, settings)
-            base_path = Path(
-                ootGetPath(exportPath, settings.customExport, "assets/objects/", settings.folder, True, True)
-            ).resolve()
 
             header_path = base_path / f"{filename}.h"
             header_path.write_text(filedata.header, encoding="utf-8", newline="\n")

@@ -1,6 +1,3 @@
-import os
-
-from bpy.path import abspath
 from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 
@@ -13,7 +10,7 @@ class HackerOoT_ClearBootupScene(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        Config.clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
+        Config.clearBootupScene(context.scene.fast64.oot.get_decomp_path() / "include/config/config_debug.h")
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 

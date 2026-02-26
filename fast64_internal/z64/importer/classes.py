@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ...utility import PluginError
 from ..utility import getHeaderSettings
 from .constants import headerNames
@@ -6,7 +8,7 @@ from .constants import headerNames
 class SharedSceneData:
     def __init__(
         self,
-        scenePath: str,
+        scenePath: Path,
         scene_name: str,
         includeMesh: bool,
         includeCollision: bool,
