@@ -70,7 +70,7 @@ from .fast64_internal.gltf_extension import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 5, 0),
+    "version": (2, 5, 2),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
