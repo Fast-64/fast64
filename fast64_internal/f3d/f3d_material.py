@@ -30,6 +30,7 @@ from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
+from .f3d_bleed import MaterialBleedProperties
 from .f3d_enums import *
 from .f3d_gbi import (
     get_F3D_GBI,
@@ -1402,6 +1403,11 @@ class F3DPanel(Panel):
             ui_lower_mode(f3dMat.rdp_settings, f3dMat, layout, False)
             self.ui_lower_render_mode(f3dMat, layout, False)
             ui_other(f3dMat.rdp_settings, f3dMat, layout, False)
+
+        if context.scene.exportInlineF3D:
+            col = layout.column()
+            col.label(text="Bleed Properties")
+            material.fast64.f3d.bleed.draw_props(col)
 
     # texture convert/LUT controlled by texture settings
     # add node support for geo mode settings
@@ -5068,6 +5074,14 @@ class F3DMaterialProperty(PropertyGroup):
         )
 
 
+class F3D_MaterialProperties(PropertyGroup):
+    """
+    Material.fast64.f3d
+    """
+
+    bleed: bpy.props.PointerProperty(type=MaterialBleedProperties)
+
+
 class UnlinkF3DImage0(Operator):
     bl_idname = "image.tex0_unlink"
     bl_label = "Unlink F3D Image"
@@ -5249,6 +5263,8 @@ mat_classes = (
     CelLevelAdd,
     CelLevelRemove,
     F3DMaterialProperty,
+    MaterialBleedProperties,
+    F3D_MaterialProperties,
     ReloadDefaultF3DPresets,
     UpdateF3DNodes,
     F3DRenderSettingsPanel,
