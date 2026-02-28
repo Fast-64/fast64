@@ -1,6 +1,7 @@
 import bpy
 import math
 import os
+from pathlib import Path
 import re
 import traceback
 
@@ -1031,3 +1032,28 @@ def is_oot_features():
 
 def is_hackeroot():
     return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.feature_set == "hackeroot"
+
+
+def add_include_to_spec_segment(spec_p: Path, segment: str, inc: str):
+    spec_content = spec_p.read_text()
+    new_spec_lines = []
+    in_segment = False
+    in_target_segment = False
+    found_existing_include = False
+    include_line_to_add = f'    include "{inc}"\n'
+    for l in spec_content.splitlines(keepends=True):
+        if l.strip() == "beginseg":
+            in_segment = True
+        if l.strip() == "endseg":
+            if in_target_segment and not found_existing_include:
+                new_spec_lines.append(include_line_to_add)
+            in_segment = False
+            in_target_segment = False
+        if in_segment and l.split() == f'name "{segment}"'.split():
+            in_target_segment = True
+        if in_target_segment and l.split() == include_line_to_add.split():
+            found_existing_include = True
+        new_spec_lines.append(l)
+    new_spec_content = "".join(new_spec_lines)
+    if new_spec_content != spec_content:
+        spec_p.write_text(new_spec_content)

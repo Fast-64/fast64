@@ -1,4 +1,5 @@
 import mathutils, bpy, os
+from pathlib import Path
 from bpy.types import Scene, Operator, Armature
 from bpy.props import StringProperty, BoolProperty
 from bpy.utils import register_class, unregister_class
@@ -11,23 +12,30 @@ from .importer import ootImportLinkAnimationC, ootImportNonLinkAnimationC
 from ..utility import (
     ootGetPath,
     addIncludeFiles,
+    addIncludeFilesExtension,
     checkEmptyName,
     ootGetObjectPath,
     getOOTScale,
+    add_include_to_spec_segment,
 )
 
 
 def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
     if settings.isCustom:
         checkEmptyName(settings.customPath)
-    else:
+    elif not settings.isLink:
         checkEmptyName(settings.folderName)
 
     if settings.isCustomFilename:
         checkEmptyName(settings.filename)
 
     path = bpy.path.abspath(settings.customPath)
-    exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName, False)
+    if settings.isCustom:
+        exportPath = path
+    elif not settings.isLink:
+        exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName, False)
+    else:
+        exportPath = None  # Won't be used as the export is not custom
 
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
@@ -40,20 +48,21 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     if settings.isLink:
         ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
+
         path = ootGetPath(
             exportPath,
             settings.isCustom,
             "assets/misc/link_animetion",
-            settings.folderName if settings.isCustom else "",
-            False,
+            "",
+            True,
             False,
         )
         headerPath = ootGetPath(
             exportPath,
             settings.isCustom,
             "assets/objects/gameplay_keep",
-            settings.folderName if settings.isCustom else "",
-            False,
+            "",
+            True,
             False,
         )
         writeCData(
@@ -66,8 +75,22 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         )
 
         if not settings.isCustom:
-            addIncludeFiles("link_animetion", path, ootAnim.dataName())
-            addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
+            if (Path(bpy.context.scene.ootDecompPath) / "assets/objects/gameplay_keep/gameplay_keep.c").exists():
+                # Pre "new" assets system
+                addIncludeFiles("link_animetion", path, ootAnim.dataName())
+                addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
+            else:
+                add_include_to_spec_segment(
+                    Path(bpy.context.scene.ootDecompPath) / "spec/spec",
+                    "link_animetion",
+                    f"$(BUILD_DIR)/assets/misc/link_animetion/{ootAnim.dataName()}.o",
+                )
+                add_include_to_spec_segment(
+                    Path(bpy.context.scene.ootDecompPath) / "spec/spec",
+                    "gameplay_keep",
+                    f"$(BUILD_DIR)/assets/objects/gameplay_keep/{ootAnim.headerName}.o",
+                )
+                addIncludeFilesExtension("gameplay_keep", headerPath, ootAnim.headerName, "h")
 
     else:
         ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name, filename)
