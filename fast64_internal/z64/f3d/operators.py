@@ -146,6 +146,12 @@ class OOT_ImportDL(Operator):
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 
+            # Test for "new" (post-ZAPD) assets system.
+            is_2025_assets_system = "{\n#include" in filedata
+            # The "new" assets system does not extract TLUTs, they are directly applied to the png images.
+            # So don't try to apply TLUTs as they can't be found in extracted/ anyway.
+            f3dContext.ignore_tlut = is_2025_assets_system
+
             scale = None
             if not isCustomImport:
                 filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
