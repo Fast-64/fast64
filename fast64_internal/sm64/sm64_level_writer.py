@@ -543,16 +543,19 @@ def add_act_selector_ignore(base_path, level_enum):
     file_path = os.path.join(base_path, "src/game/level_update.c")
     data = getDataFromFile(file_path)
 
-    function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL)
-
-    if function_start is None:
+    try:
+        function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL).end()
+    except:
         raise PluginError('Could not find lvl_set_current_level in "' + file_path + '".')
 
-    function_end = re.search("\s*return\s*\!gDebugLevelSelect;\s*", data, re.DOTALL)
-    if function_end is None:
-        raise PluginError('Could not find return in lvl_set_current_level in "' + file_path + '".')
+    try:
+        function_end = (
+            re.search("\s*return\s*(?:(?!(0|FALSE)).)*?;", data[function_start:], re.DOTALL).start() + function_start
+        )
+    except:
+        raise PluginError('Could not find final return in lvl_set_current_level in "' + file_path + '".')
 
-    function_contents = data[function_start.end() : function_end.start()]
+    function_contents = data[function_start:function_end]
 
     check_result = re.search(
         "if\s*\(gCurrLevelNum\s*==\s*" + level_enum + "\)\s*return\s*0;", function_contents, re.DOTALL
@@ -562,7 +565,7 @@ def add_act_selector_ignore(base_path, level_enum):
 
     function_contents += "\n\tif (gCurrLevelNum == " + level_enum + ") return 0;"
 
-    new_data = data[: function_start.end()] + function_contents + data[function_end.start() :]
+    new_data = data[:function_start] + function_contents + data[function_end:]
 
     saveDataToFile(file_path, new_data)
 
@@ -571,23 +574,26 @@ def remove_act_selector_ignore(base_path, level_enum):
     file_path = os.path.join(base_path, "src/game/level_update.c")
     data = getDataFromFile(file_path)
 
-    function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL)
-
-    if function_start is None:
+    try:
+        function_start = re.search("s32\s*lvl\_set\_current\_level\s*\((((?!\)).)*)\)\s*\{", data, re.DOTALL).end()
+    except:
         raise PluginError('Could not find lvl_set_current_level in "' + file_path + '".')
 
-    function_end = re.search("\s*return\s*\!gDebugLevelSelect;\s*", data, re.DOTALL)
-    if function_end is None:
-        raise PluginError('Could not find return in lvl_set_current_level in "' + file_path + '".')
+    try:
+        function_end = (
+            re.search("\s*return\s*(?:(?!(0|FALSE)).)*?;", data[function_start:], re.DOTALL).start() + function_start
+        )
+    except:
+        raise PluginError('Could not find final return in lvl_set_current_level in "' + file_path + '".')
 
-    function_contents = data[function_start.end() : function_end.start()]
+    function_contents = data[function_start:function_end]
 
     new_function_contents = re.sub(
         "\s*?if\s*\(gCurrLevelNum\s*==\s*" + level_enum + "\)\s*return\s*0;", "", function_contents, re.DOTALL
     )
 
     if function_contents != new_function_contents:
-        new_data = data[: function_start.end()] + new_function_contents + data[function_end.start() :]
+        new_data = data[:function_start] + new_function_contents + data[function_end:]
         saveDataToFile(file_path, new_data)
 
 
