@@ -267,10 +267,21 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         isLink = False
         restPoseData = None
 
-    filepaths = [
-        ootGetObjectPath(isCustomImport, importPath, folderName, True),
-        ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-    ]
+    filepaths = None
+
+    # Check if folderName exists under assets/objects (if it is committed)
+    if not isCustomImport:
+        assets_folder = Path(bpy.path.abspath(bpy.context.scene.ootDecompPath)) / "assets" / "objects" / folderName
+        if assets_folder.exists():
+            filepaths = list(map(str, assets_folder.glob("*.[ch]")))
+            if not filepaths:
+                filepaths = None
+
+    if filepaths is None:
+        filepaths = [
+            ootGetObjectPath(isCustomImport, importPath, folderName, True),
+            ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
+        ]
 
     if isLink:
         filepaths.append(ootGetObjectPath(isCustomImport, "", "gameplay_keep", True))
