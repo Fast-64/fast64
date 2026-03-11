@@ -1,5 +1,6 @@
 import bpy
 import os
+from pathlib import Path
 import mathutils
 
 from bpy.types import Operator
@@ -127,7 +128,7 @@ class OOT_ImportDL(Operator):
         try:
             settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
             name = settings.name
-            folderName = settings.folder
+            folderName: str = settings.folder
             importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
             basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
@@ -138,10 +139,22 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [
-                ootGetObjectPath(isCustomImport, importPath, folderName, True),
-                ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-            ]
+            paths = None
+
+            # Check if folderName exists under assets/objects (if it is committed)
+            if not isCustomImport:
+                assets_folder = Path(abspath(context.scene.ootDecompPath)) / "assets" / "objects" / folderName
+                if assets_folder.exists():
+                    paths = list(map(str, assets_folder.glob("*.[ch]")))
+                    if not paths:
+                        paths = None
+
+            # Otherwise search in extracted/
+            if paths is None:
+                paths = [
+                    ootGetObjectPath(isCustomImport, importPath, folderName, True),
+                    ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
+                ]
 
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
