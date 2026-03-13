@@ -25,7 +25,7 @@ def set_actor_params(actorProp, actor_id, actor_params):
         try:
             actorProp.set_param_value(actor_params, "Params")
         except:
-            print("Failed to parse params " + actor.params + " for actor " + actor_id + ":")
+            print("Failed to parse params " + actor_params + " for actor " + actor_id + ":")
             traceback.print_exc()
             print("Defaulting to custom")
             actorProp.actor_id = "Custom"
