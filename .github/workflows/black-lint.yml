@@ -9,5 +9,5 @@ jobs:
     permissions: {} # Remove all permissions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - uses: psf/black@23.12.1
