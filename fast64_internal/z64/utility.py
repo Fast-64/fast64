@@ -845,7 +845,9 @@ def getEvalParamsInt(input: str):
     try:
         return _eval(node.body)
     except:
-        print("WARNING: something wrong happened:", traceback.print_exc())
+        print("WARNING: something wrong happened:")
+        print("input:", input)
+        traceback.print_exc()
         return None
 
 
