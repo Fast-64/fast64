@@ -40,6 +40,7 @@ class TransitionActor(Actor):
             + ("\n" + indent + "},\n")
         )
 
+
 def split_c_on_commas(s: str):
     parts: list[str] = []
     part = ""
@@ -58,6 +59,7 @@ def split_c_on_commas(s: str):
             part += c
     parts.append(part)
     return parts
+
 
 @dataclass
 class SceneTransitionActors:
