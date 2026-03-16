@@ -1941,7 +1941,9 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if (settings.is_geo_mode_on("g_lighting")) and settings.is_geo_mode_on("g_tex_gen"):
+    if (settings.is_geo_mode_on("g_lighting") or is_ucode_t3d(context.scene.f3d_type)) and settings.is_geo_mode_on(
+        "g_tex_gen"
+    ):
         if settings.is_geo_mode_on("g_tex_gen_linear"):
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
@@ -1961,6 +1963,8 @@ def update_node_values_of_material(material: Material, context):
         "g_lighting",
     ]:
         shdcol_inputs[propName.upper()].default_value = f3dMat.rdp_settings.is_geo_mode_on(propName)
+    if is_ucode_t3d(bpy.context.scene.f3d_type):  # Tiny3d always uses lighting * vertex color
+        shdcol_inputs["G_PACKED_NORMALS"].default_value = True
 
     shdcol_inputs["AO Ambient"].default_value = f3dMat.ao_ambient
     shdcol_inputs["AO Directional"].default_value = f3dMat.ao_directional
