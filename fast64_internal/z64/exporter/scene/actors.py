@@ -41,6 +41,26 @@ class TransitionActor(Actor):
         )
 
 
+def split_c_on_commas(s: str):
+    parts: list[str] = []
+    part = ""
+    parens_depth = 0
+    for c in s:
+        if c == "(":
+            parens_depth += 1
+        if c == ")":
+            parens_depth -= 1
+            if parens_depth < 0:
+                parens_depth = 0
+        if c == "," and parens_depth == 0:
+            parts.append(part)
+            part = ""
+        else:
+            part += c
+    parts.append(part)
+    return parts
+
+
 @dataclass
 class SceneTransitionActors:
     name: str
@@ -116,14 +136,14 @@ class SceneTransitionActors:
             if entry == "":
                 continue
 
-            params = entry.replace("{", "").replace("}", "").split(",")
+            params = split_c_on_commas(entry.replace("{", "").replace("}", ""))
 
             # trailing commas
             for p in params:
                 if p == "":
                     params.remove(p)
 
-            assert len(params) == 10
+            assert len(params) == 10, entry
             trans_actor = TransitionActor()
             trans_actor.name = "(unset)"
             trans_actor.id = params[4]
