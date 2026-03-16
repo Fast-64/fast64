@@ -271,7 +271,7 @@ class SM64_Properties(PropertyGroup):
 
         draw_custom_cmd_presets(self, col.box())
 
-    def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
+    def draw_props(self, layout: UILayout, context: Context, show_repo_settings: bool = True):
         col = layout.column()
 
         prop_split(col, self, "goal", "Goal")
@@ -291,7 +291,7 @@ class SM64_Properties(PropertyGroup):
         col.separator()
 
         if show_repo_settings:
-            self.draw_repo_settings(col)
+            self.draw_repo_settings(col, context)
             col.separator()
 
         col.prop(self, "show_importing_menus")

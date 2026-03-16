@@ -22,9 +22,9 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
                 sm64_props.draw_repo_settings(box, context)
                 col.separator()
 
-            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab or sm64_props.binary_export)
+            sm64_props.draw_props(col, context, not sm64_props.sm64_repo_settings_tab or sm64_props.binary_export)
         else:
-            sm64_props.draw_props(col, True)
+            sm64_props.draw_props(col, context, True)
 
 
 classes = (SM64_GeneralSettingsPanel,)

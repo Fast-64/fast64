@@ -260,11 +260,22 @@ def ootImportSkeletonC(basePath: Path, importSettings: OOTSkeletonImportSettings
         isLink = False
         restPoseData = None
 
-    with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
-        filepaths = [
-            path_utils.get_object_header_path(),
-            path_utils.get_object_source_path(),
-        ]
+    filepaths = None
+
+    # Check if folderName exists under assets/objects (if it is committed)
+    if not isCustomImport:
+        assets_folder = Path(bpy.path.abspath(bpy.context.scene.ootDecompPath)) / "assets" / "objects" / folderName
+        if assets_folder.exists():
+            filepaths = list(map(str, assets_folder.glob("*.[ch]")))
+            if not filepaths:
+                filepaths = None
+
+    if filepaths is None:
+        with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
+            filepaths = [
+                path_utils.get_object_header_path(),
+                path_utils.get_object_source_path(),
+            ]
 
         if isLink:
             path_utils.set_base_path(decomp_path)

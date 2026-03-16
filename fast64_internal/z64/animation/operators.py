@@ -1,5 +1,6 @@
 import mathutils
 import bpy
+import os
 
 from bpy.types import Scene, Operator, Armature
 from bpy.props import StringProperty, BoolProperty
@@ -16,25 +17,30 @@ from ..utility import (
     PathUtils,
     checkEmptyName,
     getOOTScale,
+    add_include_to_spec_segment,
 )
 
 
 def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
     if settings.isCustom:
         checkEmptyName(settings.customPath)
-    else:
+    elif not settings.isLink:
         checkEmptyName(settings.folderName)
 
     if settings.isCustomFilename:
         checkEmptyName(settings.filename)
 
-    path = (
-        Path(bpy.path.abspath(settings.customPath)).resolve()
-        if settings.isCustom
-        else bpy.context.scene.fast64.oot.get_decomp_path()
-    )
-    with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom, False) as path_utils:
-        exportPath = path_utils.get_assets_path(check_extracted=False, with_decomp_path=True)
+    decomp_path: Path = bpy.context.scene.fast64.oot.get_decomp_path()
+    path = Path(bpy.path.abspath(settings.customPath)).resolve()
+    if settings.isCustom:
+        exportPath = path
+    elif not settings.isLink:
+        path = path if settings.isCustom else decomp_path
+
+        with PathUtils(False, path, "assets/objects/", settings.folderName, settings.isCustom, False) as path_utils:
+            exportPath = path_utils.get_assets_path(check_extracted=False, with_decomp_path=True)
+    else:
+        exportPath = None  # Won't be used as the export is not custom
 
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
@@ -48,29 +54,47 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
     if settings.isLink:
         ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
-        folder_name = settings.folderName if settings.isCustom else ""
 
         with PathUtils(
-            False, exportPath, "assets/misc/link_animetion", folder_name, settings.isCustom, False
+            False, decomp_path, "assets/objects/gameplay_keep", "", settings.isCustom
+        ) as path_utils_gkeep:
+            headerPath = path_utils_gkeep.get_assets_path(check_extracted=False, custom_mkdir=False)
+
+        with PathUtils(
+            False, decomp_path, "assets/misc/link_animetion", "", settings.isCustom
         ) as path_utils:
             path = path_utils.get_assets_path(check_extracted=False, custom_mkdir=False)
-            headerPath = path_utils.get_assets_path(check_extracted=False, custom_mkdir=False)
             path_utils.set_base_path(path)
 
-            assert ootAnim.headerName is not None
-            writeCData(ootAnimC, path / f"{ootAnim.dataName()}.h", path / f"{ootAnim.dataName()}.c")
-            writeCData(ootAnimHeaderC, headerPath / f"{ootAnim.headerName}.h", headerPath / f"{ootAnim.headerName}.c")
+        assert ootAnim.headerName is not None
+        writeCData(ootAnimC, path / f"{ootAnim.dataName()}.h", path / f"{ootAnim.dataName()}.c")
+        writeCData(ootAnimHeaderC, headerPath / f"{ootAnim.headerName}.h", headerPath / f"{ootAnim.headerName}.c")
 
-            if not settings.isCustom:
+        if not settings.isCustom:
+            if (decomp_path / "assets/objects/gameplay_keep/gameplay_keep.c").exists():
+                # Pre "new" assets system
                 path_utils.set_folder_name("link_animetion")
                 path_utils.add_include_files(ootAnim.dataName())
 
                 path_utils.set_folder_name("gameplay_keep")
                 path_utils.add_include_files(ootAnim.headerName)
+            else:
+                add_include_to_spec_segment(
+                    decomp_path / "spec/spec",
+                    "link_animetion",
+                    f"$(BUILD_DIR)/assets/misc/link_animetion/{ootAnim.dataName()}.o",
+                )
+                add_include_to_spec_segment(
+                    decomp_path / "spec/spec",
+                    "gameplay_keep",
+                    f"$(BUILD_DIR)/assets/objects/gameplay_keep/{ootAnim.headerName}.o",
+                )
+                path_utils_gkeep.add_include_file(ootAnim.headerName, "h")
     else:
         ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name, filename)
         ootAnimC = ootAnim.toC()
 
+        assert exportPath is not None
         with PathUtils(
             False, exportPath, "assets/objects/", settings.folderName, settings.isCustom, False
         ) as path_utils:

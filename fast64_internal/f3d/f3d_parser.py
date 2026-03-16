@@ -2272,7 +2272,7 @@ def parseMacroArgs(data: str):
     return params
 
 
-def getImportData(filepaths: list[Path | str]):
+def getImportData(filepaths: list[Path | str] | list[Path] | list[str]):
     data = ""
     for base_path in filepaths:
         path = Path(base_path) if isinstance(base_path, str) else base_path

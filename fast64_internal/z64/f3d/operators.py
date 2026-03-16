@@ -44,12 +44,18 @@ def ootConvertMeshToC(
     saveTextures: bool,
     settings: OOTDLExportSettings,
 ):
+    decomp_path = bpy.context.scene.fast64.oot.get_decomp_path()
     folderName = settings.folder
     isCustomExport = settings.isCustom
-    export_path = Path(settings.customPath) if isCustomExport else bpy.context.scene.fast64.oot.get_decomp_path()
+    export_path = Path(settings.customPath) if isCustomExport else decomp_path
     removeVanillaData = settings.removeVanillaData
-    name = toAlnum(originalObj.name)
-    assert name is not None
+
+    obj_name = toAlnum(originalObj.name)
+    assert obj_name is not None
+
+    filename = toAlnum(settings.filename) if settings.isCustomFilename else obj_name
+    assert filename is not None
+
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -57,7 +63,7 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(name, DLFormat, None)
+        fModel = OOTModel(obj_name, DLFormat, None)
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
@@ -65,7 +71,7 @@ def ootConvertMeshToC(
 
         # Since we provide a draw layer override, there should only be one fMesh.
         for fMesh in fMeshes.values():
-            fMesh.draw.name = name
+            fMesh.draw.name = obj_name
 
         ootCleanupScene(originalObj, allObjs)
 
@@ -73,7 +79,6 @@ def ootConvertMeshToC(
         ootCleanupScene(originalObj, allObjs)
         raise Exception(str(e))
 
-    filename = settings.filename if settings.isCustomFilename else name
     data = CData()
     data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
 
@@ -105,14 +110,12 @@ def ootConvertMeshToC(
         writeCData(data, path / f"{filename}.h", path / f"{filename}.c")
 
         if not isCustomExport:
-            writeTextureArraysExisting(
-                bpy.context.scene.fast64.oot.get_decomp_path(), overlayName, False, flipbookArrayIndex2D, fModel
-            )
-            path_utils.add_include_files(name)
+            writeTextureArraysExisting(decomp_path, overlayName, False, flipbookArrayIndex2D, fModel)
+            path_utils.add_include_files(filename)
             if removeVanillaData:
                 headerPath = path / f"{folderName}.h"
                 sourcePath = path / f"{folderName}.c"
-                removeDL(str(sourcePath), str(headerPath), name)
+                removeDL(str(sourcePath), str(headerPath), filename)
 
 
 class OOT_ImportDL(Operator):
@@ -129,16 +132,13 @@ class OOT_ImportDL(Operator):
             object.mode_set(mode="OBJECT")
 
         try:
+            decomp_path: Path = context.scene.fast64.oot.get_decomp_path()
             settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
             name = settings.name
-            folderName = settings.folder
+            folderName: str = settings.folder
+            importPath = Path(bpy.path.abspath(settings.customPath)).resolve()
             isCustomImport = settings.isCustom
-            importPath = (
-                Path(bpy.path.abspath(settings.customPath)).resolve()
-                if isCustomImport
-                else context.scene.fast64.oot.get_decomp_path()
-            )
-            basePath = context.scene.fast64.oot.get_decomp_path() if not isCustomImport else importPath.parent
+            basePath = decomp_path if not isCustomImport else importPath.parent
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
@@ -146,15 +146,33 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
-                paths = [
-                    path_utils.get_object_header_path(),
-                    path_utils.get_object_source_path(),
-                ]
+            paths = None
+
+            # Check if folderName exists under assets/objects (if it is committed)
+            if not isCustomImport:
+                assets_folder = decomp_path / "assets" / "objects" / folderName
+                if assets_folder.exists():
+                    paths = list(assets_folder.glob("*.[ch]"))
+                    if not paths:
+                        paths = None
+
+            # Otherwise search in extracted/
+            if paths is None:
+                with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
+                    paths = [
+                        path_utils.get_object_header_path(),
+                        path_utils.get_object_source_path(),
+                    ]
 
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], str(basePath))
             f3dContext.ignore_tlut = '.inc.c"' in filedata
+
+            # Test for "new" (post-ZAPD) assets system.
+            is_2025_assets_system = "{\n#include" in filedata
+            # The "new" assets system does not extract TLUTs, they are directly applied to the png images.
+            # So don't try to apply TLUTs as they can't be found in extracted/ anyway.
+            f3dContext.ignore_tlut = is_2025_assets_system
 
             scale = None
             if not isCustomImport:
