@@ -55,14 +55,10 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         ootAnim = ootExportLinkAnimation(armatureObj, convertTransformMatrix, name)
         ootAnimC, ootAnimHeaderC = ootAnim.toC(settings.isCustom)
 
-        with PathUtils(
-            False, decomp_path, "assets/objects/gameplay_keep", "", settings.isCustom
-        ) as path_utils_gkeep:
+        with PathUtils(False, decomp_path, "assets/objects/gameplay_keep", "", settings.isCustom) as path_utils_gkeep:
             headerPath = path_utils_gkeep.get_assets_path(check_extracted=False, custom_mkdir=False)
 
-        with PathUtils(
-            False, decomp_path, "assets/misc/link_animetion", "", settings.isCustom
-        ) as path_utils:
+        with PathUtils(False, decomp_path, "assets/misc/link_animetion", "", settings.isCustom) as path_utils:
             path = path_utils.get_assets_path(check_extracted=False, custom_mkdir=False)
             path_utils.set_base_path(path)
 
