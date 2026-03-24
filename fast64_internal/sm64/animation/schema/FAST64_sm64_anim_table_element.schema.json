@@ -1,0 +1,48 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_anim_table_element glTF Animation Table Element",
+    "type": "object",
+    "description": "Animation table element properties for SM64",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "extensions": {
+            "type": "object",
+            "properties": {
+                "FAST64_sm64_anim_table_element_hints": {
+                    "$ref": "FAST64_sm64_anim_table_element_hints.schema.json"
+                }
+            }
+        },
+        "action_name": {
+            "type": "string",
+            "description": "The name of the Blender action being exported"
+        },
+        "variant": {
+            "type": "integer",
+            "description": "The specific header variant index to use from the action",
+            "default": 0,
+            "minimum": 0
+        },
+        "reference": {
+            "type": "object",
+            "description": "Reference to an existing animation header in external code",
+            "properties": {
+                "header_name": {
+                    "type": "string",
+                    "description": "External header name to reference",
+                    "default": "toad_seg6_anim_0600B66C"
+                }
+            },
+            "additionalProperties": false
+        },
+        "enum": {
+            "type": "string",
+            "description": "Specified enum identifier to reference the specific table index"
+        }
+    },
+    "additionalProperties": false
+}

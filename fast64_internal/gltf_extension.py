@@ -15,6 +15,7 @@ from .f3d.glTF.f3d_gltf import (
     add_3_2_hooks,
     get_version,
 )
+from .sm64.gltf_extension import SM64Extensions
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
@@ -87,6 +88,8 @@ class GlTF2Extension:
         self.sub_extensions = []
         if self.settings.f3d.use:
             self.sub_extensions.append(F3DExtensions(self))
+        if bpy.context.scene.gameEditorMode == "SM64":
+            self.sub_extensions.append(SM64Extensions(self))
 
 
 class glTF2ExportUserExtension(GlTF2Extension):
@@ -97,6 +100,28 @@ class glTF2ExportUserExtension(GlTF2Extension):
             "gather_node_hook",
             'Object "{args[1].name}"',
             gltf2_node,
+            blender_object,
+            export_settings,
+        )
+
+    def animation_action_object_sampled(
+        self, gltf2_animation, blender_object, blender_action, cache_key, export_settings
+    ):
+        self.call_hooks(
+            "gather_any_animation_hook",
+            'Animation "{args[1].name}"',
+            gltf2_animation,
+            blender_action,
+            blender_object,
+            export_settings,
+        )
+
+    def gather_animation_hook(self, gltf2_animation, blender_action, blender_object, export_settings):
+        self.call_hooks(
+            "gather_any_animation_hook",
+            'Animation "{args[1].name}"',
+            gltf2_animation,
+            blender_action,
             blender_object,
             export_settings,
         )
@@ -160,6 +185,20 @@ class glTF2ImportUserExtension(GlTF2Extension):
             gltf,
         )
 
+    def gather_import_animation_channel_after_hook(
+        self, gltf_animation, gltf_node, path, channel, blender_action, gltf
+    ):
+        self.call_hooks(
+            "gather_import_animation_channel_after_hook",
+            'Animation Channel "{args[4].name}"',
+            gltf_animation,
+            gltf_node,
+            path,
+            channel,
+            blender_action,
+            gltf,
+        )
+
 
 class Fast64GlTFSettings(PropertyGroup):
     verbose: BoolProperty(
@@ -168,6 +207,7 @@ class Fast64GlTFSettings(PropertyGroup):
     )
     f3d: PointerProperty(type=F3DGlTFSettings)
     game: BoolProperty(default=True, name="Export current game mode")
+    include_hints: BoolProperty(default=False, name="Include hints")
 
     def to_dict(self):
         return prop_group_to_json(self)
@@ -187,6 +227,7 @@ class Fast64GlTFSettings(PropertyGroup):
         col.separator()
 
         col.prop(self, "verbose")
+        col.prop(self, "include_hints")
 
         game_mode = scene.gameEditorMode
         if game_mode == "Homebrew":

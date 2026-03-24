@@ -22,11 +22,12 @@ from ...utility import (
     toAlnum,
     directory_path_checks,
 )
-from ...utility_anim import get_fcurves, stashActionInArmature, get_slots
+from ...utility_anim import get_fcurves, stashActionInArmature
 
 from ..sm64_constants import BEHAVIOR_COMMANDS, BEHAVIOR_EXITS, defaultExtendSegment4, level_pointers
 from ..sm64_utility import (
     ModifyFoundDescriptor,
+    convert_old_export_enum,
     find_descriptor_in_text,
     get_comment_map,
     to_include_descriptor,
@@ -960,7 +961,7 @@ def export_animation(context: Context, obj: Object):
             obj=obj,
             blender_to_sm64_scale=sm64_props.blender_to_sm64_scale,
             quick_read=combined_props.quick_anim_read,
-            export_type=sm64_props.export_type,
+            export_type=convert_old_export_enum(sm64_props.export_type),
             dma=anim_props.is_dma,
             actor_name=actor_name,
             gen_enums=not sm64_props.binary_export and anim_props.gen_enums,

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from bpy.utils import register_class, unregister_class
 from bpy.types import Context
 
+from ..sm64_utility import convert_old_export_enum
 from ...utility_anim import is_action_stashed, CreateAnimData, AddBasicAction, StashAction
 from ...panels import SM64_Panel
 
@@ -76,7 +77,7 @@ class ObjAnimPanelMain(ObjAnimPanel):
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
         get_anim_props(context).draw_props(
             self.layout,
-            sm64_props.export_type,
+            convert_old_export_enum(sm64_props.export_type),
             combined_props.export_header_type,
             get_anim_actor_name(context),
             combined_props.export_bhv,
@@ -127,7 +128,7 @@ class AnimationPanelAction(AnimationPanel):
             table_elements=anim_props.elements,
             updates_table=anim_props.update_table,
             export_seperately=export_seperately,
-            export_type=sm64_props.export_type,
+            export_type=convert_old_export_enum(sm64_props.export_type),
             actor_name=get_anim_actor_name(context),
             gen_enums=anim_props.gen_enums,
             dma=dma_structure_context(context),

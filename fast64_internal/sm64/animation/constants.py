@@ -1,7 +1,7 @@
 import struct
 import re
 
-from ...utility import intToHex
+from ...utility import intToHex, toAlnum
 from ..sm64_constants import ACTOR_PRESET_INFO, ActorPresetInfo
 
 HEADER_STRUCT = struct.Struct(">h h h h h h I I I")
@@ -73,16 +73,16 @@ enum_anim_binary_import_types = [
 ]
 
 
-enum_animated_behaviours = [("Custom", "Custom Behavior", "Custom"), ("", "Presets", "")]
-enum_anim_tables = [("Custom", "Custom", "Custom"), ("", "Presets", "")]
+enum_animated_behaviours = [("CUSTOM", "Custom Behavior", "Custom"), ("", "Presets", "")]
+enum_anim_tables = [("CUSTOM", "Custom", "Custom"), ("", "Presets", "")]
 for actor_name, preset_info in ACTOR_PRESET_INFO.items():
     if not preset_info.animation:
         continue
     behaviours = ActorPresetInfo.get_member_as_dict(actor_name, preset_info.animation.behaviours)
     enum_animated_behaviours.extend(
-        [(intToHex(address), name, intToHex(address)) for name, address in behaviours.items()]
+        [(toAlnum(name.upper()), name, intToHex(address)) for name, address in behaviours.items()]
     )
     tables = ActorPresetInfo.get_member_as_dict(actor_name, preset_info.animation.address)
     enum_anim_tables.extend(
-        [(name, name, f"{intToHex(address)}, {preset_info.level}") for name, address in tables.items()]
+        [(toAlnum(name.upper()), name, f"{intToHex(address)}, {preset_info.level}") for name, address in tables.items()]
     )

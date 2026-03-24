@@ -8,16 +8,18 @@ import os
 import re
 
 import bpy
-from bpy.types import UILayout
+from bpy.types import Object, UILayout
 
 from ..utility import (
     filepath_checks,
+    intToHex,
     run_and_draw_errors,
     multilineLabel,
     prop_split,
     as_posix,
     PluginError,
     COMMENT_PATTERN,
+    toAlnum,
 )
 from .sm64_function_map import func_map
 
@@ -454,3 +456,85 @@ def update_actor_includes(
 def write_material_headers(decomp: Path, c_include: Path, h_include: Path):
     write_includes(decomp / "src/game/materials.c", [c_include])
     write_includes(decomp / "src/game/materials.h", [h_include], before_endif=True)
+
+
+def get_object_actor_name(obj: Object) -> str:
+    sm64_props = bpy.context.scene.fast64.sm64
+    return sm64_props.combined_export.filter_name(toAlnum(obj.name), True)
+
+
+def convert_old_export_enum(export_type: str):
+    if export_type == "Insertable Binary":
+        return "INSERTABLE_BINARY"
+    if export_type == "Binary":
+        return "BINARY"
+    return export_type
+
+
+def add_custom_if_not_auto(holder, prop: str, data: dict, blacklist: list[str]):
+    if getattr(holder, "use_custom_" + prop):
+        data[prop] = getattr(holder, "custom_" + prop)
+    blacklist.append("use_custom_" + prop)
+    blacklist.append("custom_" + prop)
+
+
+def get_custom_from_dict(holder, prop: str, data: dict, blacklist: list[str] | None = None):
+    value = data.get(prop)
+    if value is not None:
+        setattr(holder, "use_custom_" + prop, True)
+        setattr(holder, "custom_" + prop, value)
+    if blacklist is not None:
+        blacklist.append("use_custom_" + prop)
+        blacklist.append("custom_" + prop)
+
+
+def set_from_dict(holder, dest_prop: str, data: dict, key: str, to_hex: bool = True, default=None):
+    value = data.get(key)
+    if value is not None:
+        setattr(holder, dest_prop, intToHex(value) if to_hex and isinstance(value, int) else value)
+    elif default is not None:
+        setattr(holder, dest_prop, intToHex(default) if to_hex and isinstance(default, int) else default)
+
+
+def set_range_from_dict(
+    holder, start_prop: str, end_prop: str, data: dict, to_hex: bool = True, start_default=None, end_default=None
+):
+    start = data.get("start")
+    if start is not None:
+        setattr(holder, start_prop, intToHex(start) if to_hex and isinstance(start, int) else start)
+    elif start_default is not None:
+        setattr(
+            holder, start_prop, intToHex(start_default) if to_hex and isinstance(start_default, int) else start_default
+        )
+
+    end = data.get("end")
+    if end is not None:
+        setattr(holder, end_prop, intToHex(end) if to_hex and isinstance(end, int) else end)
+    elif end_default is not None:
+        setattr(holder, end_prop, intToHex(end_default) if to_hex and isinstance(end_default, int) else end_default)
+
+
+def draw_custom_or_auto(holder, layout: UILayout, prop: str, default: str, factor=0.5, **kwargs):
+    use_custom_prop = "use_custom_" + prop
+    name_split = layout.split(factor=factor)
+    name_split.prop(holder, use_custom_prop, **kwargs)
+    if getattr(holder, use_custom_prop):
+        name_split.prop(holder, "custom_" + prop, text="")
+    else:
+        prop_size_label(name_split, text=default, icon="LOCKED")
+
+
+def draw_forced(layout: UILayout, holder, prop: str, forced: bool):
+    row = layout.row(align=True) if forced else layout.column()
+    if forced:
+        prop_size_label(row, text="", icon="LOCKED")
+    row.alignment = "LEFT"
+    row.enabled = not forced
+    row.prop(holder, prop, invert_checkbox=not getattr(holder, prop) if forced else False)
+
+
+def prop_size_label(layout: UILayout, **label_args):
+    box = layout.box()
+    box.scale_y = 0.5
+    box.label(**label_args)
+    return box

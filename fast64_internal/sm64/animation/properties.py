@@ -1,5 +1,5 @@
 import os
-from typing import NamedTuple
+from typing import NamedTuple, Optional, TYPE_CHECKING
 
 import bpy
 from bpy.types import PropertyGroup, Action, UILayout, Scene, Context
@@ -20,6 +20,7 @@ from bpy.props import (
 from bpy.path import abspath, clean_name
 
 from ...utility import (
+    PluginError,
     decompFolderMessage,
     directory_ui_warnings,
     run_and_draw_errors,
@@ -28,12 +29,27 @@ from ...utility import (
     multilineLabel,
     prop_split,
     intToHex,
+    set_if_different,
     upgrade_old_prop,
     toAlnum,
+    prop_group_to_json,
+    json_to_prop_group,
 )
 from ...utility_anim import get_slots, getFrameInterval, AddSubAction
 
-from ..sm64_utility import import_rom_ui_warnings, int_from_str, string_int_prop, string_int_warning
+from ..sm64_utility import (
+    import_rom_ui_warnings,
+    int_from_str,
+    string_int_prop,
+    string_int_warning,
+    add_custom_if_not_auto,
+    get_custom_from_dict,
+    set_from_dict,
+    set_range_from_dict,
+    draw_custom_or_auto,
+    draw_forced,
+    prop_size_label,
+)
 from ..sm64_constants import MAX_U16, MIN_S16, MAX_S16, enumLevelNames
 
 from .operators import (
@@ -65,31 +81,8 @@ from .utility import (
 )
 from .importing import get_enum_from_import_preset, update_table_preset
 
-
-def draw_custom_or_auto(holder, layout: UILayout, prop: str, default: str, factor=0.5, **kwargs):
-    use_custom_prop = "use_custom_" + prop
-    name_split = layout.split(factor=factor)
-    name_split.prop(holder, use_custom_prop, **kwargs)
-    if getattr(holder, use_custom_prop):
-        name_split.prop(holder, "custom_" + prop, text="")
-    else:
-        prop_size_label(name_split, text=default, icon="LOCKED")
-
-
-def draw_forced(layout: UILayout, holder, prop: str, forced: bool):
-    row = layout.row(align=True) if forced else layout.column()
-    if forced:
-        prop_size_label(row, text="", icon="LOCKED")
-    row.alignment = "LEFT"
-    row.enabled = not forced
-    row.prop(holder, prop, invert_checkbox=not getattr(holder, prop) if forced else False)
-
-
-def prop_size_label(layout: UILayout, **label_args):
-    box = layout.box()
-    box.scale_y = 0.5
-    box.label(**label_args)
-    return box
+if TYPE_CHECKING:
+    from .gltf import SM64AnimationGlTFExtension
 
 
 def draw_list_op(layout: UILayout, op_cls: OperatorBase, op_name: str, index=-1, text="", icon="", **op_args):
@@ -103,11 +96,6 @@ def draw_list_ops(layout: UILayout, op_cls: OperatorBase, index: int, **op_args)
     ops = ("MOVE_UP", "MOVE_DOWN", "ADD", "REMOVE")
     for op_name in ops:
         draw_list_op(layout, op_cls, op_name, index, **op_args)
-
-
-def set_if_different(owner, prop: str, value):
-    if getattr(owner, prop) != value:
-        setattr(owner, prop, value)
 
 
 def on_flag_update(self: "SM64_AnimHeaderProperties", context: Context):
@@ -321,6 +309,109 @@ class SM64_AnimHeaderProperties(PropertyGroup):
             draw_custom_or_auto(self, col, "enum", self.get_enum(actor_name, action))
         draw_custom_or_auto(self, col, "name", self.get_name(actor_name, action, dma))
 
+    def shows_table_index(
+        self, export_type: str, dma: bool | None, updates_table: bool | None, export_seperately: bool | None
+    ):
+        if dma is None or updates_table is None or export_seperately is None:
+            return True
+        if export_type in {"C", "GLTF"} and not dma:
+            return False
+        elif export_seperately:
+            return True
+        else:
+            return (export_type == "BINARY" and updates_table) or dma
+
+    def to_dict(
+        self,
+        export_type: str,
+        actor_name: str,
+        action: Action,
+        gen_enums: bool,
+        dma: bool,
+        export_seperately: bool | None,
+        updates_table: bool | None,
+        gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+    ):
+        flags_props = [
+            "no_loop",
+            "backwards",
+            "no_acceleration",
+            "disabled",
+            "no_trans",
+            "only_vertical",
+            "only_horizontal",
+        ]
+        blacklist = [
+            "expand_tab_in_action",
+            "custom_flags",
+            "header_variant",
+            "custom_enum",
+            "custom_name",
+            "start_frame",
+            "loop_start",
+            "loop_end",
+            "use_custom_flags",
+            "use_manual_loop",
+            "table_index",
+            *flags_props,
+        ]
+        data = {}
+        add_custom_if_not_auto(self, "name", data, blacklist)
+        if gen_enums:
+            add_custom_if_not_auto(self, "enum", data, blacklist)
+
+        if self.use_manual_loop:
+            data["loop_points"] = {"start": self.start_frame, "loop_start": self.loop_start, "end": self.loop_end}
+        str_flags = self.get_flags(True)
+        if isinstance(str_flags, SM64_AnimFlags):
+            data["flags"] = str_flags.to_dict()
+        else:
+            data["flags"] = str_flags
+        if self.shows_table_index(export_type, dma, updates_table, export_seperately):
+            data["seperate"] = {"table_index": self.table_index}
+        data.update(prop_group_to_json(self, blacklist))
+
+        if gltf_extension is not None and gltf_extension.hints:
+            hints = {}
+            if not self.use_custom_name:
+                hints["name"] = self.get_name(actor_name, action, dma)
+            if not self.use_custom_enum:
+                hints["enum"] = self.get_enum(actor_name, action)
+            if not self.manual_loop_range:
+                loop_points = self.get_loop_points(action)
+                hints["loop_points"] = {"start": loop_points[0], "loop_start": loop_points[1], "end": loop_points[2]}
+
+            gltf_extension.append_extension(data, f"{gltf_extension.HEADER_EXTENSION_NAME}_hints", hints)
+        return data
+
+    def from_dict(
+        self, data: dict, export_type: str = "", gltf_extension: Optional["SM64AnimationGlTFExtension"] = None
+    ):
+        blacklist = []
+        get_custom_from_dict(self, "name", data, blacklist)
+        get_custom_from_dict(self, "enum", data, blacklist)
+
+        flags = data.get("flags")
+        if flags is not None:
+            if isinstance(flags, dict):
+                self.use_custom_flags = False
+                for prop, value in flags.items():
+                    if hasattr(self, prop):
+                        setattr(self, prop, value)
+            else:
+                self.use_custom_flags = True
+                self.custom_flags = flags
+        loop_points = data.get("loop_points")
+        if loop_points is not None:
+            self.use_manual_loop = True
+            self.start_frame = loop_points.get("start", 0)
+            self.loop_start = loop_points.get("loop_start", 0)
+            self.loop_end = loop_points.get("end", 0)
+        sep = data.get("seperate")
+        if sep is not None:
+            self.table_index = sep.get("table_index", 0)
+        json_to_prop_group(self, data, blacklist=blacklist + ["flags", "loop_points", "seperate"])
+
     def draw_props(
         self,
         layout: UILayout,
@@ -351,7 +442,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
                 action_name=action.name,
                 header_variant=self.header_variant,
             )
-            if (export_type == "C" and dma) or (export_type == "Binary" and updates_table):
+            if self.shows_table_index(export_type, dma, updates_table, True):
                 prop_split(col, self, "table_index", "Table Index")
         if not dma and export_type == "C":
             self.draw_names(col, action, actor_name, gen_enums, dma)
@@ -359,7 +450,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
 
         prop_split(col, self, "trans_divisor", "Translation Divisor")
         self.draw_frame_range(col, action)
-        self.draw_flag_props(col, use_int_flags=dma or export_type.endswith("Binary"))
+        self.draw_flag_props(col, use_int_flags=dma or export_type.endswith("BINARY"))
 
 
 # workaround for garbage collector bug
@@ -435,7 +526,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
         return toAlnum(f"anim_{action.name}")
 
     def get_file_name(self, action: Action, export_type: str, dma=False) -> str:
-        if not export_type in {"C", "Insertable Binary"}:
+        if not export_type in {"C", "GLTF", "INSERTABLE_BINARY"}:
             return ""
         if export_type == "C" and dma:
             return f"{self.dma_name}.inc.c"
@@ -571,11 +662,11 @@ class SM64_ActionAnimProperty(PropertyGroup):
                     action_name=action.name,
                 )
                 col.separator()
-            if export_type == "Binary" and not dma:
+            if export_type == "BINARY" and not dma:
                 string_int_prop(col, self, "start_address", "Start Address")
                 string_int_prop(col, self, "end_address", "End Address")
-        if export_type != "Binary" and (export_seperately or not in_table):
-            if not dma or export_type == "Insertable Binary":  # not c dma or insertable
+        if export_type != "BINARY" and (export_seperately or not in_table):
+            if not dma or export_type == "INSERTABLE_BINARY":  # not c dma or insertable
                 text = "File Name"
                 if not in_table and not export_seperately:
                     text = "File Name (individual action export)"
@@ -588,7 +679,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
         if dma or not self.reference_tables:  # DMA tables don´t allow references
             draw_custom_or_auto(self, col, "max_frame", str(self.get_max_frame(action)))
         if not dma:
-            self.draw_references(col, is_binary=export_type.endswith("Binary"))
+            self.draw_references(col, is_binary=export_type.endswith("BINARY"))
         col.separator()
 
         if specific_variant is not None:
@@ -599,6 +690,119 @@ class SM64_ActionAnimProperty(PropertyGroup):
                 self.headers[specific_variant].draw_props(col, *header_args)
         else:
             self.draw_variants(col, action, dma, actor_name, header_args)
+
+    def to_dict(
+        self,
+        export_type: str,
+        action: Action,
+        actor_name,
+        gen_enums: bool,
+        dma: bool,
+        export_seperately: bool | None,
+        updates_table: bool | None,
+        gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+    ):
+        blacklist = [
+            "slot_identifier",
+            "slot_enum",
+            "variants_tab",
+            "header",
+            "header_variants",
+            "reference_tables",
+            "values_table",
+            "indices_table",
+            "values_address",
+            "indices_address",
+            "start_address",
+            "end_address",
+        ]
+        data = {}
+        add_custom_if_not_auto(self, "file_name", data, blacklist)
+        add_custom_if_not_auto(self, "max_frame", data, blacklist)
+
+        if export_type in {"C", "GLTF"}:
+            if self.reference_tables:
+                data["reference"] = {"values_table": self.values_table, "indices_table": self.indices_table}
+        else:
+            blacklist.extend(["indices_table", "values_table"])
+            if self.reference_tables:
+                data["reference"] = {
+                    "values_table": int_from_str(self.values_address),
+                    "indices_table": int_from_str(self.indices_address),
+                }
+            data["seperate"] = {"address": {"start": self.start_address, "end": self.end_address}}
+
+        data.update(prop_group_to_json(self, blacklist))
+        args = (
+            export_type,
+            actor_name,
+            action,
+            gen_enums,
+            dma,
+            export_seperately,
+            updates_table,
+            gltf_extension,
+        )
+        self.headers: list[SM64_AnimHeaderProperties]
+        data["headers"] = [v.to_dict(*args) for v in self.headers]
+
+        if gltf_extension is not None and gltf_extension.hints:
+            hints = {}
+            if not self.custom_file_name:
+                hints["file_name"] = self.get_file_name(action, export_type, dma)
+            if not self.use_custom_max_frame:
+                hints["max_frame"] = self.get_max_frame(action)
+
+            gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+        return data
+
+    def from_dict(
+        self, data: dict, export_type: str = "", gltf_extension: Optional["SM64AnimationGlTFExtension"] = None
+    ):
+        blacklist = []
+        get_custom_from_dict(self, "file_name", data, blacklist)
+        get_custom_from_dict(self, "max_frame", data, blacklist)
+
+        ref = data.get("reference")
+        if ref is not None:
+            self.reference_tables = True
+            set_from_dict(self, "values_address", ref, "values_table", default=0x00A40CC8)
+            set_from_dict(self, "indices_address", ref, "indices_table", default=0x00A42150)
+        else:
+            set_from_dict(self, "values_address", {}, "values_table", default=0x00A40CC8)
+            set_from_dict(self, "indices_address", {}, "indices_table", default=0x00A42150)
+
+        sep = data.get("seperate")
+        if sep is not None:
+            address = sep.get("address")
+            if address is not None:
+                set_range_from_dict(
+                    self, "start_address", "end_address", address, start_default=0x00A40CC8, end_default=0x00A42265
+                )
+            else:
+                set_range_from_dict(
+                    self, "start_address", "end_address", {}, start_default=0x00A40CC8, end_default=0x00A42265
+                )
+        else:
+            set_range_from_dict(
+                self, "start_address", "end_address", {}, start_default=0x00A40CC8, end_default=0x00A42265
+            )
+
+        headers = data.get("headers")
+        if headers:
+            self.header.from_dict(headers[0], export_type, gltf_extension)
+            self.header_variants.clear()
+            for header_data in headers[1:]:
+                new_variant: SM64_AnimHeaderProperties = self.header_variants.add()
+                new_variant.from_dict(header_data, export_type, gltf_extension)
+        else:
+            self.header.from_dict({}, export_type, gltf_extension)
+        json_to_prop_group(
+            self,
+            data,
+            blacklist=blacklist
+            + ["reference", "seperate", "header", "header_variants", "slot_enum", "slot_identifier"],
+        )
 
 
 class ActionHeaderTuple(NamedTuple):
@@ -655,7 +859,7 @@ class SM64_AnimTableElementProperties(PropertyGroup):
     def draw_reference(
         self, layout: UILayout, export_type: str = "C", gen_enums: bool = False, prev_enums: dict[str, int] = None
     ):
-        if export_type.endswith("Binary"):
+        if export_type.endswith("BINARY"):
             string_int_prop(layout, self, "header_address", "Header Address")
             return
         split = layout.split()
@@ -729,6 +933,74 @@ class SM64_AnimTableElementProperties(PropertyGroup):
             dma=dma,
         )
 
+    def to_dict(
+        self,
+        export_type: str,
+        gen_enums: bool,
+        dma: bool,
+        actor_name: str,
+        prev_enums: dict[str, int],
+        gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+    ):
+        can_reference = not dma
+        blacklist = [
+            "action_prop",
+            "expand_tab",
+            "variant",
+            "reference",
+            "header_address",
+            "header_name",
+            "use_custom_enum",
+            "custom_enum",
+        ]
+        data = {}
+        if can_reference and self.reference:
+            reference_data = {}
+            if export_type in {"C", "GLTF"}:
+                reference_data["header_name"] = self.header_name
+            else:
+                reference_data["header_address"] = int_from_str(self.header_address)
+            data["reference"] = reference_data
+        else:
+            if not self.action_prop:
+                raise Exception(f"Header action does not exist.")
+            data["action_name"] = self.action_prop.name
+            action_props = get_action_props(self.action_prop)
+            if self.variant > 0:
+                if self.variant < 0 or self.variant >= len(action_props.headers):
+                    raise Exception(f"Header variant {self.variant} does not exist.")
+                data["variant"] = self.variant
+        if gen_enums:
+            add_custom_if_not_auto(self, "enum", data, blacklist)
+
+        data.update(prop_group_to_json(self, blacklist))
+
+        if gltf_extension is not None and gltf_extension.hints:
+            hints = {}
+            if not self.use_custom_enum:
+                hints["enum"] = self.get_enum(can_reference, actor_name, prev_enums)
+
+            gltf_extension.append_extension(data, f"{gltf_extension.TABLE_ELEMENT_EXTENSION_NAME}_hints", hints)
+        return data
+
+    def from_dict(
+        self, data: dict, export_type: str = "", gltf_extension: Optional["SM64AnimationGlTFExtension"] = None
+    ):
+        get_custom_from_dict(self, "enum", data)
+
+        ref_data = data.get("reference")
+        if ref_data is not None:
+            self.reference = True
+            set_from_dict(self, "header_name", ref_data, "header_name", to_hex=False)
+            set_from_dict(self, "header_address", ref_data, "header_address", default=intToHex(0x0600B75C))
+        elif data.get("action_name") is not None:
+            self.reference = False
+
+        json_to_prop_group(self, data, blacklist=["enum", "reference", "action_name"])
+        action_name = data.get("action_name")
+        if action_name is not None and action_name in bpy.data.actions:
+            self.action_prop = bpy.data.actions[action_name]
+
 
 class SM64_AnimImportProperties(PropertyGroup):
     run_decimate: BoolProperty(name="Run Decimate (Allowed Change)", default=True)
@@ -753,7 +1025,7 @@ class SM64_AnimImportProperties(PropertyGroup):
         items=enum_anim_tables,
         name="Preset",
         update=update_table_preset,
-        default="Mario",
+        default="MARIO",
     )
     decomp_path: StringProperty(name="Decomp Path", subtype="FILE_PATH", default="")
     binary_import_type: EnumProperty(
@@ -796,7 +1068,7 @@ class SM64_AnimImportProperties(PropertyGroup):
     def table_index(self):
         if self.read_entire_table:
             return
-        elif self.preset_animation == "Custom" or not self.use_preset:
+        elif self.preset_animation == "CUSTOM" or not self.use_preset:
             return self.table_index_prop
         else:
             return int_from_str(self.preset_animation)
@@ -828,7 +1100,7 @@ class SM64_AnimImportProperties(PropertyGroup):
 
     @property
     def use_preset(self):
-        return self.import_type != "Insertable Binary" and self.preset != "Custom"
+        return self.import_type != "Insertable Binary" and self.preset != "CUSTOM"
 
     def upgrade_old_props(self, scene: Scene):
         upgrade_old_prop(
@@ -871,7 +1143,7 @@ class SM64_AnimImportProperties(PropertyGroup):
 
     def draw_c(self, layout: UILayout, decomp: os.PathLike = ""):
         col = layout.column()
-        if self.preset == "Custom":
+        if self.preset == "CUSTOM":
             self.draw_path(col)
         else:
             col.label(text="Uses scene decomp path by default", icon="INFO")
@@ -903,12 +1175,12 @@ class SM64_AnimImportProperties(PropertyGroup):
         self.draw_import_rom(col, import_rom)
         col.separator()
 
-        if self.preset != "Custom":
+        if self.preset != "CUSTOM":
             split = col.split()
             split.prop(self, "read_entire_table")
             if not self.read_entire_table:
                 SM64_SearchAnimPresets.draw_props(split, self, "preset_animation", "")
-                if self.preset_animation == "Custom":
+                if self.preset_animation == "CUSTOM":
                     split.prop(self, "table_index_prop", text="Index")
             return
         col.prop(self, "ignore_bone_count")
@@ -1075,7 +1347,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
     address: StringProperty(name="Table Address", default=intToHex(0x00A46738))
     end_address: StringProperty(name="Table End", default=intToHex(0x00A4675C))
     update_behavior: BoolProperty(name="Update Behavior", default=True)
-    behaviour: bpy.props.EnumProperty(items=enum_animated_behaviours, default=intToHex(0x13002EF8))
+    behaviour: bpy.props.EnumProperty(items=enum_animated_behaviours, default="TOAD_MESSAGE")
     behavior_address_prop: StringProperty(name="Behavior Address", default=intToHex(0x13002EF8))
     beginning_animation: StringProperty(name="Begining Animation", default="0x00")
     # Mario animation table
@@ -1087,7 +1359,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
 
     @property
     def behavior_address(self) -> int:
-        if self.behaviour == "Custom":
+        if self.behaviour == "CUSTOM":
             return int_from_str(self.behavior_address_prop)
         return int_from_str(self.behaviour)
 
@@ -1108,6 +1380,12 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                 actions.append(action)
         return actions
 
+    def can_gen_enums(self, export_type: str) -> bool:
+        return export_type in {"C", "GLTF"} and not self.is_dma
+
+    def get_gen_enums(self, export_type: str) -> bool:
+        return self.can_gen_enums(export_type) and self.gen_enums
+
     def get_table_name(self, actor_name: str) -> str:
         if self.use_custom_table_name:
             return self.custom_table_name
@@ -1121,9 +1399,9 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         return f"{table_name.upper()}_END"
 
     def get_table_file_name(self, actor_name: str, export_type: str) -> str:
-        if not export_type in {"C", "Insertable Binary"}:
+        if not export_type in {"C", "GLTF", "INSERTABLE_BINARY"}:
             return ""
-        elif export_type == "Insertable Binary":
+        elif export_type == "INSERTABLE_BINARY":
             if self.use_custom_file_name:
                 return self.custom_file_name
             return clean_name(actor_name + ("_dma_table" if self.is_dma else "_table")) + ".insertable"
@@ -1155,7 +1433,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             self.update_table,
             self.export_seperately,
             export_type,
-            export_type == "C" and self.gen_enums and not self.is_dma,
+            self.get_gen_enums(export_type),
             actor_name,
             prev_enums,
         )
@@ -1230,11 +1508,11 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         col.prop(self, "is_dma")
         if export_type == "C":
             self.draw_c_settings(col, header_type)
-        if export_type != "Insertable Binary" and not self.is_dma:
+        if export_type != "INSERTABLE_BINARY" and not self.is_dma:
             col.prop(self, "update_table")
 
         if self.is_dma:
-            if export_type == "Binary":
+            if export_type == "BINARY":
                 string_int_prop(col, self, "dma_address", "Table Address")
                 string_int_prop(col, self, "dma_end_address", "Table End")
             elif export_type == "C":
@@ -1248,7 +1526,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             if export_type == "C":
                 draw_custom_or_auto(self, col, "table_name", self.get_table_name(actor_name))
                 col.prop(self, "gen_enums")
-                if self.gen_enums:
+                if self.get_gen_enums(export_type):
                     multilineLabel(
                         col.box(),
                         f"Enum List Name: {self.get_enum_name(actor_name)}\n"
@@ -1259,7 +1537,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                 draw_forced(col, self, "override_files_prop", not self.export_seperately)
                 if bhv_export:
                     prop_split(col, self, "beginning_animation", "Beginning Animation")
-            elif export_type == "Binary":
+            elif export_type == "BINARY":
                 string_int_prop(col, self, "address", "Table Address")
                 string_int_prop(col, self, "end_address", "Table End")
 
@@ -1273,7 +1551,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                         "INFO",
                     )
                     SM64_SearchAnimatedBhvs.draw_props(box, self, "behaviour", "Behaviour")
-                    if self.behaviour == "Custom":
+                    if self.behaviour == "CUSTOM":
                         prop_split(box, self, "behavior_address_prop", "Behavior Address")
                     prop_split(box, self, "beginning_animation", "Beginning Animation")
 
@@ -1282,8 +1560,170 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                     string_int_prop(col, self, "data_address", "Data Address")
                     string_int_prop(col, self, "data_end_address", "Data End")
             col.prop(self, "null_delimiter")
-        if export_type == "Insertable Binary":
+        if export_type == "INSERTABLE_BINARY":
             draw_custom_or_auto(self, col, "file_name", self.get_table_file_name(actor_name, export_type))
+
+    def to_dict(
+        self, export_type: str = "", actor_name: str = "", gltf_extension: Optional["SM64AnimationGlTFExtension"] = None
+    ):
+        blacklist = [
+            "version",
+            "dma_folder",
+            "update_table",
+            "export_seperately_prop",
+            "override_files_prop",
+            "behavior_address_prop",
+            "elements",
+            "gen_enums",
+            "export_seperately",
+            "address",
+            "end_address",
+            "write_data_seperately",
+            "data_address",
+            "data_end_address",
+            "dma_address",
+            "dma_end_address",
+            "update_behavior",
+            "behaviour",
+            "beginning_animation",
+            "is_dma",
+            "use_custom_file_name",
+            "custom_file_name",
+        ]
+        data = {}
+        if self.can_gen_enums(export_type):
+            data["gen_enums"] = self.gen_enums
+        if export_type in {"C", "GLTF"}:
+            if self.is_dma:
+                data["dma_folder"] = self.dma_folder
+            data["export_seperately"] = self.export_seperately
+            if self.export_seperately:
+                data["override_files"] = self.override_files
+        else:
+            if self.is_dma:
+                blacklist.extend(["null_delimiter"])
+
+        if export_type == "BINARY":
+            if self.is_dma:
+                data["dma"] = {"start": int_from_str(self.dma_address), "end": int_from_str(self.dma_end_address)}
+            else:
+                if self.update_behavior:
+                    data["behavior"] = behavior = {"beginning_animation": self.beginning_animation}
+                    if self.behaviour == "CUSTOM":
+                        behavior["address"] = self.behavior_address
+                    else:
+                        behavior["enum"] = self.behaviour
+
+                if self.write_data_seperately:
+                    data["data_address"] = {
+                        "start": int_from_str(self.data_address),
+                        "end": int_from_str(self.data_end_address),
+                    }
+                data["address"] = {"start": int_from_str(self.address), "end": int_from_str(self.end_address)}
+
+        if export_type == "INSERTABLE_BINARY":
+            blacklist.remove("is_dma")
+        elif not self.is_dma:
+            data["update_table"] = self.update_table
+
+        add_custom_if_not_auto(self, "table_name", data, blacklist)
+
+        data.update(prop_group_to_json(self, blacklist))
+
+        table = []
+        gen_enums = self.get_gen_enums(export_type)
+        try:
+            prev_enums = {}
+            element: SM64_AnimTableElementProperties
+            for i, element in enumerate(self.elements):
+                try:
+                    table.append(
+                        element.to_dict(export_type, gen_enums, self.is_dma, actor_name, prev_enums, gltf_extension)
+                    )
+                except Exception as exc:  # pylint: disable=broad-except
+                    raise PluginError(f"Failed to export element {i}:\n{exc}") from exc
+        except Exception as exc:  # pylint: disable=broad-except
+            raise PluginError(f"Failed to export table:\n{exc}") from exc
+        data["elements"] = table
+
+        if gltf_extension is not None and gltf_extension.hints:
+            hints = {}
+            if export_type != "BINARY":
+                add_custom_if_not_auto(self, "file_name", data, blacklist)
+                file_name = self.get_table_file_name(actor_name, export_type)
+                if file_name:
+                    hints["file_name"] = file_name
+            if export_type in {"C", "GLTF"}:
+                hints["table_name"] = self.get_table_name(actor_name)
+            gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+        return data
+
+    def from_dict(
+        self, data: dict, export_type: str = "", gltf_extension: Optional["SM64AnimationGlTFExtension"] = None
+    ):
+        blacklist = []
+        get_custom_from_dict(self, "table_name", data, blacklist)
+        get_custom_from_dict(self, "file_name", data, blacklist)
+
+        if dma_folder := data.get("dma_folder"):
+            self.dma_folder = dma_folder
+            self.is_dma = True
+
+        dma = data.get("dma")
+        if dma is not None:
+            self.is_dma = True
+            set_range_from_dict(
+                self, "dma_address", "dma_end_address", dma, start_default=0x4EC000, end_default=0x4EC000
+            )
+        else:
+            set_range_from_dict(
+                self, "dma_address", "dma_end_address", {}, start_default=0x4EC000, end_default=0x4EC000
+            )
+
+        behaviour = data.get("behavior")
+        if behaviour is not None:
+            self.update_behavior = True
+            address = behaviour.get("address")
+            if address is not None:
+                self.behaviour = "CUSTOM"
+                self.behavior_address_prop = intToHex(address) if isinstance(address, int) else address
+            elif "enum" in behaviour:
+                self.behaviour = behaviour["enum"]
+            if "beginning_animation" in behaviour:
+                self.beginning_animation = behaviour["beginning_animation"]
+        else:
+            self.behaviour = "TOAD_MESSAGE"
+            self.beginning_animation = "0x00"
+
+        data_address = data.get("data_address")
+        if data_address is not None:
+            self.write_data_seperately = True
+            set_range_from_dict(
+                self, "data_address", "data_end_address", data_address, start_default=0x00A46738, end_default=0x00A4675C
+            )
+        else:
+            set_range_from_dict(
+                self, "data_address", "data_end_address", {}, start_default=0x00A46738, end_default=0x00A4675C
+            )
+
+        address = data.get("address")
+        if address is not None:
+            set_range_from_dict(
+                self, "address", "end_address", address, start_default=0x00A46738, end_default=0x00A4675C
+            )
+        else:
+            set_range_from_dict(self, "address", "end_address", {}, start_default=0x00A46738, end_default=0x00A4675C)
+
+        json_to_prop_group(self, data, blacklist=blacklist + ["dma", "behavior", "data_address", "address"])
+
+        self.elements.clear()
+        elements = data.get("elements", [])
+        for i, element in enumerate(elements):
+            try:
+                element_prop = self.elements.add()
+                element_prop.from_dict(element, export_type, gltf_extension)
+            except Exception as exc:  # pylint: disable=broad-except
+                raise PluginError(f"Failed to import element {i}:\n{exc}") from exc
 
 
 classes = (

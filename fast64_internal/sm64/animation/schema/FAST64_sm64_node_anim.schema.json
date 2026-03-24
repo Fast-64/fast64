@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_node_anim glTF Node Animation Table Extension",
+    "type": "object",
+    "description": "Node animation table properties for SM64 armatures",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "extensions": {
+            "type": "object",
+            "properties": {
+                "FAST64_sm64_node_anim_hints": {
+                    "$ref": "FAST64_sm64_node_anim_hints.schema.json"
+                }
+            }
+        },
+        "gen_enums": {
+            "type": "boolean",
+            "description": "Generate C enums for the animation table elements",
+            "default": true
+        },
+        "dma_folder": {
+            "type": "string",
+            "description": "The folder where DMA data is exported",
+            "default": "assets/anims/"
+        },
+        "export_seperately": {
+            "type": "boolean",
+            "description": "Export each animation as a separate file",
+            "default": false
+        },
+        "override_files": {
+            "type": "boolean",
+            "description": "Overwrite existing table and data files during export",
+            "default": true
+        },
+        "update_table": {
+            "type": "boolean",
+            "description": "Update table outside of table exports",
+            "default": true
+        },
+        "table_name": {
+            "type": "string",
+            "description": "Specified name for the generated animation table array",
+            "default": "anims_table"
+        },
+        "file_name": {
+            "type": "string",
+            "description": "Specified file name for the insertable table file",
+            "default": "anims_table.inc.c"
+        },
+        "null_delimiter": {
+            "type": "boolean",
+            "description": "Add a NULL pointer at the end of the animation table",
+            "default": false
+        },
+        "elements": {
+            "type": "array",
+            "description": "Variants in the table",
+            "items": {
+                "$ref": "FAST64_sm64_anim_table_element.schema.json"
+            }
+        }
+    },
+    "additionalProperties": false
+}

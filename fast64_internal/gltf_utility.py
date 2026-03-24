@@ -124,6 +124,10 @@ def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: 
 class GlTF2SubExtension:
     required: bool = False
 
+    @property
+    def hints(self):
+        return self.extension.settings.include_hints
+
     def post_init(self):
         pass
 
@@ -136,25 +140,28 @@ class GlTF2SubExtension:
             pprint(content)
 
     def append_extension(self, gltf_prop, name: str, data: dict | None = None, required=False, skip_if_empty=True):
-        if skip_if_empty and not data and data is not None:  # If none, assume it shouldn´t skip
+        if skip_if_empty and (data is None or not any(data)):
             return
         self.print_verbose(f"Appending {name} extension")
-        if data:
-            self.print_verbose(data)
-        if gltf_prop.extensions is None:
-            gltf_prop.extensions = {}
-        gltf_prop.extensions[name] = self.extension.Extension(
+        self.print_verbose(data)
+        extension = self.extension.Extension(
             name=name,
             extension=data if data else {},
             required=required if required else self.required,
         )
-        return gltf_prop.extensions[name]
+        if isinstance(gltf_prop, dict):
+            gltf_prop.setdefault("extensions", {})[name] = extension
+        else:
+            if gltf_prop.extensions is None:
+                gltf_prop.extensions = {}
+            gltf_prop.extensions[name] = extension
+        return extension
 
     def get_extension(self, gltf_prop, name: str):
         if gltf_prop.extensions is None:
             return None
         data = gltf_prop.extensions.get(name, None)
-        if data and any(data):
+        if data is not None and any(data):
             self.print_verbose(data)
         return data
 
