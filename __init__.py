@@ -389,6 +389,13 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    # Doing some operations immediately on file load can crash blender in specific situations,
+    # so delay the post-load code execution.
+    # (note if register() is called without a delay the function just runs immediately, so we need any non-zero delay)
+    bpy.app.timers.register(after_load_impl, 0.001)
+
+
+def after_load_impl():
     game_data.update(bpy.context.scene.gameEditorMode)
 
     settings = bpy.context.scene.fast64.settings
