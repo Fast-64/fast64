@@ -735,6 +735,7 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
 
 class SM64_CustomCmdProperties(PropertyGroup):
     version: IntProperty(name="SM64_CustomCmdProperties Version", default=0)
+    cur_version = 1
 
     tab: BoolProperty(default=False)
     preset: EnumProperty(items=get_custom_cmd_preset_enum, update=custom_cmd_change_preset)
@@ -826,8 +827,11 @@ class SM64_CustomCmdProperties(PropertyGroup):
     def preset_hash(self):
         return str(hash(str(self.to_dict("PRESET_EDIT", include_defaults=False).items())))
 
+    def set_to_newest_version(self):
+        self.version = self.cur_version
+
     def upgrade_object(self, obj: Object):
-        if self.version != 0:
+        if self.version == self.cur_version:
             return
         found_cmd, arg = upgrade_old_prop(self, "str_cmd", obj, "customGeoCommand"), get_first_set_prop(
             obj, "customGeoCommandArgs"
@@ -840,7 +844,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.args[-1].parameter = arg
 
     def upgrade_bone(self, bone: Bone):
-        if self.version != 0:
+        if self.version == self.cur_version:
             return
         upgrade_old_prop(self, "str_cmd", self, "custom_geo_cmd_macro")
         args = get_first_set_prop(self, "custom_geo_cmd_args")
