@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import TextIO, Any, Union
 from collections.abc import Sequence
+from traceback import format_exc
 
 from .utility import transform_mtx_blender_to_n64
 
@@ -304,6 +305,8 @@ class DataParser(BinProcess):
     _continue_parse = 1
     _break_parse = 2
     _exit_parse = 3  # fully stop script
+    _advance_parse = -1
+    # jump ahead X items if value is above 3
     _binary_parsing = 0
     _c_parsing = 1
 
@@ -371,9 +374,15 @@ class DataParser(BinProcess):
             if not func:
                 raise Exception(f"Macro {cur_macro} not found in parser function")
             else:
-                flow_status = func(cur_macro, *args, **kwargs)
+                try:
+                    flow_status = func(cur_macro, *args, **kwargs)
+                except Exception as e:
+                    print(format_exc())
+                    raise Exception(f"Exception on macro: {cur_macro} in stream: {entry_id} on line: {parser.head + 1}")
             if flow_status == self._break_parse:
                 return
+            if flow_status == self._advance_parse:
+                parser.advance_head(1)
 
     # entry id in this instance is a pointer, converted to physical address, e.g. file offset
     def parse_stream_binary(self, bin_file: BinaryIO, entry_id: int, *args, **kwargs):
@@ -405,14 +414,24 @@ class DataParser(BinProcess):
                 continue
             cur_macro = Macro(cmd_name, cmd_args)
             func = getattr(self, cur_macro.cmd, None)
-            # print(cur_macro)
+            print(cur_macro, hex(parser.head), cmd_len)
             if not func:
                 raise Exception(f"Macro {cur_macro} not found in parser function")
-            flow_status = func(cur_macro, *args, **kwargs)
+            try:
+                flow_status = func(cur_macro, *args, **kwargs)
+            except Exception as e:
+                if type(e) == ParseException:
+                    raise e
+                else:
+                    print(format_exc())
+                    print(f"Exception on macro: {cur_macro} at location: 0x{parser.head:0X}")
+                    raise ParseException(f"Parsing stopped on exception")
             if flow_status == self._break_parse:
                 return
             if flow_status == self._exit_parse:
                 raise ParseException(f"Parsing stopped")
+            if flow_status > 3:
+                parser.advance_head(flow_status)
 
     def get_cmd_name(cmd_type: int):
         """gets Macro name from binary data, typically the MSB, not required to be used"""
@@ -439,8 +458,8 @@ class DataParser(BinProcess):
         # have to deal with nested macros, such as with calc_dxt() in f3d
         # maybe there is a way to oneline with regex?
         str_macro = macro[args_start + 1 : macro.rfind(")")] + ","
-        nested_paren_regex = "\w*\(([^\)]+)\),"
-        arg_regex = "[\w\s*()-]+"
+        nested_paren_regex = "[\w\s]*?\([\w\s*()\-<>+\/]+\)\s*?,"
+        arg_regex = "[\w\s*()\\-<>+\\/]+"
         nested_args = [*re.finditer(nested_paren_regex, str_macro)]
         if not nested_args:
             macro_args = macro[args_start + 1 : macro.rfind(")")].split(",")
@@ -450,12 +469,12 @@ class DataParser(BinProcess):
             macro_args = []
             for arg in re.finditer(arg_regex, str_macro):
                 if nested_args:
-                    if arg.span()[0] > nested_args[0].span()[0] or arg.span()[1] > nested_args[0].span()[0]:
+                    if arg.span()[0] >= nested_args[0].span()[0] or arg.span()[1] > nested_args[0].span()[0]:
                         max_pos = nested_args[0].span()[1]
                         macro_args.append(nested_args[0].group())
                         nested_args.pop(0)
                         continue
-                if arg.span()[0] > max_pos:
+                if arg.span()[0] >= max_pos:
                     macro_args.append(arg.group())
         return Macro(macro[:args_start], macro_args)
 
@@ -467,8 +486,6 @@ class DataParser(BinProcess):
 
 def evaluate_macro(line: str, macro_check: str):
     """Preprocessing for C macros, typically ifdef statements on versioning"""
-    if macro_check in line:
-        return False
     if macro_check in line:
         return False
     return True
@@ -489,6 +506,9 @@ def pre_parse_file(file: TextIO, macro_check: str) -> list[str]:
             skip_macro = evaluate_macro(line, macro_check)
         if "#ifdef" in line:
             skip_macro = evaluate_macro(line, macro_check)
+            continue
+        if "#ifndef" in line:
+            skip_macro = not evaluate_macro(line, macro_check)
             continue
         if "#elif" in line:
             skip_macro = evaluate_macro(line, macro_check)

@@ -18,11 +18,13 @@ from ..f3d.f3d_material import F3DMaterialProperty, RDPSettings, TextureProperty
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_enums import (
     enumAlphaCompare,
+    enumAlphaDither,
     enumRGBDither,
     enumCombKey,
     enumTextConv,
     enumTextFilt,
     enumTextLUT,
+    enumTextLOD,
     enumTextDetail,
     enumTextPersp,
     enumCycleType,
@@ -196,6 +198,10 @@ class Texture(TexBase):
         else:
             siz_adjust = 1 if bit_size == 8 else 0
             texels = (self.texels + 1) << siz_adjust
+        # you may have the size already figured out due to image data provided by the ROM
+        if self.width and self.height:
+            self.num_bytes = int(bit_size * self.width * self.height)
+            return
         if self.dxt == 0:
             # this just allows export but in no way is this a normal texture
             # nor will it properly show up in blender as an import
@@ -262,6 +268,7 @@ class Mat:
         self.num_lights = 1
         self.light_col = {}
         self.ambient_light = tuple()
+        self.name = None
         if not layer:
             self.layer = self._base_layer
         else:
@@ -308,32 +315,29 @@ class Mat:
                 pass
 
             def EvalGeo(self, mode):
-                for a in self.GeoSet:
-                    if mode in a.lower():
-                        return True
-                for a in self.GeoClear:
-                    if mode in a.lower():
-                        return False
+                if mode in self.GeoSet:
+                    return True
+                if mode in self.GeoClear:
+                    return False
                 else:
                     return True
-
             chkT = lambda x, y, d: x.__dict__.get(y, d)
             rendermode = getattr(self, "RenderMode", ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"])
             MyProps = (
                 MyT,
                 *self.Combiner[0:8],
                 *rendermode,
-                EvalGeo(self, "g_lighting"),
-                EvalGeo(self, "g_shade"),
-                EvalGeo(self, "g_shade_smooth"),
-                EvalGeo(self, "g_zbuffer"),
+                EvalGeo(self, "G_LIGHTING"),
+                EvalGeo(self, "G_SHADE"),
+                EvalGeo(self, "G_SHADE_SMOOTH"),
+                EvalGeo(self, "G_ZBUFFER"),
                 chkT(self, "g_mdsft_alpha_compare", "G_AC_NONE"),
                 chkT(self, "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
                 chkT(self, "g_mdsft_alpha_dither", "G_AD_NOISE"),
-                self.tiles[0].Shigh,
-                self.tiles[0].Thigh,
-                self.tiles[0].Slow,
-                self.tiles[0].Tlow,
+                (self.tiles[0].Shigh/4),
+                (self.tiles[0].Thigh/4),
+                (self.tiles[0].Slow/4),
+                (self.tiles[0].Tlow/4),
             )
             dupe = hash(MyProps) == hash(F3Dprops)
             return dupe
@@ -356,12 +360,11 @@ class Mat:
             return self.load_texture_array(
                 force_new_tex,
                 textures,
-                path,
                 tex,
                 DataParser._c_parsing if not self.bin_file else DataParser._binary_parsing,
             )
 
-    def load_texture_array(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture, parse_target: int):
+    def load_texture_array(self, force_new_tex: bool, textures: dict, tex: Texture, parse_target: int):
         """
         Create a new/find image object and then fill pixel buffer with array data
         """
@@ -369,7 +372,8 @@ class Mat:
         # for some reason I can't get the parsing target to be what I want, so read props instead
         # based on naming structure, you shouldn't have repeat texture names since they're ROM addresses
         if parse_target == DataParser._binary_parsing:
-            name = f"tex_img_0x{tex.tex_img:X}"
+            prefix = f"{self.name}_" if self.name else ""
+            name = f"{prefix}tex_img_0x{tex.tex_img:X}"
             if i := bpy.data.images.get(name, None):
                 return i
             tex_img = tex.tex_img
@@ -378,7 +382,10 @@ class Mat:
             pal_img = self.pal.tex_img if self.pal else None
             if pal_img:
                 # determine if CI4 or CI8 and num colors
-                pal_img = self.bin_file[pal_img : pal_img + 32]
+                if "16b" in tex.siz:
+                    pal_img = self.bin_file[pal_img : pal_img + 0x200]
+                else:
+                    pal_img = self.bin_file[pal_img : pal_img + 32]
             image_texels = convert_tex_bin(
                 tex.fmt,
                 tex.width,
@@ -387,7 +394,7 @@ class Mat:
                 tex_img,
                 pal_stream=pal_img if pal_img else None,
             )
-            name = f"tex_img_0x{tex.tex_img:X}"
+            name = f"{prefix}tex_img_0x{tex.tex_img:X}"
         else:
             name = tex.tex_img
             if (i := bpy.data.images.get(name, None)) and not force_new_tex:
@@ -426,10 +433,10 @@ class Mat:
         if image:
             tex_node.image = image
 
-    def apply_material_settings(self, mat: bpy.types.Material, textures: dict, tex_path: Path):
+    def apply_material_settings(self, mat: bpy.types.Material, textures: dict, tex_path: Path, layer: int = 1):
         f3d = mat.f3d_mat
 
-        self.set_texture_tile_mapping()
+        # self.set_texture_tile_mapping()
         self.set_register_settings(mat, f3d)
         self.set_textures(f3d, textures, tex_path)
 
@@ -449,8 +456,11 @@ class Mat:
     # since fast64 uses tile0 as tex0 always, so to get expected
     # results we need to start tex0 at the proper base tile
     def set_texture_tile_mapping(self):
+        use_mag = self.other_mode.get("g_mdsft_textdetail", None) == "G_TD_SHARPEN"
         for index, tile in enumerate(self.tiles):
-            tex_index = index - self.base_tile
+            # turn off mip mapping since fast64 doesn't emulate it
+            # tex_index = index - self.base_tile + use_mag
+            tex_index = index
             if tex_index < 0:
                 continue
             tex = self.tmem.get(tile.tmem, None)
@@ -695,6 +705,8 @@ class DL(DataParser):
         self.Mats.append([len(tris), 0])
         for i, t in enumerate(tris):
             if i > self.Mats[ind + 1][0]:
+                # set the texture tile mapping so mat.tex0 and mat.tex1 exist for mat hashing
+                self.Mats[ind + 1][1].set_texture_tile_mapping()
                 new = self.create_new_f3d_mat(self.Mats[ind + 1][1], obj, force_new_tex)
                 ind += 1
                 if not new:
@@ -728,7 +740,7 @@ class DL(DataParser):
             l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
             # idk why this is necessary. N64 thing or something?
             if self.parsing_target == DataParser._binary_parsing:
-                flip = lambda x: x
+                flip = lambda x: x - 1
             else:
                 flip = lambda x: x * -1 + 1
             l[uv_map].uv[1] = flip(l[uv_map].uv[1])
@@ -736,7 +748,7 @@ class DL(DataParser):
             l[v_alpha] = [vcol[3] / 255 for i in range(4)]
 
     # create a new f3d_mat given an SM64_Material class but don't create copies with same props
-    def create_new_f3d_mat(self, mat: SM64_Material, obj: bpy.types.Object, force_new_tex: bool):
+    def create_new_f3d_mat(self, mat: Mat, obj: bpy.types.Object, force_new_tex: bool):
         if not force_new_tex:
             # check if this mat was used already in another mesh (or this mat if DL is suboptimal or something)
             # even looping n^2 is probably faster than duping 3 mats with blender speed
@@ -865,8 +877,8 @@ class DL(DataParser):
                     ),  # leads w/ rdp half cmd, deal with later
                     f3d_gbi.G_TRI1: (
                         "gsSP1Triangle",
-                        PackedFormat(">7B", make_str=False, post_unpack=lambda args: [a // 2 for a in args]),
-                    ),  # v123 flag pad567
+                        PackedFormat(">7B", make_str=False, reorder=(4, 5 ,6 ,3), post_unpack=lambda args: [a // 2 for a in args]),
+                    ),  # pad123 flag v123
                     f3d_gbi.G_TRI2: (
                         "gsSP2Triangles",
                         PackedFormat(">7B", make_str=False, post_unpack=lambda args: [a // 2 for a in args]),
@@ -1009,10 +1021,7 @@ class DL(DataParser):
             cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
         return cmd_args, packed_fmt.format_size
 
-    def parse_stream_DL(self, start_name: Union[str, int]):
-        """
-        Initialize vars and then parse data stream
-        """
+    def init_stream(self):
         self.VertBuff = [0] * 32  # turbo 3d in shambles
         self.Verts = []
         self.Tris = []
@@ -1023,6 +1032,18 @@ class DL(DataParser):
         self.Lights.update(self.Light_t)
         self.Lights.update(self.Ambient_t)
         self.last_mat.bin_file = self.bin_file
+
+    def parse_stream_DL(self, start_name: Union[str, int]):
+        """
+        Initialize vars and then parse data stream
+        """
+        self.init_stream()
+        self.parse_stream(self.get_new_stream(start_name), start_name)
+
+    def continue_stream_DL(self, start_name: Union[str, int]):
+        """
+        Parse stream assuming vars already initialized
+        """
         self.parse_stream(self.get_new_stream(start_name), start_name)
 
     def gsSPEndDisplayList(self, macro: Macro):
@@ -1077,8 +1098,12 @@ class DL(DataParser):
         return self._continue_parse
 
     def gsSPVertex(self, macro: Macro):
-        # vertex references commonly use pointer arithmatic. I will deal with that case here, but not for other things unless it somehow becomes a problem later
-        if "+" in macro.args[0]:
+        # check for ptr arithmatic via array offsets
+        if "&" in macro.args[0]:
+            offset = hexOrDecInt(re.search("\\[[0-9a-fx]*\\]", macro.args[0]).group(0)[1:-1])
+            ref = re.split("\\[[0-9a-fx]*\\]", macro.args[0])[0].split("&")[1]
+        # if there is a plus sign check that
+        elif "+" in macro.args[0]:
             ref, offset = macro.args[0].split("+")
             offset = hexOrDecInt(offset)
         else:
@@ -1310,12 +1335,27 @@ class DL(DataParser):
         return self._continue_parse
 
     # this is kind of wacky?
-    def gsDPSetOtherMode(self, macro: Macro):
+    def gsSPSetOtherMode(self, macro: Macro):
         self.NewMat = 1
         if macro.args[0] == "G_SETOTHERMODE_H":
+            valid_modes = [
+                    enumAlphaDither,
+                    enumRGBDither,
+                    enumCombKey,
+                    enumTextConv,
+                    enumTextFilt,
+                    enumTextLUT,
+                    enumTextLOD,
+                    enumTextDetail,
+                    enumTextPersp,
+                    enumCycleType,
+                    enumPipelineMode,
+                ]
             for i, othermode in enumerate(macro.args[3].split("|")):
-                # this may cause an issue if someone uses a wacky custom othermode H
+                # this may cause an issue if someone uses a wacky custom othermode H or has it out of order
                 mode_h_attr = RDPSettings.other_mode_h_attributes[i][1]
+                if othermode.strip() not in {a[0] for a in valid_modes[i]}:
+                    continue
                 self.last_mat.other_mode[mode_h_attr] = othermode.strip()
         else:
             if int(macro.args[2]) > 3:
@@ -1550,7 +1590,7 @@ class DL(DataParser):
             tex.tile = self.last_mat.tiles[tile_index]
             tex.pal = True
             self.last_mat.pal = tex
-            self.last_mat.tmem[tex.tile.tmem] = tex
+            self.last_mat.loadtex = None
         else:
             print(
                 "**--Load block before set t img, DL is partial and missing context"

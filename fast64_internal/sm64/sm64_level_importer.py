@@ -310,6 +310,7 @@ class Level(DataParser):
         "LOAD_AREA",
         "UNLOAD_AREA",
         "UNLOAD_MARIO_AREA",
+        "SKIP_NOP",
         # hacker only cmds with no support needed
         "CHANGE_AREA_SKYBOX",
         "SET_ECHO",
@@ -456,6 +457,18 @@ class Level(DataParser):
         parser.advance_head(2)
         return cmd_name, packed_fmt
 
+    def binary_cmd_unpack(
+        self, parser: Parser, cmd_name: str, packed_fmt: PackedFormat
+    ) -> tuple[cmd_args, cmd_len:int]:
+        """Unpacks binary data using data supplied by binary_cmd_get"""
+        # no cmd data
+        if not packed_fmt.format_str:
+            cmd_args = []
+        else:
+            cmd_args = self.unpack_type(parser.cur_stream, parser.head, packed_fmt, ret_iterable=True)
+        # get cmd length from byte 2 of cmd
+        return cmd_args, self.unpack_type(parser.cur_stream, parser.head - 1, ">B", make_str=False) - 2
+
     def load_segment_two(self, bin_file: BinaryIO):
         """Loads segment two which is based on asm ran during game start"""
         start = self.unpack_type(bin_file, 0x3AC2, ">H", make_str=False) << 16
@@ -555,6 +568,13 @@ class Level(DataParser):
         if macro.args[-1]:
             self.parse_level_script(macro.args[-1], col=col)
         return self._continue_parse
+
+    def SKIP(self, macro: Macro, col: bpy.types.Collection):
+        # returning a val above 3 results in advancing head by value
+        if self.parsing_target == DataParser._binary_parsing:
+            return 4
+        if self.parsing_target == DataParser._c_parsing:
+            return self._advance_head
 
     def RETURN(self, macro: Macro, col: bpy.types.Collection):
         return self._break_parse
@@ -759,12 +779,6 @@ class Level(DataParser):
     def SKIP_IF(self, macro: Macro, col: bpy.types.Collection):
         raise Exception("no support yet woops")
 
-    def SKIP(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
-    def SKIP_NOP(self, macro: Macro, col: bpy.types.Collection):
-        raise Exception("no support yet woops")
-
 
 @dataclass
 class ColTri:
@@ -842,7 +856,7 @@ class Collision(DataParser):
                 mat.f3d_mat.default_light_color = [a / 255 for a in (hash(id(int(i))) & 0xFFFFFFFF).to_bytes(4, "big")]
                 if col_tri.special_param is not None:
                     mat.use_collision_param = True
-                    mat.collision_param = col_tri.special_param
+                    mat.collision_param = str(col_tri.special_param)
                 # I don't think I care about this. It makes program slow
                 # with bpy.context.temp_override(material=mat):
                 # bpy.ops.material.update_f3d_nodes()
@@ -996,13 +1010,13 @@ class SM64_Material(Mat):
         # for some reason I can't get the parsing target to be what I want, so read props instead
         # would like for this to be better
         if bpy.context.scene.fast64.sm64.importer.import_target == "Binary":
-            return self.load_texture_array(force_new_tex, textures, path, tex, DataParser._binary_parsing)
+            return self.load_texture_array(force_new_tex, textures, tex, DataParser._binary_parsing)
         else:
             tex_img = textures.get(tex.tex_img)
         if tex_img and "#include" in tex_img[0]:
             return self.load_texture_png(force_new_tex, textures, path, tex)
         elif tex_img:
-            return self.load_texture_array(force_new_tex, textures, path, tex)
+            return self.load_texture_array(force_new_tex, textures, tex,  DataParser._c_parsing)
         else:
             print(f"No tex_img found for tex {tex}")
 
@@ -1872,6 +1886,7 @@ class GeoLayout(GraphNodes):
             self.GEO_BACKGROUND(macro.partial(*macro.args[1:]), depth)
         else:
             self.GEO_BACKGROUND_COLOR(macro.partial(*macro.args[1:]), depth)
+        return self._continue_parse
 
     def GEO_BACKGROUND(self, macro: Macro, depth: int):
         level_root = self.area_root.parent
@@ -2277,6 +2292,7 @@ def parse_level_script_binary(bin_file: BinaryIO, scene: bpy.types.Scene, col: b
     try:
         lvl.parse_level_script(entry, col=col)
     except Exception as exc:
+        print(exc.__cause__, exc.__context__, exc)
         if type(exc) is not ParseException:
             raise exc
     return lvl
