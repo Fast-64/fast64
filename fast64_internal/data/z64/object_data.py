@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from os import path
 from pathlib import Path
+
 from ...utility import PluginError
 from .common import Z64_BaseElement, get_xml_root
 
@@ -20,7 +20,7 @@ class Z64_ObjectData:
         self.objectList: list[Z64_ObjectElement] = []
 
         # Path to the ``ObjectList.xml`` file
-        xml_path = Path(f"{path.dirname(path.abspath(__file__))}/xml/{game.lower()}_object_list.xml")
+        xml_path = Path(__file__).resolve().parent / "xml" / f"{game.lower()}_object_list.xml"
         object_root = get_xml_root(xml_path.resolve())
 
         for obj in object_root.iterfind("Object"):

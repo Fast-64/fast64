@@ -55,7 +55,7 @@ class Cutscene:
         )
 
         # write file
-        source_path = Path(bpy.context.scene.ootCutsceneExportPath).resolve()
+        source_path = Path(bpy.path.abspath(bpy.context.scene.ootCutsceneExportPath)).resolve()
 
         if source_path.suffix != ".c":
             raise PluginError("ERROR: output file must end with '.c'")

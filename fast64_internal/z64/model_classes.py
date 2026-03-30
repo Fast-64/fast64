@@ -1,11 +1,10 @@
 import bpy
-import os
-from pathlib import Path
 import re
 import mathutils
 
 from typing import Union, Optional
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
@@ -42,7 +41,7 @@ from .utility import is_hackeroot
 
 
 # read included asset data
-def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
+def ootGetIncludedAssetData(basePath: Path, currentPaths: list[Path], data: str, include_header: bool = False) -> str:
     includeData = ""
     searchedPaths = currentPaths[:]
 
@@ -50,35 +49,31 @@ def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -
 
     # search assets
     for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?)\.h)\"", data):
-        h_p = Path(basePath) / includeMatch.group(1)
-        print("", str(h_p))
-        includeData += getImportData([str(h_p)]) + "\n"
+        h_p = basePath / includeMatch.group(1)
+        print("", h_p)
+        includeData += getImportData([h_p]) + "\n"
         for path_p in h_p.parent.glob("*.c"):
-            path = str(path_p)
-            if path in searchedPaths:
+            if path_p in searchedPaths:
                 continue
-            searchedPaths.append(path)
-            subIncludeData = getImportData([path]) + "\n"
+            searchedPaths.append(path_p)
+            subIncludeData = getImportData([path_p]) + "\n"
             includeData += subIncludeData
-            print(" ", path)
+            print(" ", path_p)
 
             for subIncludeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*\.[ch])\"", subIncludeData):
-                sub_inc_p = Path(path).parent / subIncludeMatch.group(1)
-                subPath = str(sub_inc_p)
-                if subPath in searchedPaths:
+                sub_inc_p = path_p.parent / subIncludeMatch.group(1)
+                if sub_inc_p in searchedPaths:
                     continue
-                searchedPaths.append(subPath)
-                print("   ", subPath)
-                includeData += getImportData([subPath]) + "\n"
+                searchedPaths.append(sub_inc_p)
+                print("   ", sub_inc_p)
+                includeData += getImportData([sub_inc_p]) + "\n"
 
     print("More included paths:")
 
     # search same directory c includes, both in current path and in included object files
     # these are usually fast64 exported files
     for includeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", data):
-        sameDirPaths = [
-            os.path.join(os.path.dirname(currentPath), includeMatch.group(1) + ".c") for currentPath in currentPaths
-        ]
+        sameDirPaths = [currentPath.parent / f"{includeMatch.group(1)}.c" for currentPath in currentPaths]
         sameDirPathsToSearch = []
         for sameDirPath in sameDirPaths:
             if sameDirPath not in searchedPaths:
@@ -91,24 +86,20 @@ def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -
     return includeData
 
 
-def ootGetActorDataPaths(basePath: str, overlayName: str) -> list[str]:
-    actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
-    actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
-
+def ootGetActorDataPaths(basePath: Path, overlayName: str) -> list[Path]:
+    filename = f"z_{overlayName[4:].lower()}"
+    actorFilePath = basePath / "src" / "overlays" / "actors" / f"{overlayName}" / f"{filename}.c"
+    actorFileDataPath = actorFilePath.with_stem(f"{filename}_data")  # some bosses store texture arrays here
     return [actorFileDataPath, actorFilePath]
 
 
 # read actor data
-def ootGetActorData(basePath: str, overlayName: str) -> str:
-    actorData = getImportData(ootGetActorDataPaths(basePath, overlayName))
-    return actorData
+def ootGetActorData(basePath: Path, overlayName: str) -> str:
+    return getImportData(ootGetActorDataPaths(basePath, overlayName))
 
 
-def ootGetLinkData(basePath: str) -> str:
-    linkFilePath = os.path.join(basePath, f"src/code/z_player_lib.c")
-    actorData = getImportData([linkFilePath])
-
-    return actorData
+def ootGetLinkData(basePath: Path) -> str:
+    return getImportData([basePath / f"src/code/z_player_lib.c"])
 
 
 # custom `SPDisplayList` so we can customize the C output
@@ -399,7 +390,7 @@ class OOTF3DContext(F3DContext):
     def vertexFormatPatterns(self, data):
         # position, uv, color/normal
         if "VTX" in data:
-            return ["VTX\s*\(([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)\)"]
+            return [r"VTX\s*\(([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)\)"]
         else:
             return F3DContext.vertexFormatPatterns(self, data)
 
@@ -418,7 +409,6 @@ class OOTF3DContext(F3DContext):
                 print(f"Matrix {name} has not been processed from dlList, substituting identity matrix.")
 
             F3DContext.setCurrentTransform(self, transformName, flagList)
-
         else:
             try:
                 pointer = hexOrDecInt(name)

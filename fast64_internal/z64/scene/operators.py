@@ -1,11 +1,11 @@
 import bpy
 
-from bpy.path import abspath
 from bpy.types import Operator
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
+from pathlib import Path
 
 from ...utility import PluginError, ExportUtils, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_hackeroot
@@ -148,7 +148,7 @@ class OOT_ExportScene(Operator):
 
                 if settings.customExport:
                     isCustomExport = True
-                    exportPath = bpy.path.abspath(settings.exportPath)
+                    exportPath = Path(bpy.path.abspath(settings.exportPath)).resolve()
                     customSubPath = None
                 else:
                     if option == "Custom":
@@ -157,7 +157,7 @@ class OOT_ExportScene(Operator):
                         levelName = sceneNameFromID(option)
                         customSubPath = None
                     isCustomExport = False
-                    exportPath = bpy.path.abspath(context.scene.ootDecompPath)
+                    exportPath = context.scene.fast64.oot.get_decomp_path()
 
                 exportInfo = ExportInfo(
                     isCustomExport,
@@ -226,7 +226,7 @@ class OOT_RemoveScene(Operator):
             subfolder = None
 
         # the scene files will be removed from `assets` if it's present
-        Files.remove_scene(RemoveInfo(abspath(context.scene.ootDecompPath), subfolder, levelName))
+        Files.remove_scene(RemoveInfo(context.scene.fast64.oot.get_decomp_path(), subfolder, levelName))
 
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
