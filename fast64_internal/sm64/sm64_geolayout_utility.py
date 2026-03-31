@@ -55,7 +55,8 @@ boneNodeProperties = {
     "StartRenderArea": BoneNodeProperties(True, "THEME13"),  # 0x20
     "Ignore": BoneNodeProperties(False, "THEME08"),  # Used for rigging
     "SwitchOption": BoneNodeProperties(False, "THEME11"),
-    "DisplayListWithOffset": BoneNodeProperties(True, "THEME00"),
+    "CustomNonAnimated": BoneNodeProperties(False, "THEME11"),
+    "DisplayListWithOffset": BoneNodeProperties(True, "DEFAULT"),
     "Custom": BoneNodeProperties(True, "THEME15"),
 }
 

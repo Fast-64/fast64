@@ -170,6 +170,40 @@ levelIDNames = {
     "wmotr": "LEVEL_WMOTR",
 }
 
+LEVEL_ID_NUMBERS = {
+    4: "bbh",
+    5: "ccm",
+    6: "castle_inside",
+    7: "hmc",
+    8: "ssl",
+    9: "bob",
+    10: "sl",
+    11: "wdw",
+    12: "jrb",
+    13: "thi",
+    14: "ttc",
+    15: "rr",
+    16: "castle_grounds",
+    17: "bitdw",
+    18: "vcutm",
+    19: "bitfs",
+    20: "sa",
+    21: "bits",
+    22: "lll",
+    23: "ddd",
+    24: "wf",
+    25: "ending",
+    26: "castle_courtyard",
+    27: "pss",
+    28: "cotmc",
+    29: "totwc",
+    30: "bowser_1",
+    31: "wmotr",
+    33: "bowser_2",
+    34: "bowser_3",
+    36: "ttm",
+}
+
 cameraTriggerNames = {
     "bbh": "sCamBBH",
     "bitdw": "sCamBitDW",
@@ -1798,6 +1832,12 @@ enumMacrosNames = [
     ("macro_yellow_coin", "Yellow Coin", "Yellow Coin"),
     ("macro_yellow_coin_2", "Yellow Coin 2", "Yellow Coin 2"),
 ]
+enumVersionDefs = [
+    ("VERSION_US", "VERSION_US", ""),
+    ("VERSION_JP", "VERSION_JP", ""),
+    ("VERSION_EU", "VERSION_EU", ""),
+    ("VERSION_SH", "VERSION_SH", ""),
+]
 
 enumBehaviorMacros = [
     ("Custom", "Custom", ""),
@@ -2390,6 +2430,18 @@ class ActorPresetInfo:
     @staticmethod
     def get_member_as_dict(name: str, member: DictOrVal[T]):
         return as_dict(member, name)
+
+    def get_model_info(self, name: str):
+        if type(self.models) == dict:
+            return self.models.get(name)
+        else:
+            return self.models
+
+    def get_collision_info(self, name: str):
+        if type(self.collision) == dict:
+            return self.collision.get(name, None)
+        else:
+            return self.collision
 
 
 ACTOR_PRESET_INFO = {
