@@ -1,0 +1,56 @@
+{
+    "name": "Geo Bone",
+    "cmd_type": "Geo",
+    "str_cmd": "GEO_BONE",
+    "int_cmd": 36,
+    "skip_eval": true,
+    "children_requirements": "ANY",
+    "group_children": true,
+    "dl_option": "OPTIONAL",
+    "is_animated": true,
+    "args": [
+        {
+            "name": "Layer",
+            "show_as_preset": true,
+            "arg_type": "LAYER",
+            "inherit": true,
+            "defaults": {
+                "layer": "1"
+            }
+        },
+        {
+            "name": "Translation",
+            "show_as_preset": true,
+            "arg_type": "TRANSLATION",
+            "inherit": true,
+            "round_to_sm64": true,
+            "order": "XYZ",
+            "relative": true,
+            "apply_scale": true,
+            "defaults": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        },
+        {
+            "name": "Rotation",
+            "show_as_preset": true,
+            "arg_type": "ROTATION",
+            "inherit": true,
+            "round_to_sm64": true,
+            "order": "XYZ",
+            "relative": true,
+            "apply_scale": true,
+            "defaults": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    ]
+}
