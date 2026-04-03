@@ -4197,6 +4197,8 @@ class MATERIAL_MT_f3d_presets(Menu):
                 paths += bpy.utils.preset_paths("f3d/oot")
                 if bpy.context.scene.f3d_type == "F3DEX3":
                     paths += bpy.utils.preset_paths("f3d/oot_f3dex3")
+            else:
+                paths += bpy.utils.preset_paths(f"f3d/{game}")
         self.path_menu(
             paths,
             self.preset_operator,
