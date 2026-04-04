@@ -66,6 +66,8 @@ from .fast64_internal.gltf_extension import (
     gltf_extension_register,
     gltf_extension_unregister,
 )
+from .fast64_internal.speedtree import speedtree_register, speedtree_unregister
+from .fast64_internal.granny import granny_register, granny_unregister
 
 # info about add on
 bl_info = {
@@ -471,6 +473,8 @@ def register():
     sm64_register(True)
     oot_register(True)
     mk64_register(True)
+    speedtree_register()
+    granny_register()
 
     gltf_extension_register()
 
@@ -520,6 +524,8 @@ def unregister():
     sm64_unregister(True)
     oot_unregister(True)
     mk64_unregister(True)
+    speedtree_unregister()
+    granny_unregister()
     mat_unregister()
     gltf_extension_unregister()
     bsdf_conv_unregister()
