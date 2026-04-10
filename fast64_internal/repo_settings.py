@@ -91,8 +91,8 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=Fal
     rdp_defaults: RDPSettings = scene.world.rdp_defaults
     rdp_defaults.from_dict(data.get("rdpDefaults", {}))
 
-    if game == "SM64":
-        load_sm64_repo_settings(scene, data.get("sm64", {}))
+    if "sm64" in data:
+        load_sm64_repo_settings(scene, data["sm64"])
     scene.fast64.settings.glTF.from_dict(data.get("glTF", {}))
 
 
