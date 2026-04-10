@@ -1,4 +1,6 @@
+import json
 import math
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 from io import StringIO
 import mathutils
@@ -47,6 +49,8 @@ from .utility import (
 
 if TYPE_CHECKING:
     from ..settings.properties import SM64_Properties
+
+LEGACY_GEO_BONE = json.loads(Path(Path(__file__).parent / Path("legacy_geo_bone.json")).read_text())
 
 
 def update_internal_number(self: "SM64_CustomNumberProperties", context: Context):
@@ -842,7 +846,6 @@ class SM64_CustomCmdProperties(PropertyGroup):
     def upgrade_bone(self, bone: Bone):
         if self.version != 0:
             return
-        upgrade_old_prop(self, "str_cmd", self, "custom_geo_cmd_macro")
         args = get_first_set_prop(self, "custom_geo_cmd_args")
         if args is not None:
             self.args.clear()
@@ -852,9 +855,10 @@ class SM64_CustomCmdProperties(PropertyGroup):
         old_cmd = bone.get("geo_cmd")
         if old_cmd is not None:
             if old_cmd in {15, 16}:  # custom animated / custom non-animated
+                if old_cmd == 15:
+                    self.from_dict(LEGACY_GEO_BONE)
                 bone.geo_cmd = "Custom"
-            if old_cmd == 15:
-                self.is_animated = True
+        upgrade_old_prop(self, "str_cmd", bone, "custom_geo_cmd_macro")
         self.version = 1
 
     def get_cmd_type(self, owner: Optional[AvailableOwners] = None):
