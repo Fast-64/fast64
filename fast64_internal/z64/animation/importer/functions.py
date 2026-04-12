@@ -69,7 +69,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     animData = getImportData([filepath])
     if not isCustomImport:
         basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-        animData = ootGetIncludedAssetData(basePath, [filepath], animData) + animData
+        animData = ootGetIncludedAssetData([basePath], [filepath], animData) + animData
 
     matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", animData, re.DOTALL | re.MULTILINE)
 
@@ -195,8 +195,8 @@ def ootImportLinkAnimationC(
     animData = getImportData([animFilepath])
     if not isCustomImport:
         basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-        animHeaderData = ootGetIncludedAssetData(basePath, [animHeaderFilepath], animHeaderData) + animHeaderData
-        animData = ootGetIncludedAssetData(basePath, [animFilepath], animData) + animData
+        animHeaderData = ootGetIncludedAssetData([basePath], [animHeaderFilepath], animHeaderData) + animHeaderData
+        animData = ootGetIncludedAssetData([basePath], [animFilepath], animData) + animData
 
     matchResult = re.search(
         re.escape(animHeaderName) + r"\s*=\s*\{(.*?)\}\s*;", animHeaderData, re.DOTALL | re.MULTILINE

@@ -316,7 +316,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     skeletonData = getImportData(filepaths)
     if overlayName is not None or isLink:
-        skeletonData = ootGetIncludedAssetData(basePath, filepaths, skeletonData) + skeletonData
+        skeletonData = ootGetIncludedAssetData([basePath], filepaths, skeletonData) + skeletonData
 
     skel_info = ootGetSkeleton(skeletonData, skeletonName, False)
     assert skel_info is not None

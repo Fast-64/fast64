@@ -172,7 +172,17 @@ class OOT_ImportDL(Operator):
 
             scale = None
             if not isCustomImport:
-                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
+                filedata = (
+                    ootGetIncludedAssetData(
+                        [
+                            basePath,
+                            str(Path(basePath) / context.scene.fast64.oot.get_extracted_path()),
+                        ],
+                        paths,
+                        filedata,
+                    )
+                    + filedata
+                )
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
