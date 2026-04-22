@@ -1666,9 +1666,10 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         if export_type in {"C", "GLTF"}:
             if self.is_dma:
                 data["dma_folder"] = self.dma_folder
-            data["export_seperately"] = self.export_seperately
-            if self.export_seperately:
-                data["override_files"] = self.override_files
+            if export_type == "C":
+                data["export_seperately"] = self.export_seperately
+                if self.export_seperately:
+                    data["override_files"] = self.override_files
         else:
             if self.is_dma:
                 blacklist.extend(["null_delimiter"])
@@ -1693,7 +1694,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
 
         if export_type == "INSERTABLE_BINARY":
             blacklist.remove("is_dma")
-        elif not self.is_dma:
+        elif not self.is_dma and not export_type == "GLTF":
             data["update_table"] = self.update_table
 
         add_custom_if_not_auto(self, "table_name", data, blacklist)

@@ -27,21 +27,6 @@
             "description": "The folder where DMA data is exported",
             "default": "assets/anims/"
         },
-        "export_seperately": {
-            "type": "boolean",
-            "description": "Export each animation as a separate file",
-            "default": false
-        },
-        "override_files": {
-            "type": "boolean",
-            "description": "Overwrite existing table and data files during export",
-            "default": true
-        },
-        "update_table": {
-            "type": "boolean",
-            "description": "Update table outside of table exports",
-            "default": true
-        },
         "table_name": {
             "type": "string",
             "description": "Specified name for the generated animation table array",
