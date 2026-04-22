@@ -365,9 +365,6 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         if gen_enums:
             add_custom_if_not_auto(self, "enum", data, blacklist)
 
-        if export_type == "GLTF":
-            data["file_name"] = get_action_props(action).get_file_name(action, export_type, dma)
-
         if self.use_manual_loop:
             data["loop_points"] = {"start": self.start_frame, "loop_start": self.loop_start, "end": self.loop_end}
         str_flags = self.get_flags(True)
