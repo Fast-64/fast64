@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import NamedTuple, Optional, TYPE_CHECKING
 
 import bpy
@@ -21,6 +22,7 @@ from bpy.path import abspath, clean_name
 
 from ...utility import (
     PluginError,
+    as_posix,
     decompFolderMessage,
     directory_ui_warnings,
     run_and_draw_errors,
@@ -34,6 +36,7 @@ from ...utility import (
     toAlnum,
     prop_group_to_json,
     json_to_prop_group,
+    filepath_checks,
 )
 from ...utility_anim import get_slots, getFrameInterval, AddSubAction
 
@@ -66,6 +69,7 @@ from .operators import (
 from .constants import enum_anim_import_types, enum_anim_binary_import_types, enum_animated_behaviours, enum_anim_tables
 from .classes import SM64_AnimFlags
 from .utility import (
+    add_name_to_duplicate_list,
     dma_structure_context,
     get_action_props,
     get_dma_anim_name,
@@ -331,6 +335,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         export_seperately: bool | None,
         updates_table: bool | None,
         gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+        include_hints: bool = False,
     ):
         flags_props = [
             "no_loop",
@@ -360,6 +365,9 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         if gen_enums:
             add_custom_if_not_auto(self, "enum", data, blacklist)
 
+        if export_type == "GLTF":
+            data["file_name"] = get_action_props(action).get_file_name(action, export_type, dma)
+
         if self.use_manual_loop:
             data["loop_points"] = {"start": self.start_frame, "loop_start": self.loop_start, "end": self.loop_end}
         str_flags = self.get_flags(True)
@@ -371,7 +379,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
             data["seperate"] = {"table_index": self.table_index}
         data.update(prop_group_to_json(self, blacklist))
 
-        if gltf_extension is not None and gltf_extension.hints:
+        if include_hints or (gltf_extension is not None and gltf_extension.hints):
             hints = {}
             if not self.use_custom_name:
                 hints["name"] = self.get_name(actor_name, action, dma)
@@ -381,7 +389,11 @@ class SM64_AnimHeaderProperties(PropertyGroup):
                 loop_points = self.get_loop_points(action)
                 hints["loop_points"] = {"start": loop_points[0], "loop_start": loop_points[1], "end": loop_points[2]}
 
-            gltf_extension.append_extension(data, f"{gltf_extension.HEADER_EXTENSION_NAME}_hints", hints)
+            if hints:
+                if gltf_extension is not None and gltf_extension.hints:
+                    gltf_extension.append_extension(data, f"{gltf_extension.HEADER_EXTENSION_NAME}_hints", hints)
+                else:
+                    data["hints"] = hints
         return data
 
     def from_dict(
@@ -444,7 +456,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
             )
             if self.shows_table_index(export_type, dma, updates_table, True):
                 prop_split(col, self, "table_index", "Table Index")
-        if not dma and export_type == "C":
+        if not dma and export_type in {"C", "GLTF"}:
             self.draw_names(col, action, actor_name, gen_enums, dma)
         col.separator()
 
@@ -504,6 +516,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
     use_custom_max_frame: BoolProperty(name="Max Frame")
     custom_max_frame: IntProperty(name="Max Frame", min=1, max=MAX_U16, default=1)
     reference_tables: BoolProperty(name="Reference Tables")
+    external_data: StringProperty(name="External Data", subtype="FILE_PATH")
     indices_table: StringProperty(name="Indices Table", default="anim_00_indices")
     values_table: StringProperty(name="Value Table", default="anim_00_values")
     # Binary, toad anim 0 for defaults
@@ -534,7 +547,14 @@ class SM64_ActionAnimProperty(PropertyGroup):
             return self.custom_file_name
         else:
             name = clean_name(f"anim_{action.name}", replace=" ")
-            return name + (".inc.c" if export_type == "C" else ".insertable")
+            if export_type == "INSERTABLE_BINARY":
+                return f"{name}.insertable"
+            elif export_type == "C":
+                return f"{name}.inc.c"
+            elif export_type == "GLTF":
+                if self.reference_tables and not dma:
+                    return f"{name}.json"
+                return f"{name}.gltf"
 
     def get_slot(self, action: Action):
         if bpy.app.version < (5, 0, 0):
@@ -587,15 +607,20 @@ class SM64_ActionAnimProperty(PropertyGroup):
             op_row.alignment = "RIGHT"
             draw_list_ops(op_row, SM64_AnimVariantOps, i, action_name=action.name)
 
-    def draw_references(self, layout: UILayout, is_binary: bool = False):
+    def draw_references(self, layout: UILayout, export_type: str):
         col = layout.column()
         col.prop(self, "reference_tables")
         if not self.reference_tables:
             return
-        if is_binary:
+        if export_type.endswith("BINARY"):
             string_int_prop(col, self, "indices_address", "Indices Table")
             string_int_prop(col, self, "values_address", "Value Table")
         else:
+            if export_type == "GLTF":
+                prop_split(col, self, "external_data", "External Data")
+                if self.external_data:
+                    return
+                col.label(text="C Fallback", icon="INFO")
             prop_split(col, self, "indices_table", "Indices Table")
             prop_split(col, self, "values_table", "Value Table")
 
@@ -679,7 +704,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
         if dma or not self.reference_tables:  # DMA tables don´t allow references
             draw_custom_or_auto(self, col, "max_frame", str(self.get_max_frame(action)))
         if not dma:
-            self.draw_references(col, is_binary=export_type.endswith("BINARY"))
+            self.draw_references(col, export_type)
         col.separator()
 
         if specific_variant is not None:
@@ -701,6 +726,8 @@ class SM64_ActionAnimProperty(PropertyGroup):
         export_seperately: bool | None,
         updates_table: bool | None,
         gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+        include_hints: bool = False,
+        file_path: Optional[Path] = None,
     ):
         blacklist = [
             "slot_identifier",
@@ -715,6 +742,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
             "indices_address",
             "start_address",
             "end_address",
+            "external_data",
         ]
         data = {}
         add_custom_if_not_auto(self, "file_name", data, blacklist)
@@ -722,7 +750,20 @@ class SM64_ActionAnimProperty(PropertyGroup):
 
         if export_type in {"C", "GLTF"}:
             if self.reference_tables:
-                data["reference"] = {"values_table": self.values_table, "indices_table": self.indices_table}
+                if self.external_data:
+                    external_data = Path(abspath(self.external_data)).resolve()
+                    filepath_checks(external_data)
+                    if external_data.suffix not in {".json", ".gltf"}:
+                        raise PluginError("External data must be a json or gltf file.")
+                    if file_path is None:
+                        data["abs_reference"] = as_posix(external_data)
+                    else:
+                        if external_data.samefile(file_path):
+                            raise PluginError("External data cannot be the same file as the action.")
+                        reference_path = os.path.relpath(external_data, file_path.parent)
+                        data["reference"] = reference_path
+                else:
+                    data["reference"] = {"values_table": self.values_table, "indices_table": self.indices_table}
         else:
             blacklist.extend(["indices_table", "values_table"])
             if self.reference_tables:
@@ -742,18 +783,23 @@ class SM64_ActionAnimProperty(PropertyGroup):
             export_seperately,
             updates_table,
             gltf_extension,
+            include_hints,
         )
         self.headers: list[SM64_AnimHeaderProperties]
         data["headers"] = [v.to_dict(*args) for v in self.headers]
 
-        if gltf_extension is not None and gltf_extension.hints:
+        if include_hints or (gltf_extension is not None and gltf_extension.hints):
             hints = {}
             if not self.custom_file_name:
                 hints["file_name"] = self.get_file_name(action, export_type, dma)
             if not self.use_custom_max_frame:
                 hints["max_frame"] = self.get_max_frame(action)
 
-            gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+            if hints:
+                if gltf_extension is not None and gltf_extension.hints:
+                    gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+                else:
+                    data["hints"] = hints
         return data
 
     def from_dict(
@@ -822,12 +868,13 @@ class SM64_AnimTableElementProperties(PropertyGroup):
     use_custom_enum: BoolProperty(name="Enum")
     custom_enum: StringProperty(name="Enum Name")
 
-    def get_enum(self, can_reference: bool, actor_name: str, prev_enums: dict[str, int]):
+    def get_enum(self, can_reference: bool, actor_name: str, prev_enums: set[str]):
         """Updates prev_enums"""
         enum = ""
         if self.use_custom_enum:
             self.custom_enum: str
             enum = self.custom_enum
+            add_name_to_duplicate_list(self.custom_enum, prev_enums)
         elif can_reference and self.reference:
             enum = duplicate_name(anim_name_to_enum_name(self.header_name), prev_enums)
         else:
@@ -857,13 +904,14 @@ class SM64_AnimTableElementProperties(PropertyGroup):
         self.variant = variant
 
     def draw_reference(
-        self, layout: UILayout, export_type: str = "C", gen_enums: bool = False, prev_enums: dict[str, int] = None
+        self, layout: UILayout, export_type: str = "C", gen_enums: bool = False, prev_enums: set[str] | None = None
     ):
         if export_type.endswith("BINARY"):
             string_int_prop(layout, self, "header_address", "Header Address")
             return
         split = layout.split()
         if gen_enums:
+            prev_enums = set() or prev_enums
             draw_custom_or_auto(self, split, "enum", self.get_enum(True, "", prev_enums), factor=0.3)
         split.prop(self, "header_name", text="")
 
@@ -878,7 +926,7 @@ class SM64_AnimTableElementProperties(PropertyGroup):
         export_type: str,
         gen_enums: bool,
         actor_name: str,
-        prev_enums: dict[str, int],
+        prev_enums: set[str],
     ):
         can_reference = not dma
         col = prop_layout.column()
@@ -939,8 +987,10 @@ class SM64_AnimTableElementProperties(PropertyGroup):
         gen_enums: bool,
         dma: bool,
         actor_name: str,
-        prev_enums: dict[str, int],
+        prev_enums: set[str],
         gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+        include_hints: bool = False,
+        include_file_name: bool = False,
     ):
         can_reference = not dma
         blacklist = [
@@ -970,17 +1020,23 @@ class SM64_AnimTableElementProperties(PropertyGroup):
                 if self.variant < 0 or self.variant >= len(action_props.headers):
                     raise Exception(f"Header variant {self.variant} does not exist.")
                 data["variant"] = self.variant
+            if export_type == "GLTF" and include_file_name:
+                data["file_name"] = action_props.get_file_name(self.action_prop, export_type, dma)
         if gen_enums:
             add_custom_if_not_auto(self, "enum", data, blacklist)
 
         data.update(prop_group_to_json(self, blacklist))
 
-        if gltf_extension is not None and gltf_extension.hints:
+        if include_hints or (gltf_extension is not None and gltf_extension.hints):
             hints = {}
             if not self.use_custom_enum:
                 hints["enum"] = self.get_enum(can_reference, actor_name, prev_enums)
 
-            gltf_extension.append_extension(data, f"{gltf_extension.TABLE_ELEMENT_EXTENSION_NAME}_hints", hints)
+            if hints:
+                if gltf_extension is not None and gltf_extension.hints:
+                    gltf_extension.append_extension(data, f"{gltf_extension.TABLE_ELEMENT_EXTENSION_NAME}_hints", hints)
+                else:
+                    data["hints"] = hints
         return data
 
     def from_dict(
@@ -1405,6 +1461,8 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             if self.use_custom_file_name:
                 return self.custom_file_name
             return clean_name(actor_name + ("_dma_table" if self.is_dma else "_table")) + ".insertable"
+        elif export_type == "GLTF":
+            return "table.json"
         else:
             return "table.inc.c"
 
@@ -1415,7 +1473,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         table_element: SM64_AnimTableElementProperties,
         export_type: str,
         actor_name: str,
-        prev_enums: dict[str, int],
+        prev_enums: set[str],
     ):
         col = layout.column()
         row = col.row()
@@ -1481,7 +1539,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                 "INFO",
             )
 
-        prev_enums = {}
+        prev_enums = set()
         element_props: SM64_AnimTableElementProperties
         for i, element_props in enumerate(self.elements):
             if i != 0:
@@ -1506,7 +1564,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
     def draw_props(self, layout: UILayout, export_type: str, header_type: str, actor_name: str, bhv_export: bool):
         col = layout.column()
         col.prop(self, "is_dma")
-        if export_type == "C":
+        if export_type in {"C", "GLTF"}:
             self.draw_c_settings(col, header_type)
         if export_type != "INSERTABLE_BINARY" and not self.is_dma:
             col.prop(self, "update_table")
@@ -1515,7 +1573,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             if export_type == "BINARY":
                 string_int_prop(col, self, "dma_address", "Table Address")
                 string_int_prop(col, self, "dma_end_address", "Table End")
-            elif export_type == "C":
+            elif export_type in {"C", "GLTF"}:
                 multilineLabel(
                     col,
                     "The export will follow the vanilla DMA naming\n"
@@ -1523,7 +1581,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                     icon="INFO",
                 )
         else:
-            if export_type == "C":
+            if export_type in {"C", "GLTF"}:
                 draw_custom_or_auto(self, col, "table_name", self.get_table_name(actor_name))
                 col.prop(self, "gen_enums")
                 if self.get_gen_enums(export_type):
@@ -1564,7 +1622,11 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             draw_custom_or_auto(self, col, "file_name", self.get_table_file_name(actor_name, export_type))
 
     def to_dict(
-        self, export_type: str = "", actor_name: str = "", gltf_extension: Optional["SM64AnimationGlTFExtension"] = None
+        self,
+        export_type: str = "",
+        actor_name: str = "",
+        gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
+        include_hints: bool = False,
     ):
         blacklist = [
             "version",
@@ -1633,12 +1695,20 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         table = []
         gen_enums = self.get_gen_enums(export_type)
         try:
-            prev_enums = {}
+            prev_enums = set()
             element: SM64_AnimTableElementProperties
             for i, element in enumerate(self.elements):
                 try:
                     table.append(
-                        element.to_dict(export_type, gen_enums, self.is_dma, actor_name, prev_enums, gltf_extension)
+                        element.to_dict(
+                            export_type,
+                            gen_enums,
+                            self.is_dma,
+                            actor_name,
+                            prev_enums,
+                            gltf_extension,
+                            include_hints,
+                        )
                     )
                 except Exception as exc:  # pylint: disable=broad-except
                     raise PluginError(f"Failed to export element {i}:\n{exc}") from exc
@@ -1646,16 +1716,20 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             raise PluginError(f"Failed to export table:\n{exc}") from exc
         data["elements"] = table
 
-        if gltf_extension is not None and gltf_extension.hints:
+        if include_hints or (gltf_extension is not None and gltf_extension.hints):
             hints = {}
             if export_type != "BINARY":
-                add_custom_if_not_auto(self, "file_name", data, blacklist)
                 file_name = self.get_table_file_name(actor_name, export_type)
                 if file_name:
                     hints["file_name"] = file_name
             if export_type in {"C", "GLTF"}:
                 hints["table_name"] = self.get_table_name(actor_name)
-            gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+
+            if hints:
+                if gltf_extension is not None and gltf_extension.hints:
+                    gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+                else:
+                    data["hints"] = hints
         return data
 
     def from_dict(

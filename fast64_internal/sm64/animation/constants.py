@@ -10,7 +10,7 @@ HEADER_SIZE = HEADER_STRUCT.size
 TABLE_ELEMENT_PATTERN = re.compile(  # strict but only in the sense that it requires valid c code
     r"""
     (?:\[\s*(?P<enum>\w+)\s*\]\s*=\s*)? # Don´t capture brackets or equal, works with nums
-    (?:(?:&\s*(?P<element>\w+))|(?P<null>NULL)) # Capture element or null, element requires &
+    (?:(?:&\s*(?P<element>\w+))|(?P<null>NULL|0)) # Capture element or null, element requires &
     (?:\s*,|) # allow no comma, techinically not correct but no other method works
     """,
     re.DOTALL | re.VERBOSE | re.MULTILINE,

@@ -52,11 +52,11 @@ class SceneAnimPanelMain(SceneAnimPanel):
         sm64_props: SM64_Properties = context.scene.fast64.sm64
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
 
-        if sm64_props.export_type == "C":
+        if sm64_props.legacy_export_type == "C":
             if not sm64_props.hackersm64:
                 col.prop(sm64_props, "designated_prop", text="Designated Initialization for Tables")
         else:
-            combined_props.draw_anim_props(col, sm64_props.export_type, dma_structure_context(context))
+            combined_props.draw_anim_props(col, sm64_props.legacy_export_type, dma_structure_context(context))
             SM64_ExportAnimTable.draw_props(col)
         anim_obj = get_anim_obj(context)
         if anim_obj is None:
@@ -111,12 +111,12 @@ class AnimationPanelAction(AnimationPanel):
 
         sm64_props: SM64_Properties = context.scene.fast64.sm64
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
-        if sm64_props.export_type != "C":
+        if sm64_props.legacy_export_type != "C":
             SM64_ExportAnim.draw_props(col)
         anim_props = get_anim_props(context)
 
         export_seperately = get_anim_props(context).export_seperately
-        if sm64_props.export_type == "C":
+        if sm64_props.legacy_export_type == "C":
             export_seperately = export_seperately or combined_props.export_single_action
         elif sm64_props.export_type == "Insertable Binary":
             export_seperately = True

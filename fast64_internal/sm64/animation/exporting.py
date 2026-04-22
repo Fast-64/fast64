@@ -1,12 +1,13 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 from pathlib import Path
 import os
 import typing
+import json
 import numpy as np
 
 import bpy
 from bpy.types import Object, Action, PoseBone, Context
-from bpy.path import abspath
+from bpy.path import abspath, clean_name
 from mathutils import Euler, Quaternion
 
 from ...utility import (
@@ -19,6 +20,7 @@ from ...utility import (
     getExportDir,
     intToHex,
     applyBasicTweaks,
+    selectSingleObject,
     toAlnum,
     directory_path_checks,
 )
@@ -33,6 +35,7 @@ from ..sm64_utility import (
     to_include_descriptor,
     write_includes,
     update_actor_includes,
+    remove_actor_includes,
     int_from_str,
     write_or_delete_if_found,
 )
@@ -47,15 +50,18 @@ from .classes import (
     SM64_AnimPair,
     SM64_AnimTable,
     SM64_AnimTableElement,
+    SM64_AnimFlags,
 )
 from .importing import import_enums, import_tables, update_table_with_table_enum
 from .utility import (
+    add_name_to_duplicate_list,
     get_anim_owners,
     get_anim_actor_name,
     anim_name_to_enum_name,
     get_selected_action,
     get_action_props,
     duplicate_name,
+    remove_name_from_duplicate_list,
 )
 from .constants import HEADER_SIZE
 
@@ -194,7 +200,7 @@ def get_animation_pairs(
     sm64_scale: float, actions: list[Action], obj: Object, quick_read=False
 ) -> dict[Action, list[SM64_AnimPair]]:
     anim_owners = get_anim_owners(obj)
-    is_owner_obj = isinstance(obj.type == "MESH", Object)
+    is_owner_obj = obj.type == "MESH"
 
     if len(anim_owners) == 0:
         raise PluginError(f'No animation bones in armature "{obj.name}"')
@@ -318,9 +324,9 @@ def to_table_element_class(
     export_type: str,
     actor_name="mario",
     gen_enums=False,
-    prev_enums: dict[str, int] | None = None,
+    prev_enums: set[str] | None = None,
 ):
-    prev_enums = prev_enums or {}
+    prev_enums = set() or prev_enums
     use_addresses, can_reference = export_type.endswith("Binary"), not dma
     element = SM64_AnimTableElement()
 
@@ -418,7 +424,7 @@ def to_table_class(
     )
     data_dict = {}
 
-    prev_enums = {}
+    prev_enums = set()
     element_props: SM64_AnimTableElementProperties
     for i, element_props in enumerate(anim_props.elements):
         try:
@@ -568,7 +574,7 @@ def update_table_file(
                 )
 
             # Figure out enums on existing enum-less elements
-            prev_enums = {name: 0 for name in existing_table.enum_names}
+            prev_enums = {name for name in existing_table.enum_names}
             for i, element in enumerate(existing_table.elements):
                 if element.enum_name:
                     continue
@@ -942,6 +948,327 @@ def export_animation_c(
     update_includes(combined_props, header_directory, actor_name, anim_props.update_table)
 
 
+def _read_c_table_into_json(
+    anim_props: "SM64_ArmatureAnimProperties", table_c_path: Path, actor_name: str
+) -> list[dict[str, Any]]:
+    table_name = anim_props.get_table_name(actor_name)
+    text = table_c_path.read_text()
+    comment_less, comment_map = get_comment_map(text)
+    tables = import_tables(comment_less, table_c_path, comment_map, table_name)
+
+    if len(tables) != 1:
+        return []
+
+    existing = []
+    prev_enums = set()
+    for el in tables[0].elements:
+        el_dict: dict[str, Any] = {"reference": {}}
+        if el.reference:
+            el_dict["reference"]["header_name"] = el.reference
+        enum_name = anim_name_to_enum_name(el.reference if el.reference else f"{actor_name}_anim_NULL")
+        auto_enum = duplicate_name(enum_name, prev_enums)
+
+        if el.enum_name and el.enum_name != auto_enum:
+            el_dict["enum"] = el.enum_name
+            remove_name_from_duplicate_list(enum_name, prev_enums)
+            add_name_to_duplicate_list(el.enum_name, prev_enums)
+        else:
+            el_dict["hints"] = {"enum": auto_enum}
+        existing.append(el_dict)
+    if existing and (not existing[-1].get("action_name") and not existing[-1].get("reference", {})):
+        existing.pop()
+    return existing
+
+
+def _get_existing_elements(
+    export_path: Path, anim_dir: Path, anim_props: "SM64_ArmatureAnimProperties", actor_name: str, override: bool
+) -> list[dict[str, Any]]:
+    if override:
+        return []
+
+    if export_path.exists():
+        try:
+            with open(export_path, "r") as f:
+                return json.load(f).get("elements", [])
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    table_c_path = anim_dir / "table.inc.c"
+    if not table_c_path.exists():
+        return []
+    try:
+        return _read_c_table_into_json(anim_props, table_c_path, actor_name)
+    except Exception as exc:
+        print(f"Error parsing {table_c_path}: {exc}")
+        return []
+
+
+def _find_all_match_indices(elements: list[dict], new_el: dict, h_name: str | None):
+    """Find all the indices of a newly exported element, that match by action name or variant."""
+    matched_indices: list[int] = []
+    new_action = new_el.get("action_name")
+    new_variant = new_el.get("variant", 0)
+
+    for i, ex in enumerate(elements):
+        if not ex:
+            continue
+        if h_name:  # Match by Header Reference
+            ex_ref = ex.get("reference")
+            if ex_ref and ex_ref.get("header_name") == h_name:
+                matched_indices.append(i)
+                continue
+        # Match by Action Name + Variant
+        if new_action and ex.get("action_name") == new_action:
+            if ex.get("variant", 0) == new_variant:
+                matched_indices.append(i)
+
+    return matched_indices
+
+
+def apply_new_element(
+    anim_props: "SM64_ArmatureAnimProperties",
+    actor_name: str,
+    merged: list[dict],
+    el: Union["SM64_AnimTableElementProperties", "Action"],
+    gen_enums: bool,
+    prev_enums: set[str],
+):
+    exported_variants = []
+    if isinstance(el, Action):
+        props = get_action_props(el)
+        for i, header in enumerate(props.headers):
+            h_name = header.get_name(actor_name, el, anim_props.is_dma)
+            entry: dict[str, Any] = {
+                "action_name": props.get_name(el, anim_props.is_dma),
+                "file_name": props.get_file_name(el, "GLTF", anim_props.is_dma),
+            }
+            if i > 0:
+                entry["variant"] = i
+            if gen_enums:
+                auto_enum = header.get_enum(actor_name, el)
+                deduped_enum = duplicate_name(auto_enum, prev_enums)
+                if deduped_enum != auto_enum:
+                    entry["enum"] = deduped_enum
+                else:
+                    entry.setdefault("hints", {})["enum"] = auto_enum
+            exported_variants.append((entry, h_name))
+    else:  # Element property
+        entry = el.to_dict("GLTF", gen_enums, anim_props.is_dma, actor_name, prev_enums, include_file_name=True)
+        h_name = entry.get("reference", {}).get("header_name")
+        exported_variants.append((entry, h_name))
+
+    for entry, h_name in exported_variants:
+        indices = _find_all_match_indices(merged, entry, h_name)
+        if not indices:
+            merged.append(entry)
+
+        for idx in indices:
+            existing = merged[idx]
+            updated_entry = entry.copy()
+
+            legacy_enum = existing.get("enum")
+            legacy_enum_hint = existing.get("hints", {}).get("enum")
+            if legacy_enum:
+                updated_entry["enum"] = legacy_enum
+                updated_entry.get("hints", {}).pop("enum", None)
+            elif legacy_enum_hint:
+                updated_entry.setdefault("hints", {})["enum"] = legacy_enum_hint
+                updated_entry.pop("enum", None)
+            variant = existing.get("variant", 0)
+            if variant != 0:
+                updated_entry["variant"] = variant
+
+            merged[idx] = updated_entry
+
+
+def remove_c_actor_includes(
+    anim_props: "SM64_ArmatureAnimProperties",
+    combined_props: "SM64_CombinedObjectProperties",
+    actor_name: str,
+    sm64_props: "SM64_Properties",
+):
+    anim_dir, _, header_dir = create_and_get_paths(anim_props, combined_props, actor_name, sm64_props.abs_decomp_path)
+    for f in ["table.inc.c", "table_enum.h", "../anim_header.h"]:
+        (anim_dir / f).unlink(missing_ok=True)
+
+    remove_actor_includes(
+        combined_props.export_header_type,
+        combined_props.actor_group_name,
+        header_dir,
+        actor_name,
+        combined_props.export_level_name,
+        [Path("anims/table.inc.c"), Path("anims/data.inc.c")],
+        [Path("anim_header.h")],
+    )
+
+
+def update_table_json(
+    anim_props: "SM64_ArmatureAnimProperties",
+    combined_props: "SM64_CombinedObjectProperties",
+    actor_name: str,
+    sm64_props: "SM64_Properties",
+    new_elements: list[Union["SM64_AnimTableElementProperties", "Action"]],
+    single_action: bool = False,
+):
+    override = anim_props.override_files and not single_action
+    anim_dir, _, _ = create_and_get_paths(anim_props, combined_props, actor_name, sm64_props.abs_decomp_path)
+    export_path = anim_dir / anim_props.get_table_file_name(actor_name, "GLTF")
+    anim_dir.mkdir(parents=True, exist_ok=True)
+
+    data = anim_props.to_dict(export_type="GLTF", actor_name=actor_name)
+    merged = _get_existing_elements(export_path, anim_dir, anim_props, actor_name, override)
+    gen_enums = anim_props.get_gen_enums("GLTF")
+
+    prev_enums = []
+    for el in merged:
+        enum = el.get("enum")
+        if enum is None:
+            enum = el.get("hints", {}).get("enum")
+            if enum is None:
+                print("Can't figure out previous enums without hints")
+        if enum:
+            prev_enums.append(enum)
+    prev_enums = set(prev_enums)
+
+    for el in new_elements:
+        try:
+            apply_new_element(anim_props, actor_name, merged, el, gen_enums, prev_enums)
+        except Exception as exc:
+            raise PluginError(f"Failed to apply new element: {exc}") from exc
+
+    data["elements"] = merged
+    with open(export_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+def export_action_gltf(
+    action: Action,
+    obj: Object,
+    action_props: "SM64_ActionAnimProperty",
+    anim_props: "SM64_ArmatureAnimProperties",
+    combined_props: "SM64_CombinedObjectProperties",
+    actor_name: str,
+    sm64_props: "SM64_Properties",
+):
+    selectSingleObject(obj)
+    pre_export_frame = bpy.context.scene.frame_current
+    pre_export_action = obj.animation_data.action
+    pre_export_slot = None
+    if bpy.app.version >= (5, 0, 0):
+        pre_export_slot = obj.animation_data.action_slot
+
+    export_dir, _, _ = create_and_get_paths(anim_props, combined_props, actor_name, sm64_props.abs_decomp_path)
+    file_name = action_props.get_file_name(action, "GLTF", False)
+    export_path = export_dir / file_name
+
+    if action_props.reference_tables:
+        data = action_props.to_dict(
+            "GLTF",
+            action,
+            actor_name,
+            anim_props.get_gen_enums("GLTF"),
+            anim_props.is_dma,
+            anim_props.export_seperately,
+            anim_props.update_table,
+            include_hints=True,
+            file_path=export_path,
+        )
+        json.dump(data, export_path.open("w"), indent=4)
+        return
+    try:
+        obj.animation_data.action = action
+        if bpy.app.version >= (5, 0, 0):
+            slot = get_action_props(action).get_slot(action)
+            if slot is None:
+                raise PluginError(f'No action slot found for action "{action.name}"')
+            obj.animation_data.action_slot = slot
+
+        bpy.ops.export_scene.gltf(
+            filepath=str(export_path),
+            export_format="GLTF_SEPARATE",
+            use_selection=True,
+            # geometry
+            export_materials="NONE",
+            export_normals=False,
+            export_texcoords=False,
+            export_tangents=False,
+            # others
+            export_cameras=False,
+            export_lights=False,
+            export_extras=False,
+            # animation
+            export_animations=True,
+            export_force_sampling=True,
+            export_nla_strips=False,
+            export_frame_range=False,
+            export_skins=True,
+            export_morph=True,
+        )
+    except Exception as exc:
+        raise PluginError(f"GLTF export failed: {exc}") from exc
+    finally:
+        obj.animation_data.action = pre_export_action
+        if bpy.app.version >= (5, 0, 0):
+            obj.animation_data.action_slot = pre_export_slot
+        bpy.context.scene.frame_set(pre_export_frame)
+
+
+def export_animation_gltf(
+    action: Action,
+    obj: Object,
+    action_props: "SM64_ActionAnimProperty",
+    anim_props: "SM64_ArmatureAnimProperties",
+    combined_props: "SM64_CombinedObjectProperties",
+    actor_name: str,
+    sm64_props: "SM64_Properties",
+):
+    export_action_gltf(action, obj, action_props, anim_props, combined_props, actor_name, sm64_props)
+
+    if anim_props.update_table:
+        update_table_json(anim_props, combined_props, actor_name, sm64_props, [action], True)
+    remove_c_actor_includes(anim_props, combined_props, actor_name, sm64_props)
+
+
+def export_animation_table_gltf(
+    obj: Object,
+    anim_props: "SM64_ArmatureAnimProperties",
+    combined_props: "SM64_CombinedObjectProperties",
+    actor_name: str,
+    sm64_props: "SM64_Properties",
+):
+    if not anim_props.export_seperately:
+        bpy.ops.export_scene.gltf(
+            filepath=str(create_and_get_paths(anim_props, combined_props, actor_name, sm64_props.abs_decomp_path)[0]),
+            export_format="GLTF_SEPARATE",
+            use_selection=True,
+            # geometry
+            export_materials="NONE",
+            export_normals=False,
+            export_texcoords=False,
+            export_tangents=False,
+            # others
+            export_cameras=False,
+            export_lights=False,
+            export_extras=False,
+            # animation
+            export_animations=True,
+            export_force_sampling=True,
+            export_nla_strips=False,
+            export_frame_range=False,
+            export_skins=True,
+            export_morph=True,
+        )
+        remove_c_actor_includes(anim_props, combined_props, actor_name, sm64_props)
+        return
+
+    for action in anim_props.actions:
+        action_props = get_action_props(action)
+        export_action_gltf(action, obj, action_props, anim_props, combined_props, actor_name, sm64_props)
+
+    update_table_json(anim_props, combined_props, actor_name, sm64_props, anim_props.elements, False)
+    remove_c_actor_includes(anim_props, combined_props, actor_name, sm64_props)
+
+
 def export_animation(context: Context, obj: Object):
     scene = context.scene
     sm64_props: SM64_Properties = scene.fast64.sm64
@@ -952,6 +1279,11 @@ def export_animation(context: Context, obj: Object):
     action = get_selected_action(obj)
     action_props = get_action_props(action)
     stashActionInArmature(obj, action)
+
+    if sm64_props.export_type == "GLTF":
+        export_animation_gltf(action, obj, action_props, anim_props, combined_props, actor_name, sm64_props)
+        return
+
     bone_count = len(get_anim_owners(obj))
 
     try:
@@ -1007,6 +1339,10 @@ def export_animation_table(context: Context, obj: Object):
     if len(anim_props.elements) == 0:
         raise PluginError("Empty animation table")
 
+    if sm64_props.export_type == "GLTF":
+        export_animation_table_gltf(obj, anim_props, combined_props, actor_name, sm64_props)
+        return
+
     try:
         print("Reading table data from fast64")
         table = to_table_class(
@@ -1015,7 +1351,7 @@ def export_animation_table(context: Context, obj: Object):
             blender_to_sm64_scale=sm64_props.blender_to_sm64_scale,
             quick_read=combined_props.quick_anim_read,
             dma=anim_props.is_dma,
-            export_type=sm64_props.export_type,
+            export_type=sm64_props.legacy_export_type,
             actor_name=actor_name,
             gen_enums=not anim_props.is_dma and not sm64_props.binary_export and anim_props.gen_enums,
         )

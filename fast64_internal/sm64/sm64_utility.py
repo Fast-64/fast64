@@ -538,3 +538,56 @@ def prop_size_label(layout: UILayout, **label_args):
     box.scale_y = 0.5
     box.label(**label_args)
     return box
+
+
+def remove_actor_includes(
+    header_type: str,
+    group_name: str,
+    header_dir: Path,
+    dir_name: str,
+    level_name: str,
+    data_includes: Optional[list[str | Path]] = None,
+    header_includes: Optional[list[str | Path]] = None,
+    geo_includes: Optional[list[str | Path]] = None,
+):
+    if header_type == "Actor":
+        if not group_name:
+            raise PluginError("Empty group name")
+        data_path = header_dir / f"{group_name}.c"
+        header_path = header_dir / f"{group_name}.h"
+        geo_path = header_dir / f"{group_name}_geo.c"
+    elif header_type == "Level":
+        data_path = header_dir / "leveldata.c"
+        header_path = header_dir / "header.h"
+        geo_path = header_dir / "geo.c"
+    elif header_type == "Custom":
+        return
+    else:
+        raise PluginError(f'Unknown header type "{header_type}"')
+
+    def write_includes_with_alternate(path: Path, includes: Optional[list[Path]], before_endif=False):
+        if includes is None:
+            return False
+        if header_type == "Level":
+            path_and_alternates = [
+                [
+                    Path(dir_name, include),
+                    Path("levels", level_name, dir_name, include),
+                ]
+                for include in includes
+            ]
+        else:
+            path_and_alternates = [[Path(dir_name, include)] for include in includes]
+        return write_or_delete_if_found(
+            path,
+            to_remove=[to_include_descriptor(*paths) for paths in path_and_alternates],
+            path_must_exist=True,
+            footer=END_IF_FOOTER if before_endif else None,
+        )
+
+    if write_includes_with_alternate(data_path, data_includes):
+        print(f"Removed data includes from {data_path}.")
+    if write_includes_with_alternate(header_path, header_includes, before_endif=True):
+        print(f"Removed header includes from {header_path}.")
+    if write_includes_with_alternate(geo_path, geo_includes):
+        print(f"Removed geo includes from {geo_path}.")
