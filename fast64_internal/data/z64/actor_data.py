@@ -1,6 +1,6 @@
-from os import path
 from dataclasses import dataclass
 from pathlib import Path
+
 from .common import Z64_BaseElement, get_xml_root
 
 
@@ -36,7 +36,7 @@ class Z64_ActorData:
 
     def __init__(self, game: str):
         # Path to the ``ActorList.xml`` file
-        xml_path = Path(f"{path.dirname(path.abspath(__file__))}/xml/{game.lower()}_actor_list.xml")
+        xml_path = Path(__file__).resolve().parent / "xml" / f"{game.lower()}_actor_list.xml"
         actor_root = get_xml_root(xml_path.resolve())
 
         # general actor list

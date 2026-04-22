@@ -4,15 +4,17 @@ import os
 
 from dataclasses import dataclass, field
 from typing import Optional
+from bpy.types import Object
+from mathutils import Matrix, Vector
+from pathlib import Path
+
 from ....utility import PluginError, CData, toAlnum, indent
 from ....f3d.f3d_gbi import SPDisplayList, SPEndDisplayList, GfxListTag, GfxList, DLFormat
 from ....f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
+from ....f3d.occlusion_planes.exporter import addOcclusionQuads, OcclusionPlaneCandidatesList
 from ...room.properties import OOTRoomHeaderProperty, OOTBGProperty
 from ...model_classes import OOTModel
 from ..utility import Utility
-from bpy.types import Object
-from mathutils import Matrix, Vector
-from ....f3d.occlusion_planes.exporter import addOcclusionQuads, OcclusionPlaneCandidatesList
 
 from ...utility import (
     CullGroup,
@@ -143,7 +145,7 @@ class RoomShape:  # previously OOTRoomMesh
             cmds += self.get_occlusion_planes_cmd()
         return cmds
 
-    def copy_bg_images(self, export_path: str):
+    def copy_bg_images(self, export_path: Path):
         return  # by default, do nothing
 
 
@@ -302,10 +304,12 @@ class RoomShapeImageBase(RoomShape):
         )
         return data
 
-    def copy_bg_image(self, entry: RoomShapeImageEntry, export_path: str):
+    def copy_bg_image(self, entry: RoomShapeImageEntry, export_path: Path):
         jpeg_compatibility = False
         image = entry.image
         image_filename = entry.get_filename()
+        filepath = Path(export_path).resolve() / image_filename
+
         if jpeg_compatibility:
             is_packed = image.packed_file is not None
             if not is_packed:
@@ -313,7 +317,7 @@ class RoomShapeImageBase(RoomShape):
             oldpath = image.filepath
             old_format = image.file_format
             try:
-                image.filepath = bpy.path.abspath(os.path.join(export_path, image_filename))
+                image.filepath = str(filepath)
                 image.file_format = "JPEG"
                 image.save()
                 if not is_packed:
@@ -325,10 +329,9 @@ class RoomShapeImageBase(RoomShape):
                 image.file_format = old_format
                 raise Exception(str(e))
         else:
-            filepath = bpy.path.abspath(os.path.join(export_path, image_filename))
-            shutil.copy(bpy.path.abspath(image.filepath), filepath)
+            shutil.copy(image.filepath, filepath)
 
-    def copy_bg_images(self, export_path: str):
+    def copy_bg_images(self, export_path: Path):
         raise PluginError("BG image copying not handled!")
 
 
@@ -366,7 +369,7 @@ class RoomShapeImageSingle(RoomShapeImageBase):
 
         return self.to_c_img_single(self.bg_entry, include_dir)
 
-    def copy_bg_images(self, export_path: str):
+    def copy_bg_images(self, export_path: Path):
         self.copy_bg_image(self.bg_entry, export_path)
 
 
@@ -430,7 +433,7 @@ class RoomShapeImageMulti(RoomShapeImageBase):
 
         return data
 
-    def copy_bg_images(self, export_path: str):
+    def copy_bg_images(self, export_path: Path):
         for bg_entry in self.bg_entries:
             self.copy_bg_image(bg_entry, export_path)
 

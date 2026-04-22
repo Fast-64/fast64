@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
+from pathlib import Path
+
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
@@ -222,7 +224,7 @@ class Room:
 
         return roomModel
 
-    def getNewRoomFile(self, path: str, isSingleFile: bool, textureExportSettings: TextureExportSettings):
+    def getNewRoomFile(self, path: Path, isSingleFile: bool, textureExportSettings: TextureExportSettings):
         """Returns a new ``RoomFile`` element"""
 
         roomMainData = self.getRoomMainC()

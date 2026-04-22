@@ -1,6 +1,11 @@
 import dataclasses
-import mathutils, bpy, os, re
+import mathutils
+import bpy
+import re
+
 from typing import Optional
+from pathlib import Path
+
 from ...utility_anim import armatureApplyWithMesh
 from ..model_classes import OOTVertexGroupInfo
 from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
@@ -9,8 +14,6 @@ from ...utility import (
     PluginError,
     VertexWeightError,
     getDeclaration,
-    writeFile,
-    readFile,
     setOrigin,
     getGroupNameFromIndex,
     attemptModifierApply,
@@ -223,14 +226,14 @@ def getGroupIndices(meshInfo, armatureObj, meshObj, rootGroupIndex):
         )
 
 
-def ootRemoveSkeleton(filepath, objectName, skeletonName):
-    headerPath = os.path.join(filepath, objectName + ".h")
-    sourcePath = os.path.join(filepath, objectName + ".c")
+def ootRemoveSkeleton(filepath: Path, objectName, skeletonName):
+    headerPath = filepath / f"{objectName}.h"
+    sourcePath = filepath / f"{objectName}.c"
 
-    skeletonDataC = readFile(sourcePath)
+    skeletonDataC = sourcePath.read_text()
     originalDataC = skeletonDataC
 
-    skeletonDataH = readFile(headerPath)
+    skeletonDataH = headerPath.read_text()
     originalDataH = skeletonDataH
 
     skel_info = ootGetSkeleton(skeletonDataC, skeletonName, True)
@@ -261,10 +264,10 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
             skeletonDataH = skeletonDataH[: headerMatch.start(0)] + skeletonDataH[headerMatch.end(0) :]
 
     if skeletonDataC != originalDataC:
-        writeFile(sourcePath, skeletonDataC)
+        sourcePath.write_text(skeletonDataC)
 
     if skeletonDataH != originalDataH:
-        writeFile(headerPath, skeletonDataH)
+        headerPath.write_text(skeletonDataH)
 
 
 # TODO: check for bone type?

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from os import path
 from pathlib import Path
+
 from .common import Z64_BaseElement, get_xml_root
 
 
@@ -72,7 +72,7 @@ class Z64_EnumData:
         self.enumDataList: list[Z64_EnumElement] = []
 
         # Path to the ``EnumData.xml`` file
-        xml_path = Path(f"{path.dirname(path.abspath(__file__))}/xml/{game.lower()}_enum_data.xml")
+        xml_path = Path(__file__).resolve().parent / "xml" / f"{game.lower()}_enum_data.xml"
         enum_data_root = get_xml_root(xml_path.resolve())
 
         for enum in enum_data_root.iterfind("Enum"):

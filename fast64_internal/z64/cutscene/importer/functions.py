@@ -1,10 +1,12 @@
 import bpy
 
 from typing import Optional
+from pathlib import Path
+
 from .classes import CutsceneImport
 
 
-def importCutsceneData(filePath: Optional[str], sceneData: Optional[str], csName: Optional[str] = None):
+def importCutsceneData(filePath: Optional[Path], sceneData: Optional[str], csName: Optional[str] = None):
     """Initialises and imports the cutscene data from either a file or the scene data"""
     # NOTE: ``sceneData`` is the data read when importing a scene
     csMotionImport = CutsceneImport(filePath, sceneData, csName)

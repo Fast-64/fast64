@@ -1,20 +1,18 @@
 import bpy
-import os
-from pathlib import Path
 import mathutils
 
 from bpy.types import Operator
 from bpy.ops import object
-from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from typing import Optional
+from pathlib import Path
 
 from ...utility import CData, PluginError, ExportUtils, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
-from ..utility import ootGetObjectPath, ootGetObjectHeaderPath, getOOTScale
+from ..utility import PathUtils, getOOTScale
 from ..model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ..texture_array import ootReadTextureArrays
 from ..model_classes import OOTModel, OOTGfxFormatter
@@ -23,10 +21,9 @@ from .properties import OOTDLImportSettings, OOTDLExportSettings
 
 from ..utility import (
     OOTObjectCategorizer,
+    PathUtils,
     ootDuplicateHierarchy,
     ootCleanupScene,
-    ootGetPath,
-    addIncludeFiles,
     getOOTScale,
 )
 
@@ -47,9 +44,10 @@ def ootConvertMeshToC(
     saveTextures: bool,
     settings: OOTDLExportSettings,
 ):
+    decomp_path = bpy.context.scene.fast64.oot.get_decomp_path()
     folderName = settings.folder
-    exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
+    export_path = Path(settings.customPath) if isCustomExport else decomp_path
     removeVanillaData = settings.removeVanillaData
 
     obj_name = toAlnum(originalObj.name)
@@ -93,28 +91,31 @@ def ootConvertMeshToC(
     else:
         data.header += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
-    exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
-    )
+    with PathUtils(False, export_path, "assets/objects/", folderName, isCustomExport) as path_utils:
+        path = path_utils.get_assets_path(check_extracted=False, with_decomp_path=True)
+        path_utils.set_base_path(path)
 
-    data.append(exportData.all())
+        includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+        exportData = fModel.to_c(
+            TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
+        )
 
-    if isCustomExport:
-        textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
-        data.append(textureArrayData)
+        data.append(exportData.all())
 
-    data.header += "\n#endif\n"
-    writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
+        if isCustomExport:
+            textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
+            data.append(textureArrayData)
 
-    if not isCustomExport:
-        writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, filename)
-        if removeVanillaData:
-            headerPath = os.path.join(path, folderName + ".h")
-            sourcePath = os.path.join(path, folderName + ".c")
-            removeDL(sourcePath, headerPath, filename)
+        data.header += "\n#endif\n"
+        writeCData(data, path / f"{filename}.h", path / f"{filename}.c")
+
+        if not isCustomExport:
+            writeTextureArraysExisting(decomp_path, overlayName, False, flipbookArrayIndex2D, fModel)
+            path_utils.add_include_files(filename)
+            if removeVanillaData:
+                headerPath = path / f"{folderName}.h"
+                sourcePath = path / f"{folderName}.c"
+                removeDL(str(sourcePath), str(headerPath), filename)
 
 
 class OOT_ImportDL(Operator):
@@ -131,12 +132,13 @@ class OOT_ImportDL(Operator):
             object.mode_set(mode="OBJECT")
 
         try:
+            decomp_path: Path = context.scene.fast64.oot.get_decomp_path()
             settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
             name = settings.name
             folderName: str = settings.folder
-            importPath = abspath(settings.customPath)
+            importPath = Path(bpy.path.abspath(settings.customPath)).resolve()
             isCustomImport = settings.isCustom
-            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
+            basePath = decomp_path if not isCustomImport else importPath.parent
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
@@ -148,21 +150,23 @@ class OOT_ImportDL(Operator):
 
             # Check if folderName exists under assets/objects (if it is committed)
             if not isCustomImport:
-                assets_folder = Path(abspath(context.scene.ootDecompPath)) / "assets" / "objects" / folderName
+                assets_folder = decomp_path / "assets" / "objects" / folderName
                 if assets_folder.exists():
-                    paths = list(map(str, assets_folder.glob("*.[ch]")))
+                    paths = list(assets_folder.glob("*.[ch]"))
                     if not paths:
                         paths = None
 
             # Otherwise search in extracted/
             if paths is None:
-                paths = [
-                    ootGetObjectPath(isCustomImport, importPath, folderName, True),
-                    ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-                ]
+                with PathUtils(True, importPath, "assets/objects", folderName, isCustomImport) as path_utils:
+                    paths = [
+                        path_utils.get_object_header_path(),
+                        path_utils.get_object_source_path(),
+                    ]
 
             filedata = getImportData(paths)
-            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
+            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], str(basePath))
+            f3dContext.ignore_tlut = '.inc.c"' in filedata
 
             # Test for "new" (post-ZAPD) assets system.
             is_2025_assets_system = "{\n#include" in filedata
@@ -172,7 +176,7 @@ class OOT_ImportDL(Operator):
 
             scale = None
             if not isCustomImport:
-                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
+                filedata = ootGetIncludedAssetData(basePath, paths, filedata, True) + filedata
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)

@@ -41,12 +41,12 @@ def parseRoomCommands(
 ):
     # we need to access the header in `loadMultiBlock()` for the new assets system
     if not sharedSceneData.is_fast64_data and sharedSceneData.not_zapd_assets:
-        header_path = Path(sharedSceneData.scenePath).resolve() / f"{sharedSceneData.scene_name}.h"
+        header_path = Path(sharedSceneData.scenePath) / f"{sharedSceneData.scene_name}.h"
         if not header_path.exists():
             raise PluginError("ERROR: scene file header not found!")
         sceneData += header_path.read_text()
 
-        header_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}.h"
+        header_path = Path(sharedSceneData.scenePath) / f"{roomName}.h"
         if not header_path.exists():
             raise PluginError("ERROR: room file header not found!")
         sceneData += header_path.read_text()

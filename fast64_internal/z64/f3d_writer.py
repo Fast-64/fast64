@@ -3,6 +3,7 @@ import re
 import bpy
 
 from typing import Optional
+from pathlib import Path
 
 from ..utility import CData, getGroupIndexFromname, readFile, writeFile
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
@@ -212,25 +213,26 @@ def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
     return textureArrayData
 
 
-def getActorFilepath(basePath: str, overlayName: str | None, isLink: bool, checkDataPath: bool = False):
+def getActorFilepath(basePath: Path, overlayName: str, isLink: bool, checkDataPath: bool = False):
     if isLink:
-        actorFilePath = os.path.join(basePath, f"src/code/z_player_lib.c")
+        actorFilePath = basePath / f"src/code/z_player_lib.c"
     else:
-        actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
-        actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
+        filename = f"z_{overlayName[4:].lower()}"
+        actorFilePath = basePath / f"src/overlays/actors/{overlayName}/{filename}.c"
+        actorFileDataPath = actorFilePath.with_stem(f"{filename}_data")  # some bosses store texture arrays here
 
-        if checkDataPath and os.path.exists(actorFileDataPath):
+        if checkDataPath and actorFileDataPath.exists():
             actorFilePath = actorFileDataPath
 
     return actorFilePath
 
 
 def writeTextureArraysExisting(
-    exportPath: str, overlayName: str, isLink: bool, flipbookArrayIndex2D: int, fModel: OOTModel
+    exportPath: Path, overlayName: str, isLink: bool, flipbookArrayIndex2D: int, fModel: OOTModel
 ):
     actorFilePath = getActorFilepath(exportPath, overlayName, isLink, True)
 
-    if not os.path.exists(actorFilePath):
+    if not actorFilePath.exists():
         print(f"{actorFilePath} not found, ignoring texture array writing.")
         return
 
@@ -332,7 +334,7 @@ def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, flipbookA
 
 
 # Note this does not work well with actors containing multiple "parts". (z_en_honotrap)
-def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> Optional[float]:
+def ootReadActorScale(basePath: Path, overlayName: str, isLink: bool) -> Optional[float]:
     if not isLink:
         actorData = ootGetActorData(basePath, overlayName)
     else:
