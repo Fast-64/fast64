@@ -225,7 +225,7 @@ class Fast64GlTFSettings(PropertyGroup):
     )
     f3d: PointerProperty(type=F3DGlTFSettings)
     game: BoolProperty(default=True, name="Export current game mode")
-    include_hints: BoolProperty(default=False, name="Include hints")
+    include_hints: BoolProperty(default=True, name="Include hints")
 
     def to_dict(self):
         return prop_group_to_json(self)
