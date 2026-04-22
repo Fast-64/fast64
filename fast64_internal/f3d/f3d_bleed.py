@@ -504,7 +504,7 @@ class BleedGraphics:
 
             # while load mode is always written, they may not set the same range of values and therefor need revert
             for revert_cmd in revert_other_load_cmd:
-                # try to find equivelent load othermode command in the current material and the previous material's revert
+                # try to find equivalent load othermode command in the current material and the previous material's revert
                 othermode_cmd = next(
                     (c for c in commands_bled.commands if type(c) == type(revert_cmd) and c.cmd == revert_cmd.cmd), None
                 )
