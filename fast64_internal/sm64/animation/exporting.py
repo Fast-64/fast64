@@ -1203,6 +1203,7 @@ def export_action_gltf(
             export_frame_range=False,
             export_skins=True,
             export_morph=True,
+            gltf_export_id="FAST64_SM64_ACTION_EXPORT",
         )
     except Exception as exc:
         raise PluginError(f"GLTF export failed: {exc}") from exc
@@ -1257,6 +1258,7 @@ def export_animation_table_gltf(
             export_frame_range=False,
             export_skins=True,
             export_morph=True,
+            gltf_export_id="FAST64_SM64_ANIM_TABLE_EXPORT",
         )
         remove_c_actor_includes(anim_props, combined_props, actor_name, sm64_props)
         return

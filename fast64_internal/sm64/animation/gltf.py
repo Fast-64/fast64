@@ -34,6 +34,8 @@ class SM64AnimationGlTFExtension(GlTF2SubExtension):
 
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
         if blender_object and is_obj_animatable(blender_object):
+            if export_settings.get("gltf_export_id") != "FAST64_SM64_ANIM_TABLE_EXPORT":
+                return
             anim_props = blender_object.fast64.sm64.animation
             data = anim_props.to_dict(
                 export_type="GLTF", actor_name=get_object_actor_name(blender_object), gltf_extension=self
