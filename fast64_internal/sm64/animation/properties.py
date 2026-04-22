@@ -802,7 +802,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
 
             if hints:
                 if gltf_extension is not None and gltf_extension.hints:
-                    gltf_extension.append_extension(data, f"{gltf_extension.OBJECT_EXTENSION_NAME}_hints", hints)
+                    gltf_extension.append_extension(data, f"{gltf_extension.ACTION_EXTENSION_NAME}_hints", hints)
                 else:
                     data["hints"] = hints
         return data
