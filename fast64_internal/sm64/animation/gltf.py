@@ -4,13 +4,12 @@ from ..sm64_utility import get_object_actor_name
 from ...gltf_utility import GlTF2SubExtension
 
 from .properties import SM64_ArmatureAnimProperties
-from .utility import get_action_props, is_obj_animatable, get_anim_owners
+from .utility import get_action_props, is_obj_animatable
 
 
-# TODO blender_to_sm64_scale
 class SM64AnimationGlTFExtension(GlTF2SubExtension):
-    ACTION_EXTENSION_NAME = "FAST64_sm64_anim"
-    OBJECT_EXTENSION_NAME = "FAST64_sm64_node_anim_table"
+    ACTION_EXTENSION_NAME = "FAST64_animation_sm64"
+    OBJECT_EXTENSION_NAME = "FAST64_node_sm64_animation_table"
 
     HEADER_EXTENSION_NAME = "FAST64_sm64_header"
     TABLE_ELEMENT_EXTENSION_NAME = "FAST64_sm64_table_element"

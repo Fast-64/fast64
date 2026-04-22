@@ -149,6 +149,24 @@ class glTF2ExportUserExtension(GlTF2Extension):
             export_settings,
         )
 
+    def gather_joint_hook(self, gltf2_node, blender_bone, export_settings):
+        self.call_hooks(
+            "gather_joint_hook",
+            'Joint "{args[1].name}"',
+            gltf2_node,
+            blender_bone,
+            export_settings,
+        )
+
+    def gather_scene_hook(self, gltf2_scene, blender_scene, export_settings):
+        self.call_hooks(
+            "gather_scene_hook",
+            'Scene "{args[1].name}"',
+            gltf2_scene,
+            blender_scene,
+            export_settings,
+        )
+
     def gather_gltf_extensions_hook(self, _gltf, _export_settings):
         modify_f3d_nodes_for_export(True)
 
