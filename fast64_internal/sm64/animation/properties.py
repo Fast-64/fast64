@@ -1632,6 +1632,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         actor_name: str = "",
         gltf_extension: Optional["SM64AnimationGlTFExtension"] = None,
         include_hints: bool = False,
+        include_elements: bool = True,
     ):
         blacklist = [
             "version",
@@ -1698,29 +1699,30 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
 
         data.update(prop_group_to_json(self, blacklist))
 
-        table = []
-        gen_enums = self.get_gen_enums(export_type)
-        try:
-            prev_enums = set()
-            element: SM64_AnimTableElementProperties
-            for i, element in enumerate(self.elements):
-                try:
-                    table.append(
-                        element.to_dict(
-                            export_type,
-                            gen_enums,
-                            self.is_dma,
-                            actor_name,
-                            prev_enums,
-                            gltf_extension,
-                            include_hints,
+        if include_elements:
+            table = []
+            gen_enums = self.get_gen_enums(export_type)
+            try:
+                prev_enums = set()
+                element: SM64_AnimTableElementProperties
+                for i, element in enumerate(self.elements):
+                    try:
+                        table.append(
+                            element.to_dict(
+                                export_type,
+                                gen_enums,
+                                self.is_dma,
+                                actor_name,
+                                prev_enums,
+                                gltf_extension,
+                                include_hints,
+                            )
                         )
-                    )
-                except Exception as exc:  # pylint: disable=broad-except
-                    raise PluginError(f"Failed to export element {i}:\n{exc}") from exc
-        except Exception as exc:  # pylint: disable=broad-except
-            raise PluginError(f"Failed to export table:\n{exc}") from exc
-        data["elements"] = table
+                    except Exception as exc:  # pylint: disable=broad-except
+                        raise PluginError(f"Failed to export element {i}:\n{exc}") from exc
+            except Exception as exc:  # pylint: disable=broad-except
+                raise PluginError(f"Failed to export table:\n{exc}") from exc
+            data["elements"] = table
 
         if include_hints or (gltf_extension is not None and gltf_extension.hints):
             hints = {}

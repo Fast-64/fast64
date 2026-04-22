@@ -1115,7 +1115,7 @@ def update_table_json(
     export_path = anim_dir / anim_props.get_table_file_name(actor_name, "GLTF")
     anim_dir.mkdir(parents=True, exist_ok=True)
 
-    data = anim_props.to_dict(export_type="GLTF", actor_name=actor_name)
+    data = anim_props.to_dict(export_type="GLTF", actor_name=actor_name, include_elements=False)
     merged = _get_existing_elements(export_path, anim_dir, anim_props, actor_name, override)
     gen_enums = anim_props.get_gen_enums("GLTF")
 
