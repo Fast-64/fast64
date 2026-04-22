@@ -33,6 +33,7 @@ from .fast64_internal.mk64.mk64_constants import mk64_world_defaults
 from .fast64_internal.f3d.f3d_gbi import get_F3D_GBI
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
+    F3D_MaterialProperties,
     mat_register,
     mat_unregister,
     check_or_ask_color_management,
@@ -294,6 +295,15 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="Z64 Object Properties")  # TODO: rename oot to z64
 
 
+class Fast64_MaterialProperties(bpy.types.PropertyGroup):
+    """
+    Properties in material.fast64 (bpy.types.Material)
+    All new material properties should be children of this property group.
+    """
+
+    f3d: bpy.props.PointerProperty(type=F3D_MaterialProperties, name="F3D Material Properties")
+
+
 class UpgradeF3DMaterialsDialog(bpy.types.Operator):
     bl_idname = "dialog.upgrade_f3d_materials"
     bl_label = "Upgrade F3D Materials"
@@ -347,6 +357,7 @@ classes = (
     Fast64_ActionProperties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
+    Fast64_MaterialProperties,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     Fast64_GlobalToolsPanel,
@@ -507,6 +518,10 @@ def register():
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
     bpy.types.Action.fast64 = bpy.props.PointerProperty(type=Fast64_ActionProperties, name="Fast64 Action Properties")
+    bpy.types.Material.fast64 = bpy.props.PointerProperty(
+        type=Fast64_MaterialProperties, name="Fast64 Material Properties"
+    )
+
     bpy.app.handlers.load_post.append(after_load)
 
 
@@ -537,6 +552,7 @@ def unregister():
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
     del bpy.types.Action.fast64
+    del bpy.types.Material.fast64
 
     repo_settings_operators_unregister()
 
