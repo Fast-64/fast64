@@ -1,6 +1,7 @@
 # Macros are all copied over from gbi.h
 from __future__ import annotations
 
+from collections.abc import Container
 from typing import NamedTuple, Sequence, Union, Tuple
 from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
@@ -2455,7 +2456,7 @@ class FModel:
         fMaterial.usedLights.append(key)
         self.lights[key] = value
 
-    def dedup_name(self, name: str, names: list):
+    def dedup_name(self, name: str, names: Container[str]):
         base_name = name
         i = 1
         while name in names:
