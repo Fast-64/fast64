@@ -20,7 +20,8 @@
         "file_name": {
             "type": "string",
             "description": "Specified output file name for the exported animation data",
-            "default": "anim_00.inc.c"
+            "default": "anim_00.inc.c",
+            "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9._-]*$"
         },
         "max_frame": {
             "type": "integer",
@@ -29,20 +30,43 @@
             "minimum": 1
         },
         "reference": {
-            "type": "object",
-            "description": "Optional references to external animation data",
-            "properties": {
-                "values_table": {
-                    "type": "string",
-                    "description": "Name for the animation values table array",
-                    "default": "anim_00_values"
-                },
-                "indices_table": {
-                    "type": "string",
-                    "description": "Name for the animation indices table array",
-                    "default": "anim_00_indices"
+            "oneOf": [
+                {
+                    "type": "object",
+                    "description": "Optional references to external animation data",
+                    "properties": {
+                        "values_table": {
+                            "type": "string",
+                            "description": "Name for the animation values table array",
+                            "default": "anim_00_values"
+                        },
+                        "indices_table": {
+                            "type": "string",
+                            "description": "Name for the animation indices table array",
+                            "default": "anim_00_indices"
+                        }
+                    }
                 }
-            },
+                {
+                    "type": "object",
+                    "description": "Optional references to external animation data via glTF",
+                    "properties": {
+                        "abs": {
+                            "type": "boolean",
+                            "description": "Is absolute to decomp"
+                        },
+                        "path": {
+                            "type": "string",
+                            "description": "Path to the animation data file"
+                        },
+                        "action_name": {
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9._-]*$",
+                            "description": "Name of the action to reference"
+                        }
+                    }
+                }
+            ],
             "additionalProperties": false
         },
         "headers": {

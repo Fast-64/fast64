@@ -517,6 +517,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
     custom_max_frame: IntProperty(name="Max Frame", min=1, max=MAX_U16, default=1)
     reference_tables: BoolProperty(name="Reference Tables")
     external_data: StringProperty(name="External Data", subtype="FILE_PATH")
+    external_action_name: StringProperty(name="External Action Name")
     indices_table: StringProperty(name="Indices Table", default="anim_00_indices")
     values_table: StringProperty(name="Value Table", default="anim_00_values")
     # Binary, toad anim 0 for defaults
@@ -619,6 +620,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
             if export_type == "GLTF":
                 prop_split(col, self, "external_data", "External Data")
                 if self.external_data:
+                    col.prop(self, "external_action_name")
                     return
                 col.label(text="C Fallback", icon="INFO")
             prop_split(col, self, "indices_table", "Indices Table")
@@ -743,6 +745,7 @@ class SM64_ActionAnimProperty(PropertyGroup):
             "start_address",
             "end_address",
             "external_data",
+            "external_action_name",
         ]
         data = {}
         add_custom_if_not_auto(self, "file_name", data, blacklist)
@@ -755,13 +758,18 @@ class SM64_ActionAnimProperty(PropertyGroup):
                     filepath_checks(external_data)
                     if external_data.suffix not in {".json", ".gltf"}:
                         raise PluginError("External data must be a json or gltf file.")
+                    reference = {}
                     if file_path is None:
-                        data["abs_reference"] = as_posix(external_data)
+                        reference["abs"] = True
+                        reference["path"] = as_posix(external_data)
                     else:
-                        if external_data.samefile(file_path):
+                        reference["abs"] = False
+                        if external_data == file_path:
                             raise PluginError("External data cannot be the same file as the action.")
                         reference_path = os.path.relpath(external_data, file_path.parent)
-                        data["reference"] = reference_path
+                        reference["path"] = reference_path
+                    reference["action_name"] = self.external_action_name
+                    data["reference"] = reference
                 else:
                     data["reference"] = {"values_table": self.values_table, "indices_table": self.indices_table}
         else:
