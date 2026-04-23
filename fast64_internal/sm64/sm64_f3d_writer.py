@@ -604,7 +604,7 @@ class SM64_ExportDL(bpy.types.Operator):
 
         try:
             applyRotation([obj], radians(90), "X")
-            if context.scene.fast64.sm64.export_type == "C":
+            if context.scene.fast64.sm64.legacy_export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     props.is_actor_custom_export,
                     props.actor_custom_path,
@@ -632,7 +632,7 @@ class SM64_ExportDL(bpy.types.Operator):
                 starSelectWarning(self, fileStatus)
                 self.report({"INFO"}, "Success!")
 
-            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
+            elif context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
                 exportF3DtoInsertableBinary(
                     bpy.path.abspath(context.scene.DLInsertableBinaryPath),
                     finalTransform,
@@ -711,7 +711,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
             applyRotation([obj], radians(-90), "X")
-            if context.scene.fast64.sm64.export_type == "Binary":
+            if context.scene.fast64.sm64.legacy_export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -731,7 +731,7 @@ class SM64_ExportDLPanel(SM64_Panel):
         propsDLE = col.operator(SM64_ExportDL.bl_idname)
         props = context.scene.fast64.sm64.combined_export
 
-        if context.scene.fast64.sm64.export_type == "C":
+        if context.scene.fast64.sm64.legacy_export_type == "C":
             col.prop(context.scene, "DLExportisStatic")
 
             prop_split(col, props, "export_header_type", "Export Type")
@@ -764,7 +764,7 @@ class SM64_ExportDLPanel(SM64_Panel):
                     props.level_name,
                 )
 
-        elif context.scene.fast64.sm64.export_type == "Insertable Binary":
+        elif context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
             col.prop(context.scene, "DLInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "DLExportStart", "Start Address")
