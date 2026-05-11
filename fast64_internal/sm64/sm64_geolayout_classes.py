@@ -472,7 +472,9 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + ")"
 
 
-LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[GfxList, dict[type, GbiMacro]]]]]
+LastMaterials = dict[
+    int, tuple[tuple[FMaterial, bpy.types.Material] | None, list[tuple[GfxList, dict[type, GbiMacro]]]]
+]
 
 
 class GeoLayoutBleed(BleedGraphics):
@@ -490,6 +492,7 @@ class GeoLayoutBleed(BleedGraphics):
                 if self.add_reset_cmds(
                     cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
                 ):
+                    self.finish_cmd_list(cmd_list)
                     cmds_resets[i] = None
             while None in cmds_resets:
                 cmds_resets.remove(None)
@@ -531,6 +534,7 @@ class GeoLayoutBleed(BleedGraphics):
                 last_mat = self.bleed_fmesh(
                     last_mat,
                     reset_cmd_dict,
+                    fModel,
                     cmd_list,
                     fModel.getAllMaterials().items(),
                     fModel.matWriteMethod,
@@ -571,7 +575,6 @@ class GeoLayoutBleed(BleedGraphics):
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
         reset_all_layers(last_materials)
-        self.clear_gfx_lists(fModel)
 
 
 # We add Function commands to nonDeformTransformData because any skinned

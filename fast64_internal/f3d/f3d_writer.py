@@ -331,7 +331,8 @@ def saveMeshWithLargeTexturesByFaces(
     else:
         f3dMat = material
 
-    fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+    fMaterial = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+    texDimensions = fMaterial.texDimensions
 
     fImage0 = fImage1 = None
     if fMaterial.imageKey[0] is not None:
@@ -465,7 +466,7 @@ def saveStaticModel(
             fMesh = fMeshes[drawLayer]
 
         checkForF3dMaterialInFaces(obj, material)
-        fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+        fMaterial = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 
         if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             saveMeshWithLargeTexturesByFaces(
@@ -729,7 +730,7 @@ def saveMeshByFaces(
     if len(faces) == 0:
         print("0 Faces Provided.")
         return
-    fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+    fMaterial = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
 
     if material.name != lastMaterialName:
         fMesh.add_material_call(fMaterial)
@@ -738,7 +739,7 @@ def saveMeshByFaces(
 
     triConverter = TriangleConverter(
         triConverterInfo,
-        texDimensions,
+        fMaterial.texDimensions,
         material,
         currentGroupIndex,
         triGroup,
@@ -1284,7 +1285,7 @@ def getTexDimensions(material):
 
 
 @wrap_func_with_error_message(lambda args: (f"In material '{args['material'].name}': "))
-def saveOrGetF3DMaterial(material, fModel, _obj, drawLayer, convertTextureData):
+def saveOrGetF3DMaterial(material, fModel: FModel, _obj, drawLayer, convertTextureData):
     print(f"Writing material {material.name}")
     if material.mat_ver > 3:
         f3dMat = material.f3d_mat
@@ -1295,9 +1296,9 @@ def saveOrGetF3DMaterial(material, fModel, _obj, drawLayer, convertTextureData):
     areaIndex = fModel.global_data.current_area_index
 
     if f3dMat.rdp_settings.set_rendermode:
-        materialKey = (material, drawLayer, areaKey)
+        materialKey = FMaterialKey(material, drawLayer, areaKey)
     else:
-        materialKey = (material, None, areaKey)
+        materialKey = FMaterialKey(material, None, areaKey)
 
     materialItem = fModel.getMaterialAndHandleShared(materialKey)
     if materialItem is not None:
@@ -1524,15 +1525,15 @@ def saveOrGetF3DMaterial(material, fModel, _obj, drawLayer, convertTextureData):
     else:
         fMaterial.revert = None
 
-    texDimensions = multitexManager.getTexDimensions()
-    materialKey = (
+    fMaterial.texDimensions = multitexManager.getTexDimensions()
+    materialKey = FMaterialKey(
         material,
         (drawLayer if f3dMat.rdp_settings.set_rendermode else None),
         fModel.global_data.getCurrentAreaKey(f3dMat),
     )
-    fModel.materials[materialKey] = (fMaterial, texDimensions)
+    fModel.materials[materialKey] = fMaterial
 
-    return fMaterial, texDimensions
+    return fMaterial
 
 
 def getLightDefinitions(fModel, material, lightsName=""):
@@ -1722,7 +1723,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
         renderModeSet = DPSetRenderMode(flagList, blender)
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
-        if defaultRenderMode is not None and fMaterial.revert is not None:
+        if defaultRenderMode is not None and fMaterial.revert is not None and flagList != defaultRenderMode:
             fMaterial.revert.commands.append(DPSetRenderMode(defaultRenderMode, None))
 
 
