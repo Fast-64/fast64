@@ -267,14 +267,29 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         isLink = False
         restPoseData = None
 
-    filepaths = [
-        ootGetObjectPath(isCustomImport, importPath, folderName, True),
-        ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-    ]
+    filepaths = None
+
+    # Check if folderName exists under assets/objects (if it is committed)
+    if not isCustomImport:
+        assets_folder = Path(bpy.path.abspath(bpy.context.scene.ootDecompPath)) / "assets" / "objects" / folderName
+        if assets_folder.exists():
+            filepaths = list(map(str, assets_folder.glob("*.[ch]")))
+            if not filepaths:
+                filepaths = None
+
+    if filepaths is None:
+        filepaths = [
+            ootGetObjectPath(isCustomImport, importPath, folderName, True),
+            ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
+        ]
 
     if isLink:
         filepaths.append(ootGetObjectPath(isCustomImport, "", "gameplay_keep", True))
         filepaths.append(ootGetObjectHeaderPath(isCustomImport, "", "gameplay_keep", True))
+
+        # starting with zeldaret/oot dbe1a80541173652c344f20226310a8bf90f3086 gameplay_keep is split and committed
+        filepaths.append(f"{bpy.context.scene.ootDecompPath}/assets/objects/gameplay_keep/link_textures.c")
+        filepaths.append(f"{bpy.context.scene.ootDecompPath}/assets/objects/gameplay_keep/link_textures.h")
 
         if (Path(bpy.context.scene.ootDecompPath) / "assets/objects" / folderName).exists():
             filepaths.extend(
@@ -301,7 +316,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     skeletonData = getImportData(filepaths)
     if overlayName is not None or isLink:
-        skeletonData = ootGetIncludedAssetData(basePath, filepaths, skeletonData) + skeletonData
+        skeletonData = ootGetIncludedAssetData([basePath], filepaths, skeletonData) + skeletonData
 
     skel_info = ootGetSkeleton(skeletonData, skeletonName, False)
     assert skel_info is not None

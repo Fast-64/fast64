@@ -201,3 +201,14 @@ def check_for_action_in_table(
     action: "SM64_ActionAnimProperty", table_elements: list["SM64_AnimTableElementProperties"], dma: bool
 ) -> bool:
     return any(element.get_action(not dma) == action for element in table_elements)
+
+
+def get_active_diff_slot(context: Context, action: Action = None):
+    obj = get_anim_obj(context)
+    if obj is None or action is None:
+        return None
+    if obj.animation_data is None or obj.animation_data.action_slot is None:
+        return None
+    if obj.animation_data.action != action:
+        return None
+    return obj.animation_data.action_slot

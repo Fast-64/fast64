@@ -1,8 +1,12 @@
 import bpy
 from bpy.types import Object, Armature, Bone, PoseBone
+from typing import TYPE_CHECKING
 
 from ..f3d.f3d_gbi import GfxList
 from ..utility import PluginError
+
+if TYPE_CHECKING:
+    from .custom_cmd.properties import SM64_CustomCmdProperties
 
 
 def is_bone_animatable(bone: Bone):
@@ -106,10 +110,13 @@ def addBoneToGroup(armature_obj: Object, name: str):
         pose_bone.bone_group_index = getBoneGroupIndex(armature_obj, geo_cmd)
 
     if geo_cmd == "Custom":
-        custom = bone.fast64.sm64.custom
+        custom: "SM64_CustomCmdProperties" = bone.fast64.sm64.custom
         bone.use_deform = custom.dl_option != "NONE"
-        if not custom.is_animated:
-            lock_location = lock_rotation = lock_scale = True
+
+        types = {a.arg_type for a in custom.args}
+        lock_location = "TRANSLATION" not in types
+        lock_rotation = "ROTATION" not in types and not custom.is_animated
+        lock_scale = "SCALE" not in types
     elif geo_cmd != "Ignore":
         bone.use_deform = boneNodeProperties[geo_cmd].deform
         if geo_cmd != "SwitchOption":

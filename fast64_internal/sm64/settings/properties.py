@@ -16,8 +16,10 @@ from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
 from ...utility import (
+    as_posix,
     directory_path_checks,
     directory_ui_warnings,
+    multilineLabel,
     prop_split,
     set_prop_if_in_data,
     upgrade_old_prop,
@@ -43,7 +45,7 @@ def decomp_path_update(self, context: Context):
     if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
     directory_path_checks(self.abs_decomp_path)
-    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
+    fast64_settings.repo_settings_path = as_posix(self.abs_repo_file_path)
 
 
 class SM64_Properties(PropertyGroup):
@@ -118,8 +120,12 @@ class SM64_Properties(PropertyGroup):
         return self.export_type in {"Binary", "Insertable Binary"}
 
     @property
-    def abs_decomp_path(self) -> Path:
+    def abs_decomp_path(self):
         return Path(abspath(self.decomp_path))
+
+    @property
+    def abs_repo_file_path(self):
+        return self.abs_decomp_path / "fast64.json"
 
     @property
     def hackersm64(self) -> bool:
@@ -128,6 +134,14 @@ class SM64_Properties(PropertyGroup):
     @property
     def designated(self) -> bool:
         return self.designated_prop or self.hackersm64
+
+    @property
+    def show_matstack_fix(self) -> bool:
+        return not self.hackersm64 and self.export_type == "C"
+
+    @property
+    def use_matstack_fix(self) -> bool:
+        return (self.matstack_fix or self.hackersm64) and self.export_type == "C"
 
     @property
     def gfx_write_method(self):
@@ -157,7 +171,6 @@ class SM64_Properties(PropertyGroup):
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
             "custom_include_directory": {"geoTexDir"},
-            "binary_level": {"levelAnimExport"},
             # as the others binary props get carried over to here we need to update the cur_version again
         }
         binary_level_names = {"levelAnimExport", "colExportLevel", "levelDLExport", "levelGeoExport"}
@@ -201,9 +214,9 @@ class SM64_Properties(PropertyGroup):
         data["refresh_version"] = self.refresh_version
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
-        data["matstack_fix"] = self.matstack_fix
-        if self.matstack_fix:
-            data["lighting_engine_presets"] = self.lighting_engine_presets
+        if self.show_matstack_fix:
+            data["matstack_fix"] = self.matstack_fix
+        data["lighting_engine_presets"] = self.lighting_engine_presets
         data["write_all"] = self.write_all
         if not self.hackersm64:
             data["designated"] = self.designated_prop
@@ -216,8 +229,8 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
-        set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "write_all", data, "write_all")
+        set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
         if "custom_cmds" in data:
             self.custom_cmds.clear()
@@ -225,20 +238,40 @@ class SM64_Properties(PropertyGroup):
                 self.custom_cmds.add()
                 self.custom_cmds[-1].from_dict(preset_data)
 
-    def draw_repo_settings(self, layout: UILayout):
+    def draw_repo_settings(self, layout: UILayout, context: Context):
+        from ...repo_settings import draw_repo_settings
+
+        col = layout.column()
+        path = self.abs_repo_file_path
+        if path is None:
+            return
+        draw_repo_settings(col, context, path=path, game="SM64", draw_tab=False)
+        col.separator()
+
+        self.draw_repo_settings_props(col)
+
+    def draw_repo_settings_props(self, layout: UILayout):
         col = layout.column()
         if not self.binary_export:
             col.prop(self, "disable_scroll")
             prop_split(col, self, "compression_format", "Compression Format")
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
-        col.prop(self, "matstack_fix")
-        if self.matstack_fix:
-            col.prop(self, "lighting_engine_presets")
-        col.prop(self, "write_all")
+        col.separator()
+
+        # people feel the need to tick random checkboxes
+        warning = col.column()
+        warning.alert = True
+        multilineLabel(warning, text="Only enable these if you know what\nyou're doing.", icon="ERROR")
+        warning.prop(self, "write_all")
+        if self.show_matstack_fix:
+            warning.prop(self, "matstack_fix")
+        warning.prop(self, "lighting_engine_presets")
+        col.separator()
+
         draw_custom_cmd_presets(self, col.box())
 
-    def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
+    def draw_props(self, layout: UILayout, context: Context, show_repo_settings: bool = True):
         col = layout.column()
 
         prop_split(col, self, "goal", "Goal")
@@ -258,7 +291,7 @@ class SM64_Properties(PropertyGroup):
         col.separator()
 
         if show_repo_settings:
-            self.draw_repo_settings(col)
+            self.draw_repo_settings(col, context)
             col.separator()
 
         col.prop(self, "show_importing_menus")

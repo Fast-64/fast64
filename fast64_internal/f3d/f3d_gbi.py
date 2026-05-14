@@ -1762,15 +1762,17 @@ class F3D:
         nVal = self.numLights[n]
         return ((nVal) * 24) if self.F3DEX_GBI_2 else (((nVal) + 1) * 32 + 0x80000000)
 
-    def getLightMWO_a(self, n):
-        if n.startswith("G_MWO_aLIGHT_") and hasattr(self, n):
-            return getattr(self, n)
+    def getLightMWO_a(self, n: str):
+        mwo_value = f"G_MWO_a{n}"
+        if hasattr(self, mwo_value):
+            return getattr(self, mwo_value)
         else:
             raise PluginError("Invalid G_MWO_a value for lights: " + n)
 
-    def getLightMWO_b(self, n):
-        if n.startswith("G_MWO_bLIGHT_") and hasattr(self, n):
-            return getattr(self, n)
+    def getLightMWO_b(self, n: str):
+        mwo_value = f"G_MWO_b{n}"
+        if hasattr(self, mwo_value):
+            return getattr(self, mwo_value)
         else:
             raise PluginError("Invalid G_MWO_b value for lights: " + n)
 
@@ -4083,7 +4085,7 @@ class SPLightColor(GbiMacro):
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.color_to_int(), f3d) + gsMoveWd(
-            f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.col, f3d
+            f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.color_to_int(), f3d
         )
 
     def to_c(self, static=True):
