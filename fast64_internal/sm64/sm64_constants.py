@@ -3826,6 +3826,7 @@ sm64_world_defaults = {
         "cullBack": True,
         "lighting": True,
         "shadeSmooth": True,
+        "positionalLighting": True,
     },
     "otherModeH": {
         "textureFilter": "G_TF_BILERP",
