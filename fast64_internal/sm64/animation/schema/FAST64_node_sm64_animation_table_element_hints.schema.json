@@ -1,0 +1,14 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_anim_table_element_hints glTF Animation Table Element Hints",
+    "type": "object",
+    "description": "Hints from Fast64 on what the assumed values should be for animation table elements",
+    "properties": {
+        "enum": {
+            "type": "string",
+            "description": "The enum identifier generated from the variant/header's name",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        }
+    },
+    "additionalProperties": false
+}

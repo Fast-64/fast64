@@ -1883,7 +1883,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
     def verify_context(self, context, props):
         if context.mode != "OBJECT":
             raise PluginError("Operator can only be used in object mode.")
-        if context.scene.fast64.sm64.export_type != "C":
+        if context.scene.fast64.sm64.legacy_export_type != "C":
             raise PluginError("Combined Object Export only supports C exporting")
         if not props.col_object and not props.gfx_object and not props.anim_object and not props.bhv_object:
             raise PluginError("No export object selected")
@@ -2263,7 +2263,8 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         col.prop(self, "quick_anim_read")
         if self.quick_anim_read:
             col.label(text="May Break!", icon="INFO")
-        if not is_dma and export_type == "C":
+        legacy_type = "C" if export_type == "GLTF" else export_type
+        if not is_dma and legacy_type == "C":
             col.prop(self, "export_single_action")
         if export_type == "Binary":
             if not is_dma:
