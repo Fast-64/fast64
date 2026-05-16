@@ -258,10 +258,11 @@ class GeolayoutObjectPanel(Panel):
             prop_split(col, geo_asm, "param", "Parameter")
         col.prop(obj, "ignore_render")
         col.prop(obj, "ignore_collision")
-        # if bpy.context.scene.f3d_type == "F3DEX3":
-        #    box.prop(obj, "is_occlusion_planes")
-        #    if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
-        #        box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
+        if bpy.context.scene.f3d_type == "F3DEX3":
+            col.prop(obj, "is_occlusion_planes")
+            if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
+                col.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
+                col.label(icon="ERROR", text="May not bet implemented in your repo yet.")
         if context.scene.exportInlineF3D:
             col.prop(obj, "bleed_independently")
         if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:

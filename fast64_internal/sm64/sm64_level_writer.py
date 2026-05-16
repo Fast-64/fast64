@@ -824,6 +824,13 @@ def export_area_c(
     level_data.script_data += include_proto("spline.inc.c")
     level_data.header_data += splinesC.header
 
+    # Write occlusion planes
+    if len(area.occlusion_planes.planes) > 0:
+        occ_planes_c = area.occlusion_planes.to_c()
+        saveDataToFile(os.path.join(areaDir, "occlusion_planes.inc.c"), occ_planes_c.source)
+        level_data.script_data += include_proto("occlusion_planes.inc.c")
+        level_data.header_data += occ_planes_c.header
+
     return level_data, fModel, uses_env_fx
 
 
