@@ -371,13 +371,16 @@ def math_eval(s, f3d):
     def _eval(node):
         if isinstance(node, ast.Expression):
             return _eval(node.body)
-        elif isinstance(node, ast.Str):
-            return node.s
+        elif isinstance(node, ast.Constant):
+            if isinstance(node.value, str):
+                return node.value
+            elif isinstance(node.value, int):
+                return int(node.value)
+            else:
+                raise Exception("Unsupported constant type {}".format(type(node.value)))
         elif isinstance(node, ast.Name):
             if hasattr(f3d, node.id):
                 return getattr(f3d, node.id)
-        elif isinstance(node, ast.Num):
-            return node.n
         elif isinstance(node, ast.UnaryOp):
             if isinstance(node.op, ast.USub):
                 return -1 * _eval(node.operand)
