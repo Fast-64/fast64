@@ -1902,10 +1902,10 @@ class F3DContext:
             # There will be one loop for every vertex
             uv_layer[i].uv = self.verts[i].uv
 
-        # The mesh.vertex_colors is deprecated since a long time,
+        # The mesh.vertex_colors API is deprecated since Blender 3.2,
         # and its usage by fast64 here breaks in Blender 5.1 somehow.
         # (can't replicate in simple cases)
-        if bpy.app.version < (5, 1, 0):
+        if bpy.app.version < (3, 2, 0):
             color_layer = mesh.vertex_colors.new(name="Col").data
             for i in range(len(mesh.loops)):
                 color_layer[i].color = self.verts[i].rgb.to_4d()
