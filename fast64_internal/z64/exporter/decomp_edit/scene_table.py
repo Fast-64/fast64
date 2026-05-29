@@ -51,7 +51,7 @@ class SceneTableEntry:
 
             return SceneTableEntry(*params)
         else:
-            raise PluginError("ERROR: This line is not a scene table entry!")
+            raise PluginError("ERROR: This line is not a scene table entry! " + repr(original_line))
 
     @staticmethod
     def from_scene(scene_name: str, draw_config: str, title_card_name: str):
