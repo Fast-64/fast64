@@ -119,8 +119,8 @@ class SceneTable:
         header = data[: header_end_index + 1]
 
         lines = data[header_end_index + 1 :].split("\n")
-        lines = list(filter(None, lines))  # removes empty lines
         lines = [line.strip() for line in lines]
+        lines = list(filter(None, lines))  # removes empty lines
 
         sections: list[SceneTableSection] = []
         current_section: Optional[SceneTableSection] = None
