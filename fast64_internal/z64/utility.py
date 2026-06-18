@@ -493,7 +493,9 @@ def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, inc
 def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     if isCustomExport:
-        filepath = exportPath
+        # The custom .c references _WIDTH/_HEIGHT defines from its sibling .h, read that too.
+        root, ext = os.path.splitext(exportPath)
+        filepath = root + ".h" if ext == ".c" else exportPath
     else:
         filepath = os.path.join(
             ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, False),
