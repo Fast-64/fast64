@@ -7,7 +7,7 @@ from typing import Optional
 from ..utility import CData, getGroupIndexFromname, readFile, writeFile
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
-from .utility import replaceMatchContent, getOOTScale
+from .utility import replaceMatchContent, getOOTScale, ootStripComments
 from .texture_array import TextureFlipbook
 
 from ..f3d.f3d_writer import (
@@ -331,6 +331,131 @@ def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, flipbookA
     return newData
 
 
+def ootParseScaleLiteral(scaleExpr: str) -> Optional[float]:
+    scaleExpr = scaleExpr.strip().removesuffix("f")
+
+    try:
+        return float(scaleExpr)
+    except ValueError:
+        return None
+
+
+def ootSplitTopLevel(expr: str) -> list[str]:
+    entries = []
+    start = 0
+    depth = 0
+
+    for i, char in enumerate(expr):
+        if char in "({[":
+            depth += 1
+        elif char in ")}]":
+            depth -= 1
+        elif char == "," and depth == 0:
+            entries.append(expr[start:i].strip())
+            start = i + 1
+
+    finalEntry = expr[start:].strip()
+    if finalEntry != "":
+        entries.append(finalEntry)
+
+    return entries
+
+
+def ootResolveStructArrayFieldScale(actorData: str, scaleExpr: str) -> Optional[float]:
+    match = re.fullmatch(r"([A-Za-z_]\w*)\s*\[\s*[^\]]+\s*\]\s*\.\s*([A-Za-z_]\w*)", scaleExpr.strip())
+    if match is None:
+        return None
+
+    tableName, fieldName = match.groups()
+    actorData = ootStripComments(actorData)
+
+    tableMatch = re.search(
+        rf"(?:static\s+)?(?P<struct_name>[A-Za-z_]\w*)\s+{re.escape(tableName)}\s*\[\s*\]\s*=\s*\{{",
+        actorData,
+        re.DOTALL,
+    )
+    if tableMatch is None:
+        return None
+
+    structMatch = re.search(
+        rf"typedef\s+struct(?:\s+{re.escape(tableMatch.group('struct_name'))})?\s*\{{(?P<body>.*?)\}}\s*{re.escape(tableMatch.group('struct_name'))}\s*;",
+        actorData,
+        re.DOTALL,
+    )
+    if structMatch is None:
+        return None
+
+    fieldNames = [
+        fieldMatch.group(1)
+        for fieldMatch in re.finditer(
+            r"[A-Za-z_]\w*(?:\s*\*+)?\s+([A-Za-z_]\w*)\s*(?:\[[^\]]+\])?\s*;", structMatch.group("body")
+        )
+    ]
+    if fieldName not in fieldNames:
+        return None
+
+    fieldIndex = fieldNames.index(fieldName)
+    values = set()
+    depth = 0
+    entryStart = None
+
+    for i in range(tableMatch.end() - 1, len(actorData)):
+        char = actorData[i]
+        if char == "{":
+            if depth == 1:
+                entryStart = i + 1
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 1 and entryStart is not None:
+                entryValues = ootSplitTopLevel(actorData[entryStart:i])
+                if fieldIndex >= len(entryValues):
+                    return None
+
+                value = ootParseScaleLiteral(entryValues[fieldIndex])
+                if value is None:
+                    return None
+
+                values.add(value)
+                if len(values) > 1:
+                    return None
+                entryStart = None
+            elif depth == 0:
+                break
+
+    return values.pop() if len(values) == 1 else None
+
+
+def ootResolveScaleExpression(actorData: str, scaleExpr: str) -> Optional[float]:
+    scaleExpr = scaleExpr.strip()
+    literalValue = ootParseScaleLiteral(scaleExpr)
+    if literalValue is not None:
+        return literalValue
+
+    while scaleExpr.startswith("(") and scaleExpr.endswith(")"):
+        scaleExpr = scaleExpr[1:-1].strip()
+        literalValue = ootParseScaleLiteral(scaleExpr)
+        if literalValue is not None:
+            return literalValue
+
+    depth = 0
+    for i, char in enumerate(scaleExpr):
+        if char in "({[":
+            depth += 1
+        elif char in ")}]":
+            depth -= 1
+        elif depth == 0 and char in "*/":
+            leftValue = ootResolveScaleExpression(actorData, scaleExpr[:i])
+            rightValue = ootResolveScaleExpression(actorData, scaleExpr[i + 1 :])
+            if leftValue is None or rightValue is None:
+                return None
+            if char == "*":
+                return leftValue * rightValue
+            return None if rightValue == 0 else leftValue / rightValue
+
+    return ootResolveStructArrayFieldScale(actorData, scaleExpr)
+
+
 # Note this does not work well with actors containing multiple "parts". (z_en_honotrap)
 def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> Optional[float]:
     if not isLink:
@@ -341,16 +466,16 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> Optional
     chainInitMatch = re.search(r"CHAIN_VEC3F_DIV1000\s*\(\s*scale\s*,\s*(.*?)\s*,", actorData, re.DOTALL)
     if chainInitMatch is not None:
         scale = chainInitMatch.group(1).strip()
-        if scale[-1] == "f":
-            scale = scale[:-1]
-        return getOOTScale(1 / (float(scale) / 1000))
+        resolvedScale = ootResolveScaleExpression(actorData, scale)
+        if resolvedScale is not None:
+            return getOOTScale(1 / (resolvedScale / 1000))
 
     actorScaleMatch = re.search(r"Actor\_SetScale\s*\(.*?,\s*(.*?)\s*\)", actorData, re.DOTALL)
     if actorScaleMatch is not None:
         scale = actorScaleMatch.group(1).strip()
-        if scale[-1] == "f":
-            scale = scale[:-1]
-        return getOOTScale(1 / float(scale))
+        resolvedScale = ootResolveScaleExpression(actorData, scale)
+        if resolvedScale is not None:
+            return getOOTScale(1 / resolvedScale)
 
     if isLink:
         return getOOTScale(100.0)
