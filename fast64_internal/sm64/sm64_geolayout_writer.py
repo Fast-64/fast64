@@ -3088,9 +3088,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            # Rotate all armatures 90 degrees
-            applyRotation([armatureObj] + linkedArmatures, math.radians(90), "X")
-
             # You must ALSO apply object rotation after armature rotation.
             deselectAllObjects()
             for linkedArmature, linkedMesh in linkedArmatureDict.items():
@@ -3098,6 +3095,9 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+
+            applyRotation([armatureObj] + linkedArmatures, math.radians(90), "X")
+
             if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.is_actor_custom_export,
