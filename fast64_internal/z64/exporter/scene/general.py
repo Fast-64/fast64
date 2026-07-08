@@ -8,6 +8,7 @@ from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTLightGroupProperty
 from ...utility import getEvalParamsInt
 from ..utility import Utility
+from ....game_data import game_data
 
 
 @dataclass
@@ -252,10 +253,15 @@ class SceneInfos:
 
     @staticmethod
     def new(props: OOTSceneHeaderProperty, sceneObj: Object):
+        if props.sceneTableEntry.drawConfig == "Custom":
+            drawConfig = props.sceneTableEntry.drawConfigCustom
+        else:
+            drawConfigKey = props.sceneTableEntry.drawConfig
+            drawConfig = game_data.z64.get_enum_value("draw_config", drawConfigKey)
         return SceneInfos(
             Utility.getPropValue(props, "globalObject"),
             Utility.getPropValue(props, "naviCup"),
-            Utility.getPropValue(props.sceneTableEntry, "drawConfig"),
+            drawConfig,
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
             Utility.getPropValue(props, "title_card_name"),
