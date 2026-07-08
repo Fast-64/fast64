@@ -227,6 +227,18 @@ class SM64_AnimFlags(IntFlag):
         else:  # the value was not evaluated
             return value
 
+    def to_dict(self):
+        return {name: bool(self & flag) for name, flag in SM64_AnimFlags.props_to_flags().items()}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        flags = cls(0)
+        props = cls.props_to_flags()
+        for prop, value in data.items():
+            if value and prop in props:
+                flags |= props[prop]
+        return flags
+
 
 @dataclasses.dataclass
 class SM64_AnimHeader:
