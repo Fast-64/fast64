@@ -1,7 +1,8 @@
 # Macros are all copied over from gbi.h
 from __future__ import annotations
 
-from typing import Sequence, Union, Tuple
+from collections.abc import Container
+from typing import NamedTuple, Sequence, Union, Tuple
 from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
 from ..utility import *
@@ -2334,6 +2335,13 @@ class FPaletteKey:
         return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
 
 
+class FMaterialKey(NamedTuple):
+    bpy_mat: bpy.types.Material
+    draw_layer: str | None = None
+    area_data: FAreaData = None
+    bleed_clone_hash: int | None = None
+
+
 class FModel:
     def __init__(
         self,
@@ -2346,8 +2354,7 @@ class FModel:
         self.lights: dict[str, Lights] = {}
         # dict of (texture, (texture format, palette format)) : FImage
         self.textures: dict[Union[FImageKey, FPaletteKey], FImage] = {}
-        # dict of (material, drawLayer, FAreaData): (FMaterial, (width, height))
-        self.materials: dict[Tuple[bpy.types.Material, str, FAreaData], Tuple[FMaterial, Tuple[int, int]]] = {}
+        self.materials: dict[FMaterialKey, FMaterial] = {}
         # dict of body part name : FMesh
         self.meshes: dict[str, FMesh] = {}
         # GfxList
@@ -2449,13 +2456,18 @@ class FModel:
         fMaterial.usedLights.append(key)
         self.lights[key] = value
 
+    def dedup_name(self, name: str, names: Container[str]):
+        base_name = name
+        i = 1
+        while name in names:
+            name = f"{base_name}_{i:03}"
+            i += 1
+        return name
+
     def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False):
         final_name = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         if dedup:
-            base_name = final_name
-            for i in range(1, len(self.meshes) + 2):
-                if final_name in self.meshes:
-                    final_name = f"{base_name}_{i:03}"
+            final_name = self.dedup_name(final_name, self.meshes.keys())
         checkUniqueBoneNames(self, final_name, name)
         self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
         self.onAddMesh(mesh, contextObj)
@@ -2514,33 +2526,37 @@ class FModel:
         else:
             return None
 
-    def getMaterialAndHandleShared(self, materialKey):
+    @property
+    def material_names(self):
+        return [fmaterial.material.name for fmaterial in self.getAllMaterials().values()]
+
+    def getMaterialAndHandleShared(self, key: FMaterialKey):
         # Check if material is in self
-        if materialKey in self.materials:
-            return self.materials[materialKey]
+        if key in self.materials:
+            return self.materials[key]
 
         if self.parentModel is not None:
             # Check if material is in parent
-            if materialKey in self.parentModel.materials:
-                return self.parentModel.materials[materialKey]
+            if key in self.parentModel.materials:
+                return self.parentModel.materials[key]
 
             # Check if material is in siblings
             for subModel in self.parentModel.subModels:
-                if materialKey in subModel.materials:
-                    materialItem = subModel.materials.pop(materialKey)
-                    self.parentModel.materials[materialKey] = materialItem
+                if key in subModel.materials:
+                    fMaterial = subModel.materials.pop(key)
+                    self.parentModel.materials[key] = fMaterial
 
                     # If material is in sibling, handle the material's textures as well.
-                    for imageKey in materialItem[0].usedImages:
+                    for imageKey in fMaterial.usedImages:
                         fImage = self.getTextureAndHandleShared(imageKey)
                         if fImage is None:
                             raise PluginError("Error: If a material exists, its textures should exist too.")
 
-                    for lightName in materialItem[0].usedLights:
+                    for lightName in fMaterial.usedLights:
                         light = self.getLightAndHandleShared(lightName)
                         if light is None:
                             raise PluginError("Error: If a material exists, its lights should exist too.")
-                    return materialItem
+                    return fMaterial
         else:
             return None
 
@@ -2557,7 +2573,7 @@ class FModel:
             addresses.extend(lod.get_ptr_addresses(f3d))
         for name, mesh in self.meshes.items():
             addresses.extend(mesh.get_ptr_addresses(f3d))
-        for materialKey, (fMaterial, texDimensions) in self.materials.items():
+        for fMaterial in self.materials.values():
             addresses.extend(fMaterial.get_ptr_addresses(f3d))
         if self.materialRevert is not None:
             addresses.extend(self.materialRevert.get_ptr_addresses(f3d))
@@ -2588,7 +2604,7 @@ class FModel:
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
-        for materialKey, (fMaterial, texDimensions) in self.materials.items():
+        for fMaterial in self.materials.values():
             addrRange = fMaterial.set_addr(addrRange[1], self.f3d)
             if not startAddrSet:
                 startAddrSet = True
@@ -2610,7 +2626,7 @@ class FModel:
             light.save_binary(romfile)
         for _, fImage in self.textures.items():
             fImage.save_binary(romfile)
-        for materialKey, (fMaterial, texDimensions) in self.materials.items():
+        for fMaterial in self.materials.values():
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
             mesh.save_binary(romfile, self.f3d, segments)
@@ -2642,7 +2658,7 @@ class FModel:
 
     def to_c_materials(self, gfxFormatter):
         data = CData()
-        for materialKey, (fMaterial, texDimensions) in self.materials.items():
+        for fMaterial in self.materials.values():
             data.append(fMaterial.to_c(self.f3d))
         return data
 
@@ -2725,7 +2741,7 @@ class FModel:
 
     def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
-        for fMaterial, _ in self.materials.values():
+        for fMaterial in self.materials.values():
             fMaterial: FMaterial
             if fMaterial.material.tag.Export:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
@@ -3058,6 +3074,7 @@ class FMaterial:
         self.largeTexWords = 0
         self.imageKey = [None, None]
         self.texPaletteIndex = [0, 0]
+        self.texDimensions = (0, 0)
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)

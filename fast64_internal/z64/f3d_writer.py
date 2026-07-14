@@ -159,9 +159,7 @@ def ootProcessVertexGroup(
     for material_index, faces in groupFaces.items():
         material = meshObj.material_slots[material_index].material
         checkForF3dMaterialInFaces(meshObj, material)
-        fMaterial, texDimensions = saveOrGetF3DMaterial(
-            material, fModel, meshObj, drawLayerOverride, convertTextureData
-        )
+        fMaterial = saveOrGetF3DMaterial(material, fModel, meshObj, drawLayerOverride, convertTextureData)
 
         if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             currentGroupIndex = saveMeshWithLargeTexturesByFaces(
