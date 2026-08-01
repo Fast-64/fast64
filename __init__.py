@@ -103,29 +103,30 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
 
-        fast64_settings: Fast64Settings_Properties = context.scene.fast64.settings
+        scene = context.scene
+        fast64_settings: Fast64Settings_Properties = scene.fast64.settings
 
-        col.prop(context.scene, "f3d_simple", text="Simple Material UI")
+        col.prop(scene, "f3d_simple", text="Simple Material UI")
         col.separator()
 
         col.label(text="Saved to Repo Settings file", icon="PROPERTIES")
-        prop_split(col, context.scene, "f3d_type", "Microcode")
+        prop_split(col, scene, "f3d_type", "Microcode")
         gbi = get_F3D_GBI()
 
-        if context.scene.f3d_type in {"F3DEX3", "T3D"}:
-            prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
-        col.prop(context.scene, "saveTextures")
-        if context.scene.saveTextures:
+        if scene.f3d_type in {"F3DEX3", "T3D"}:
+            prop_split(col, scene, "packed_normals_algorithm", "Packed normals alg")
+        col.prop(scene, "saveTextures")
+        if scene.saveTextures:
             col.prop(fast64_settings, "texture_name_includes_ci_format")
-        col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
-        if context.scene.exportInlineF3D:
+        col.prop(scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
+        if scene.exportInlineF3D:
             multilineLabel(
                 col.box(),
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
-        col.prop(context.scene, "ignoreTextureRestrictions")
-        if context.scene.ignoreTextureRestrictions:
+        col.prop(scene, "ignoreTextureRestrictions")
+        if scene.ignoreTextureRestrictions:
             col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
