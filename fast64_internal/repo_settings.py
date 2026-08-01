@@ -84,7 +84,6 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=Fal
     fast64_settings.from_repo_settings(data)
     set_prop_if_in_data(scene, "f3d_type", data, "microcode")
     set_prop_if_in_data(scene, "saveTextures", data, "saveTextures")
-    set_prop_if_in_data(scene, "textureNameIncludesCiFormat", data, "textureNameIncludesCiFormat")
     set_prop_if_in_data(scene, "exportInlineF3D", data, "bleedAndInline")
     set_prop_if_in_data(scene, "ignoreTextureRestrictions", data, "ignoreTextureRestrictions")
     set_prop_if_in_data(scene, "packed_normals_algorithm", data, "packedNormalsAlgorithm")
@@ -108,7 +107,6 @@ def save_repo_settings(scene: Scene, path: os.PathLike, game: str = ""):
         data["packedNormalsAlgorithm"] = scene.packed_normals_algorithm
     data["bleedAndInline"] = scene.exportInlineF3D
     data["saveTextures"] = scene.saveTextures
-    data["textureNameIncludesCiFormat"] = scene.textureNameIncludesCiFormat
     data["ignoreTextureRestrictions"] = scene.ignoreTextureRestrictions
     rdp_defaults: RDPSettings = scene.world.rdp_defaults
     data["rdpDefaults"] = rdp_defaults.to_dict()

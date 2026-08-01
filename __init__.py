@@ -103,6 +103,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
 
+        fast64_settings: Fast64Settings_Properties = context.scene.fast64.settings
+
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.separator()
 
@@ -114,7 +116,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
             prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
         col.prop(context.scene, "saveTextures")
         if context.scene.saveTextures:
-            col.prop(context.scene, "textureNameIncludesCiFormat")
+            col.prop(fast64_settings, "texture_name_includes_ci_format")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if context.scene.exportInlineF3D:
             multilineLabel(
@@ -230,6 +232,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
     dont_ask_color_management: bpy.props.BoolProperty(name="Don't ask to set color management properties")
+    texture_name_includes_ci_format: bpy.props.BoolProperty(name="Include CI Format In File Name", default=False)
 
     repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
     repo_settings_path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", update=repo_path_update)
@@ -246,6 +249,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         data = {}
         data["autoLoad"] = self.auto_repo_load_settings
         data["autoPickTextureFormat"] = self.auto_pick_texture_format
+        data["textureNameIncludesCiFormat"] = self.texture_name_includes_ci_format
         if self.auto_pick_texture_format:
             data["preferRGBAOverCI"] = self.prefer_rgba_over_ci
         return data
@@ -253,6 +257,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     def from_repo_settings(self, data: dict):
         set_prop_if_in_data(self, "auto_repo_load_settings", data, "autoLoad")
         set_prop_if_in_data(self, "auto_pick_texture_format", data, "autoPickTextureFormat")
+        set_prop_if_in_data(self, "texture_name_includes_ci_format", data, "textureNameIncludesCiFormat")
         set_prop_if_in_data(self, "prefer_rgba_over_ci", data, "preferRGBAOverCI")
 
 
@@ -495,9 +500,6 @@ def register():
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
     )
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (May Break CI Textures)")
-    bpy.types.Scene.textureNameIncludesCiFormat = bpy.props.BoolProperty(
-        name="Include CI Format In File Name", default=False
-    )
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
         name="Bleed and Inline Material Exports",
@@ -534,7 +536,6 @@ def unregister():
     del bpy.types.Scene.fullTraceback
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
-    del bpy.types.Scene.textureNameIncludesCiFormat
     del bpy.types.Scene.gameEditorMode
     del bpy.types.Scene.exportHiddenGeometry
     del bpy.types.Scene.blenderF3DScale

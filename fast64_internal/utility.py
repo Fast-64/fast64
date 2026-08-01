@@ -1814,9 +1814,9 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
 
 
 def getTextureSuffixFromFormat(texFmt: str, ciFmt: str | None, isPalette: bool):
-    if bpy.context.scene.textureNameIncludesCiFormat:
+    if bpy.context.scene.fast64.settings.texture_name_includes_ci_format:
         if ciFmt:
-            fmtName = f"{texFmt}-{ciFmt}"
+            fmtName = f"{texFmt}_{ciFmt}"
         else:
             fmtName = texFmt
     else:
