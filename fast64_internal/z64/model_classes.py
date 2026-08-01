@@ -231,7 +231,7 @@ class OOTModel(FModel):
         allImages = self.validateImages(material, index)
         for flipbookTexture in flipbookProp.textures:
             # print(f"Texture: {str(flipbookTexture.image)}")
-            imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, model)
+            imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, texProp.ci_format, model)
             if flipbookProp.exportMode == "Individual":
                 imageName = flipbookTexture.name
 
@@ -300,7 +300,7 @@ class OOTModel(FModel):
             imageKey = FImageKey(flipbookTexture.image, texProp.tex_format, texProp.ci_format, [flipbookTexture.image])
             fImage = model.getTextureAndHandleShared(imageKey)
             if fImage is None:
-                imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, model)
+                imageName, filename = getTextureNamesFromImage(flipbookTexture.image, texProp.tex_format, None, model)
                 if flipbookProp.exportMode == "Individual":
                     imageName = flipbookTexture.name
                 fImage = FImage(
