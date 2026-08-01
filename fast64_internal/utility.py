@@ -1813,10 +1813,21 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     return col, dir
 
 
-def getTextureSuffixFromFormat(texFmt):
-    # if texFmt == "RGBA16":
-    #     return "rgb5a1"
-    return texFmt.lower()
+def getTextureSuffixFromFormat(texFmt: str, ciFmt: str | None, isPalette: bool):
+    if bpy.context.scene.textureNameIncludesCiFormat:
+        if ciFmt:
+            fmtName = f"{texFmt}-{ciFmt}"
+        else:
+            fmtName = texFmt
+    else:
+        if isPalette:
+            if ciFmt is None:
+                raise PluginError("Internal error, getTextureSuffixFromFormat required ciFmt but wasn't specified")
+            fmtName = ciFmt
+        else:
+            fmtName = texFmt
+
+    return fmtName.lower()
 
 
 # https://stackoverflow.com/a/241506

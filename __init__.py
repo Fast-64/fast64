@@ -113,6 +113,8 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         if context.scene.f3d_type in {"F3DEX3", "T3D"}:
             prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
         col.prop(context.scene, "saveTextures")
+        if context.scene.saveTextures:
+            col.prop(context.scene, "textureNameIncludesCiFormat")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if context.scene.exportInlineF3D:
             multilineLabel(
@@ -492,7 +494,10 @@ def register():
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
     )
-    bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
+    bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (May Break CI Textures)")
+    bpy.types.Scene.textureNameIncludesCiFormat = bpy.props.BoolProperty(
+        name="Include CI Format In File Name", default=False
+    )
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
         name="Bleed and Inline Material Exports",
@@ -529,6 +534,7 @@ def unregister():
     del bpy.types.Scene.fullTraceback
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
+    del bpy.types.Scene.textureNameIncludesCiFormat
     del bpy.types.Scene.gameEditorMode
     del bpy.types.Scene.exportHiddenGeometry
     del bpy.types.Scene.blenderF3DScale
