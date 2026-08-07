@@ -7,7 +7,8 @@ import traceback
 import ast
 
 from typing import Union, Optional, Callable, Any, TYPE_CHECKING
-from mathutils import Vector
+from collections import defaultdict
+from mathutils import Vector, Matrix
 from bpy.utils import register_class, unregister_class
 
 # TODO: remove `import *`
@@ -440,15 +441,6 @@ def renderModeMask(rendermode, cycle, blendOnly):
         return rendermode & (3 << 28 | 3 << 24 | 3 << 20 | 3 << 16 | nonBlend)
 
 
-def convertF3DUV(value, maxSize):
-    try:
-        valueBytes = int.to_bytes(round(value), 2, "big", signed=True)
-    except OverflowError:
-        valueBytes = int.to_bytes(round(value), 2, "big", signed=False)
-
-    return ((int.from_bytes(valueBytes, "big", signed=True) / 32) + 0.5) / (maxSize if maxSize > 0 else 1)
-
-
 class F3DTextureReference:
     def __init__(self, name, width):
         self.name = name
@@ -474,6 +466,7 @@ class F3DContext:
         # If this is not disabled, then tex_scale will auto-update on manual node update.
         self.materialContext.f3d_mat.scale_autoprop = False
         self.draw_layer_prop: str | None = None
+        self.vertOverride: type[F3DVert] = F3DVert
         self.initContext()
 
     # This is separate as we want to call __init__ in clearGeometry, but don't want same behaviour for child classes
@@ -522,7 +515,7 @@ class F3DContext:
         # data for Mesh.from_pydata, list of BufferVertex tuples
         # use BufferVertex to also form uvs / normals / colors
         self.verts: list[F3DVert] = []
-        self.limbGroups: dict[str, list[int]] = {}  # dict of groupName : vertex indices
+        self.limbGroups: dict[str, list[int]] = defaultdict(list)  # dict of groupName : vertex indices
 
         self.lights: Lights = Lights("lights_context", self.f3d)
 
@@ -647,47 +640,56 @@ class F3DContext:
         else:
             self.currentTransformName = name
 
-    def getTransformedVertex(self, index: int):
-        bufferVert = self.vertexBuffer[index]
+    def transformNormal(self, has_packed_normals: bool, f3dVert: F3DVert, transform: Matrix) -> Vector:
+        if has_packed_normals:
+            normal = f3dVert.normal
+        else:
+            normal = Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
+        normal = (transform.inverted().transposed() @ normal).normalized()
+        return normal
 
+    def getVertexTransforms(
+        self, bufferVert: BufferVertex, has_normal: bool, has_packed_normals: bool
+    ) -> tuple[Vector, Vector]:
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
         matrixName = bufferVert.groupIndex
         if matrixName in self.matrixData:
             transform = self.matrixData[matrixName]
         else:
             print(self.matrixData)
-            raise PluginError("Transform matrix not specified for " + matrixName)
+            raise PluginError("Transform matrix not specified for " + str(matrixName))
 
-        mat = self.mat()
         f3dVert = bufferVert.f3dVert
         position = transform @ Vector(f3dVert.position)
-        if mat.tex0.tex is not None:
-            texDimensions = mat.tex0.tex.size
-        elif mat.tex0.use_tex_reference:
-            texDimensions = mat.tex0.tex_reference_size
-        elif mat.tex1.tex is not None:
-            texDimensions = mat.tex1.tex.size
-        elif mat.tex1.use_tex_reference:
-            texDimensions = mat.tex1.tex_reference_size
-        else:
-            texDimensions = [32, 32]
+        # Zero normal makes normals_split_custom_set use auto
+        normal = self.transformNormal(has_packed_normals, f3dVert, transform) if has_normal else Vector((0.0, 0.0, 0.0))
+        return position, normal
+        ...
 
-        uv = [convertF3DUV(f3dVert.uv[i], texDimensions[i]) for i in range(2)]
-        uv[1] = 1 - uv[1]
-
-        has_rgb, has_normal, has_packed_normals = getRgbNormalSettings(self.mat())
+    def convertVertexValues(self, mat: F3DMaterialProperty, has_rgb: bool, f3dVert: F3DVert):
+        uv = convertF3DUV(mat, f3dVert)
         rgb = Vector([v / 0xFF for v in f3dVert.rgb]) if has_rgb else Vector([1.0, 1.0, 1.0])
         alpha = f3dVert.alpha / 0xFF
-        normal = Vector([0.0, 0.0, 0.0])  # Zero normal makes normals_split_custom_set use auto
-        if has_normal:
-            if has_packed_normals:
-                normal = f3dVert.normal
-            else:
-                normal = Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
-            normal = (transform.inverted().transposed() @ normal).normalized()
+
+        return uv, rgb, alpha
+
+    def getTransformedVertex(self, index: int) -> BufferVertex:
+        bufferVert = self.vertexBuffer[index]
+
+        if bufferVert is None:
+            raise PluginError("Vertex Buffer is empty.")
+
+        mat = self.mat()
+        has_rgb, has_normal, has_packed_normals = getRgbNormalSettings(mat)
+        position, normal = self.getVertexTransforms(bufferVert, has_normal, has_packed_normals)
+        uv, rgb, alpha = self.convertVertexValues(mat, has_rgb, bufferVert.f3dVert)
 
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
         return BufferVertex(F3DVert(position, uv, rgb, normal, alpha), bufferVert.groupIndex, bufferVert.materialIndex)
+
+    def updateBuffer(self, count, start, vertexData, vertexDataOffset):
+        for i in range(count):
+            self.vertexBuffer[start + i] = BufferVertex(vertexData[vertexDataOffset + i], self.currentTransformName, 0)
 
     def addVertices(self, num, start, vertexDataName, vertexDataOffset):
         vertexData = self.vertexData[vertexDataName]
@@ -711,8 +713,18 @@ class F3DContext:
                 f"{vertexDataName} is of size {len(vertexData)}, "
                 f"attemped read from ({vertexDataOffset}, {vertexDataOffset + count})"
             )
-        for i in range(count):
-            self.vertexBuffer[start + i] = BufferVertex(vertexData[vertexDataOffset + i], self.currentTransformName, 0)
+
+        self.updateBuffer(count, start, vertexData, vertexDataOffset)
+
+    def processLimbGroups(self, verts: list[BufferVertex]) -> None:
+        for i in range(len(verts)):
+            vert = verts[i]
+
+            # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
+            if vert.groupIndex not in self.limbGroups:
+                self.limbGroups[vert.groupIndex] = []
+            self.limbGroups[vert.groupIndex].append(len(self.verts) + i)
+        self.verts.extend([vert.f3dVert for vert in verts])
 
     def addTriangle(self, indices, dlData):
         if self.materialChanged:
@@ -742,14 +754,8 @@ class F3DContext:
         # 	verts[0].groupIndex != verts[2].groupIndex or\
         # 	verts[2].groupIndex != verts[1].groupIndex:
         # 	return
-        for i in range(len(verts)):
-            vert = verts[i]
 
-            # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-            if vert.groupIndex not in self.limbGroups:
-                self.limbGroups[vert.groupIndex] = []
-            self.limbGroups[vert.groupIndex].append(len(self.verts) + i)
-        self.verts.extend([vert.f3dVert for vert in verts])
+        self.processLimbGroups(verts)
 
         for i in range(int(len(indices) / 3)):
             self.triMatIndices.append(self.lastMaterialIndex)
@@ -1565,12 +1571,16 @@ class F3DContext:
             raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
 
         offset = 0
+
         if matchResult.group(3):
             offset += math_eval(matchResult.group(3), f3d)
         if matchResult.group(5):
             offset += math_eval(matchResult.group(5), f3d)
 
         return matchResult.group(1), offset
+
+    def getVertexSegmentData(self, segment: str, count: str, start: str, vertOverride: type[F3DVert] = F3DVert) -> None:
+        raise NotImplementedError(f"Importing vertices from segments is not supported. Vertex List: {segment}")
 
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
@@ -1586,7 +1596,9 @@ class F3DContext:
             # print(command.name + " " + str(command.params))
             if command.name == "gsSPVertex":
                 vertexDataName, vertexDataOffset = self.getVertexDataStart(command.params[0], self.f3d)
-                parseVertexData(dlData, vertexDataName, self)
+                if vertexDataName.lower().startswith("0x"):
+                    self.getVertexSegmentData(vertexDataName, command.params[1], command.params[2])
+                parseVertexData(dlData, vertexDataName, self, self.vertOverride)
                 self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)
             elif command.name == "gsSPMatrix":
                 self.setCurrentTransform(command.params[0], command.params[1])
@@ -1863,6 +1875,11 @@ class F3DContext:
         else:
             raise PluginError("Attempting to delete material context that is None.")
 
+    def createVertexGroups(self, obj: bpy.types.Object) -> None:
+        for groupName, indices in self.limbGroups.items():
+            group = obj.vertex_groups.new(name=self.limbToBoneName[groupName])
+            group.add(indices, 1, "REPLACE")
+
     # if deleteMaterialContext is False, then manually call self.deleteMaterialContext() later.
     def createMesh(self, obj: bpy.types.Object, removeDoubles, importNormals, callDeleteMaterialContext: bool):
         mesh = obj.data
@@ -1886,9 +1903,10 @@ class F3DContext:
                 mesh.use_auto_smooth = True
             mesh.normals_split_custom_set([f3dVert.normal for f3dVert in self.verts])
 
-        for groupName, indices in self.limbGroups.items():
-            group = obj.vertex_groups.new(name=self.limbToBoneName[groupName])
-            group.add(indices, 1, "REPLACE")
+        # for groupName, indices in self.limbGroups.items():
+        #     group = obj.vertex_groups.new(name=self.limbToBoneName[groupName])
+        #     group.add(indices, 1, "REPLACE")
+        self.createVertexGroups(obj)
 
         for i in range(len(mesh.polygons)):
             mesh.polygons[i].material_index = self.triMatIndices[i]
@@ -1948,6 +1966,32 @@ class F3DContext:
 
         if callDeleteMaterialContext:
             self.deleteMaterialContext()
+
+
+def convertF3DUV(mat, vertex):
+    if mat.tex0.tex is not None:
+        texDimensions = mat.tex0.tex.size
+    elif mat.tex0.use_tex_reference:
+        texDimensions = mat.tex0.tex_reference_size
+    elif mat.tex1.tex is not None:
+        texDimensions = mat.tex1.tex.size
+    elif mat.tex1.use_tex_reference:
+        texDimensions = mat.tex1.tex_reference_size
+    else:
+        texDimensions = [32, 32]
+
+    def convert(value, maxSize):
+        try:
+            valueBytes = int.to_bytes(round(value), 2, "big", signed=True)
+        except OverflowError:
+            valueBytes = int.to_bytes(round(value), 2, "big", signed=False)
+
+        return ((int.from_bytes(valueBytes, "big", signed=True) / 32) + 0.5) / (maxSize if maxSize > 0 else 1)
+
+    uv = [convert(vertex.uv[i], texDimensions[i]) for i in range(2)]
+    uv[1] = 1 - uv[1]
+
+    return uv
 
 
 class ParsedMacro:
@@ -2010,7 +2054,9 @@ def parseDLData(dlData: str, dlName: str):
     return dlCommands
 
 
-def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
+def parseVertexData(
+    dlData: str, vertexDataName: str, f3dContext: F3DContext, vertOverride: type[F3DVert] = F3DVert
+) -> list[F3DVert]:
     if vertexDataName in f3dContext.vertexData:
         return f3dContext.vertexData[vertexDataName]
 
@@ -2039,7 +2085,7 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
                 # A format without the flag / packed normal
                 values = values[0:3] + [0] + values[3:9]
             vertexData.append(
-                F3DVert(
+                vertOverride(
                     Vector(values[0:3]),
                     Vector(values[4:6]),
                     Vector(values[6:9]),

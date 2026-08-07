@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, Any, List
+from typing import Union, Optional, Callable, Any, List, TypeVar, Generic
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -801,10 +801,10 @@ class F3DVert:
             and self.alpha == other.alpha
         )
 
-    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)) -> Vtx:
-        # Position (8 bytes)
-        position = [int(round(floatValue)) for floatValue in (transformMatrix @ self.position)]
+    def convertPosition(self, transformMatrix: Matrix) -> list[int]:
+        return [int(round(floatValue)) for floatValue in (transformMatrix @ self.position)]
 
+    def convertUV(self, texDimensions, isPointSampled: bool, tex_scale=(1, 1)) -> List[int]:
         # UV (4 bytes)
         # For F3D, Bilinear samples the point from the center of the pixel.
         # However, Point samples from the corner.
@@ -821,7 +821,9 @@ class F3DVert:
             convertFloatToFixed16(self.uv[0] * texDimensions[0] - pixelOffset[0]),
             convertFloatToFixed16(self.uv[1] * texDimensions[1] - pixelOffset[1]),
         ]
+        return uv
 
+    def convertNormalRGB(self, transformMatrix: Matrix):
         packedNormal = 0
         if self.normal is not None:
             # normal transformed correctly.
@@ -839,14 +841,24 @@ class F3DVert:
             ]
         colorOrNormal.append(scaleToU8(self.alpha).to_bytes(1, "big")[0])
 
+        return colorOrNormal, packedNormal
+
+    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)) -> Vtx:
+        # Position (8 bytes)
+        position = self.convertPosition(transformMatrix)
+        uv = self.convertUV(texDimensions, isPointSampled, tex_scale)
+        colorOrNormal, packedNormal = self.convertNormalRGB(transformMatrix)
+
         return Vtx(position, uv, colorOrNormal, packedNormal)
 
 
+VT = TypeVar("VT", bound="F3DVert")
+GT = TypeVar("GT", str, int, None)
 # groupIndex is either a vertex group (writing), or name of c variable identifying a transform group, like a limb (parsing)
-class BufferVertex:
-    def __init__(self, f3dVert: F3DVert, groupIndex: int | str, materialIndex: int):
-        self.f3dVert: F3DVert = f3dVert
-        self.groupIndex: int | str = groupIndex
+class BufferVertex(Generic[VT, GT]):
+    def __init__(self, f3dVert: VT, groupIndex: GT, materialIndex: int):
+        self.f3dVert = f3dVert
+        self.groupIndex = groupIndex
         self.materialIndex: int = materialIndex
 
     def __eq__(self, other):

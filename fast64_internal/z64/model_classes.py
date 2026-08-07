@@ -4,15 +4,15 @@ from pathlib import Path
 import re
 import mathutils
 
-from typing import Union, Optional
-from dataclasses import dataclass
-
+from enum import Enum
+from typing import Union, Optional, NamedTuple, Generic, TypeVar
+from collections import defaultdict
+from dataclasses import dataclass, field
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
-from ..utility import PluginError, hexOrDecInt, create_or_get_world, indent
+from ..utility import PluginError, hexOrDecInt, create_or_get_world, indent, getRgbNormalSettings
 from ..f3d.flipbook import TextureFlipbook, usesFlipbook, ootFlipbookReferenceIsValid
-
-from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo
+from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo, BufferVertex, F3DVert
 
 from ..f3d.f3d_texture_writer import (
     getColorsUsedInImage,
@@ -31,11 +31,13 @@ from ..f3d.f3d_gbi import (
     SPDisplayList,
     GfxList,
     GfxListTag,
+    Vtx,
     DLFormat,
     SPMatrix,
     GfxFormatter,
     DPSetTile,
     MTX_SIZE,
+    VTX_SIZE,
 )
 
 from .utility import is_hackeroot
@@ -139,6 +141,125 @@ class DynamicMaterialDL(SPDisplayList):
             )
         else:
             return indent + f"gsSPDisplayList({self.displayList.name}),\n"
+
+
+GT = TypeVar("GT", int, str)
+@dataclass(frozen=True)
+class VertexWeight(Generic[GT]):
+    group: GT
+    weight: float
+
+VertexTransform = NamedTuple("Transform", [("limbIndex", int), ("pos", mathutils.Vector), ("weight", float)])
+IntTransform = NamedTuple("Transform", [("limbIndex", int), ("pos", tuple[int, int, int]), ("weight", int)])
+
+
+class SkinVtx(Vtx):
+    """subclass of Vtx that supports OoT style smooth skinning"""
+
+    def __init__(
+        self,
+        position: list[int],
+        uv: list[int],
+        colorOrNormal: list[int],
+        packedNormal: int = 0,
+        transforms: list[IntTransform] | None = None,
+    ) -> None:
+        super().__init__(position, uv, colorOrNormal, packedNormal)
+        self.transforms = transforms or []
+
+    @property
+    def normal(self) -> list[int]:
+        return self.colorOrNormal[:3]
+
+    @property
+    def alpha(self):
+        return self.colorOrNormal[3]
+
+    @alpha.setter
+    def alpha(self, val) -> None:
+        self.colorOrNormal[3] = val
+
+    @property
+    def groups(self):
+        return [tuple([transform.limbIndex, transform.weight]) for transform in self.transforms]
+
+
+class OOTVert(F3DVert):
+    """Subclass of F3DVert that can store multiple vertex groups and their weights; for OoT style smooth skinning"""
+
+    def __init__(
+        self,
+        position: mathutils.Vector,
+        uv: mathutils.Vector,
+        rgb: mathutils.Vector | None,
+        normal: mathutils.Vector | None,
+        alpha: float,
+        transforms: list[VertexTransform] | None = None,
+        skinVert: bool = False,
+    ) -> None:
+        super().__init__(position, uv, rgb, normal, alpha)
+        self.transforms = transforms or []
+        self.skinVert = skinVert
+
+    @property
+    def unk_4(self) -> int:
+        """The index of the transform in transforms with the greatest weight"""
+        transform = sorted(self.transforms, key=lambda transform: transform[2], reverse=True)[0]
+        index = self.transforms.index(transform)
+        return index
+
+    @property
+    def groups(self) -> list[VertexWeight]:
+        return [VertexWeight(transform.limbIndex, transform.weight) for transform in self.transforms]
+
+    def addTransform(self, limbIndex: int, pos: mathutils.Vector, weight: float):
+        self.transforms.append(VertexTransform(limbIndex, pos, weight))
+        self.transforms.sort(key=lambda transform: transform.limbIndex)
+
+    def toSkinVtx(
+        self, texDimensions, transformMatrix: mathutils.Matrix, isPointSampled: bool, tex_scale=(1, 1)
+    ) -> SkinVtx:
+        assert self.normal is not None
+        position = self.convertPosition(transformMatrix)
+        uv = self.convertUV(texDimensions, isPointSampled, tex_scale)
+        colorOrNormal, packedNormal = self.convertNormalRGB(transformMatrix)
+        intTransforms: list[IntTransform] = []
+        for transform in self.transforms:
+            intTransforms.append(
+                IntTransform(
+                    transform.limbIndex,
+                    (round(transform.pos[0]), round(transform.pos[1]), round(transform.pos[2])),
+                    round(transform.weight * 100),
+                )
+            )
+        return SkinVtx(position, uv, colorOrNormal, packedNormal, intTransforms)
+
+    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)):
+        if not self.skinVert:
+            return super().toVtx(mesh, texDimensions, transformMatrix, isPointSampled, tex_scale)
+        else:
+            return self.toSkinVtx(texDimensions, transformMatrix, isPointSampled, tex_scale)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, OOTVert):
+            return NotImplemented
+
+        return (
+            self.position == other.position
+            and self.uv == other.uv
+            and self.stOffset == other.stOffset
+            and self.rgb == other.rgb
+            and self.normal == other.normal
+            and self.alpha == other.alpha
+            and self.transforms == other.transforms
+        )
+
+
+@dataclass
+class SkinAnimatedLimbData:
+    dlName: str = ""
+    vertexData: list[OOTVert] = field(default_factory=list)
+    baseAddr: str | None = None
 
 
 class OOTModel(FModel):
@@ -370,6 +491,25 @@ class OOTTriangleConverterInfo(TriangleConverterInfo):
         return format((0x0D << 24) + MTX_SIZE * self.vertexGroupInfo.vertexGroupToMatrixIndex[groupIndex], "#010x")
 
 
+# StrEnum is Python 3.11+
+class LimbType(str, Enum):
+    INVALID = "Invalid"
+    STANDARD = "Standard"
+    LOD = "Lod"
+    SKIN = "Skin"
+
+
+class LimbSkinType(str, Enum):
+    # Contains no mesh data, segment is NULL
+    EMPTY = "0"
+    # Contains the smooth skinned mesh data, segment is SkinAnimatedLimbData
+    SKIN_LIMB_TYPE_ANIMATED = "SKIN_LIMB_TYPE_ANIMATED"
+    # Is a limb responsible for smooth skinned deformation, segment is NULL
+    SKINNED = "5"
+    # Functions like a StandardLimb, segment is DisplayList
+    SKIN_LIMB_TYPE_NORMAL = "SKIN_LIMB_TYPE_NORMAL"
+
+
 class OOTVertexGroupInfo(VertexGroupInfo):
     def __init__(self):
         self.vertexGroupToMatrixIndex = {}
@@ -397,6 +537,18 @@ class OOTF3DContext(F3DContext):
         # materialContext.f3d_mat.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
         F3DContext.__init__(self, f3d, basePath, materialContext)
         self.draw_layer_prop = "oot"
+        self.vertOverride = OOTVert
+        self.initContext()
+
+    def initContext(self):
+        super().initContext()
+        # nested dict of groupName{weight : [vertex index] }
+        self.ootLimbGroups: defaultdict[str, dict[float, list[int]]] = defaultdict(lambda: defaultdict(list))
+
+        # For handling SkinLimbs
+        self.skinAnimatedLimbData: SkinAnimatedLimbData | None = None
+        self.skinLimbType: list[LimbSkinType | None] = []
+        self.isSkinDL: bool = False
 
     def getLimbName(self, index):
         return self.limbList[index]
@@ -471,7 +623,94 @@ class OOTF3DContext(F3DContext):
     def clearGeometry(self):
         self.dlList = []
         self.isBillboard = False
+        # self.initContext()
         super().clearGeometry()
+
+    def transformPosition(self, vert: OOTVert) -> mathutils.Vector:
+        limbMatrices = list(self.matrixData.values())
+        position = mathutils.Vector((0.0, 0.0, 0.0))
+        for transform in vert.transforms:
+            position += limbMatrices[transform.limbIndex] @ transform.pos * (transform.weight)
+
+        return position
+
+    def getVertexTransforms(
+        self, bufferVert: BufferVertex, has_normal: bool, has_packed_normals: bool
+    ) -> tuple[mathutils.Vector, mathutils.Vector]:
+        vert = bufferVert.f3dVert
+        if not isinstance(vert, OOTVert):
+            raise PluginError("vert must be of type OOTVert")
+
+        if len(vert.transforms) == 0:
+            if isinstance(bufferVert.groupIndex, int):
+                groupIndex = bufferVert.groupIndex
+            else:
+                groupIndex = list(self.matrixData).index(bufferVert.groupIndex)
+            vert.addTransform(groupIndex, vert.position, 1.0)
+
+        position = self.transformPosition(vert)
+        limbIndex = vert.transforms[vert.unk_4].limbIndex
+        transform = self.matrixData[self.getLimbName(limbIndex)]
+        normal = (
+            self.transformNormal(has_packed_normals, vert, transform)
+            if has_normal
+            else mathutils.Vector((0.0, 0.0, 0.0))
+        )
+        return position, normal
+
+    def getTransformedVertex(self, index: int) -> BufferVertex:
+        bufferVert = self.vertexBuffer[index]
+
+        if bufferVert is None:
+            raise PluginError("Vertex Buffer is empty.")
+
+        vert = bufferVert.f3dVert
+        if not isinstance(vert, OOTVert):
+            raise PluginError("vert must be of type OOTVert")
+
+        mat = self.mat()
+        has_rgb, has_normal, has_packed_normals = getRgbNormalSettings(mat)
+        has_packed_normals = has_packed_normals and not vert.skinVert
+
+        position, normal = self.getVertexTransforms(bufferVert, has_normal, has_packed_normals)
+        uv, rgb, alpha = self.convertVertexValues(mat, has_rgb, vert)
+        transformedVert = OOTVert(position, uv, rgb, normal, alpha, transforms=vert.transforms)
+
+        return BufferVertex(transformedVert, bufferVert.groupIndex, bufferVert.materialIndex)
+
+    def updateBuffer(self, count, start, vertexData, vertexDataOffset):
+        for i in range(count):
+            vert: OOTVert = vertexData[vertexDataOffset + i]
+            self.vertexBuffer[start + i] = BufferVertex(vert, self.currentTransformName, 0)
+
+    def processLimbGroups(self, verts: list[BufferVertex]) -> None:
+        for idx, bufferVert in enumerate(verts):
+            vert = bufferVert.f3dVert
+            assert isinstance(vert, OOTVert)
+
+            for vertexWeight in vert.groups:
+                weight = vertexWeight.weight
+                group = vertexWeight.group
+                if isinstance(group, int):
+                    boneName = self.getBoneName(group)
+                else:
+                    boneName = self.limbToBoneName[group]
+                self.ootLimbGroups[boneName][weight].append(len(self.verts) + idx)
+
+        self.verts.extend([vert.f3dVert for vert in verts])
+
+    def createVertexGroups(self, obj):
+        for limbGroup, weights in self.ootLimbGroups.items():
+            if isinstance(limbGroup, str):
+                groupName = limbGroup
+            else:
+                groupName = self.getBoneName(limbGroup)
+            if not obj.vertex_groups.get(groupName):
+                group = obj.vertex_groups.new(name=groupName)
+            else:
+                group = obj.vertex_groups.get(groupName)
+            for weight, indices in weights.items():
+                group.add(indices, weight, "REPLACE")
 
     def clearMaterial(self):
         self.isBillboard = False
@@ -565,6 +804,16 @@ class OOTF3DContext(F3DContext):
     def loadTLUTPal(self, name: str, dlData: str, count: int):
         if not self.ignore_tlut:
             super().loadTLUTPal(name, dlData, count)
+
+    def getVertexSegmentData(self, segment: str, count: str, start: str, vertOverride: type[F3DVert] = F3DVert) -> None:
+        if not self.isSkinDL:
+            super().getVertexSegmentData(segment, count, start, vertOverride)
+        if self.skinAnimatedLimbData.baseAddr is None:
+            self.skinAnimatedLimbData.baseAddr = int(segment, 16)
+
+        offset = (int(segment, 16) - self.skinAnimatedLimbData.baseAddr) // VTX_SIZE
+        end = offset + int(count) + int(start)
+        self.vertexData[segment] = self.skinAnimatedLimbData.vertexData[offset:end]
 
 
 def clearOOTFlipbookProperty(flipbookProp):

@@ -2,7 +2,7 @@ import dataclasses
 import mathutils, bpy, os, re
 from typing import Optional
 from ...utility_anim import armatureApplyWithMesh
-from ..model_classes import OOTVertexGroupInfo
+from ..model_classes import OOTVertexGroupInfo, LimbType, LimbSkinType
 from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
 
 from ...utility import (
@@ -96,10 +96,11 @@ class LimbInfo:
     translationZ_str: str
     nextChildIndex_str: str
     nextSiblingIndex_str: str
-    is_lod: bool
     dl_name: str
     far_dl_name: Optional[str]
     uses_include: bool
+    limb_type: LimbType
+    skin_type: LimbSkinType | None = None
 
 
 def ootGetLimb(skeletonData, limbName, continueOnError):
@@ -124,11 +125,12 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
         limb_data = result
 
     limbType = matchResultIni.group(1)
-    if limbType == "Lod":
-        is_lod = True
+
+    if limbType == LimbType.LOD:
         dlRegex = r"\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,?\}"
+    elif limbType == LimbType.SKIN:
+        dlRegex = r"([^,\s]*),\s*([^,\s]*)"
     else:
-        is_lod = False
         dlRegex = r"([^,\s]*)"
 
     matchResult = re.search(
@@ -151,8 +153,19 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
 
     dl_name = matchResult.group(6)
 
-    if is_lod:
+    far_dl_name = None
+    skin_type = None
+
+    if limbType == LimbType.LOD:
         far_dl_name = matchResult.group(7)
+    elif limbType == LimbType.SKIN:
+        try:
+            skin_type = LimbSkinType(matchResult.group(6))
+        except ValueError:
+            if continueOnError:
+                return None
+            raise PluginError(f"Invalid segmentType: {matchResult.group(6)} in SkinLimb named {limbName}")
+        dl_name = matchResult.group(7)
     else:
         far_dl_name = None
 
@@ -164,10 +177,11 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
         translationZ_str,
         nextChildIndex_str,
         nextSiblingIndex_str,
-        is_lod,
         dl_name,
         far_dl_name,
         uses_include,
+        limbType,
+        skin_type,
     )
 
 
