@@ -2,6 +2,7 @@ import bpy
 import os
 from pathlib import Path
 import re
+from bpy.types import MeshLoop, MeshLoopTriangle
 import mathutils
 
 from enum import Enum
@@ -9,11 +10,27 @@ from typing import Union, Optional, NamedTuple, Generic, TypeVar
 from collections import defaultdict
 from dataclasses import dataclass, field
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
-from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
-from ..utility import PluginError, hexOrDecInt, create_or_get_world, indent, getRgbNormalSettings
-from ..f3d.flipbook import TextureFlipbook, usesFlipbook, ootFlipbookReferenceIsValid
-from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo, BufferVertex, F3DVert
 
+from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
+from ..utility import (
+    PluginError,
+    CData,
+    hexOrDecInt,
+    create_or_get_world,
+    indent,
+    getBoneIndexFromGroupIndex,
+    getRgbNormalSettings,
+)
+from ..f3d.flipbook import TextureFlipbook, usesFlipbook, ootFlipbookReferenceIsValid
+
+from ..f3d.f3d_writer import (
+    VertexGroupInfo,
+    TriangleConverterInfo,
+    TriangleConverter,
+    BufferVertex,
+    F3DVert,
+    getF3DVert,
+)
 from ..f3d.f3d_texture_writer import (
     getColorsUsedInImage,
     mergePalettes,
@@ -32,10 +49,14 @@ from ..f3d.f3d_gbi import (
     GfxList,
     GfxListTag,
     Vtx,
+    VtxList,
+    FTriGroup,
+    FMesh,
     DLFormat,
     SPMatrix,
     GfxFormatter,
     DPSetTile,
+    F3D,
     MTX_SIZE,
     VTX_SIZE,
 )
@@ -143,17 +164,137 @@ class DynamicMaterialDL(SPDisplayList):
             return indent + f"gsSPDisplayList({self.displayList.name}),\n"
 
 
+@dataclass
+class SkinVertex:
+    index: int
+    uv: list[int]
+    normal: list[int]
+    alpha: int
+
+    # region properties
+    @property
+    def s(self):
+        return self.uv[0]
+
+    @s.setter
+    def s(self, val) -> None:
+        self.uv[0] = val
+
+    @property
+    def t(self):
+        return self.uv[1]
+
+    @t.setter
+    def t(self, val) -> None:
+        self.uv[1] = val
+
+    @property
+    def normX(self):
+        return (self.normal[0] + 128) % 256 - 128
+
+    @normX.setter
+    def normX(self, val) -> None:
+        self.normal[0] = val
+
+    @property
+    def normY(self):
+        return (self.normal[1] + 128) % 256 - 128
+
+    @normY.setter
+    def normY(self, val) -> None:
+        self.normal[1] = val
+
+    @property
+    def normZ(self):
+        return (self.normal[2] + 128) % 256 - 128
+
+    @normZ.setter
+    def normZ(self, val) -> None:
+        self.normal[2] = val
+
+    # endregion
+
+    def to_c(self) -> str:
+        return f"{{ {self.index}, {self.s}, {self.t}, {self.normX}, {self.normY}, {self.normZ}, {self.alpha} }}"
+
+
+@dataclass
+class SkinTransformation:
+    """Represents a vertex position multiplied by the inverse binding matrix of a limb"""
+
+    limbIndex: int
+    x: int
+    y: int
+    z: int
+    scale: int
+
+    def to_c(self) -> str:
+        return f"{{ {self.limbIndex}, {self.x}, {self.y}, {self.z}, {self.scale} }}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SkinTransformation):
+            return False
+        return (
+            self.limbIndex == other.limbIndex
+            and self.x == other.x
+            and self.y == other.y
+            and self.z == other.z
+            and self.scale == other.scale
+        )
+
+
+@dataclass
+class SkinLimbModif:
+    skinVertices: list[SkinVertex]
+    limbTransformations: list[SkinTransformation]
+
+    @property
+    def vtxCount(self) -> int:
+        return len(self.skinVertices)
+
+    @property
+    def transformCount(self) -> int:
+        return len(self.limbTransformations)
+
+    @property
+    def unk_4(self) -> int:
+        """The index of the SkinTransformation in limbTransformations with the greatest scale"""
+        index = self.limbTransformations.index(max(self.limbTransformations, key=lambda transform: transform.scale))
+        return index
+
+    def addVertex(self, other: "SkinLimbModif") -> None:
+        for skinVertex in other.skinVertices:
+            if skinVertex not in self.skinVertices:
+                self.skinVertices.append(skinVertex)
+            self.skinVertices.sort(key=lambda vertex: vertex.index)
+
+    def to_c(self, vertexName: str, transformName: str) -> str:
+        data = f"{{ {self.vtxCount}, {self.transformCount}, {self.unk_4}, {vertexName}, {transformName} }},\n"
+        return data
+
+    def __eq__(self, other) -> bool:
+        # Since this is only used for merging SkinLimbModifs, we only care if the SkinTransforms are the same
+        if not isinstance(other, SkinLimbModif):
+            return False
+        return sorted(self.limbTransformations, key=lambda transformation: transformation.limbIndex) == sorted(
+            other.limbTransformations, key=lambda transformation: transformation.limbIndex
+        )
+
+
 GT = TypeVar("GT", int, str)
+
+
 @dataclass(frozen=True)
 class VertexWeight(Generic[GT]):
     group: GT
     weight: float
 
+
 VertexTransform = NamedTuple("Transform", [("limbIndex", int), ("pos", mathutils.Vector), ("weight", float)])
 IntTransform = NamedTuple("Transform", [("limbIndex", int), ("pos", tuple[int, int, int]), ("weight", int)])
 
 
-class SkinVtx(Vtx):
+class OOTVtx(Vtx):
     """subclass of Vtx that supports OoT style smooth skinning"""
 
     def __init__(
@@ -172,7 +313,7 @@ class SkinVtx(Vtx):
         return self.colorOrNormal[:3]
 
     @property
-    def alpha(self):
+    def alpha(self) -> int:
         return self.colorOrNormal[3]
 
     @alpha.setter
@@ -180,8 +321,143 @@ class SkinVtx(Vtx):
         self.colorOrNormal[3] = val
 
     @property
-    def groups(self):
-        return [tuple([transform.limbIndex, transform.weight]) for transform in self.transforms]
+    def groups(self) -> list[tuple[int, int]]:
+        return [(transform.limbIndex, transform.weight) for transform in self.transforms]
+
+
+class OOTVtxList(VtxList):
+    """Subclass of VtxList extended to support SkinLimbModifs"""
+
+    def __init__(
+        self,
+        name: str,
+        vertices: list[OOTVtx] | None = None,
+        modifs: list[SkinLimbModif] | None = None,
+    ) -> None:
+        super().__init__(name)
+        self.vertices = vertices or []
+        self.modifs = modifs or []
+
+    def vtxToModifs(self) -> list[SkinLimbModif]:
+        if len(self.modifs) > 0:
+            return self.modifs
+
+        skinLimbModifs: list[SkinLimbModif] = []
+
+        for index, vtx in enumerate(self.vertices):
+            skinTransforms: list[SkinTransformation] = []
+
+            for transform in vtx.transforms:
+                skinTransforms.append(
+                    SkinTransformation(
+                        transform.limbIndex, transform.pos[0], transform.pos[1], transform.pos[2], transform.weight
+                    )
+                )
+            # To match the order in the extracted files. May matter when setting unk_4
+            skinTransforms.sort(key=lambda transform: transform.limbIndex)
+            skinVertex = SkinVertex(index, vtx.uv, vtx.normal, vtx.alpha)
+            modif = SkinLimbModif([skinVertex], skinTransforms)
+
+            if modif not in skinLimbModifs:
+                skinLimbModifs.append(modif)
+            else:
+                for skinLimbModif in skinLimbModifs:
+                    if skinLimbModif == modif:
+                        skinLimbModif.addVertex(modif)
+
+        self.modifs = skinLimbModifs
+        return skinLimbModifs
+
+    def to_c(self) -> CData:
+        if len(self.modifs) > 0:
+            return CData()
+        else:
+            return super().to_c()
+
+
+class SkinAnimData(FMesh):
+    """subclass of FMesh for exporting SkinAnimatedLimbData"""
+
+    def __init__(self, name: str, DLFormat: DLFormat) -> None:
+        super().__init__(name, DLFormat)
+        self.namePrefix = name.partition("mesh")[0]
+        self.name = self.namePrefix + "SkinAnimatedLimbData"
+        self.vtxList: OOTVtxList = OOTVtxList("0x08000000")
+
+    @property
+    def limbModifications(self) -> list[SkinLimbModif]:
+        return self.vtxList.vtxToModifs()
+
+    @property
+    def totalVtxCount(self) -> int:
+        vtxCount = 0
+        for modif in self.limbModifications:
+            vtxCount += modif.vtxCount
+        return vtxCount
+
+    @property
+    def limbModifCount(self) -> int:
+        return len(self.limbModifications)
+
+    @property
+    def dlist(self) -> str:
+        return self.draw.name
+
+    def tri_group_new(self, fMaterial) -> FTriGroup:
+        triGroup = super().tri_group_new(fMaterial)
+        triGroup.vertexList = self.vtxList
+        return triGroup
+
+    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter) -> tuple[CData, CData]:
+        staticData = CData()
+        transformData = CData()
+        vertexData = CData()
+        modifData = CData()
+
+        modifName = f"{self.namePrefix}SkinLimbModif"
+        modifData.header += f"extern SkinLimbModif {modifName}[{self.limbModifCount}];\n"
+        modifData.source += f"SkinLimbModif {modifName}[{self.limbModifCount}] = {{\n"
+
+        for index, modif in enumerate(self.limbModifications):
+            transformName = f"{self.namePrefix}SkinTransformation_{index:003}"
+            vertexName = f"{self.namePrefix}SkinVertex_{index:003}"
+            modifData.source += f"\t{modif.to_c(vertexName, transformName)}"
+
+            transformData.header += "extern SkinTransformation " + f"{transformName}[{modif.transformCount}];\n"
+            transformData.source += "SkinTransformation " + f"{transformName}[{modif.transformCount}] = {{\n"
+            for transform in modif.limbTransformations:
+                transformData.source += f"\t{transform.to_c()},\n"
+            transformData.source += "};\n\n"
+
+            vertexData.header += f"extern SkinVertex {vertexName}[{modif.vtxCount}];\n"
+            vertexData.source += f"SkinVertex {vertexName}[{modif.vtxCount}] = {{\n"
+            for vertex in modif.skinVertices:
+                vertexData.source += f"\t{vertex.to_c()},\n"
+            vertexData.source += "};\n\n"
+
+        staticData.append(transformData)
+        staticData.append(vertexData)
+        staticData.append(modifData)
+        staticData.source += "};\n\n"
+
+        staticData.header += f"extern SkinAnimatedLimbData {self.name};\n"
+        staticData.source += (
+            f"SkinAnimatedLimbData {self.name} = {{\n"
+            + f"\t{self.totalVtxCount}, {self.limbModifCount},\n"
+            + f"\t{modifName}, {self.draw.name}\n"
+            + "};\n\n"
+        )
+
+        for triGroup in self.triangleGroups:
+            staticData.append(triGroup.to_c(f3d, gfxFormatter))
+
+        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
+
+        for cmd_list in self.draw_overrides:
+            dynamicData.append(cmd_list.to_c(f3d))
+
+        return staticData, dynamicData
 
 
 class OOTVert(F3DVert):
@@ -216,10 +492,9 @@ class OOTVert(F3DVert):
         self.transforms.append(VertexTransform(limbIndex, pos, weight))
         self.transforms.sort(key=lambda transform: transform.limbIndex)
 
-    def toSkinVtx(
-        self, texDimensions, transformMatrix: mathutils.Matrix, isPointSampled: bool, tex_scale=(1, 1)
-    ) -> SkinVtx:
-        assert self.normal is not None
+    def toVtx(
+        self, mesh, texDimensions, transformMatrix: mathutils.Matrix, isPointSampled: bool, tex_scale=(1, 1)
+    ) -> OOTVtx:
         position = self.convertPosition(transformMatrix)
         uv = self.convertUV(texDimensions, isPointSampled, tex_scale)
         colorOrNormal, packedNormal = self.convertNormalRGB(transformMatrix)
@@ -232,13 +507,7 @@ class OOTVert(F3DVert):
                     round(transform.weight * 100),
                 )
             )
-        return SkinVtx(position, uv, colorOrNormal, packedNormal, intTransforms)
-
-    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)):
-        if not self.skinVert:
-            return super().toVtx(mesh, texDimensions, transformMatrix, isPointSampled, tex_scale)
-        else:
-            return self.toSkinVtx(texDimensions, transformMatrix, isPointSampled, tex_scale)
+        return OOTVtx(position, uv, colorOrNormal, packedNormal, intTransforms)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, OOTVert):
@@ -260,6 +529,37 @@ class SkinAnimatedLimbData:
     dlName: str = ""
     vertexData: list[OOTVert] = field(default_factory=list)
     baseAddr: str | None = None
+
+
+class OOTTriangleConverter(TriangleConverter):
+    def getBufferVert(self, loop: MeshLoop, face: MeshLoopTriangle, groupIndex: int | None) -> BufferVertex:
+        vertexGroupInfo: OOTVertexGroupInfo = self.triConverterInfo.vertexGroupInfo
+        mesh: bpy.types.Mesh = self.triConverterInfo.mesh
+        groups = vertexGroupInfo.weights[loop.vertex_index]
+        transforms: list[VertexTransform] = []
+        unk_4 = sorted(groups, key=lambda group: group.weight, reverse=True)[0].group
+        normMat = self.triConverterInfo.getTransformMatrix(unk_4).inverted().transposed()
+        normal = loop.normal.copy().freeze()
+
+        for group in groups:
+            index = group.group
+            weight = group.weight
+            position: mathutils.Vector = mesh.vertices[loop.vertex_index].co.copy().freeze()
+            mat = self.triConverterInfo.getTransformMatrix(index)
+            boneIndex = getBoneIndexFromGroupIndex(self.triConverterInfo.obj, self.triConverterInfo.armature, index)
+            limbIndex = vertexGroupInfo.boneIndexToLimbIndex[boneIndex]
+            transforms.append(VertexTransform(limbIndex, mat @ position, weight))
+
+        vert = getF3DVert(loop, face, self.convertInfo, mesh, OOTVert)
+        vert.transforms = transforms
+
+        if self.currentGroupIndex == -1:
+            vert.normal = (normMat @ normal).normalized()
+            vert.skinVert = True
+
+        bufferVert = BufferVertex(vert, groupIndex, face.material_index)
+
+        return bufferVert
 
 
 class OOTModel(FModel):
@@ -510,9 +810,20 @@ class LimbSkinType(str, Enum):
     SKIN_LIMB_TYPE_NORMAL = "SKIN_LIMB_TYPE_NORMAL"
 
 
+@dataclass(frozen=True)
+class SkinLimbGroup:
+    name: str
+    vertices: list[int] = field(default_factory=list)  # vertex indices
+    weights: list[float] = field(default_factory=list)  # vertex group weights out of 1.0
+    type: LimbSkinType = LimbSkinType.EMPTY
+
+
 class OOTVertexGroupInfo(VertexGroupInfo):
     def __init__(self):
-        self.vertexGroupToMatrixIndex = {}
+        self.vertexGroupToMatrixIndex: dict[int | None, int] = {}
+        self.weights: dict[int, list[VertexWeight[int]]] = {}  # vertex index to list of (group index, weight)
+        self.skinnedVertexGroups: dict[str, SkinLimbGroup] = {}  # boneName to SkinLimbGroup
+        self.boneIndexToLimbIndex: dict[int, int] = {}
         VertexGroupInfo.__init__(self)
 
 

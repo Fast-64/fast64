@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, Any, List, TypeVar, Generic
+from typing import Union, Optional, Callable, Any, List, TypeVar, Generic, cast
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -64,8 +64,11 @@ class VertexGroupInfo:
         self.vertexGroupToLimb = {}
 
 
-class MeshInfo:
-    def __init__(self):
+VG = TypeVar("VG", bound=VertexGroupInfo | None)
+
+
+class MeshInfo(Generic[VG]):
+    def __init__(self, groupInfo: VG = None) -> None:
         self.vert = {}  # all faces connected to a vert
         self.edge = {}  # all faces connected to an edge
         self.f3dVert = {}  # f3d vertex of a given loop
@@ -73,16 +76,16 @@ class MeshInfo:
         self.validNeighbors = {}  # all neighbors of a face with a valid connecting edge
         self.texDimensions = {}  # texture dimensions for each material
 
-        self.vertexGroupInfo = None
+        self.vertexGroupInfo: VG = groupInfo
 
 
 def get_original_name(obj: bpy.types.Object):
     return getattr(obj, "original_name", obj.name)
 
 
-def getInfoDict(obj: bpy.types.Object):
+def getInfoDict(obj: bpy.types.Object, groupInfo: VG = None) -> MeshInfo[VG]:
     try:
-        return getInfoDict_impl(obj)
+        return getInfoDict_impl(obj, groupInfo)
     except:
         print(f"Error in getInfoDict_impl(obj name = {get_original_name(obj)!r})")
         raise
@@ -129,7 +132,7 @@ def check_face_materials(
             )
 
 
-def getInfoDict_impl(obj: bpy.types.Object):
+def getInfoDict_impl(obj: bpy.types.Object, groupInfo: VG) -> MeshInfo[VG]:
     mesh: bpy.types.Mesh = obj.data
     material_slots = obj.material_slots
     if len(mesh.materials) == 0 or len(material_slots) == 0:
@@ -147,7 +150,7 @@ def getInfoDict_impl(obj: bpy.types.Object):
     if bpy.app.version < (4, 1, 0):
         mesh.calc_normals_split()
 
-    infoDict = MeshInfo()
+    infoDict = MeshInfo(groupInfo)
 
     vertDict = infoDict.vert
     edgeDict = infoDict.edge
@@ -708,52 +711,6 @@ def saveTriangleStrip(triConverter, faces, faceSTOffsets, mesh, terminateDL):
     return triConverter.currentGroupIndex
 
 
-def saveMeshByFaces(
-    material,
-    faces,
-    fModel,
-    fMesh,
-    obj,
-    drawLayer,
-    convertTextureData,
-    currentGroupIndex,
-    triConverterInfo,
-    existingVertData,
-    matRegionDict,
-    lastMaterialName,
-):
-    """
-    lastMaterialName is for optimization; set it to None to disable optimization.
-    """
-
-    if len(faces) == 0:
-        print("0 Faces Provided.")
-        return
-    fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-
-    if material.name != lastMaterialName:
-        fMesh.add_material_call(fMaterial)
-    triGroup = fMesh.tri_group_new(fMaterial)
-    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
-
-    triConverter = TriangleConverter(
-        triConverterInfo,
-        texDimensions,
-        material,
-        currentGroupIndex,
-        triGroup,
-        copy.deepcopy(existingVertData),
-        copy.deepcopy(matRegionDict),
-    )
-
-    currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
-
-    if fMaterial.revert is not None:
-        fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
-
-    return currentGroupIndex
-
-
 @dataclass
 class LoopConvertInfo:
     uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop]
@@ -852,13 +809,11 @@ class F3DVert:
         return Vtx(position, uv, colorOrNormal, packedNormal)
 
 
-VT = TypeVar("VT", bound="F3DVert")
-GT = TypeVar("GT", str, int, None)
 # groupIndex is either a vertex group (writing), or name of c variable identifying a transform group, like a limb (parsing)
-class BufferVertex(Generic[VT, GT]):
-    def __init__(self, f3dVert: VT, groupIndex: GT, materialIndex: int):
-        self.f3dVert = f3dVert
-        self.groupIndex = groupIndex
+class BufferVertex:
+    def __init__(self, f3dVert: F3DVert, groupIndex: int | str, materialIndex: int):
+        self.f3dVert: F3DVert = f3dVert
+        self.groupIndex: int | str = groupIndex
         self.materialIndex: int = materialIndex
 
     def __eq__(self, other):
@@ -889,15 +844,17 @@ class TriangleConverterInfo:
             "TriangleConverterInfo must be extended with getMatrixAddrFromGroup implemented for game specific uses."
         )
 
-    def getTransformMatrix(self, groupIndex):
+    def getTransformMatrix(self, groupIndex) -> Matrix:
         if self.armature is None or groupIndex is None:
             groupMatrix = mathutils.Matrix.Identity(4)
         else:
             if groupIndex not in self.groupNames:
                 self.groupNames[groupIndex] = getGroupNameFromIndex(self.obj, groupIndex)
             name = self.groupNames[groupIndex]
-            if name not in self.armature.bones:
-                print("Vertex group " + name + " not found in bones.")
+            if name is None:
+                groupMatrix = mathutils.Matrix.Identity(4)
+            elif name not in self.armature.bones:
+                print("Vertex group " + str(name) + " not found in bones.")
                 groupMatrix = mathutils.Matrix.Identity(4)
             else:
                 groupMatrix = self.armature.bones[name].matrix_local.inverted()
@@ -942,8 +899,8 @@ class TriangleConverter:
         material: bpy.types.Material,
         currentGroupIndex,
         triGroup: FTriGroup,
-        existingVertexData: list[BufferVertex],
-        existingVertexMaterialRegions,
+        existingVertexData: list[BufferVertex] | None,
+        existingVertexMaterialRegions: dict[int, tuple[int, int]] | None,
     ):
         self.triConverterInfo = triConverterInfo
         self.currentGroupIndex = currentGroupIndex
@@ -987,6 +944,14 @@ class TriangleConverter:
             limbVerts[bufferVert.groupIndex].append(bufferVert)
 
         return limbVerts
+
+    def getBufferVert(
+        self, loop: bpy.types.MeshLoop, face: bpy.types.MeshLoopTriangle, groupIndex: int | None
+    ) -> BufferVertex:
+        bufferVert = BufferVertex(
+            getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), groupIndex, face.material_index
+        )
+        return bufferVert
 
     def processGeometry(self):
         # Sort verts by limb index, then load current limb verts
@@ -1154,7 +1119,7 @@ class TriangleConverter:
         # Disable alpha compare culling for future DLs
         self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
-    def addFace(self, face, stOffset):
+    def addFace(self, face: bpy.types.MeshLoopTriangle, stOffset):
         triIndices = []
         addedVerts = []  # verts added to existing vertexBuffer
         allVerts = []  # all verts not in 'untouched' buffer region
@@ -1166,9 +1131,8 @@ class TriangleConverter:
                 if self.triConverterInfo.vertexGroupInfo is not None
                 else None
             )
-            bufferVert = BufferVertex(
-                getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), vertexGroup, face.material_index
-            )
+
+            bufferVert = self.getBufferVert(loop, face, vertexGroup)
             bufferVert.f3dVert.stOffset = stOffset
             triIndices.append(bufferVert)
             if not self.vertInBuffer(bufferVert, face.material_index):
@@ -1197,7 +1161,16 @@ class TriangleConverter:
             self.triList.commands.append(SPEndDisplayList())
 
 
-def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mesh: bpy.types.Mesh):
+VT = TypeVar("VT", bound="F3DVert")
+
+
+def getF3DVert(
+    loop: bpy.types.MeshLoop,
+    face,
+    convertInfo: LoopConvertInfo,
+    mesh: bpy.types.Mesh,
+    vertOverride: type[VT] = F3DVert,
+) -> VT:
     position: Vector = mesh.vertices[loop.vertex_index].co.copy().freeze()
     # N64 is -Y, Blender is +Y
     uv: Vector = convertInfo.uv_data[loop.index].uv.copy()
@@ -1212,7 +1185,7 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     normal = getLoopNormal(loop) if has_normal else None
     alpha = color[3]
 
-    return F3DVert(position, uv, rgb, normal, alpha)
+    return vertOverride(position, uv, rgb, normal, alpha)
 
 
 def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
@@ -1227,6 +1200,53 @@ def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
             round(loop.normal[2] * 2**16) / 2**16,
         )
     ).freeze()
+
+
+def saveMeshByFaces(
+    material: bpy.types.Material,
+    faces: list[bpy.types.MeshLoopTriangle],
+    fModel: FModel,
+    fMesh: FMesh,
+    obj: bpy.types.Object,
+    drawLayer: str,
+    convertTextureData: bool,
+    currentGroupIndex: int | None,
+    triConverterInfo: TriangleConverterInfo,
+    existingVertData: list[BufferVertex] | None,
+    matRegionDict: dict[int, tuple[int, int]] | None,
+    lastMaterialName: str | None,
+    converterOverride: type[TriangleConverter] = TriangleConverter,
+):
+    """
+    lastMaterialName is for optimization; set it to None to disable optimization.
+    """
+
+    if len(faces) == 0:
+        print("0 Faces Provided.")
+        return
+    fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+
+    if material.name != lastMaterialName:
+        fMesh.add_material_call(fMaterial)
+    triGroup = fMesh.tri_group_new(fMaterial)
+    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+
+    triConverter = converterOverride(
+        triConverterInfo,
+        texDimensions,
+        material,
+        currentGroupIndex,
+        triGroup,
+        copy.deepcopy(existingVertData),
+        copy.deepcopy(matRegionDict),
+    )
+
+    currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
+
+    if fMaterial.revert is not None:
+        fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
+
+    return currentGroupIndex
 
 
 @functools.lru_cache(0)

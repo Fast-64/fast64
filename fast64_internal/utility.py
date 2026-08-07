@@ -261,6 +261,17 @@ def getGroupNameFromIndex(obj, index):
     return None
 
 
+def getBoneIndexFromGroupIndex(obj: bpy.types.Object, armature: bpy.types.Armature, index: int) -> int:
+    group = obj.vertex_groups[index]
+    groupName = group.name
+    boneIndex = armature.bones.find(groupName)
+
+    if boneIndex == -1:
+        raise PluginError(f"Bone: {groupName} not found in Armature: {armature.name}")
+    else:
+        return boneIndex
+
+
 def copyPropertyCollection(from_prop, to_prop, do_clear: bool = True):
     if do_clear:
         to_prop.clear()

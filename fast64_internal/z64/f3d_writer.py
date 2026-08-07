@@ -3,25 +3,32 @@ import re
 import bpy
 
 from typing import Optional
+from mathutils import Matrix
 
-from ..utility import CData, getGroupIndexFromname, readFile, writeFile
+from ..utility import CData, getGroupIndexFromname, readFile, writeFile, PluginError
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
 from .utility import replaceMatchContent, getOOTScale, ootStripComments
 from .texture_array import TextureFlipbook
+from ..f3d.f3d_gbi import FMesh
 
 from ..f3d.f3d_writer import (
     checkForF3dMaterialInFaces,
     saveOrGetF3DMaterial,
     saveMeshWithLargeTexturesByFaces,
     saveMeshByFaces,
+    MeshInfo,
 )
 
 from .model_classes import (
     OOTTriangleConverterInfo,
+    OOTTriangleConverter,
     OOTModel,
     ootGetActorData,
     ootGetLinkData,
+    OOTVertexGroupInfo,
+    LimbSkinType,
+    SkinAnimData,
 )
 
 
@@ -53,24 +60,34 @@ def getColliderMat(name: str, color: tuple[float, float, float, float]) -> bpy.t
 # 	mesh,
 # 	anySkinnedFaces (to determine if skeleton should be flex)
 def ootProcessVertexGroup(
-    fModel,
-    meshObj,
-    vertexGroup,
-    convertTransformMatrix,
-    armatureObj,
-    namePrefix,
-    meshInfo,
-    drawLayerOverride,
-    convertTextureData,
-    lastMaterialName,
+    fModel: OOTModel,
+    meshObj: bpy.types.Object,
+    vertexGroup: str,
+    convertTransformMatrix: Matrix,
+    armatureObj: bpy.types.Object,
+    namePrefix: str,
+    meshInfo: MeshInfo[OOTVertexGroupInfo],
+    drawLayerOverride: str,
+    convertTextureData: bool,
+    lastMaterialName: str | None,
     optimize: bool,
-):
+) -> tuple[FMesh | None, bool, str | None]:
     if not optimize:
         lastMaterialName = None
 
     mesh = meshObj.data
     currentGroupIndex = getGroupIndexFromname(meshObj, vertexGroup)
     nextDLIndex = len(meshInfo.vertexGroupInfo.vertexGroupToMatrixIndex)
+
+    limbSkinType = meshInfo.vertexGroupInfo.skinnedVertexGroups[vertexGroup].type
+    smoothSkinned = False
+
+    if limbSkinType in (LimbSkinType.EMPTY, LimbSkinType.SKINNED):
+        return None, False, lastMaterialName
+    elif limbSkinType == LimbSkinType.SKIN_LIMB_TYPE_ANIMATED:
+        smoothSkinned = True
+        currentGroupIndex = -1
+
     vertIndices = [
         vert.index
         for vert in meshObj.data.vertices
@@ -106,7 +123,10 @@ def ootProcessVertexGroup(
                 vertGroupIndex = meshInfo.vertexGroupInfo.vertexGroups[faceVertIndex]
                 if vertGroupIndex != currentGroupIndex:
                     hasSkinnedFaces = True
-                if vertGroupIndex not in meshInfo.vertexGroupInfo.vertexGroupToLimb:
+                if (
+                    limbSkinType != LimbSkinType.SKIN_LIMB_TYPE_ANIMATED
+                    and vertGroupIndex not in meshInfo.vertexGroupInfo.vertexGroupToLimb
+                ):
                     # Connected to a bone not processed yet
                     # These skinned faces will be handled by that limb
                     connectedToUnhandledBone = True
@@ -154,7 +174,10 @@ def ootProcessVertexGroup(
     # however it seems like OOT skeletons don't have this ability.
     # Therefore we always use the drawLayerOverride as the draw layer key.
     # This means everything will be saved to one mesh.
-    fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone)
+    if not smoothSkinned:
+        fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone)
+    else:
+        fMesh = fModel.addMesh(vertexGroup, namePrefix, drawLayerOverride, False, bone, meshOverride=SkinAnimData)
 
     for material_index, faces in groupFaces.items():
         material = meshObj.material_slots[material_index].material
@@ -164,6 +187,9 @@ def ootProcessVertexGroup(
         )
 
         if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
+            if smoothSkinned:
+                raise NotImplementedError("Large Texture Mode isn't implemented for SkinLimb Exports")
+
             currentGroupIndex = saveMeshWithLargeTexturesByFaces(
                 material,
                 faces,
@@ -192,6 +218,7 @@ def ootProcessVertexGroup(
                 None,
                 None,
                 lastMaterialName,
+                OOTTriangleConverter,
             )
 
         lastMaterialName = material.name if optimize else None
