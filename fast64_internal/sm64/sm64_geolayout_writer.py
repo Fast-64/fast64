@@ -628,7 +628,7 @@ def exportGeolayoutArmatureC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertArmatureToGeolayout(
-        armatureObj, obj, convertTransformMatrix, camera, dirName, DLFormat, not savePNG
+        armatureObj, obj, convertTransformMatrix, camera, toAlnum(dirName), DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -664,7 +664,7 @@ def exportGeolayoutObjectC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, True, dirName, None, None, DLFormat, not savePNG
+        obj, convertTransformMatrix, True, toAlnum(dirName), None, None, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(

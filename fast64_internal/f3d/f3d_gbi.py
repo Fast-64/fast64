@@ -2341,7 +2341,7 @@ class FModel:
         DLFormat: "DLFormat",
         matWriteMethod: GfxMatWriteMethod,
     ):
-        self.name = name  # used for texture prefixing
+        self.name = toAlnum(name)  # used for texture prefixing
         # dict of light name : Lights
         self.lights: dict[str, Lights] = {}
         # dict of (texture, (texture format, palette format)) : FImage
