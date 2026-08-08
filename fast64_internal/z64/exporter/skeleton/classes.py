@@ -135,10 +135,6 @@ class LODLimb(OOTBaseLimb):
     def dLists(self) -> list[GfxList | OOTDLReference | None]:
         return [self.DL, self.lodDL]
 
-    @dLists.setter
-    def dLists(self):
-        ...
-
     def getNumDLs(self) -> int:
         numDLs = 0
         if self.DL is not None or self.lodDL is not None:

@@ -1903,9 +1903,6 @@ class F3DContext:
                 mesh.use_auto_smooth = True
             mesh.normals_split_custom_set([f3dVert.normal for f3dVert in self.verts])
 
-        # for groupName, indices in self.limbGroups.items():
-        #     group = obj.vertex_groups.new(name=self.limbToBoneName[groupName])
-        #     group.add(indices, 1, "REPLACE")
         self.createVertexGroups(obj)
 
         for i in range(len(mesh.polygons)):
