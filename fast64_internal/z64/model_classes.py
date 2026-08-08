@@ -962,11 +962,7 @@ class OOTF3DContext(F3DContext):
         position = self.transformPosition(vert)
         limbIndex = vert.transforms[vert.unk_4].limbIndex
         transform = self.matrixData[self.getLimbName(limbIndex)]
-        normal = (
-            self.transformNormal(has_packed_normals, vert, transform)
-            if has_normal
-            else mathutils.Vector((0.0, 0.0, 0.0))
-        )
+        normal = self.transformNormal(has_normal, has_packed_normals, vert, transform)
         return position, normal
 
     def getTransformedVertex(self, index: int) -> BufferVertex:

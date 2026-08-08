@@ -640,12 +640,16 @@ class F3DContext:
         else:
             self.currentTransformName = name
 
-    def transformNormal(self, has_packed_normals: bool, f3dVert: F3DVert, transform: Matrix) -> Vector:
-        if has_packed_normals:
-            normal = f3dVert.normal
-        else:
-            normal = Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
-        normal = (transform.inverted().transposed() @ normal).normalized()
+    def transformNormal(
+        self, has_normal: bool, has_packed_normals: bool, f3dVert: F3DVert, transform: Matrix
+    ) -> Vector:
+        normal = Vector([0.0, 0.0, 0.0])  # Zero normal makes normals_split_custom_set use auto
+        if has_normal:
+            if has_packed_normals:
+                normal = f3dVert.normal
+            else:
+                normal = Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
+            normal = (transform.inverted().transposed() @ normal).normalized()
         return normal
 
     def getVertexTransforms(
@@ -661,10 +665,9 @@ class F3DContext:
 
         f3dVert = bufferVert.f3dVert
         position = transform @ Vector(f3dVert.position)
-        # Zero normal makes normals_split_custom_set use auto
-        normal = self.transformNormal(has_packed_normals, f3dVert, transform) if has_normal else Vector((0.0, 0.0, 0.0))
+        normal = self.transformNormal(has_normal, has_packed_normals, f3dVert, transform)
+
         return position, normal
-        ...
 
     def convertVertexValues(self, mat: F3DMaterialProperty, has_rgb: bool, f3dVert: F3DVert):
         uv = convertF3DUV(mat, f3dVert)
