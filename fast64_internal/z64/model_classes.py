@@ -382,7 +382,7 @@ class SkinAnimData(FMesh):
         super().__init__(name, DLFormat)
         self.namePrefix = name.partition("mesh")[0]
         self.name = self.namePrefix + "SkinAnimatedLimbData"
-        self.vtxList: OOTVtxList = OOTVtxList("0x08000000")
+        self.vtxList: OOTVtxList = OOTVtxList("(Vtx*)0x08000000")
 
     @property
     def limbModifications(self) -> list[SkinLimbModif]:

@@ -3508,17 +3508,11 @@ class SPVertex(GbiMacro):
             return gsDma1p(f3d.G_VTX, vertPtr, VTX_SIZE * self.count, (self.count - 1) << 4 | self.index)
 
     def to_c(self, static=True):
-        vertPtr = self.vertList.name
-        if vertPtr.lower().startswith("0x"):
-            segmentedAddr = int(self.vertList.name, 16) + self.offset * VTX_SIZE
-            vertPtr = f"{segmentedAddr:#010x}"
-            self.offset = 0
-
         header = "gsSPVertex(" if static else "gSPVertex(glistp++, "
         if not static and bpy.context.scene.gameEditorMode == "Homebrew":
-            header += "segmented_to_virtual(" + vertPtr + " + " + str(self.offset) + ")"
+            header += "segmented_to_virtual(" + self.vertList.name + " + " + str(self.offset) + ")"
         else:
-            header += vertPtr + " + " + str(self.offset)
+            header += self.vertList.name + " + " + str(self.offset)
         return header + ", " + str(self.count) + ", " + str(self.index) + ")"
 
 
