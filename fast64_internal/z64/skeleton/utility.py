@@ -460,7 +460,10 @@ def applySkeletonRestPose(boneData: list[tuple[float, float, float]], armatureOb
 
 
 def getRecursiveSortedChildren(bone: bpy.types.Bone):
-    children = getSortedChildren(None, bone)
+    children = sorted(
+        [child for child in bone.children if child.ootBone.boneType != "Ignore"],
+        key=lambda child: child.name.lower(),
+    )
     for child in children:
         yield child
         yield from getRecursiveSortedChildren(child)
