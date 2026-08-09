@@ -30,9 +30,9 @@ class SM64_Panel(bpy.types.Panel):
             return False
         elif cls.import_panel and not sm64_props.show_importing_menus:
             return False
-        elif cls.decomp_only and sm64_props.export_type != "C":
+        elif cls.decomp_only and sm64_props.legacy_export_type != "C":
             return False
-        elif cls.binary_only and sm64_props.export_type == "C":
+        elif cls.binary_only and sm64_props.legacy_export_type == "C":
             return False
         scene_goal = sm64_props.goal
         return scene_goal == "All" or sm64_props.goal == cls.goal or cls.goal == "All"

@@ -308,7 +308,10 @@ def get_action(name: str):
 
 
 def get_slots(action: Action):
-    return {str(slot.identifier): slot for slot in action.slots if slot.target_id_type == "OBJECT"}
+    if bpy.app.version >= (5, 0, 0):
+        return {str(slot.identifier): slot for slot in action.slots if slot.target_id_type == "OBJECT"}
+    else:
+        return {}
 
 
 def get_fcurves(action: bpy.types.Action, action_slot: Optional["ActionSlot"] = None) -> "ActionFCurves":

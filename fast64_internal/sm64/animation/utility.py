@@ -125,16 +125,32 @@ def anim_name_to_enum_name(anim_name: str) -> str:
     return enum_name
 
 
-def duplicate_name(name: str, existing_names: dict[str, int]) -> str:
-    """Updates existing_names"""
-    current_num = existing_names.get(name)
-    if current_num is None:
-        existing_names[name] = 0
-    elif name != "":
+def duplicate_name(base_name: str, existing_names: set[str]) -> str:
+    """Finds the next available name and adds it to the set."""
+    if base_name == "":
+        return base_name
+
+    if base_name not in existing_names:
+        existing_names.add(base_name)
+        return base_name
+
+    current_num = 1
+    while True:
+        new_name = f"{base_name}_D{current_num:03}"  # breaks old enums but it's for the better
+        if new_name not in existing_names:
+            existing_names.add(new_name)
+            return new_name
         current_num += 1
-        existing_names[name] = current_num
-        return f"{name}_{current_num}"
-    return name
+
+
+def add_name_to_duplicate_list(name: str, existing_names: set[str]):
+    if name != "":
+        existing_names.add(name)
+
+
+def remove_name_from_duplicate_list(name: str, existing_names: set[str]):
+    if name in existing_names:
+        existing_names.remove(name)
 
 
 def table_name_to_enum(name: str):
@@ -157,7 +173,7 @@ def get_anim_props(context: Context) -> "SM64_ArmatureAnimProperties":
 
 def get_anim_actor_name(context: Context) -> str | None:
     sm64_props = context.scene.fast64.sm64
-    if sm64_props.export_type == "C" and sm64_props.combined_export.export_anim:
+    if sm64_props.legacy_export_type == "C" and sm64_props.combined_export.export_anim:
         return toAlnum(sm64_props.combined_export.obj_name_anim)
     elif context.object:
         return sm64_props.combined_export.filter_name(toAlnum(context.object.name), True)

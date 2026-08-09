@@ -120,6 +120,10 @@ class SM64_Properties(PropertyGroup):
         return self.export_type in {"Binary", "Insertable Binary"}
 
     @property
+    def legacy_export_type(self):
+        return "C" if self.export_type == "GLTF" else self.export_type
+
+    @property
     def abs_decomp_path(self):
         return Path(abspath(self.decomp_path))
 
@@ -137,11 +141,11 @@ class SM64_Properties(PropertyGroup):
 
     @property
     def show_matstack_fix(self) -> bool:
-        return not self.hackersm64 and self.export_type == "C"
+        return not self.hackersm64 and self.legacy_export_type == "C"
 
     @property
     def use_matstack_fix(self) -> bool:
-        return (self.matstack_fix or self.hackersm64) and self.export_type == "C"
+        return (self.matstack_fix or self.hackersm64) and self.legacy_export_type == "C"
 
     @property
     def gfx_write_method(self):

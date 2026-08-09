@@ -10,6 +10,7 @@ enum_export_type = [
     ("C", "C", "C"),
     ("Binary", "Binary", "Binary"),
     ("Insertable Binary", "Insertable Binary", "Insertable Binary"),
+    ("GLTF", "glTF (Animations Only)", "glTF (Animations Only)"),
 ]
 
 enum_compression_formats = [
