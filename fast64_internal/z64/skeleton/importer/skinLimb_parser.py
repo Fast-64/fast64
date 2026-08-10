@@ -1,10 +1,8 @@
-# import bpy
-# import math
 import re
-from mathutils import Vector, Euler
-from ..utility import hexOrDecInt, PluginError, get_include_data
-from .model_classes import SkinAnimatedLimbData, OOTVert, VertexTransform, VertexWeight
-from .animation.importer.functions import ootGetAnimationData, ootGetAnimRawTranslation, ootGetAnimRawRotation
+from mathutils import Vector
+from ....utility import hexOrDecInt, PluginError, get_include_data
+from ...model_classes import SkinAnimatedLimbData, OOTVert, VertexTransform, VertexWeight
+from ...animation.importer.functions import ootGetAnimationData, ootGetAnimRawTranslation, ootGetAnimRawRotation
 
 
 def getSkinLimbRestPose(

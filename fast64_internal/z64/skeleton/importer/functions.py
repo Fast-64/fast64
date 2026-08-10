@@ -25,7 +25,7 @@ from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, get_anim_names
 from ...tools.quick_import import quick_import_exec
-from ...skinLimb_parser import parseSkinAnimatedLimbData, getSkinLimbRestPose
+from .skinLimb_parser import parseSkinAnimatedLimbData, getSkinLimbRestPose
 
 
 class OOTDLEntry:
