@@ -214,12 +214,16 @@ def vertexGroupGenerator(vert: bpy.types.MeshVertex, armature: bpy.types.Armatur
                     yield groupName, group.weight
 
 
-def getSkinLimbType(vertices: list[int], weights: list[float]) -> LimbSkinType:
-    if len(vertices) == 0:
+def getSkinLimbType(
+    vertices: list[int], weights: list[float], bone: bpy.types.Bone, isSkinLimbExport: bool
+) -> LimbSkinType:
+    if len(vertices) == 0 and bone.ootBone.boneType != "Custom DL":
         return LimbSkinType.EMPTY
     elif all(weight == 1.0 for weight in weights):
         return LimbSkinType.SKIN_LIMB_TYPE_NORMAL
     else:
+        if not isSkinLimbExport:
+            return LimbSkinType.SKIN_LIMB_TYPE_NORMAL
         return LimbSkinType.SKINNED
 
 
@@ -232,15 +236,17 @@ def getSkinAnimatedLimb(armatureObj: bpy.types.Object) -> dict[str, SkinLimbGrou
 def getSkinLimbGroups(
     armatureObj: bpy.types.Object, skinnedVertexGroups: dict[str, tuple[list[int], list[float]]]
 ) -> tuple[set[int], dict[str, SkinLimbGroup]]:
+    isSkinLimbExport: bool = armatureObj.ootSkeleton.isSkinLimb
     skinnedVertices: set[int] = set()
     skinLimbGroups: dict[str, SkinLimbGroup] = {}
     for groupName, (vertices, weights) in skinnedVertexGroups.items():
-        limbSkinType = getSkinLimbType(vertices, weights)
+        bone = armatureObj.data.bones[groupName]
+        limbSkinType = getSkinLimbType(vertices, weights, bone, isSkinLimbExport)
         skinLimbGroups[groupName] = SkinLimbGroup(groupName, vertices, weights, limbSkinType)
         if limbSkinType == LimbSkinType.SKINNED:
             skinnedVertices.update(vertices)
 
-    if len(skinnedVertices) > 0:
+    if isSkinLimbExport:
         skinLimbGroups |= getSkinAnimatedLimb(armatureObj)
 
     return skinnedVertices, skinLimbGroups
@@ -469,11 +475,12 @@ def getRecursiveSortedChildren(bone: bpy.types.Bone):
         yield from getRecursiveSortedChildren(child)
 
 
-def ootDetermineLimbType(skinGroups: list[SkinLimbGroup]) -> type[OOTBaseLimb]:
-    if any(weight < 1.0 for skinGroup in skinGroups for weight in skinGroup.weights):
+def ootDetermineLimbType(armatureObj: bpy.types.Object) -> type[OOTBaseLimb]:
+    if armatureObj.ootSkeleton.isSkinLimb:
         return SkinLimb
-    else:
-        return StandardLimb
+    if armatureObj.ootSkeleton.LOD is not None:
+        return LODLimb
+    return StandardLimb
 
 
 def ootDetermineSkeletonType(
@@ -494,11 +501,7 @@ def ootConstructSkeleton(
     faces: list[bpy.types.MeshLoopTriangle],
     vertexGroupInfo: OOTVertexGroupInfo,
 ) -> OOTBaseSkeleton:
-    if armatureObj.ootSkeleton.LOD is not None:
-        limbClass = LODLimb
-    else:
-        skinGroups = [group for group in vertexGroupInfo.skinnedVertexGroups.values()]
-        limbClass = ootDetermineLimbType(skinGroups)
+    limbClass = ootDetermineLimbType(armatureObj)
 
     if limbClass is SkinLimb:
         skeleton = StandardSkeleton

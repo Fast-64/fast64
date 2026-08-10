@@ -438,6 +438,9 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         applySkeletonRestPose(restPoseData, armatureObj)
         if isLOD:
             applySkeletonRestPose(restPoseData, LODArmatureObj)
+
+    armatureObj.ootSkeleton.isSkinLimb = smoothSkinned
+
     armatureObj.update_tag()
     if isLOD:
         LODArmatureObj.update_tag()

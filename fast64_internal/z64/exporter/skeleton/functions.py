@@ -155,32 +155,26 @@ def ootConvertArmatureToSkeleton(
 ):
     checkEmptyName(name)
 
-    if len(originalArmatureObj.children) == 0:
-        raise PluginError("No mesh parented to armature.")
-
-    originalMeshObjs = [obj for obj in originalArmatureObj.children if obj.type == "MESH"]
-    originalMeshObj = originalMeshObjs[0]
-
-    checkForStartBone(originalArmatureObj)
-    startBoneName = getStartBone(originalArmatureObj)
-
-    vertexGroupInfo = getGroupIndices(
-        originalArmatureObj, originalMeshObj, getGroupIndexFromname(originalMeshObj, startBoneName)
-    )
-    skeleton = ootConstructSkeleton(name, originalArmatureObj, originalMeshObj.data.loop_triangles, vertexGroupInfo)
-    removeRotations = skeleton.limbType.typeName != LimbType.SKIN
-
+    isSkinLimbExport = originalArmatureObj.ootSkeleton.isSkinLimb
     # SkinLimbs need to be exported in their rest pose
-    armatureObj, meshObjs = ootDuplicateArmatureAndRemoveRotations(originalArmatureObj, removeRotations)
+    armatureObj, meshObjs = ootDuplicateArmatureAndRemoveRotations(originalArmatureObj, not isSkinLimbExport)
 
     try:
+        if len(armatureObj.children) == 0:
+            raise PluginError("No mesh parented to armature.")
+
+        # startBoneNames = sorted([bone.name for bone in armatureObj.data.bones if bone.parent is None])
+        # startBoneName = startBoneNames[0]
+        checkForStartBone(armatureObj)
+        startBoneName = getStartBone(armatureObj)
         meshObj = meshObjs[0]
+
+        vertexGroupInfo = getGroupIndices(armatureObj, meshObj, getGroupIndexFromname(meshObj, startBoneName))
+        skeleton = ootConstructSkeleton(name, armatureObj, meshObj.data.loop_triangles, vertexGroupInfo)
         meshInfo = getInfoDict(meshObj, vertexGroupInfo)
 
         convertTransformMatrix = convertTransformMatrix @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
 
-        # for i in range(len(startBoneNames)):
-        # 	startBoneName = startBoneNames[i]
         limbIndex = 0
         meshInfo.vertexGroupInfo.boneIndexToLimbIndex[armatureObj.data.bones.find(startBoneName)] = limbIndex
         startBone = armatureObj.data.bones[startBoneName]
@@ -191,6 +185,8 @@ def ootConvertArmatureToSkeleton(
             boneIndex = armatureObj.data.bones.find(childName)
             meshInfo.vertexGroupInfo.boneIndexToLimbIndex[boneIndex] = limbIndex
 
+        # for i in range(len(startBoneNames)):
+        # 	startBoneName = startBoneNames[i]
         ootProcessBone(
             fModel,
             startBoneName,
@@ -273,7 +269,7 @@ def ootConvertArmatureToC(
         originalArmatureObj, convertTransformMatrix, fModel, skeletonName, not savePNG, drawLayer, optimize
     )
 
-    if originalArmatureObj.ootSkeleton.LOD is not None:
+    if originalArmatureObj.ootSkeleton.LOD is not None and not originalArmatureObj.ootSkeleton.isSkinLimb:
         lodSkeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
             originalArmatureObj.ootSkeleton.LOD,
             convertTransformMatrix,
