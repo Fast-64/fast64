@@ -49,6 +49,7 @@ def parseBGImage(roomHeader: OOTRoomHeaderProperty, params: list[str], sharedSce
     bgImage = roomHeader.bgImageList.add()
     bgImage.otherModeFlags = params[10]
     bgName = f"{params[3]}.jpg"
+    bgName = bgName.removeprefix("&")
     image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}"))
     bgImage.image = image
 
@@ -66,6 +67,7 @@ def parseBGImageList(
         bgImage.otherModeFlags = params[9]
 
         bgName = params[2]
+        bgName = bgName.removeprefix("&")
         image = bpy.data.images.load(os.path.join(bpy.path.abspath(sharedSceneData.scenePath), f"{bgName}.jpg"))
         bgImage.image = image
 
