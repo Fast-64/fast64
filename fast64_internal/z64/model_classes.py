@@ -938,10 +938,9 @@ class OOTF3DContext(F3DContext):
         super().clearGeometry()
 
     def transformPosition(self, vert: OOTVert) -> mathutils.Vector:
-        limbMatrices = list(self.matrixData.values())
         position = mathutils.Vector((0.0, 0.0, 0.0))
         for transform in vert.transforms:
-            position += limbMatrices[transform.limbIndex] @ transform.pos * (transform.weight)
+            position += self.matrixData[self.limbList[transform.limbIndex]] @ transform.pos * (transform.weight)
 
         return position
 
@@ -951,6 +950,9 @@ class OOTF3DContext(F3DContext):
         vert = bufferVert.f3dVert
         if not isinstance(vert, OOTVert):
             raise PluginError("vert must be of type OOTVert")
+
+        if len(self.limbList) == 0:
+            return super().getVertexTransforms(bufferVert, has_normal, has_packed_normals)
 
         if len(vert.transforms) == 0:
             if isinstance(bufferVert.groupIndex, int):
@@ -999,7 +1001,7 @@ class OOTF3DContext(F3DContext):
                 weight = vertexWeight.weight
                 group = vertexWeight.group
                 if isinstance(group, int):
-                    boneName = self.getBoneName(group)
+                    boneName = self.limbToBoneName[self.limbList[group]]
                 else:
                     boneName = self.limbToBoneName[group]
                 self.ootLimbGroups[boneName][weight].append(len(self.verts) + idx)
