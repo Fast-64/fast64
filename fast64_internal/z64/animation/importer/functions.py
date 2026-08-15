@@ -65,30 +65,51 @@ def getJointIndices(filepath, animData, jointIndicesName):
     return jointIndicesData
 
 
-def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
-    animData = getImportData([filepath])
+def getAnimData(filepath: str, importData: str, animName: str, isCustomImport: bool):
+    # importData = getImportData([filepath])
     if not isCustomImport:
         basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-        animData = ootGetIncludedAssetData([basePath], [filepath], animData) + animData
+        importData = ootGetIncludedAssetData([basePath], [filepath], importData) + importData
 
-    matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", animData, re.DOTALL | re.MULTILINE)
+    matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", importData, re.DOTALL | re.MULTILINE)
 
     if matchResult is None:
         raise PluginError("Cannot find definition named " + animName + " in " + filepath)
 
     if "#include" in matchResult.group(1):
-        anim_data = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
+        animData = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
         regex = r"\{(.*?),?\},(.*?),(.*?),(.*?),"
     else:
-        anim_data = animData
+        animData = importData
         regex = (
             re.escape(animName)
             + r"\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}*\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\}\s*;"
         )
 
+    matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", importData, re.DOTALL | re.MULTILINE)
+
+    if matchResult is None:
+        raise PluginError("Cannot find definition named " + animName + " in " + filepath)
+
+    if "#include" in matchResult.group(1):
+        animData = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
+        regex = r"\{(.*?),?\},(.*?),(.*?),(.*?),"
+    else:
+        animData = importData
+        regex = (
+            re.escape(animName)
+            + r"\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}*\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\}\s*;"
+        )
+
+    return animData, regex
+
+
+def ootGetAnimationData(filepath: str, importData: str, animName: str, isCustomImport: bool):
+    animData, regex = getAnimData(filepath, importData, animName, isCustomImport)
+
     matchResult = re.search(
         regex,
-        anim_data,
+        animData,
     )
     if matchResult is None:
         raise PluginError("Cannot find animation named " + animName + " in " + filepath)
@@ -97,8 +118,46 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     jointIndicesName = matchResult.group(3).strip()
     staticIndexMax = hexOrDecInt(matchResult.group(4).strip())
 
-    frameData = getFrameData(filepath, animData, frameDataName)
-    jointIndices = getJointIndices(filepath, animData, jointIndicesName)
+    frameData = getFrameData(filepath, importData, frameDataName)
+    jointIndices = getJointIndices(filepath, importData, jointIndicesName)
+
+    return frameData, jointIndices, staticIndexMax, frameCount
+
+
+def ootGetAnimRawTranslation(frame, staticIndexMax, frameData, jointIndex, actorScale) -> mathutils.Vector:
+    rawTranslation = mathutils.Vector((0, 0, 0))
+    for propertyIndex in range(3):
+        if jointIndex[propertyIndex] < staticIndexMax:
+            value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
+        else:
+            value = ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
+
+        rawTranslation[propertyIndex] = value
+
+    return rawTranslation
+
+
+def ootGetAnimRawRotation(
+    frame: int, staticIndexMax: int, frameData: list[int], jointIndex: list[int], actorScale: float
+) -> mathutils.Euler:
+    rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
+    for propertyIndex in range(3):
+        if jointIndex[propertyIndex] < staticIndexMax:
+            value = binangToRadians(frameData[jointIndex[propertyIndex]])
+        else:
+            value = binangToRadians(frameData[jointIndex[propertyIndex] + frame])
+
+        rawRotation[propertyIndex] = value
+
+    return rawRotation
+
+
+def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
+    importData = getImportData([filepath])
+
+    frameData, jointIndices, staticIndexMax, frameCount = ootGetAnimationData(
+        filepath, importData, animName, isCustomImport
+    )
 
     # print(frameDataName + " " + jointIndicesName)
     # print(str(frameData) + "\n" + str(jointIndices))
@@ -126,15 +185,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
                 for propertyIndex in range(3)
             ]
             for frame in range(frameCount):
-                rawTranslation = mathutils.Vector((0, 0, 0))
-                for propertyIndex in range(3):
-                    if jointIndex[propertyIndex] < staticIndexMax:
-                        value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
-                    else:
-                        value = ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
-
-                    rawTranslation[propertyIndex] = value
-
+                rawTranslation = ootGetAnimRawTranslation(frame, staticIndexMax, frameData, jointIndex, actorScale)
                 trueTranslation = getTranslationRelativeToRest(armatureObj.data.bones[startBoneName], rawTranslation)
 
                 for propertyIndex in range(3):
@@ -157,15 +208,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
             ]
 
             for frame in range(frameCount):
-                rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
-                for propertyIndex in range(3):
-                    if jointIndex[propertyIndex] < staticIndexMax:
-                        value = binangToRadians(frameData[jointIndex[propertyIndex]])
-                    else:
-                        value = binangToRadians(frameData[jointIndex[propertyIndex] + frame])
-
-                    rawRotation[propertyIndex] = value
-
+                rawRotation = ootGetAnimRawRotation(frame, staticIndexMax, frameData, jointIndex, actorScale)
                 trueRotation = getRotationRelativeToRest(bone, rawRotation)
 
                 for propertyIndex in range(3):

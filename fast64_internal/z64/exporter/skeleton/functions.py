@@ -4,13 +4,21 @@ import os
 
 from pathlib import Path
 from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
-from ....f3d.f3d_writer import getInfoDict
+from ....f3d.f3d_writer import getInfoDict, MeshInfo
 from ...f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
-from ...model_classes import OOTModel, OOTGfxFormatter
+from ...model_classes import LimbType, LimbSkinType, OOTModel, OOTGfxFormatter, OOTVertexGroupInfo, OOTVert
 from ...skeleton.constants import ootSkeletonImportDict
 from ...skeleton.properties import OOTSkeletonExportSettings
-from ...skeleton.utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
-from .classes import OOTLimb, OOTSkeleton
+from ...skeleton.utility import (
+    ootDuplicateArmatureAndRemoveRotations,
+    getGroupIndices,
+    ootRemoveSkeleton,
+    getRecursiveSortedChildren,
+    ootConstructSkeleton,
+)
+
+from .classes import OOTBaseLimb, OOTBaseSkeleton
+
 
 from ....utility import (
     PluginError,
@@ -32,26 +40,32 @@ from ...utility import (
 
 
 def ootProcessBone(
-    fModel,
-    boneName,
-    parentLimb,
-    nextIndex,
-    meshObj,
-    armatureObj,
-    convertTransformMatrix,
-    meshInfo,
-    convertTextureData,
-    namePrefix,
-    skeletonOnly,
-    drawLayer,
-    lastMaterialName,
+    fModel: OOTModel,
+    boneName: str,
+    parentLimb: OOTBaseSkeleton | OOTBaseLimb,
+    limbOverride: type[OOTBaseLimb],
+    nextIndex: int,
+    meshObj: bpy.types.Object,
+    armatureObj: bpy.types.Object,
+    convertTransformMatrix: mathutils.Matrix,
+    meshInfo: MeshInfo[OOTVertexGroupInfo],
+    convertTextureData: bool,
+    namePrefix: str,
+    skeletonOnly: bool,
+    drawLayer: str,
+    lastMaterialName: str | None,
     optimize: bool,
-):
+) -> tuple[int, str | None]:
+    if not isinstance(meshInfo.vertexGroupInfo, OOTVertexGroupInfo):
+        raise PluginError("'meshInfo.vertexGroupInfo' must be of type 'OOTVertexGroupInfo' in function ootProcessBone.")
+
     bone = armatureObj.data.bones[boneName]
     if bone.parent is not None:
         transform = convertTransformMatrix @ bone.parent.matrix_local.inverted() @ bone.matrix_local
     else:
         transform = convertTransformMatrix @ bone.matrix_local
+
+    limbSkinType = meshInfo.vertexGroupInfo.skinnedVertexGroups[boneName].type
 
     translate, rotate, scale = transform.decompose()
 
@@ -62,6 +76,7 @@ def ootProcessBone(
     if skeletonOnly:
         mesh = None
         hasSkinnedFaces = None
+        limbSkinType = LimbSkinType.EMPTY
     else:
         mesh, hasSkinnedFaces, lastMaterialName = ootProcessVertexGroup(
             fModel,
@@ -89,22 +104,16 @@ def ootProcessBone(
 
     DL = None
     if mesh is not None:
-        if not bone.use_deform:
+        if not bone.use_deform and limbSkinType != LimbSkinType.SKIN_LIMB_TYPE_ANIMATED:
             raise PluginError(
                 bone.name
                 + " has vertices in its vertex group but is not set to deformable. Make sure to enable deform on this bone."
             )
         DL = mesh.draw
 
-    if isinstance(parentLimb, OOTSkeleton):
-        skeleton = parentLimb
-        limb = OOTLimb(skeleton.name, boneName, nextIndex, translate, DL, None)
-        skeleton.limbRoot = limb
-    else:
-        limb = OOTLimb(parentLimb.skeletonName, boneName, nextIndex, translate, DL, None)
-        parentLimb.children.append(limb)
+    limb = limbOverride(parentLimb.skeletonName, boneName, nextIndex, translate, mesh, limbSkinType)
+    parentLimb.addChild(limb)
 
-    limb.isFlex = hasSkinnedFaces
     nextIndex += 1
 
     # This must be in depth-first order to match the OoT SkelAnime draw code, so
@@ -117,6 +126,7 @@ def ootProcessBone(
             fModel,
             childName,
             limb,
+            limbOverride,
             nextIndex,
             meshObj,
             armatureObj,
@@ -145,11 +155,11 @@ def ootConvertArmatureToSkeleton(
 ):
     checkEmptyName(name)
 
-    armatureObj, meshObjs = ootDuplicateArmatureAndRemoveRotations(originalArmatureObj)
+    isSkinLimbExport = originalArmatureObj.ootSkeleton.isSkinLimb
+    # SkinLimbs need to be exported in their rest pose
+    armatureObj, meshObjs = ootDuplicateArmatureAndRemoveRotations(originalArmatureObj, not isSkinLimbExport)
 
     try:
-        skeleton = OOTSkeleton(name)
-
         if len(armatureObj.children) == 0:
             raise PluginError("No mesh parented to armature.")
 
@@ -159,10 +169,21 @@ def ootConvertArmatureToSkeleton(
         startBoneName = getStartBone(armatureObj)
         meshObj = meshObjs[0]
 
-        meshInfo = getInfoDict(meshObj)
-        getGroupIndices(meshInfo, armatureObj, meshObj, getGroupIndexFromname(meshObj, startBoneName))
+        vertexGroupInfo = getGroupIndices(armatureObj, meshObj, getGroupIndexFromname(meshObj, startBoneName))
+        skeleton = ootConstructSkeleton(name, armatureObj, meshObj.data.loop_triangles, vertexGroupInfo)
+        meshInfo = getInfoDict(meshObj, vertexGroupInfo)
 
         convertTransformMatrix = convertTransformMatrix @ mathutils.Matrix.Diagonal(armatureObj.scale).to_4x4()
+
+        limbIndex = 0
+        meshInfo.vertexGroupInfo.boneIndexToLimbIndex[armatureObj.data.bones.find(startBoneName)] = limbIndex
+        startBone = armatureObj.data.bones[startBoneName]
+
+        for child in getRecursiveSortedChildren(startBone):
+            limbIndex += 1
+            childName = child.name
+            boneIndex = armatureObj.data.bones.find(childName)
+            meshInfo.vertexGroupInfo.boneIndexToLimbIndex[boneIndex] = limbIndex
 
         # for i in range(len(startBoneNames)):
         # 	startBoneName = startBoneNames[i]
@@ -170,6 +191,7 @@ def ootConvertArmatureToSkeleton(
             fModel,
             startBoneName,
             skeleton,
+            skeleton.limbType,
             0,
             meshObj,
             armatureObj,
@@ -247,7 +269,7 @@ def ootConvertArmatureToC(
         originalArmatureObj, convertTransformMatrix, fModel, skeletonName, not savePNG, drawLayer, optimize
     )
 
-    if originalArmatureObj.ootSkeleton.LOD is not None:
+    if originalArmatureObj.ootSkeleton.LOD is not None and not originalArmatureObj.ootSkeleton.isSkinLimb:
         lodSkeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
             originalArmatureObj.ootSkeleton.LOD,
             convertTransformMatrix,
@@ -275,7 +297,6 @@ def ootConvertArmatureToC(
 
         for i in range(len(limbList)):
             limbList[i].lodDL = lodLimbList[i].DL
-            limbList[i].isFlex |= lodLimbList[i].isFlex
 
     header_filename = Path(filename).parts[-1]
     data = CData()
@@ -288,6 +309,9 @@ def ootConvertArmatureToC(
         data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n'
     else:
         data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "animation.h"\n'
+
+    if skeleton.limbType.typeName == "Skin":
+        data.header += '#include "skin.h"\n'
 
     data.source = f'#include "{header_filename}.h"\n\n'
     if not isCustomExport:

@@ -1,7 +1,7 @@
 # Macros are all copied over from gbi.h
 from __future__ import annotations
 
-from typing import Sequence, Union, Tuple
+from typing import Sequence, Union, Tuple, TypeVar
 from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
 from ..utility import *
@@ -2334,6 +2334,86 @@ class FPaletteKey:
         return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
 
 
+class FMesh:
+    def __init__(self, name, DLFormat):
+        self.name = name
+        # GfxList
+        self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
+        # list of FTriGroup
+        self.triangleGroups: list[FTriGroup] = []
+        # VtxList
+        self.cullVertexList = None
+        self.draw_overrides: list[GfxList] = []
+        self.DLFormat = DLFormat
+
+        # Used to avoid consecutive calls to the same material if unnecessary
+        self.currentFMaterial = None
+
+    def add_material_call(self, fMaterial):
+        sameMaterial = self.currentFMaterial is fMaterial
+        if not sameMaterial:
+            self.currentFMaterial = fMaterial
+            self.draw.commands.append(SPDisplayList(fMaterial.material))
+        else:
+            lastCommand = self.draw.commands[-1]
+            if isinstance(lastCommand, SPDisplayList) and lastCommand.displayList == fMaterial.revert:
+                self.draw.commands.remove(lastCommand)
+
+    def add_cull_vtx(self):
+        self.cullVertexList = VtxList(self.name + "_vtx_cull")
+
+    def get_ptr_addresses(self, f3d):
+        addresses = self.draw.get_ptr_addresses(f3d)
+        for triGroup in self.triangleGroups:
+            addresses.extend(triGroup.get_ptr_addresses(f3d))
+        for cmd_list in self.draw_overrides:
+            addresses.extend(cmd_list.get_ptr_addresses(f3d))
+        return addresses
+
+    def tri_group_new(self, fMaterial):
+        # Always static DL
+        triGroup = FTriGroup(self.name, len(self.triangleGroups), fMaterial)
+        self.triangleGroups.append(triGroup)
+        return triGroup
+
+    def set_addr(self, startAddress, f3d):
+        addrRange = self.draw.set_addr(startAddress, f3d)
+        startAddress = addrRange[0]
+        for triGroup in self.triangleGroups:
+            addrRange = triGroup.set_addr(addrRange[1], f3d)
+        if self.cullVertexList is not None:
+            addrRange = self.cullVertexList.set_addr(addrRange[1])
+        for cmd_list in self.draw_overrides:
+            addrRange = cmd_list.set_addr(addrRange[1], f3d)
+        return startAddress, addrRange[1]
+
+    def save_binary(self, romfile, f3d, segments):
+        self.draw.save_binary(romfile, f3d, segments)
+        for triGroup in self.triangleGroups:
+            triGroup.save_binary(romfile, f3d, segments)
+        if self.cullVertexList is not None:
+            self.cullVertexList.save_binary(romfile)
+        for cmd_list in self.draw_overrides:
+            cmd_list.save_binary(romfile, f3d, segments)
+
+    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
+        staticData = CData()
+
+        if self.cullVertexList is not None:
+            staticData.append(self.cullVertexList.to_c())
+
+        for triGroup in self.triangleGroups:
+            staticData.append(triGroup.to_c(f3d, gfxFormatter))
+
+        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
+
+        for cmd_list in self.draw_overrides:
+            dynamicData.append(cmd_list.to_c(f3d))
+
+        return staticData, dynamicData
+
+
 class FModel:
     def __init__(
         self,
@@ -2449,7 +2529,11 @@ class FModel:
         fMaterial.usedLights.append(key)
         self.lights[key] = value
 
-    def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False):
+    MT = TypeVar("MT", bound=FMesh)
+
+    def addMesh(
+        self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False, meshOverride: type[MT] = FMesh
+    ) -> MT:
         final_name = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         if dedup:
             base_name = final_name
@@ -2457,7 +2541,7 @@ class FModel:
                 if final_name in self.meshes:
                     final_name = f"{base_name}_{i:03}"
         checkUniqueBoneNames(self, final_name, name)
-        self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
+        self.meshes[final_name] = mesh = meshOverride(final_name, self.DLFormat)
         self.onAddMesh(mesh, contextObj)
         return mesh
 
@@ -2886,86 +2970,6 @@ class FLODGroup:
             self.subdraws.clear()
 
         self.draw.commands.append(SPEndDisplayList())
-
-
-class FMesh:
-    def __init__(self, name, DLFormat):
-        self.name = name
-        # GfxList
-        self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
-        # list of FTriGroup
-        self.triangleGroups: list[FTriGroup] = []
-        # VtxList
-        self.cullVertexList = None
-        self.draw_overrides: list[GfxList] = []
-        self.DLFormat = DLFormat
-
-        # Used to avoid consecutive calls to the same material if unnecessary
-        self.currentFMaterial = None
-
-    def add_material_call(self, fMaterial):
-        sameMaterial = self.currentFMaterial is fMaterial
-        if not sameMaterial:
-            self.currentFMaterial = fMaterial
-            self.draw.commands.append(SPDisplayList(fMaterial.material))
-        else:
-            lastCommand = self.draw.commands[-1]
-            if isinstance(lastCommand, SPDisplayList) and lastCommand.displayList == fMaterial.revert:
-                self.draw.commands.remove(lastCommand)
-
-    def add_cull_vtx(self):
-        self.cullVertexList = VtxList(self.name + "_vtx_cull")
-
-    def get_ptr_addresses(self, f3d):
-        addresses = self.draw.get_ptr_addresses(f3d)
-        for triGroup in self.triangleGroups:
-            addresses.extend(triGroup.get_ptr_addresses(f3d))
-        for cmd_list in self.draw_overrides:
-            addresses.extend(cmd_list.get_ptr_addresses(f3d))
-        return addresses
-
-    def tri_group_new(self, fMaterial):
-        # Always static DL
-        triGroup = FTriGroup(self.name, len(self.triangleGroups), fMaterial)
-        self.triangleGroups.append(triGroup)
-        return triGroup
-
-    def set_addr(self, startAddress, f3d):
-        addrRange = self.draw.set_addr(startAddress, f3d)
-        startAddress = addrRange[0]
-        for triGroup in self.triangleGroups:
-            addrRange = triGroup.set_addr(addrRange[1], f3d)
-        if self.cullVertexList is not None:
-            addrRange = self.cullVertexList.set_addr(addrRange[1])
-        for cmd_list in self.draw_overrides:
-            addrRange = cmd_list.set_addr(addrRange[1], f3d)
-        return startAddress, addrRange[1]
-
-    def save_binary(self, romfile, f3d, segments):
-        self.draw.save_binary(romfile, f3d, segments)
-        for triGroup in self.triangleGroups:
-            triGroup.save_binary(romfile, f3d, segments)
-        if self.cullVertexList is not None:
-            self.cullVertexList.save_binary(romfile)
-        for cmd_list in self.draw_overrides:
-            cmd_list.save_binary(romfile, f3d, segments)
-
-    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
-        staticData = CData()
-
-        if self.cullVertexList is not None:
-            staticData.append(self.cullVertexList.to_c())
-
-        for triGroup in self.triangleGroups:
-            staticData.append(triGroup.to_c(f3d, gfxFormatter))
-
-        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
-        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
-
-        for cmd_list in self.draw_overrides:
-            dynamicData.append(cmd_list.to_c(f3d))
-
-        return staticData, dynamicData
 
 
 class FTriGroup:

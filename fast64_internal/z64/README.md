@@ -78,6 +78,8 @@ Default is a regular deformation bone. Ignore will not be handled by the exporte
 
 The armature properties window also has the option to set a LOD armature. This armature must have the same bone structure as your current armature.
 
+In the armature properties you can also set the armature to export using SkinLimbs. This will export the skeletons mesh in a format compatible with how OoT handles smooth skinning. This setting is automatically turned on when importing a skeleton that uses SkinLimbs (horses). Armatures exported this way will ignore any LOD armature as SkinLimbs are unable to use LODs. Also note that any actor not already set up to use this limb type will require changes to its source and header files to use them.
+
 To export a skeletal mesh, select an armature and then click "Export" for the armature exporter. Make sure there is only one bone without a parent (the root bone), as the exporter will choose the first parentless bone as the start bone of the armature.
 
 To import a skeletal mesh, just click "Import" for the armature importer. You may encounter a couple issues:
