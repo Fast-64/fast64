@@ -321,6 +321,7 @@ class Mat:
                     return False
                 else:
                     return True
+
             chkT = lambda x, y, d: x.__dict__.get(y, d)
             rendermode = getattr(self, "RenderMode", ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"])
             MyProps = (
@@ -334,10 +335,10 @@ class Mat:
                 chkT(self, "g_mdsft_alpha_compare", "G_AC_NONE"),
                 chkT(self, "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
                 chkT(self, "g_mdsft_alpha_dither", "G_AD_NOISE"),
-                (self.tiles[0].Shigh/4),
-                (self.tiles[0].Thigh/4),
-                (self.tiles[0].Slow/4),
-                (self.tiles[0].Tlow/4),
+                (self.tiles[0].Shigh / 4),
+                (self.tiles[0].Thigh / 4),
+                (self.tiles[0].Slow / 4),
+                (self.tiles[0].Tlow / 4),
             )
             dupe = hash(MyProps) == hash(F3Dprops)
             return dupe
@@ -877,7 +878,9 @@ class DL(DataParser):
                     ),  # leads w/ rdp half cmd, deal with later
                     f3d_gbi.G_TRI1: (
                         "gsSP1Triangle",
-                        PackedFormat(">7B", make_str=False, reorder=(4, 5 ,6 ,3), post_unpack=lambda args: [a // 2 for a in args]),
+                        PackedFormat(
+                            ">7B", make_str=False, reorder=(4, 5, 6, 3), post_unpack=lambda args: [a // 2 for a in args]
+                        ),
                     ),  # pad123 flag v123
                     f3d_gbi.G_TRI2: (
                         "gsSP2Triangles",
@@ -1339,18 +1342,18 @@ class DL(DataParser):
         self.NewMat = 1
         if macro.args[0] == "G_SETOTHERMODE_H":
             valid_modes = [
-                    enumAlphaDither,
-                    enumRGBDither,
-                    enumCombKey,
-                    enumTextConv,
-                    enumTextFilt,
-                    enumTextLUT,
-                    enumTextLOD,
-                    enumTextDetail,
-                    enumTextPersp,
-                    enumCycleType,
-                    enumPipelineMode,
-                ]
+                enumAlphaDither,
+                enumRGBDither,
+                enumCombKey,
+                enumTextConv,
+                enumTextFilt,
+                enumTextLUT,
+                enumTextLOD,
+                enumTextDetail,
+                enumTextPersp,
+                enumCycleType,
+                enumPipelineMode,
+            ]
             for i, othermode in enumerate(macro.args[3].split("|")):
                 # this may cause an issue if someone uses a wacky custom othermode H or has it out of order
                 mode_h_attr = RDPSettings.other_mode_h_attributes[i][1]

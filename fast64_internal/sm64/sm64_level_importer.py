@@ -1016,7 +1016,7 @@ class SM64_Material(Mat):
         if tex_img and "#include" in tex_img[0]:
             return self.load_texture_png(force_new_tex, textures, path, tex)
         elif tex_img:
-            return self.load_texture_array(force_new_tex, textures, tex,  DataParser._c_parsing)
+            return self.load_texture_array(force_new_tex, textures, tex, DataParser._c_parsing)
         else:
             print(f"No tex_img found for tex {tex}")
 
@@ -2519,6 +2519,9 @@ def write_geo_to_bpy(
     cleanup: bool = True,
 ) -> dict[str, bpy.Types.Mesh]:
     """from a parsed geo layout, parse f3d data and create all the meshes"""
+
+    # tmp
+    props = scene.fast64.sm64.importer
     if geo.models:
         # create a mesh for each one.
         for model_data in geo.models:
@@ -2541,6 +2544,9 @@ def write_geo_to_bpy(
                     meshes.pop(name)
                     continue
 
+            # tmp
+            if props.remove_duplicates and not name:
+                continue
             # swap out placeholder mesh data
             model_data.object.data = mesh
 
@@ -3281,6 +3287,11 @@ class SM64_ImportProperties(PropertyGroup):
         description="Format import to be friendly for exporting for hacks rather than importing a 1:1 representation",
         default=True,
     )
+    remove_duplicates: BoolProperty(
+        name="Remove Duplicates",
+        description="Experimental feature to remove duplicates from level imports, mostly affects rooms",
+        default=False,
+    )
     import_linked_actors: BoolProperty(
         name="Import Actors", description="Imports the models of actors. Actor models will be duplicates", default=True
     )
@@ -3388,6 +3399,7 @@ class SM64_ImportProperties(PropertyGroup):
         row.prop(self, "force_new_tex")
         row.prop(self, "as_obj")
         row.prop(self, "export_friendly")
+        row.prop(self, "remove_duplicates")
         if self.import_target == "C":
             row.prop(self, "import_linked_actors")
         row.prop(self, "use_collection")
