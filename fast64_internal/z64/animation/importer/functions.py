@@ -10,6 +10,9 @@ from ....utility_anim import (
     getTranslationRelativeToRest,
     getRotationRelativeToRest,
     stashActionInArmature,
+    create_basic_action,
+    get_fcurves,
+    create_new_fcurve,
 )
 
 from ...utility import (
@@ -62,30 +65,51 @@ def getJointIndices(filepath, animData, jointIndicesName):
     return jointIndicesData
 
 
-def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
-    animData = getImportData([filepath])
+def getAnimData(filepath: str, importData: str, animName: str, isCustomImport: bool):
+    # importData = getImportData([filepath])
     if not isCustomImport:
         basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-        animData = ootGetIncludedAssetData(basePath, [filepath], animData) + animData
+        importData = ootGetIncludedAssetData([basePath], [filepath], importData) + importData
 
-    matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", animData, re.DOTALL | re.MULTILINE)
+    matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", importData, re.DOTALL | re.MULTILINE)
 
     if matchResult is None:
         raise PluginError("Cannot find definition named " + animName + " in " + filepath)
 
     if "#include" in matchResult.group(1):
-        anim_data = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
+        animData = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
         regex = r"\{(.*?),?\},(.*?),(.*?),(.*?),"
     else:
-        anim_data = animData
+        animData = importData
         regex = (
             re.escape(animName)
             + r"\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}*\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\}\s*;"
         )
 
+    matchResult = re.search(re.escape(animName) + r"\s*=\s*\{(.*?)\}\s*;", importData, re.DOTALL | re.MULTILINE)
+
+    if matchResult is None:
+        raise PluginError("Cannot find definition named " + animName + " in " + filepath)
+
+    if "#include" in matchResult.group(1):
+        animData = removeComments(get_include_data(matchResult.group(1))).replace("\n", "").replace(" ", "")
+        regex = r"\{(.*?),?\},(.*?),(.*?),(.*?),"
+    else:
+        animData = importData
+        regex = (
+            re.escape(animName)
+            + r"\s*=\s*\{\s*\{\s*([^,\s]*)\s*\}*\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\}\s*;"
+        )
+
+    return animData, regex
+
+
+def ootGetAnimationData(filepath: str, importData: str, animName: str, isCustomImport: bool):
+    animData, regex = getAnimData(filepath, importData, animName, isCustomImport)
+
     matchResult = re.search(
         regex,
-        anim_data,
+        animData,
     )
     if matchResult is None:
         raise PluginError("Cannot find animation named " + animName + " in " + filepath)
@@ -94,14 +118,53 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     jointIndicesName = matchResult.group(3).strip()
     staticIndexMax = hexOrDecInt(matchResult.group(4).strip())
 
-    frameData = getFrameData(filepath, animData, frameDataName)
-    jointIndices = getJointIndices(filepath, animData, jointIndicesName)
+    frameData = getFrameData(filepath, importData, frameDataName)
+    jointIndices = getJointIndices(filepath, importData, jointIndicesName)
+
+    return frameData, jointIndices, staticIndexMax, frameCount
+
+
+def ootGetAnimRawTranslation(frame, staticIndexMax, frameData, jointIndex, actorScale) -> mathutils.Vector:
+    rawTranslation = mathutils.Vector((0, 0, 0))
+    for propertyIndex in range(3):
+        if jointIndex[propertyIndex] < staticIndexMax:
+            value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
+        else:
+            value = ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
+
+        rawTranslation[propertyIndex] = value
+
+    return rawTranslation
+
+
+def ootGetAnimRawRotation(
+    frame: int, staticIndexMax: int, frameData: list[int], jointIndex: list[int], actorScale: float
+) -> mathutils.Euler:
+    rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
+    for propertyIndex in range(3):
+        if jointIndex[propertyIndex] < staticIndexMax:
+            value = binangToRadians(frameData[jointIndex[propertyIndex]])
+        else:
+            value = binangToRadians(frameData[jointIndex[propertyIndex] + frame])
+
+        rawRotation[propertyIndex] = value
+
+    return rawRotation
+
+
+def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCustomImport: bool):
+    importData = getImportData([filepath])
+
+    frameData, jointIndices, staticIndexMax, frameCount = ootGetAnimationData(
+        filepath, importData, animName, isCustomImport
+    )
 
     # print(frameDataName + " " + jointIndicesName)
     # print(str(frameData) + "\n" + str(jointIndices))
 
     bpy.context.scene.frame_end = frameCount
-    anim = bpy.data.actions.new(animName)
+    anim, slot = create_basic_action(armatureObj, animName)
+    anim_fcurves = get_fcurves(anim, slot)
 
     startBoneName = getStartBone(armatureObj)
     boneStack = [startBoneName]
@@ -113,7 +176,8 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
     for jointIndex in jointIndices:
         if isRootTranslation:
             fcurves = [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + startBoneName + '"].location',
                     index=propertyIndex,
                     action_group=startBoneName,
@@ -121,15 +185,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
                 for propertyIndex in range(3)
             ]
             for frame in range(frameCount):
-                rawTranslation = mathutils.Vector((0, 0, 0))
-                for propertyIndex in range(3):
-                    if jointIndex[propertyIndex] < staticIndexMax:
-                        value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
-                    else:
-                        value = ootTranslationValue(frameData[jointIndex[propertyIndex] + frame], actorScale)
-
-                    rawTranslation[propertyIndex] = value
-
+                rawTranslation = ootGetAnimRawTranslation(frame, staticIndexMax, frameData, jointIndex, actorScale)
                 trueTranslation = getTranslationRelativeToRest(armatureObj.data.bones[startBoneName], rawTranslation)
 
                 for propertyIndex in range(3):
@@ -142,7 +198,8 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
             bone, boneStack = getNextBone(boneStack, armatureObj)
 
             fcurves = [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + bone.name + '"].rotation_euler',
                     index=propertyIndex,
                     action_group=bone.name,
@@ -151,15 +208,7 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
             ]
 
             for frame in range(frameCount):
-                rawRotation = mathutils.Euler((0, 0, 0), "XYZ")
-                for propertyIndex in range(3):
-                    if jointIndex[propertyIndex] < staticIndexMax:
-                        value = binangToRadians(frameData[jointIndex[propertyIndex]])
-                    else:
-                        value = binangToRadians(frameData[jointIndex[propertyIndex] + frame])
-
-                    rawRotation[propertyIndex] = value
-
+                rawRotation = ootGetAnimRawRotation(frame, staticIndexMax, frameData, jointIndex, actorScale)
                 trueRotation = getRotationRelativeToRest(bone, rawRotation)
 
                 for propertyIndex in range(3):
@@ -189,8 +238,8 @@ def ootImportLinkAnimationC(
     animData = getImportData([animFilepath])
     if not isCustomImport:
         basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
-        animHeaderData = ootGetIncludedAssetData(basePath, [animHeaderFilepath], animHeaderData) + animHeaderData
-        animData = ootGetIncludedAssetData(basePath, [animFilepath], animData) + animData
+        animHeaderData = ootGetIncludedAssetData([basePath], [animHeaderFilepath], animHeaderData) + animHeaderData
+        animData = ootGetIncludedAssetData([basePath], [animFilepath], animData) + animData
 
     matchResult = re.search(
         re.escape(animHeaderName) + r"\s*=\s*\{(.*?)\}\s*;", animHeaderData, re.DOTALL | re.MULTILINE
@@ -227,7 +276,8 @@ def ootImportLinkAnimationC(
     print(f"{frameDataName}: {frameCount} frames, {len(frameData)} values.")
 
     bpy.context.scene.frame_end = frameCount
-    anim = bpy.data.actions.new(animHeaderName)
+    anim, slot = create_basic_action(armatureObj, animHeaderName)
+    anim_fcurves = get_fcurves(anim, slot)
 
     # get ordered list of bone names
     # create animation curves for each bone
@@ -237,11 +287,13 @@ def ootImportLinkAnimationC(
     boneCurveTranslation = None
     boneStack = [startBoneName]
 
-    eyesCurve = anim.fcurves.new(
+    eyesCurve = create_new_fcurve(
+        anim_fcurves,
         data_path="ootLinkTextureAnim.eyes",
         action_group="Texture Animations",
     )
-    mouthCurve = anim.fcurves.new(
+    mouthCurve = create_new_fcurve(
+        anim_fcurves,
         data_path="ootLinkTextureAnim.mouth",
         action_group="Texture Animations",
     )
@@ -253,7 +305,8 @@ def ootImportLinkAnimationC(
 
         if boneCurveTranslation is None:
             boneCurveTranslation = [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + bone.name + '"].location',
                     index=propertyIndex,
                     action_group=startBoneName,
@@ -263,7 +316,8 @@ def ootImportLinkAnimationC(
 
         boneCurvesRotation.append(
             [
-                anim.fcurves.new(
+                create_new_fcurve(
+                    anim_fcurves,
                     data_path='pose.bones["' + bone.name + '"].rotation_euler',
                     index=propertyIndex,
                     action_group=bone.name,

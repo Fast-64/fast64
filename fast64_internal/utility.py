@@ -275,6 +275,17 @@ def create_collection(parent: bpy.types.Collection, name: str):
     return col
 
 
+def getBoneIndexFromGroupIndex(obj: bpy.types.Object, armature: bpy.types.Armature, index: int) -> int:
+    group = obj.vertex_groups[index]
+    groupName = group.name
+    boneIndex = armature.bones.find(groupName)
+
+    if boneIndex == -1:
+        raise PluginError(f"Bone: {groupName} not found in Armature: {armature.name}")
+    else:
+        return boneIndex
+
+
 def copyPropertyCollection(from_prop, to_prop, do_clear: bool = True):
     if do_clear:
         to_prop.clear()
@@ -660,7 +671,10 @@ def cast_integer(value: int, bits: int, signed: bool):
 
 
 to_s16 = lambda x: cast_integer(round(x), 16, True)
-radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
+
+
+def radians_to_s16(value: float, signed=True) -> int:
+    return cast_integer(round(value * 2**16 / (2 * math.pi)), 16, signed)
 
 
 def int_from_s16(value: int) -> int:
@@ -834,9 +848,9 @@ def store_original_mtx():
         # negative scales produce a rotation, we need to remove that since
         # scales will be applied to the transform for each object
         loc, rot, _scale = obj.matrix_local.decompose()
-        obj["original_mtx"] = Matrix.LocRotScale(loc, rot, None)
+        obj["original_mtx"] = list(Matrix.LocRotScale(loc, rot, None))
         loc, rot, scale = obj.matrix_world.decompose()
-        obj["original_mtx_world"] = Matrix.LocRotScale(loc, rot, scale)
+        obj["original_mtx_world"] = list(Matrix.LocRotScale(loc, rot, scale))
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -1462,6 +1476,7 @@ def bytesToHexClean(value, byteSize=4):
 
 
 def intToHex(value, byte_size=4, signed=True):
+    value = int(value)
     return format(value if signed else cast_integer(value, byte_size * 8, False), f"#0{(byte_size * 2 + 2)}x")
 
 
@@ -1848,10 +1863,21 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     return col, dir
 
 
-def getTextureSuffixFromFormat(texFmt):
-    # if texFmt == "RGBA16":
-    #     return "rgb5a1"
-    return texFmt.lower()
+def getTextureSuffixFromFormat(texFmt: str, ciFmt: str | None, isPalette: bool):
+    if bpy.context.scene.fast64.settings.texture_name_includes_ci_format:
+        if ciFmt:
+            fmtName = f"{texFmt}_{ciFmt}"
+        else:
+            fmtName = texFmt
+    else:
+        if isPalette:
+            if ciFmt is None:
+                raise PluginError("Internal error, getTextureSuffixFromFormat required ciFmt but wasn't specified")
+            fmtName = ciFmt
+        else:
+            fmtName = texFmt
+
+    return fmtName.lower()
 
 
 # https://stackoverflow.com/a/241506
@@ -2098,7 +2124,9 @@ def wrap_func_with_error_message(error_message: Callable):
 
 
 def as_posix(path: Path) -> str:
-    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
+    if isinstance(path, Path):
+        path = path.as_posix()
+    return path.replace("\\", "/")  # Windows path sometimes still has backslashes?
 
 
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):

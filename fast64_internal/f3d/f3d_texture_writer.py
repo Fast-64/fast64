@@ -277,8 +277,10 @@ def maybeSaveSingleLargeTextureSetup(
 # Functions for texture and palette definitions
 
 
-def getTextureNamesFromBasename(baseName: str, texOrPalFormat: str, parent: Union[FModel, FTexRect], isPalette: bool):
-    suffix = getTextureSuffixFromFormat(texOrPalFormat)
+def getTextureNamesFromBasename(
+    baseName: str, texFmt: str, ciFmt: Union[str, None], parent: Union[FModel, FTexRect], isPalette: bool
+):
+    suffix = getTextureSuffixFromFormat(texFmt, ciFmt, isPalette)
     imageName = parent.name + "_" + baseName + "_"
     if isPalette:
         imageName += "pal_"
@@ -297,14 +299,19 @@ def getImageName(image: bpy.types.Image):
         return getNameFromPath(image.filepath, True)
 
 
-def getTextureNamesFromImage(image: bpy.types.Image, texFormat: str, parent: Union[FModel, FTexRect]):
-    return getTextureNamesFromBasename(getImageName(image), texFormat, parent, False)
+def getTextureNamesFromImage(
+    image: bpy.types.Image, texFmt: str, ciFmt: Union[str, None], parent: Union[FModel, FTexRect]
+):
+    return getTextureNamesFromBasename(getImageName(image), texFmt, ciFmt, parent, False)
 
 
 def getTextureNamesFromProp(texProp: TextureProperty, parent: Union[FModel, FTexRect]):
     if texProp.use_tex_reference:
         raise PluginError("Internal error, invalid use of getTextureNamesFromProp")
-    return getTextureNamesFromImage(texProp.tex, texProp.tex_format, parent)
+
+    return getTextureNamesFromImage(
+        texProp.tex, texProp.tex_format, texProp.ci_format if texProp.is_ci else None, parent
+    )
 
 
 def checkDuplicateTextureName(parent: Union[FModel, FTexRect], name):
@@ -340,7 +347,7 @@ def saveOrGetPaletteDefinition(
         # print(f"Palette already exists")
         return paletteKey, fPalette
 
-    paletteName, filename = getTextureNamesFromBasename(palBaseName, palFmt, parent, True)
+    paletteName, filename = getTextureNamesFromBasename(palBaseName, texFmt, palFmt, parent, True)
     fPalette = FImage(paletteName, palFormat, "G_IM_SIZ_16b", 1, palLen, filename)
 
     parent.addTexture(paletteKey, fPalette, fMaterial)

@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from bpy.types import Object, Bone
-from ....utility import PluginError
+from ....utility import PluginError, radians_to_s16
 from ....game_data import game_data
 from .actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
 from .seq import CutsceneCmdStartStopSeqList, CutsceneCmdFadeSeqList, CutsceneCmdStartStopSeq, CutsceneCmdFadeSeq
@@ -113,19 +113,10 @@ class CutsceneData:
         """Returns the converted Blender rotation"""
 
         def conv(r):
-            r /= 2.0 * math.pi
-            r -= math.floor(r)
-            r = round(r * 0x10000)
-
-            if r >= 0x8000:
-                r += 0xFFFF0000
-
-            assert r >= 0 and r <= 0xFFFFFFFF and (r <= 0x7FFF or r >= 0xFFFF8000)
-
-            return hex(r & 0xFFFF)
+            return radians_to_s16(r, False)
 
         rotXYZ = [conv(obj.rotation_euler[0]), conv(obj.rotation_euler[2]), conv(obj.rotation_euler[1])]
-        return [f"DEG_TO_BINANG({(int(rot, base=16) * (180 / 0x8000)):.3f})" for rot in rotXYZ]
+        return [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotXYZ]
 
     def getOoTPosition(self, pos):
         """Returns the converted Blender position"""

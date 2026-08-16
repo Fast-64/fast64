@@ -34,7 +34,10 @@ def glTF2_pre_export_callback(_gltf):
     add_3_2_hooks()
     modify_f3d_nodes_for_export(False)
 
-    if get_version() >= (4, 3, 13):
+    if get_version() >= (5, 1, 15):
+        # mesh.py renamed to obj_data.py between 5.1.15 and following version
+        import io_scene_gltf2.blender.exp.obj_data as gather_mesh_owner  # pylint: disable=import-error, import-outside-toplevel
+    elif get_version() >= (4, 3, 13):
         import io_scene_gltf2.blender.exp.mesh as gather_mesh_owner  # pylint: disable=import-error, import-outside-toplevel
     else:
         import io_scene_gltf2.blender.exp.gltf2_blender_gather_mesh as gather_mesh_owner  # pylint: disable=import-error, import-outside-toplevel

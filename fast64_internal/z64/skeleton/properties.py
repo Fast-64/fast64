@@ -44,9 +44,13 @@ class OOTBoneProperty(PropertyGroup):
 
 class OOTSkeletonProperty(PropertyGroup):
     LOD: PointerProperty(type=Object, poll=pollArmature)
+    isSkinLimb: BoolProperty()
 
     def draw_props(self, layout: UILayout):
-        prop_split(layout, self, "LOD", "LOD Skeleton")
+        prop_split(layout, self, "isSkinLimb", "Export as SkinLimbs (horses)")
+        if not self.isSkinLimb:
+            prop_split(layout, self, "LOD", "LOD Skeleton")
+
         if self.LOD is not None:
             layout.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
 

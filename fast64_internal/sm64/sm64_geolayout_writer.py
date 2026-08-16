@@ -628,7 +628,7 @@ def exportGeolayoutArmatureC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertArmatureToGeolayout(
-        armatureObj, obj, convertTransformMatrix, camera, dirName, DLFormat, not savePNG
+        armatureObj, obj, convertTransformMatrix, camera, toAlnum(dirName), DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -664,7 +664,7 @@ def exportGeolayoutObjectC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, True, dirName, None, None, DLFormat, not savePNG
+        obj, convertTransformMatrix, True, toAlnum(dirName), None, None, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -1328,7 +1328,7 @@ def processMesh(
         rotate = mathutils.Quaternion()
         scale = mathutils.Vector((1, 1, 1))
     elif obj.get("original_mtx"):  # object is instanced or a transformation
-        orig_mtx = mathutils.Matrix(obj["original_mtx"])
+        orig_mtx = mathutils.Matrix(obj.get("original_mtx"))
         translate, rotate, scale = orig_mtx.decompose()
         translate = translate_blender_to_n64(translate)
         rotate = rotate_quat_blender_to_n64(rotate)

@@ -1,7 +1,12 @@
 import os
+from typing import NamedTuple
 
 import bpy
 from bpy.types import PropertyGroup, Action, UILayout, Scene, Context
+
+if bpy.app.version >= (5, 0, 0):
+    from bpy.types import ActionSlot
+
 from bpy.utils import register_class, unregister_class
 from bpy.props import (
     BoolProperty,
@@ -26,7 +31,7 @@ from ...utility import (
     upgrade_old_prop,
     toAlnum,
 )
-from ...utility_anim import getFrameInterval
+from ...utility_anim import get_slots, getFrameInterval, AddSubAction
 
 from ..sm64_utility import import_rom_ui_warnings, int_from_str, string_int_prop, string_int_warning
 from ..sm64_constants import MAX_U16, MIN_S16, MAX_S16, enumLevelNames
@@ -37,6 +42,7 @@ from .operators import (
     SM64_AnimTableOps,
     SM64_AnimVariantOps,
     SM64_ImportAnim,
+    SM64_SetActionSlotFromObj,
     SM64_SearchAnimPresets,
     SM64_SearchAnimatedBhvs,
     SM64_SearchAnimTablePresets,
@@ -55,6 +61,7 @@ from .utility import (
     table_name_to_enum,
     check_for_action_in_table,
     check_for_headers_in_table,
+    get_active_diff_slot,
 )
 from .importing import get_enum_from_import_preset, update_table_preset
 
@@ -223,7 +230,7 @@ class SM64_AnimHeaderProperties(PropertyGroup):
     def get_loop_points(self, action: Action):
         if self.use_manual_loop:
             return self.manual_loop_range
-        loop_start, loop_end = getFrameInterval(action)
+        loop_start, loop_end = getFrameInterval(action, get_action_props(action).get_slot(action))
         return (0, loop_start, loop_end + 1)
 
     def get_name(self, actor_name: str, action: Action, dma=False) -> str:
@@ -355,8 +362,48 @@ class SM64_AnimHeaderProperties(PropertyGroup):
         self.draw_flag_props(col, use_int_flags=dma or export_type.endswith("Binary"))
 
 
+# workaround for garbage collector bug
+get_slot_enum_items_cache = []
+
+
+def get_slot_enum(self, context):
+    """Generate enum items from the current action’s slots."""
+    global get_slot_enum_items_cache
+
+    action = self.id_data
+
+    get_slot_enum_items_cache.clear()
+    for i, slot in enumerate(get_slots(action).values()):
+        get_slot_enum_items_cache.append(
+            (
+                str(slot.identifier),
+                str(slot.name_display),
+                f"Slot {i}",
+                "OBJECT_DATA",
+                i,
+            ),
+        )
+
+    return get_slot_enum_items_cache
+
+
+def get_current_slot(self):
+    action = self.id_data
+    slot_keys = list(get_slots(action).keys())
+    if self.slot_identifier in slot_keys:
+        return slot_keys.index(self.slot_identifier)
+    return 0
+
+
+def set_current_slot(self, value):
+    self.slot_identifier = list(get_slots(self.id_data).keys())[value]
+
+
 class SM64_ActionAnimProperty(PropertyGroup):
     """Properties in Action.fast64.sm64.animation"""
+
+    slot_identifier: StringProperty(name="Slot Identifier")
+    slot_enum: EnumProperty(name="Action Slot", items=get_slot_enum, get=get_current_slot, set=set_current_slot)
 
     header: PointerProperty(type=SM64_AnimHeaderProperties)
     variants_tab: BoolProperty(name="Header Variants")
@@ -398,10 +445,18 @@ class SM64_ActionAnimProperty(PropertyGroup):
             name = clean_name(f"anim_{action.name}", replace=" ")
             return name + (".inc.c" if export_type == "C" else ".insertable")
 
+    def get_slot(self, action: Action):
+        if bpy.app.version < (5, 0, 0):
+            return None
+        slots = get_slots(action)
+        if len(slots) == 1:
+            return next(iter(slots.values()))
+        return slots.get(get_action_props(action).slot_identifier)
+
     def get_max_frame(self, action: Action) -> int:
         if self.use_custom_max_frame:
             return self.custom_max_frame
-        loop_ends: list[int] = [getFrameInterval(action)[1]]
+        loop_ends: list[int] = [getFrameInterval(action, self.get_slot(action))[1]]
         header_props: SM64_AnimHeaderProperties
         for header_props in self.headers:
             loop_ends.append(header_props.get_loop_points(action)[2])
@@ -474,6 +529,26 @@ class SM64_ActionAnimProperty(PropertyGroup):
         col = layout.column()
         if specific_variant is not None:
             col.label(text="Action Properties", icon="ACTION")
+
+        if bpy.app.version >= (5, 0, 0):
+            slots = get_slots(action)
+            if len(slots) > 1:
+                prop_split(col, self, "slot_enum", "Action Slot", icon="ACTION_SLOT")
+                slot = get_active_diff_slot(bpy.context, action)
+                text = None
+                if slot is not None:
+                    text = f"Set to active slot ({slot.name_display})"
+                SM64_SetActionSlotFromObj.draw_props(col, text=text, action_name=action.name)
+            elif len(slots) == 1:
+                col.label(text=f"Action Slot: {list(slots.values())[0].name_display}", icon="ACTION_SLOT")
+            else:
+                box = col.box()
+                box.alert = True
+                box.label(text="Action has no object slots.", icon="ERROR")
+                box.alert = False
+                AddSubAction.draw_props(box, action_name=action.name)
+            col.separator()
+
         if not in_table:
             if check_for_action_in_table(action, table_elements, dma):
                 if not check_for_headers_in_table(self.headers, table_elements, dma):
@@ -526,9 +601,15 @@ class SM64_ActionAnimProperty(PropertyGroup):
             self.draw_variants(col, action, dma, actor_name, header_args)
 
 
+class ActionHeaderTuple(NamedTuple):
+    action: Action
+    header: SM64_AnimHeaderProperties
+
+
 class SM64_AnimTableElementProperties(PropertyGroup):
     expand_tab: BoolProperty()
     action_prop: PointerProperty(name="Action", type=Action)
+
     variant: IntProperty(name="Variant", min=0)
     reference: BoolProperty(name="Reference")
     # Toad example
@@ -555,16 +636,17 @@ class SM64_AnimTableElementProperties(PropertyGroup):
         self.variant: int
         self.action_prop: Action
         if (not can_reference or not self.reference) and self.action_prop:
-            headers = get_action_props(self.action_prop).headers
+            action_props = get_action_props(self.action_prop)
+            headers = action_props.headers
             if self.variant < len(headers):
-                return (self.action_prop, headers[self.variant])
-        return (None, None)
+                return ActionHeaderTuple(self.action_prop, headers[self.variant])
+        return ActionHeaderTuple(None, None)
 
     def get_action(self, can_reference: bool) -> Action | None:
-        return self.get_action_header(can_reference)[0]
+        return self.get_action_header(can_reference).action
 
     def get_header(self, can_reference: bool) -> SM64_AnimHeaderProperties | None:
-        return self.get_action_header(can_reference)[1]
+        return self.get_action_header(can_reference).header
 
     def set_variant(self, action: Action, variant: int):
         self.action_prop = action
@@ -899,6 +981,9 @@ class SM64_AnimProperties(PropertyGroup):
 
     played_header: IntProperty(min=0)
     played_action: PointerProperty(name="Action", type=Action)
+    played_cached_start: IntProperty(min=0)
+    played_cached_loop_start: IntProperty(min=0)
+    played_cached_loop_end: IntProperty(min=0)
 
     importing: PointerProperty(type=SM64_AnimImportProperties)
 

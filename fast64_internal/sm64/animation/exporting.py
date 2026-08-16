@@ -22,7 +22,7 @@ from ...utility import (
     toAlnum,
     directory_path_checks,
 )
-from ...utility_anim import stashActionInArmature
+from ...utility_anim import get_fcurves, stashActionInArmature, get_slots
 
 from ..sm64_constants import BEHAVIOR_COMMANDS, BEHAVIOR_EXITS, defaultExtendSegment4, level_pointers
 from ..sm64_utility import (
@@ -99,7 +99,8 @@ def get_entire_fcurve_data(
     default_values = list(getattr(anim_owner, prop))
     populated = [False] * len(default_values)
 
-    for fcurve in action.fcurves:
+    fcurves = get_fcurves(action, get_action_props(action).get_slot(action))
+    for fcurve in fcurves:
         if fcurve.data_path == data_path:
             array_index = fcurve.array_index
             for frame in range(max_frame):
@@ -149,6 +150,9 @@ def read_quick(actions, max_frames, anim_owners, trans_values, rot_values):
 def read_full(actions, max_frames, anim_owners, trans_values, rot_values, obj, is_owner_obj):
     pre_export_frame = bpy.context.scene.frame_current
     pre_export_action = obj.animation_data.action
+    pre_export_slot = None
+    if bpy.app.version >= (5, 0, 0):
+        pre_export_slot = obj.animation_data.action_slot
     was_playing = bpy.context.screen.is_animation_playing
 
     try:
@@ -157,6 +161,11 @@ def read_full(actions, max_frames, anim_owners, trans_values, rot_values, obj, i
         for action, action_trans, action_rot, max_frame in zip(actions, trans_values, rot_values, max_frames):
             print(f'Reading animation data from action "{action.name}".')
             obj.animation_data.action = action
+            if bpy.app.version >= (5, 0, 0):
+                slot = get_action_props(action).get_slot(action)
+                if slot is None:
+                    raise PluginError(f'No action slot found for action "{action.name}"')
+                obj.animation_data.action_slot = slot
             for frame in range(max_frame):
                 bpy.context.scene.frame_set(frame)
 
@@ -173,6 +182,8 @@ def read_full(actions, max_frames, anim_owners, trans_values, rot_values, obj, i
                     action_rot[index : index + 3, frame] = list(local_matrix.to_euler())
     finally:
         obj.animation_data.action = pre_export_action
+        if bpy.app.version >= (5, 0, 0):
+            obj.animation_data.action_slot = pre_export_slot
         bpy.context.scene.frame_set(pre_export_frame)
         if was_playing != bpy.context.screen.is_animation_playing:
             bpy.ops.screen.animation_play()
@@ -327,7 +338,7 @@ def to_table_element_class(
         return element
 
     # Not reference
-    header_props, action = element_props.get_header(can_reference), element_props.get_action(can_reference)
+    action, header_props = element_props.get_action_header(can_reference)
     if not action:
         raise PluginError("Action is not set.")
     if not header_props:

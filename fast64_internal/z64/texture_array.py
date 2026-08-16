@@ -29,7 +29,7 @@ def ootReadTextureArrays(
     else:
         actorData = ootGetLinkData(basePath)
         currentPaths = [os.path.join(basePath, f"src/code/z_player_lib.c")]
-    actorData = ootGetIncludedAssetData(basePath, currentPaths, actorData) + actorData
+    actorData = ootGetIncludedAssetData([basePath], currentPaths, actorData) + actorData
 
     actorData = removeComments(actorData)
 

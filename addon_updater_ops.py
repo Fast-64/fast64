@@ -91,7 +91,7 @@ def make_annotations(cls):
     if bl_props:
         if '__annotations__' not in cls.__dict__:
             setattr(cls, '__annotations__', {})
-        annotations = cls.__dict__['__annotations__']
+        annotations = getattr(cls, "__annotations__", {})
         for k, v in bl_props.items():
             annotations[k] = v
             delattr(cls, k)

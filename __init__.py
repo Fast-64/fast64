@@ -30,6 +30,7 @@ from .fast64_internal.utility_anim import utility_anim_register, utility_anim_un
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
 from .fast64_internal.mk64.mk64_constants import mk64_world_defaults
 
+from .fast64_internal.f3d.f3d_gbi import get_F3D_GBI
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
     mat_register,
@@ -69,7 +70,7 @@ from .fast64_internal.gltf_extension import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 4, 0),
+    "version": (2, 5, 4),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
@@ -101,20 +102,31 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "f3d_type", "Microcode")
-        if context.scene.f3d_type in {"F3DEX3", "T3D"}:
-            prop_split(col, context.scene, "packed_normals_algorithm", "Packed normals alg")
-        col.prop(context.scene, "saveTextures")
-        col.prop(context.scene, "f3d_simple", text="Simple Material UI")
-        col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
-        if context.scene.exportInlineF3D:
+
+        scene = context.scene
+        fast64_settings: Fast64Settings_Properties = scene.fast64.settings
+
+        col.prop(scene, "f3d_simple", text="Simple Material UI")
+        col.separator()
+
+        col.label(text="Saved to Repo Settings file", icon="PROPERTIES")
+        prop_split(col, scene, "f3d_type", "Microcode")
+        gbi = get_F3D_GBI()
+
+        if scene.f3d_type in {"F3DEX3", "T3D"}:
+            prop_split(col, scene, "packed_normals_algorithm", "Packed normals alg")
+        col.prop(scene, "saveTextures")
+        if scene.saveTextures:
+            col.prop(fast64_settings, "texture_name_includes_ci_format")
+        col.prop(scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
+        if scene.exportInlineF3D:
             multilineLabel(
                 col.box(),
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
-        col.prop(context.scene, "ignoreTextureRestrictions")
-        if context.scene.ignoreTextureRestrictions:
+        col.prop(scene, "ignoreTextureRestrictions")
+        if scene.ignoreTextureRestrictions:
             col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
@@ -140,14 +152,17 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, scene, "gameEditorMode", "Game")
         col.prop(scene, "exportHiddenGeometry")
         col.prop(scene, "fullTraceback")
-
         prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
+        col.separator()
 
-        draw_repo_settings(col.box(), context)
-        if not fast64_settings.repo_settings_tab:
-            col.prop(fast64_settings, "auto_pick_texture_format")
-            if fast64_settings.auto_pick_texture_format:
-                col.prop(fast64_settings, "prefer_rgba_over_ci")
+        col.label(text="Saved to Repo Settings file", icon="PROPERTIES")
+        col.prop(fast64_settings, "auto_pick_texture_format")
+        if fast64_settings.auto_pick_texture_format:
+            col.prop(fast64_settings, "prefer_rgba_over_ci")
+        col.separator()
+        prop_split(col, scene, "f3d_type", "Microcode")
+
+        draw_repo_settings(col, context)
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -218,6 +233,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
     dont_ask_color_management: bpy.props.BoolProperty(name="Don't ask to set color management properties")
+    texture_name_includes_ci_format: bpy.props.BoolProperty(name="Include CI Format In File Name", default=False)
 
     repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
     repo_settings_path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", update=repo_path_update)
@@ -234,6 +250,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         data = {}
         data["autoLoad"] = self.auto_repo_load_settings
         data["autoPickTextureFormat"] = self.auto_pick_texture_format
+        data["textureNameIncludesCiFormat"] = self.texture_name_includes_ci_format
         if self.auto_pick_texture_format:
             data["preferRGBAOverCI"] = self.prefer_rgba_over_ci
         return data
@@ -241,6 +258,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     def from_repo_settings(self, data: dict):
         set_prop_if_in_data(self, "auto_repo_load_settings", data, "autoLoad")
         set_prop_if_in_data(self, "auto_pick_texture_format", data, "autoPickTextureFormat")
+        set_prop_if_in_data(self, "texture_name_includes_ci_format", data, "textureNameIncludesCiFormat")
         set_prop_if_in_data(self, "prefer_rgba_over_ci", data, "preferRGBAOverCI")
 
 
@@ -379,6 +397,13 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    # Doing some operations immediately on file load can crash blender in specific situations,
+    # so delay the post-load code execution.
+    # (note if register() is called without a delay the function just runs immediately, so we need any non-zero delay)
+    bpy.app.timers.register(after_load_impl, first_interval=0.001)
+
+
+def after_load_impl():
     game_data.update(bpy.context.scene.gameEditorMode)
 
     settings = bpy.context.scene.fast64.settings
@@ -475,7 +500,7 @@ def register():
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
     )
-    bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
+    bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (May Break CI Textures)")
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
         name="Bleed and Inline Material Exports",

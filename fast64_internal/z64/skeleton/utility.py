@@ -2,8 +2,9 @@ import dataclasses
 import mathutils, bpy, os, re
 from typing import Optional
 from ...utility_anim import armatureApplyWithMesh
-from ..model_classes import OOTVertexGroupInfo
-from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
+from ..model_classes import OOTVertexGroupInfo, SkinLimbGroup, VertexWeight, LimbType, LimbSkinType
+from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments, getSortedChildren
+from ...f3d.f3d_writer import MeshInfo
 
 from ...utility import (
     PluginError,
@@ -20,6 +21,16 @@ from ...utility import (
     yUpToZUp,
     deselectAllObjects,
     selectSingleObject,
+)
+
+from ..exporter.skeleton.classes import (
+    OOTBaseLimb,
+    StandardLimb,
+    LODLimb,
+    SkinLimb,
+    OOTBaseSkeleton,
+    StandardSkeleton,
+    FlexSkeleton,
 )
 
 
@@ -96,10 +107,11 @@ class LimbInfo:
     translationZ_str: str
     nextChildIndex_str: str
     nextSiblingIndex_str: str
-    is_lod: bool
     dl_name: str
     far_dl_name: Optional[str]
     uses_include: bool
+    limb_type: LimbType
+    skin_type: LimbSkinType | None = None
 
 
 def ootGetLimb(skeletonData, limbName, continueOnError):
@@ -124,11 +136,12 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
         limb_data = result
 
     limbType = matchResultIni.group(1)
-    if limbType == "Lod":
-        is_lod = True
+
+    if limbType == LimbType.LOD:
         dlRegex = r"\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,?\}"
+    elif limbType == LimbType.SKIN:
+        dlRegex = r"([^,\s]*),\s*([^,\s]*)"
     else:
-        is_lod = False
         dlRegex = r"([^,\s]*)"
 
     matchResult = re.search(
@@ -151,8 +164,19 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
 
     dl_name = matchResult.group(6)
 
-    if is_lod:
+    far_dl_name = None
+    skin_type = None
+
+    if limbType == LimbType.LOD:
         far_dl_name = matchResult.group(7)
+    elif limbType == LimbType.SKIN:
+        try:
+            skin_type = LimbSkinType(matchResult.group(6))
+        except ValueError:
+            if continueOnError:
+                return None
+            raise PluginError(f"Invalid segmentType: {matchResult.group(6)} in SkinLimb named {limbName}")
+        dl_name = matchResult.group(7)
     else:
         far_dl_name = None
 
@@ -164,10 +188,11 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
         translationZ_str,
         nextChildIndex_str,
         nextSiblingIndex_str,
-        is_lod,
         dl_name,
         far_dl_name,
         uses_include,
+        limbType,
+        skin_type,
     )
 
 
@@ -181,13 +206,59 @@ def get_anim_names(skeleton_data: str, is_link: bool):
     return re.findall(rf"{struct_name}\s+(\w+)", skeleton_data)
 
 
-def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
-    actualGroups = []
+def vertexGroupGenerator(vert: bpy.types.MeshVertex, armature: bpy.types.Armature, obj: bpy.types.Object):
+    for group in vert.groups:
+        if groupName := getGroupNameFromIndex(obj, group.group):
+            if groupName in armature.bones:
+                if armature.bones[groupName].ootBone.boneType != "Ignore":
+                    yield groupName, group.weight
+
+
+def getSkinLimbType(
+    vertices: list[int], weights: list[float], bone: bpy.types.Bone, isSkinLimbExport: bool
+) -> LimbSkinType:
+    if len(vertices) == 0 and bone.ootBone.boneType != "Custom DL":
+        return LimbSkinType.EMPTY
+    elif all(weight == 1.0 for weight in weights):
+        return LimbSkinType.SKIN_LIMB_TYPE_NORMAL
+    else:
+        if not isSkinLimbExport:
+            return LimbSkinType.SKIN_LIMB_TYPE_NORMAL
+        return LimbSkinType.SKINNED
+
+
+def getSkinAnimatedLimb(armatureObj: bpy.types.Object) -> dict[str, SkinLimbGroup]:
+    # Doesn't match vanilla assets, but it doesn't seem to matter
+    startBoneName = getStartBone(armatureObj)
+    return {startBoneName: SkinLimbGroup(startBoneName, [], [], LimbSkinType.SKIN_LIMB_TYPE_ANIMATED)}
+
+
+def getSkinLimbGroups(
+    armatureObj: bpy.types.Object, skinnedVertexGroups: dict[str, tuple[list[int], list[float]]]
+) -> tuple[set[int], dict[str, SkinLimbGroup]]:
+    isSkinLimbExport: bool = armatureObj.ootSkeleton.isSkinLimb
+    skinnedVertices: set[int] = set()
+    skinLimbGroups: dict[str, SkinLimbGroup] = {}
+    for groupName, (vertices, weights) in skinnedVertexGroups.items():
+        bone = armatureObj.data.bones[groupName]
+        limbSkinType = getSkinLimbType(vertices, weights, bone, isSkinLimbExport)
+        skinLimbGroups[groupName] = SkinLimbGroup(groupName, vertices, weights, limbSkinType)
+        if limbSkinType == LimbSkinType.SKINNED:
+            skinnedVertices.update(vertices)
+
+    if isSkinLimbExport:
+        skinLimbGroups |= getSkinAnimatedLimb(armatureObj)
+
+    return skinnedVertices, skinLimbGroups
+
+
+def getGroupIndexOfVert(vert: bpy.types.MeshVertex, armature: bpy.types.Armature, obj, rootGroupIndex):
+    actualGroups: list[bpy.types.VertexGroupElement] = []
     nonBoneGroups = []
     for group in vert.groups:
         groupName = getGroupNameFromIndex(obj, group.group)
         if groupName is not None:
-            if groupName in armatureObj.data.bones:
+            if groupName in armature.bones:
                 actualGroups.append(group)
             else:
                 nonBoneGroups.append(groupName)
@@ -206,21 +277,35 @@ def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
         else:
             raise VertexWeightError("There are unweighted vertices in the mesh that must be weighted to a bone.")
 
-    vertGroup = actualGroups[0]
-    for group in actualGroups:
-        if group.weight > vertGroup.weight:
-            vertGroup = group
+    weights = [VertexWeight[int](group.group, group.weight) for group in actualGroups]
+    vertGroup = sorted(actualGroups, key=lambda group: group.weight, reverse=True)[0]
     # if vertGroup not in actualGroups:
     # raise VertexWeightError("A vertex was found that was primarily weighted to a group that does not correspond to a bone in #the armature. (" + getGroupNameFromIndex(obj, vertGroup.group) + ') Either decrease the weights of this vertex group or remove it. If you think this group should correspond to a bone, make sure to check your spelling.')
-    return vertGroup.group
+    return vertGroup.group, weights
 
 
-def getGroupIndices(meshInfo, armatureObj, meshObj, rootGroupIndex):
-    meshInfo.vertexGroupInfo = OOTVertexGroupInfo()
+def getGroupIndices(armatureObj, meshObj, rootGroupIndex) -> OOTVertexGroupInfo:
+    armature = armatureObj.data
+    vertexGroupInfo = OOTVertexGroupInfo()
+    skinnedVertexGroups: dict[str, tuple[list[int], list[float]]] = {bone.name: ([], []) for bone in armature.bones}
+
     for vertex in meshObj.data.vertices:
-        meshInfo.vertexGroupInfo.vertexGroups[vertex.index] = getGroupIndexOfVert(
-            vertex, armatureObj, meshObj, rootGroupIndex
-        )
+        (
+            vertexGroupInfo.vertexGroups[vertex.index],
+            vertexGroupInfo.weights[vertex.index],
+        ) = getGroupIndexOfVert(vertex, armature, meshObj, rootGroupIndex)
+
+        for boneName, weight in vertexGroupGenerator(vertex, armature, meshObj):
+            skinnedVertexGroups[boneName][0].append(vertex.index)
+            skinnedVertexGroups[boneName][1].append(weight)
+
+    skinnedVertices, skinLimbGroups = getSkinLimbGroups(armatureObj, skinnedVertexGroups)
+    vertexGroupInfo.skinnedVertexGroups = skinLimbGroups
+
+    for vertIndex in skinnedVertices:
+        # We just need a group index that won't overwrite any other vertex group
+        vertexGroupInfo.vertexGroups[vertIndex] = -1
+    return vertexGroupInfo
 
 
 def ootRemoveSkeleton(filepath, objectName, skeletonName):
@@ -301,7 +386,7 @@ def ootRemoveRotationsFromArmature(armatureObj: bpy.types.Object) -> None:
     armatureApplyWithMesh(armatureObj, bpy.context)
 
 
-def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object):
+def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object, removeRotations: bool):
     # Duplicate objects to apply scale / modifiers / linked data
     deselectAllObjects()
 
@@ -324,7 +409,8 @@ def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object
         selectSingleObject(armatureObj)
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
 
-        ootRemoveRotationsFromArmature(armatureObj)
+        if removeRotations:
+            ootRemoveRotationsFromArmature(armatureObj)
 
         # Apply modifiers/data to mesh objs
         deselectAllObjects()
@@ -377,3 +463,49 @@ def applySkeletonRestPose(boneData: list[tuple[float, float, float]], armatureOb
 
     bpy.ops.object.mode_set(mode="OBJECT")
     bpy.ops.object.armature_apply_w_mesh()
+
+
+def getRecursiveSortedChildren(bone: bpy.types.Bone):
+    children = sorted(
+        [child for child in bone.children if child.ootBone.boneType != "Ignore"],
+        key=lambda child: child.name.lower(),
+    )
+    for child in children:
+        yield child
+        yield from getRecursiveSortedChildren(child)
+
+
+def ootDetermineLimbType(armatureObj: bpy.types.Object) -> type[OOTBaseLimb]:
+    if armatureObj.ootSkeleton.isSkinLimb:
+        return SkinLimb
+    if armatureObj.ootSkeleton.LOD is not None:
+        return LODLimb
+    return StandardLimb
+
+
+def ootDetermineSkeletonType(
+    faces: list[bpy.types.MeshLoopTriangle], vertexGroupInfo: OOTVertexGroupInfo
+) -> type[OOTBaseSkeleton]:
+    for face in faces:
+        for vertex in face.vertices:
+            vertGroupIndex = vertexGroupInfo.vertexGroups[vertex]
+            if vertGroupIndex != vertexGroupInfo.vertexGroups[face.vertices[0]]:
+                return FlexSkeleton
+
+    return StandardSkeleton
+
+
+def ootConstructSkeleton(
+    name: str,
+    armatureObj: bpy.types.Object,
+    faces: list[bpy.types.MeshLoopTriangle],
+    vertexGroupInfo: OOTVertexGroupInfo,
+) -> OOTBaseSkeleton:
+    limbClass = ootDetermineLimbType(armatureObj)
+
+    if limbClass is SkinLimb:
+        skeleton = StandardSkeleton
+    else:
+        skeleton = ootDetermineSkeletonType(faces, vertexGroupInfo)
+
+    return skeleton(name, limbClass)
