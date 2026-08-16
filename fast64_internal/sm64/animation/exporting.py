@@ -281,7 +281,7 @@ def to_animation_class(
             values_reference, indice_reference = action_props.values_table, action_props.indices_table
     else:
         pairs = get_animation_pairs(blender_to_sm64_scale, [action], obj, quick_read)[action]
-        animation.data = to_data_class(pairs, action_props.get_name(action, dma), animation.file_name)
+        animation.data = to_data_class(pairs, action_props.get_name(actor_name, action, dma), animation.file_name)
         values_reference = animation.data.values_reference
         indice_reference = animation.data.indice_reference
     bone_count = len(get_anim_owners(obj))
@@ -360,7 +360,7 @@ def to_table_element_class(
         if action in action_pairs and action not in data_dict:
             data_dict[action] = to_data_class(
                 action_pairs[action],
-                action_props.get_name(action, dma),
+                action_props.get_name(actor_name, action, dma),
                 action_props.get_file_name(action, export_type, dma),
             )
         data = data_dict[action]
