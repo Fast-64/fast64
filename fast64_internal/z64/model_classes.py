@@ -378,7 +378,7 @@ class OOTVtxList(VtxList):
 class SkinAnimData(FMesh):
     """subclass of FMesh for exporting SkinAnimatedLimbData"""
 
-    def __init__(self, name: str, DLFormat: DLFormat, drawLayer = None) -> None:
+    def __init__(self, name: str, DLFormat: DLFormat, drawLayer=None) -> None:
         super().__init__(name, DLFormat, drawLayer=drawLayer)
         self.namePrefix = name.partition("mesh")[0]
         self.name = self.namePrefix + "SkinAnimatedLimbData"
