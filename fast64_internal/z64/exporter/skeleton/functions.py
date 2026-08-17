@@ -100,7 +100,7 @@ def ootProcessBone(
             )
         else:
             # Dummy data, only used so that name is set correctly
-            mesh = FMesh(bone.ootBone.customDLName, DLFormat.Static)
+            mesh = FMesh(bone.ootBone.customDLName, DLFormat.Static, drawLayer=drawLayer)
 
     DL = None
     if mesh is not None:

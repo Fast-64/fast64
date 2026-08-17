@@ -2335,7 +2335,7 @@ class FPaletteKey:
 
 
 class FMesh:
-    def __init__(self, name, DLFormat):
+    def __init__(self, name, DLFormat, drawLayer=None):
         self.name = name
         # GfxList
         self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
@@ -2345,6 +2345,7 @@ class FMesh:
         self.cullVertexList = None
         self.draw_overrides: list[GfxList] = []
         self.DLFormat = DLFormat
+        self.drawLayer = drawLayer
 
         # Used to avoid consecutive calls to the same material if unnecessary
         self.currentFMaterial = None
@@ -2405,8 +2406,7 @@ class FMesh:
         for triGroup in self.triangleGroups:
             staticData.append(triGroup.to_c(f3d, gfxFormatter))
 
-        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
-        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=self.drawLayer)
 
         for cmd_list in self.draw_overrides:
             dynamicData.append(cmd_list.to_c(f3d))
@@ -2541,7 +2541,7 @@ class FModel:
                 if final_name in self.meshes:
                     final_name = f"{base_name}_{i:03}"
         checkUniqueBoneNames(self, final_name, name)
-        self.meshes[final_name] = mesh = meshOverride(final_name, self.DLFormat)
+        self.meshes[final_name] = mesh = meshOverride(final_name, self.DLFormat, drawLayer=drawLayer)
         self.onAddMesh(mesh, contextObj)
         return mesh
 

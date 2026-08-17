@@ -2764,7 +2764,7 @@ def saveSkinnedMeshByMaterial(
     lastMaterialName = None
 
     # Load parent group vertices
-    fSkinnedMesh = FMesh(skinnedMeshName, fModel.DLFormat)
+    fSkinnedMesh = FMesh(skinnedMeshName, fModel.DLFormat, drawLayer=drawLayer)
 
     # Load verts into buffer by material.
     # It seems like material setup must be done BEFORE triangles are drawn.
@@ -2808,7 +2808,7 @@ def saveSkinnedMeshByMaterial(
     # End skinned mesh vertices.
     fSkinnedMesh.draw.commands.append(SPEndDisplayList())
 
-    fMesh = FMesh(meshName, fModel.DLFormat)
+    fMesh = FMesh(meshName, fModel.DLFormat, drawLayer=drawLayer)
 
     # Load current group vertices, then draw commands by material
     existingVertData, matRegionDict = convertVertDictToArray(notInGroupVertArray)
