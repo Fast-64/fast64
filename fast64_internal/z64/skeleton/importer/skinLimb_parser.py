@@ -85,7 +85,7 @@ def parseSkinLimbModifs(includeData: str, modifName: str, vertexData: list[OOTVe
 
     data = modifData.group(1).replace("\n", "").replace(" ", "")
     if "#include" in data:
-        data = get_include_data(modifData.group(1), strip=True)  # .split(",")
+        data = get_include_data(modifData.group(1), strip=True)
 
     for modif in re.finditer(r"{(.*?)}", data, re.DOTALL):
         values = modif.group(1).split(",")
