@@ -114,8 +114,7 @@ def parseScene(
         file_path = Path(sceneFolderPath).resolve() / f"{sceneName}.c"
     is_single_file = True
 
-    tried_file_paths = []
-    tried_file_paths.append(file_path)
+    tried_file_paths = [file_path]
 
     if not file_path.exists():
         file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene_main.c"
