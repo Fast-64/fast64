@@ -429,10 +429,10 @@ class SM64_ActionAnimProperty(PropertyGroup):
     def dma_name(self):
         return get_dma_anim_name([header.table_index for header in self.headers])
 
-    def get_name(self, action: Action, dma=False) -> str:
+    def get_name(self, actor_name: str, action: Action, dma=False) -> str:
         if dma:
             return self.dma_name
-        return toAlnum(f"anim_{action.name}")
+        return toAlnum(f"{actor_name}_anim_{action.name}")
 
     def get_file_name(self, action: Action, export_type: str, dma=False) -> str:
         if not export_type in {"C", "Insertable Binary"}:
