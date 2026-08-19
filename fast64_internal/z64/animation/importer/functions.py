@@ -326,6 +326,12 @@ def ootImportLinkAnimationC(
             ]
         )
 
+        # Make the pose bones rotation mode "XYZ Euler",
+        # this is set initially on import by ootBuildSkeleton so usually
+        # this is redundant but ensure it here.
+        assert armatureObj.pose is not None, armatureObj.type
+        armatureObj.pose.bones[bone.name].rotation_mode = "XYZ"
+
     # vec3 = 3x s16 values
     # padding = u8, tex anim = u8
     # root trans vec3 + rot vec3 for each limb + (s16 with eye/mouth indices)
