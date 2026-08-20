@@ -11,6 +11,7 @@ def on_update_sm64_render_settings(self, context: bpy.types.Context):
         renderSettings.fogPreviewColor = tuple(c for c in area.area_fog_color)
         renderSettings.fogPreviewPosition = tuple(round(p) for p in area.area_fog_position)
         renderSettings.clippingPlanes = tuple(float(p) for p in area.clipPlanes)
+    force_shader_recomp_if_auto_update(renderSettings)
 
 
 def on_update_oot_render_settings(self, context: bpy.types.Context):
@@ -90,6 +91,23 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
             10.0,
             la.z_far + float(lb.z_far - la.z_far) * fade,
         )
+    force_shader_recomp_if_auto_update(renderSettings)
+
+
+isRecursing = False
+
+
+def force_shader_recomp_if_auto_update(renderSettings: "Fast64RenderSettings_Properties"):
+    global isRecursing
+    if not isRecursing and renderSettings.enableAutoUpdatePreview:
+        try:
+            isRecursing = True
+            # Force shader recompilation since setting the renderSettings props from python unfortunately doesn't
+            # cause the shader to pick up the values set
+            renderSettings.enableAutoUpdatePreview = False
+            renderSettings.enableAutoUpdatePreview = True
+        finally:
+            isRecursing = False
 
 
 def update_scene_props_from_rs_enableFogPreview(
@@ -170,17 +188,19 @@ def update_scene_props_from_render_settings(
     sceneOutputs: bpy.types.NodeGroupOutput,
     renderSettings: "Fast64RenderSettings_Properties",
 ):
-    update_scene_props_from_rs_enableFogPreview(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_fogPreviewColor(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_clippingPlanes(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_fogPreviewPosition(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_ambientColor(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_light0Color(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_light0Direction(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_light0SpecSize(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_light1Color(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_light1Direction(sceneOutputs, renderSettings)
-    update_scene_props_from_rs_light1SpecSize(sceneOutputs, renderSettings)
+    if bpy.app.version < (3, 4, 0):
+        update_scene_props_from_rs_enableFogPreview(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_fogPreviewColor(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_clippingPlanes(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_fogPreviewPosition(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_ambientColor(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_light0Color(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_light0Direction(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_light0SpecSize(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_light1Color(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_light1Direction(sceneOutputs, renderSettings)
+        update_scene_props_from_rs_light1SpecSize(sceneOutputs, renderSettings)
+
     update_scene_props_from_rs_useWorldSpaceLighting(renderSettings)
 
     # TODO use a callback on the scale props to set this value
@@ -224,20 +244,32 @@ def make_callback(update_scene_props_from_rs_func):
     return on_update_rs_func
 
 
-# These are all the callbacks that modify values in the scene properties node group
-# Since modifying node values turns out to be very slow,
-# we need one callback per prop in order to update the specific associated value.
-on_update_rs_enableFogPreview = make_callback(update_scene_props_from_rs_enableFogPreview)
-on_update_rs_fogPreviewColor = make_callback(update_scene_props_from_rs_fogPreviewColor)
-on_update_rs_clippingPlanes = make_callback(update_scene_props_from_rs_clippingPlanes)
-on_update_rs_fogPreviewPosition = make_callback(update_scene_props_from_rs_fogPreviewPosition)
-on_update_rs_ambientColor = make_callback(update_scene_props_from_rs_ambientColor)
-on_update_rs_light0Color = make_callback(update_scene_props_from_rs_light0Color)
-on_update_rs_light0Direction = make_callback(update_scene_props_from_rs_light0Direction)
-on_update_rs_light0SpecSize = make_callback(update_scene_props_from_rs_light0SpecSize)
-on_update_rs_light1Color = make_callback(update_scene_props_from_rs_light1Color)
-on_update_rs_light1Direction = make_callback(update_scene_props_from_rs_light1Direction)
-on_update_rs_light1SpecSize = make_callback(update_scene_props_from_rs_light1SpecSize)
+if bpy.app.version < (3, 4, 0):
+    # These are all the callbacks that modify values in the scene properties node group
+    # Since modifying node values turns out to be very slow,
+    # we need one callback per prop in order to update the specific associated value.
+    on_update_rs_fogPreviewColor = make_callback(update_scene_props_from_rs_fogPreviewColor)
+    on_update_rs_clippingPlanes = make_callback(update_scene_props_from_rs_clippingPlanes)
+    on_update_rs_fogPreviewPosition = make_callback(update_scene_props_from_rs_fogPreviewPosition)
+    on_update_rs_ambientColor = make_callback(update_scene_props_from_rs_ambientColor)
+    on_update_rs_light0Color = make_callback(update_scene_props_from_rs_light0Color)
+    on_update_rs_light0Direction = make_callback(update_scene_props_from_rs_light0Direction)
+    on_update_rs_light0SpecSize = make_callback(update_scene_props_from_rs_light0SpecSize)
+    on_update_rs_light1Color = make_callback(update_scene_props_from_rs_light1Color)
+    on_update_rs_light1Direction = make_callback(update_scene_props_from_rs_light1Direction)
+    on_update_rs_light1SpecSize = make_callback(update_scene_props_from_rs_light1SpecSize)
+else:
+    on_update_rs_fogPreviewColor = None
+    on_update_rs_clippingPlanes = None
+    on_update_rs_fogPreviewPosition = None
+    on_update_rs_ambientColor = None
+    on_update_rs_light0Color = None
+    on_update_rs_light0Direction = None
+    on_update_rs_light0SpecSize = None
+    on_update_rs_light1Color = None
+    on_update_rs_light1Direction = None
+    on_update_rs_light1SpecSize = None
+
 on_update_rs_useWorldSpaceLighting = make_callback(update_scene_props_from_rs_useWorldSpaceLighting)
 
 del make_callback
