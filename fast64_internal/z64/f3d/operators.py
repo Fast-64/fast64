@@ -32,12 +32,16 @@ from ..utility import (
 
 
 class OOTF3DGfxFormatter(OOTGfxFormatter):
-    def __init__(self, scrollMethod):
+    def __init__(self, scrollMethod, use_draw_layer_suffix=True):
         OOTGfxFormatter.__init__(self, scrollMethod)
+        self.use_draw_layer_suffix = use_draw_layer_suffix
 
     # override the function to give a custom name to the DL array
     def drawToC(self, f3d, gfxList, layer: Optional[str] = None):
-        return gfxList.to_c(f3d, name_override=f"{gfxList.name}_{layer.lower()}_dl")
+        name_override = None
+        if self.use_draw_layer_suffix and layer is not None:
+            name_override = f"{gfxList.name}_{layer.lower()}_dl"
+        return gfxList.to_c(f3d, name_override=name_override)
 
 
 def ootConvertMeshToC(
@@ -71,7 +75,11 @@ def ootConvertMeshToC(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
         )
 
-        # Since we provide a draw layer override, there should only be one fMesh.
+        # fMeshes is a dict where keys are draw layer names and values are the mesh for that draw layer.
+        # If there is more than one mesh we need to append a draw layer suffix on export to the original mesh name,
+        # to avoid exporting the same name twice.
+        use_draw_layer_suffix = len(fMeshes) > 1
+
         for fMesh in fMeshes.values():
             fMesh.draw.name = obj_name
 
@@ -96,7 +104,8 @@ def ootConvertMeshToC(
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
+        TextureExportSettings(False, saveTextures, includeDir, path),
+        OOTF3DGfxFormatter(ScrollMethod.Vertex, use_draw_layer_suffix=use_draw_layer_suffix),
     )
 
     data.append(exportData.all())
