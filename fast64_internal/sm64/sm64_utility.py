@@ -126,7 +126,7 @@ def string_int_prop(layout: UILayout, data, prop: str, name="", split=True, **pr
     return string_int_warning(layout, getattr(data, prop))
 
 
-def convert_addr_to_func(addr: str):
+def convert_addr_to_func(addr: str, name: str = None):
     if addr == "":
         raise PluginError("Empty function name/address.")
     refresh_version: str = bpy.context.scene.fast64.sm64.refresh_version
@@ -135,7 +135,13 @@ def convert_addr_to_func(addr: str):
     assert refresh_version in func_map, "Refresh version not found in function map"
     refresh_func_map = func_map[refresh_version]
     if addr.lower() in refresh_func_map:
-        return refresh_func_map[addr.lower()]
+        if not name:
+            return refresh_func_map[addr.lower()][0]
+        for val in refresh_func_map[addr.lower()]:
+            if name in val:
+                return val
+        else:
+            return refresh_func_map[addr.lower()][0]
     else:
         return addr
 
