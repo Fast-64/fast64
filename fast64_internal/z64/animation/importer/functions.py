@@ -30,7 +30,7 @@ def binangToRadians(value):
 
 
 def getFrameData(filepath: str, animData: str, frameDataName: str):
-    matchResult = re.search(re.escape(frameDataName) + "\s*\[.*?\]\s*=\s*\{([^\}]*)\}", animData, re.DOTALL)
+    matchResult = re.search(re.escape(frameDataName) + r"\s*\[[^\;]*?\]\s*=\s*\{([^\}]*)\}", animData, re.DOTALL)
     if matchResult is None:
         raise PluginError("Cannot find animation frame data named " + frameDataName + " in " + filepath)
     data = matchResult.group(1)

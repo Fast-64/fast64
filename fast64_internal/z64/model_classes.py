@@ -5,7 +5,7 @@ import re
 from bpy.types import MeshLoop, MeshLoopTriangle
 import mathutils
 
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Union, Optional, NamedTuple, Generic, TypeVar
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -801,15 +801,15 @@ class LimbType(str, Enum):
     SKIN = "Skin"
 
 
-class LimbSkinType(str, Enum):
+class LimbSkinType(IntEnum):
     # Contains no mesh data, segment is NULL
-    EMPTY = "0"
+    EMPTY = 0
     # Contains the smooth skinned mesh data, segment is SkinAnimatedLimbData
-    SKIN_LIMB_TYPE_ANIMATED = "SKIN_LIMB_TYPE_ANIMATED"
+    SKIN_LIMB_TYPE_ANIMATED = 4
     # Is a limb responsible for smooth skinned deformation, segment is NULL
-    SKINNED = "5"
+    SKINNED = 5
     # Functions like a StandardLimb, segment is DisplayList
-    SKIN_LIMB_TYPE_NORMAL = "SKIN_LIMB_TYPE_NORMAL"
+    SKIN_LIMB_TYPE_NORMAL = 11
 
 
 @dataclass(frozen=True)
@@ -960,7 +960,7 @@ class OOTF3DContext(F3DContext):
             if isinstance(bufferVert.groupIndex, int):
                 groupIndex = bufferVert.groupIndex
             else:
-                groupIndex = list(self.matrixData).index(bufferVert.groupIndex)
+                groupIndex = self.limbList.index(bufferVert.groupIndex)
             vert.addTransform(groupIndex, vert.position, 1.0)
 
         position = self.transformPosition(vert)

@@ -3,8 +3,7 @@ import mathutils, bpy, os, re
 from typing import Optional
 from ...utility_anim import armatureApplyWithMesh
 from ..model_classes import OOTVertexGroupInfo, SkinLimbGroup, VertexWeight, LimbType, LimbSkinType
-from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments, getSortedChildren
-from ...f3d.f3d_writer import MeshInfo
+from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments, hexOrDecInt
 
 from ...utility import (
     PluginError,
@@ -171,7 +170,10 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
         far_dl_name = matchResult.group(7)
     elif limbType == LimbType.SKIN:
         try:
-            skin_type = LimbSkinType(matchResult.group(6))
+            if matchResult.group(6) in LimbSkinType._member_names_:
+                skin_type = LimbSkinType[matchResult.group(6)]
+            else:
+                skin_type = LimbSkinType(hexOrDecInt(matchResult.group(6)))
         except ValueError:
             if continueOnError:
                 return None

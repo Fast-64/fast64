@@ -21,13 +21,14 @@ def getSkinLimbRestPose(
 
 
 def parseSkinVertex(includeData: str, skinVertexName: str, vertexData: list[OOTVert]):
-    pattern = r"SkinVertex\s+?" + re.escape(skinVertexName) + r"\[\]\s+=\s+?{\s*#include (.*?)};"
+    pattern = r"SkinVertex\s+?" + re.escape(skinVertexName) + r"\[\]\s+=\s+?{\s*?(.*?)};"
     skinVertexData = re.search(pattern, includeData, re.DOTALL)
 
     if skinVertexData is None:
         raise PluginError("Cannot find SkinVertex named: " + skinVertexName)
-
-    data = get_include_data(skinVertexData.group(1), strip=True)
+    data = skinVertexData.group(1).replace("\n", "").replace(" ", "")
+    if "#include" in data:
+        data = get_include_data(skinVertexData.group(1), strip=True)
 
     verts: list[OOTVert] = []
     for skinVert in re.finditer(r"{(.*?)}", data, re.DOTALL):
@@ -50,13 +51,15 @@ def parseSkinVertex(includeData: str, skinVertexName: str, vertexData: list[OOTV
 def parseSkinTransformation(
     includeData: str, skinTransformName: str
 ) -> tuple[list[VertexTransform], list[VertexWeight[int]]]:
-    pattern = r"SkinTransformation\s+?" + re.escape(skinTransformName) + r"\[\]\s+=\s+?{\s*#include (.*?)};"
+    pattern = r"SkinTransformation\s+?" + re.escape(skinTransformName) + r"\[\]\s+=\s+?{\s*?(.*?)};"
     skinTransformData = re.search(pattern, includeData, re.DOTALL)
 
     if skinTransformData is None:
         raise PluginError("Cannot find SkinTransformation named: " + skinTransformName)
 
-    data = get_include_data(skinTransformData.group(1), strip=True)
+    data = skinTransformData.group(1).replace("\n", "").replace(" ", "")
+    if "#include" in data:
+        data = get_include_data(skinTransformData.group(1), strip=True)
     transforms: list[VertexTransform] = []
     weights: list[VertexWeight[int]] = []
 
@@ -73,33 +76,40 @@ def parseSkinTransformation(
 
 
 def parseSkinLimbModifs(includeData: str, modifName: str, vertexData: list[OOTVert]) -> None:
-    pattern = r"SkinLimbModif\s+?" + re.escape(modifName) + r"\[\]\s+=\s+?{\s*#include (.*?)};"
+    pattern = r"SkinLimbModif\s+?" + re.escape(modifName) + r"\[\]\s+=\s+?{\s*?(.*?)};"
     verts: list[OOTVert] = []
     modifData = re.search(pattern, includeData, re.DOTALL)
 
     if modifData is None:
         raise PluginError("Cannot find SkinLimbModif named: " + modifName)
 
-    data = get_include_data(modifData.group(1), strip=True)  # .split(",")
+    data = modifData.group(1).replace("\n", "").replace(" ", "")
+    if "#include" in data:
+        data = get_include_data(modifData.group(1), strip=True)
 
-    for modif in re.finditer(r"{.*?}", data, re.DOTALL):
-        value = modif.group(0).split(",")
-        limbTransformations, groups = parseSkinTransformation(includeData, value[4])
-        verts = parseSkinVertex(includeData, value[3], vertexData)
+    for modif in re.finditer(r"{(.*?)}", data, re.DOTALL):
+        values = modif.group(1).split(",")
+        limbTransformations, groups = parseSkinTransformation(includeData, values[4])
+        verts = parseSkinVertex(includeData, values[3], vertexData)
 
         for vert in verts:
             vert.transforms = limbTransformations
 
 
 def parseSkinAnimatedLimbData(includeData: str, dataName: str) -> SkinAnimatedLimbData:
-    pattern = r"SkinAnimatedLimbData\s*?" + re.escape(dataName[1:]) + r"\s*?=\s*?{\s*?#include (.*?)};"
+    pattern = r"SkinAnimatedLimbData\s*?" + re.escape(dataName[1:]) + r"\s*?=\s*?{\s*?(.*?)};"
 
     animatedLimbText = re.search(pattern, includeData, re.DOTALL)
 
     if animatedLimbText is None:
         raise PluginError(f"Cannot find SkinAnimatedLimbData named: {dataName}")
 
-    data = get_include_data(animatedLimbText.group(1), strip=True).split(",")
+    if "#include" in animatedLimbText.group(0):
+        data = get_include_data(animatedLimbText.group(1), strip=True)
+    else:
+        data = animatedLimbText.group(1)
+
+    data = data.replace("\n", "").replace(" ", "").split(",")
 
     totalVtxCount = int(data[0])
     vertexData = [
