@@ -119,6 +119,10 @@ class glTF2ExportUserExtension(GlTF2Extension):
         )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
+        if bpy.app.version == (5, 2, 0) and not isinstance(blender_material, bpy.types.Material):
+            # work around bug in the gltf addon shipped with Blender 5.2.0
+            # https://github.com/KhronosGroup/glTF-Blender-IO/issues/2732
+            blender_material = bpy.data.materials[gltf2_material.name]
         self.call_hooks(
             "gather_material_hook",
             'Material "{args[1].name}"',
