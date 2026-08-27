@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional
 from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
 from .f3d_gbi import FImage
-from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
+from .f3d_material import all_combiner_uses
 from ..utility import prop_split, CollectionProperty
 from dataclasses import dataclass
 import dataclasses
@@ -310,9 +310,10 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
 
 def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: int):
     flipbook = getattr(material.flipbookGroup, "flipbook" + str(texIndex))
-    for texNode in iter_tex_nodes(material.node_tree, texIndex):
-        if texNode.image is not flipbook.textures[flipbookIndex].image:
-            texNode.image = flipbook.textures[flipbookIndex].image
+    # Even with use_tex_reference set, much of the material logic still depends and runs from setting the tex.
+    # So this is the simplest way to preview the texture.
+    # Fiddling with the nodes directly would be a lot more complicated.
+    getattr(material.f3d_mat, f"tex{texIndex}").tex = flipbook.textures[flipbookIndex].image
 
 
 flipbook_classes = [
