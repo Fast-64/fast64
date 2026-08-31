@@ -58,7 +58,7 @@ def addOcclusionQuads(
             cross0 = edge30.cross(edge01)
             if cross0.dot(cross1) < 0.0 or cross0.dot(cross2) < 0.0 or cross0.dot(cross3) < 0.0:
                 raise PluginError(f"Occlusion planes mesh {obj.name} contains a quad which is not convex.")
-            candidatesList.planes.append(OcclusionPlaneCandidate(verts[3], verts[2], verts[1], verts[0], weight))
+            candidatesList.add_plane(obj, tuple(verts), weight)
 
     if includeChildren:
         for child in obj.children:
