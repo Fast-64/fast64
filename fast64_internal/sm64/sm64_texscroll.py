@@ -147,6 +147,7 @@ def writeTexScrollBase(baseDir):
             + '#include "include/segment_symbols.h"\n'
             + '#include "memory.h"\n'
             + '#include "engine/math_util.h"\n'
+            + ('#include "object_helpers.h"\n' if not bpy.context.scene.fast64.sm64.hackersm64 else '')
             + '#include "src/engine/behavior_script.h"\n'
             + '#include "tile_scroll.h"\n'
             + '#include "texscroll.h"\n\n'
