@@ -47,6 +47,7 @@ def decomp_path_update(self, context: Context):
     directory_path_checks(self.abs_decomp_path)
     fast64_settings.repo_settings_path = as_posix(self.abs_repo_file_path)
 
+
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
