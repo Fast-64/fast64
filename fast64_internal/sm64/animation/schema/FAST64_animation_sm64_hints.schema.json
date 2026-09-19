@@ -1,0 +1,20 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_action_anim_hints glTF Animation Extension Hints",
+    "type": "object",
+    "description": "Hints from Fast64 on what the assumed values should be for action animations",
+    "properties": {
+        "file_name": {
+            "type": "string",
+            "description": "The auto-generated file name based on the, object's name and action name",
+            "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9._-]*$"
+        },
+        "max_frame": {
+            "type": "integer",
+            "description": "The frame count calculated from the Blender action based on the Anim Range rules",
+            "minimum": 1,
+            "max": 65535
+        }
+    },
+    "additionalProperties": false
+}

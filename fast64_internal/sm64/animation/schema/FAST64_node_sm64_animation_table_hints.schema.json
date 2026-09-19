@@ -1,0 +1,17 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_node_anim_hints glTF Node Animation Table Extension Hints",
+    "type": "object",
+    "description": "Hints from Fast64 on what the assumed values should be for node animations",
+    "properties": {
+        "file_name": {
+            "type": "string",
+            "description": "The table file name generated from the armature name"
+        },
+        "table_name": {
+            "type": "string",
+            "description": "The table array name generated from the armature name"
+        }
+    },
+    "additionalProperties": false
+}

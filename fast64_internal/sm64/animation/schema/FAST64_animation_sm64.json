@@ -1,0 +1,82 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_action_anim glTF Animation Extension",
+    "type": "object",
+    "description": "Animation properties for SM64 actions",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "extensions": {
+            "type": "object",
+            "properties": {
+                "FAST64_sm64_action_anim_hints": {
+                    "$ref": "FAST64_sm64_action_anim_hints.schema.json"
+                }
+            }
+        },
+        "file_name": {
+            "type": "string",
+            "description": "Specified output file name for the exported animation data",
+            "default": "anim_00.inc.c",
+            "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9._-]*$"
+        },
+        "max_frame": {
+            "type": "integer",
+            "description": "Specified maximum number of frames in the animation data based on the end frame or detected range based on Anim Range rules",
+            "default": 1,
+            "minimum": 1
+        },
+        "reference": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "description": "Optional references to external animation data",
+                    "properties": {
+                        "values_table": {
+                            "type": "string",
+                            "description": "Name for the animation values table array",
+                            "default": "anim_00_values"
+                        },
+                        "indices_table": {
+                            "type": "string",
+                            "description": "Name for the animation indices table array",
+                            "default": "anim_00_indices"
+                        }
+                    }
+                }
+                {
+                    "type": "object",
+                    "description": "Optional references to external animation data via glTF",
+                    "properties": {
+                        "abs": {
+                            "type": "boolean",
+                            "description": "Is absolute to decomp"
+                        },
+                        "path": {
+                            "type": "string",
+                            "description": "Path to the animation data file"
+                        },
+                        "action_name": {
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9._-]*$",
+                            "description": "Name of the action to reference"
+                        }
+                    }
+                }
+            ],
+            "additionalProperties": false
+        },
+        "headers": {
+            "type": "array",
+            "description": "List of variants for this action",
+            "items": {
+                "$ref": "FAST64_sm64_anim_header.schema.json"
+            },
+            "minItems": 1
+        }
+    },
+    "additionalProperties": false
+}

@@ -2907,7 +2907,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             applyRotation([obj], math.radians(90), "X")
             save_textures = bpy.context.scene.saveTextures
 
-            if context.scene.fast64.sm64.export_type == "C":
+            if context.scene.fast64.sm64.legacy_export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.is_actor_custom_export,
                     props.actor_custom_path,
@@ -2932,7 +2932,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     DLFormat.Static,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
+            elif context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
                 exportGeolayoutObjectInsertableBinary(
                     obj,
                     final_transform,
@@ -3026,7 +3026,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             self.cleanup_temp_object_data()
             applyRotation([obj], math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.export_type == "Binary":
+            if context.scene.fast64.sm64.legacy_export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -3098,7 +3098,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-            if context.scene.fast64.sm64.export_type == "C":
+            if context.scene.fast64.sm64.legacy_export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.is_actor_custom_export,
                     props.actor_custom_path,
@@ -3128,7 +3128,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 )
                 starSelectWarning(self, fileStatus)
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
+            elif context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
                 exportGeolayoutArmatureInsertableBinary(
                     armatureObj,
                     obj,
@@ -3226,7 +3226,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 
             applyRotation([armatureObj] + linkedArmatures, math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.export_type == "Binary":
+            if context.scene.fast64.sm64.legacy_export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -3250,7 +3250,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
         props = context.scene.fast64.sm64.combined_export
-        if context.scene.fast64.sm64.export_type == "Insertable Binary":
+        if context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "geoExportStart", "Start Address")
