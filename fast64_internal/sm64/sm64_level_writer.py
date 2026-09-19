@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import NamedTuple
 from dataclasses import dataclass, field
 from bpy.utils import register_class, unregister_class
+from .settings.properties import SM64_Properties
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 from .sm64_constants import cameraTriggerNames, levelIDNames, enumLevelNames
@@ -1112,11 +1113,14 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
         courseMacro[1][1] = obj.starGetCutscenes.value()
         courseDefines.write(courseDefinesPath)
 
-        if os.path.exists(cameraPath):
-            zoomMasks = parseZoomMasks(cameraPath)
+        # Export Zoom Out masks
+        zoomOutMasksPath = os.path.join(exportDir, sm64_props.zoom_out_mask_path)
+
+        if os.path.exists(zoomOutMasksPath):
+            zoomMasks = parseZoomMasks(zoomOutMasksPath)
             zoomMasks.updateMaskCount(len(levelDefines.defineMacros))
             zoomMasks.setMask(levelIndex, zoomFlags)
-            zoomMasks.write(cameraPath)
+            zoomMasks.write(zoomOutMasksPath)
 
         if obj.actSelectorIgnore:
             add_act_selector_ignore(exportDir, levelEnum)

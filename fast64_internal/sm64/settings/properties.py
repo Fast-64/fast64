@@ -119,6 +119,11 @@ class SM64_Properties(PropertyGroup):
         subtype="FILE_PATH",
         default="src/game/camera.c",
     )
+    zoom_out_mask_path: StringProperty(
+        name="Camera Zoom Out Mask Export Path",
+        subtype="FILE_PATH",
+        default="src/game/camera.c",
+    )
 
     @property
     def binary_export(self):
@@ -237,7 +242,8 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "write_all", data, "write_all")
         set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
-        set_prop_if_in_data(self, "camera_volume_path", data, "camera_volume_path")
+        set_prop_if_in_data(self, "camera_volume_path", data, "camera_volume_path")\
+        set_prop_if_in_data(self, "zoom_out_mask_path", data, "zoom_out_mask_path")
         if "custom_cmds" in data:
             self.custom_cmds.clear()
             for preset_data in data.get("custom_cmds", []):
