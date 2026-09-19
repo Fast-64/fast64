@@ -18,6 +18,14 @@ from .f3d_material import (
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
 from .f3d_bleed import BleedGraphics, get_geo_cmds
+from .flat_shading import (
+    FlatVertexPool,
+    material_uses_flat_optimization,
+    match_shades_to_keys,
+    shade_of,
+    vertex_key,
+    write_shade,
+)
 
 from ..utility import *
 
@@ -190,17 +198,44 @@ def getInfoDict_impl(obj: bpy.types.Object, groupInfo: VG) -> MeshInfo[VG]:
         for loopIndex in face.loops:
             convertInfo = LoopConvertInfo(uv_data, obj, obj.material_slots[face.material_index].material)
             f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
+    # Flat shaded materials may share vertices across shade differences, so for those an
+    # edge is valid without comparing shade and saveTriangleStrip keeps such faces together.
+    flatMaterialIndices = set()
+    flatKeys = {}
+    if bpy.context.scene.optimizeFlatShading:
+        f3d = get_F3D_GBI()
+        flatMaterialIndices = {
+            index
+            for index, slot in enumerate(obj.material_slots)
+            if slot.material is not None
+            and slot.material.is_f3d
+            and material_uses_flat_optimization(slot.material, f3d)
+        }
+        if flatMaterialIndices:
+            flatKeys = {loopIndex: vertex_key(f3dVert, None, 0) for loopIndex, f3dVert in f3dVertDict.items()}
+
+    def vertsMatch(loopA: int, loopB: int, shadeInsensitive: bool) -> bool:
+        if shadeInsensitive:
+            return flatKeys[loopA] == flatKeys[loopB]
+        return f3dVertDict[loopA] == f3dVertDict[loopB]
+
     for face in mesh.loop_triangles:
         for edgeKey in face.edge_keys:
             for otherFace in edgeDict[edgeKey]:
                 if otherFace == face:
                     continue
                 if (otherFace, face) not in edgeValidDict and (face, otherFace) not in edgeValidDict:
-                    edgeValid = (
-                        f3dVertDict[getLoopFromVert(edgeKey[0], face)]
-                        == f3dVertDict[getLoopFromVert(edgeKey[0], otherFace)]
-                        and f3dVertDict[getLoopFromVert(edgeKey[1], face)]
-                        == f3dVertDict[getLoopFromVert(edgeKey[1], otherFace)]
+                    shadeInsensitive = (
+                        face.material_index == otherFace.material_index and face.material_index in flatMaterialIndices
+                    )
+                    edgeValid = vertsMatch(
+                        getLoopFromVert(edgeKey[0], face),
+                        getLoopFromVert(edgeKey[0], otherFace),
+                        shadeInsensitive,
+                    ) and vertsMatch(
+                        getLoopFromVert(edgeKey[1], face),
+                        getLoopFromVert(edgeKey[1], otherFace),
+                        shadeInsensitive,
                     )
                     edgeValidDict[(otherFace, face)] = edgeValid
                     if edgeValid:
@@ -677,6 +712,7 @@ def saveTriangleStrip(triConverter, faces, faceSTOffsets, mesh, terminateDL):
     possibleFaces = []
     lastEdgeKey = None
     infoDict = triConverter.triConverterInfo.infoDict
+    triConverter.prepareFlatOptimization(faces)
     neighborFace = getLowestUnvisitedNeighborCountFace(unvisitedFaces, infoDict)
 
     while len(visitedFaces) < len(faces):
@@ -826,6 +862,10 @@ class BufferVertex:
         )
 
 
+def bufferVertKey(bufferVert: BufferVertex) -> tuple:
+    return vertex_key(bufferVert.f3dVert, bufferVert.groupIndex, bufferVert.materialIndex)
+
+
 class TriangleConverterInfo:
     def __init__(self, obj, armature, f3d, transformMatrix, infoDict):
         self.infoDict = infoDict
@@ -892,6 +932,10 @@ def cel_shading_checks(f3d_mat):
 # existingVertexData is used for cases where we want to assume the presence of vertex data
 # loaded in from a previous matrix transform (ex. sm64 skinning)
 class TriangleConverter:
+    # Turned off by subclasses whose vertices carry data this does not model, see
+    # OOTTriangleConverter.
+    flatOptimizationSupported = True
+
     def __init__(
         self,
         triConverterInfo: TriangleConverterInfo,
@@ -925,6 +969,15 @@ class TriangleConverter:
         self.isPointSampled = isTexturePointSampled(material)
         self.tex_scale = material.f3d_mat.tex_scale
 
+        self.flatOptimization = (
+            bpy.context.scene.optimizeFlatShading
+            and self.flatOptimizationSupported
+            and material_uses_flat_optimization(material, triConverterInfo.f3d)
+        )
+        self.flatPool = FlatVertexPool()
+        self.flatPreferredKey = {}
+        self.flatSeededMaterialIndex = None
+
     def vertInBuffer(self, bufferVert, material_index):
         if self.existingVertexMaterialRegions is None:
             return bufferVert in self.vertBuffer
@@ -954,6 +1007,9 @@ class TriangleConverter:
         return bufferVert
 
     def processGeometry(self):
+        if self.flatOptimization and bpy.context.scene.poisonFlatShading:
+            self.flatPool.poison_unread_shades()
+
         # Sort verts by limb index, then load current limb verts
         bufferStart = self.bufferStart
         bufferEnd = self.bufferStart
@@ -1119,6 +1175,49 @@ class TriangleConverter:
         # Disable alpha compare culling for future DLs
         self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
+    def prepareFlatOptimization(self, faces):
+        """Match face shades to keys before conversion starts, see match_shades_to_keys.
+
+        stOffset is left out of the keys here, it is only known per face in large texture
+        mode. The matching is a preference, addFace emits correct vertices either way.
+        """
+        if not self.flatOptimization:
+            return
+
+        f3dVertDict = self.triConverterInfo.infoDict.f3dVert
+        groupInfo = self.triConverterInfo.vertexGroupInfo
+        loops = self.triConverterInfo.mesh.loops
+        tris = []
+        for face in faces:
+            keys = []
+            for loopIndex in face.loops:
+                group = None if groupInfo is None else groupInfo.vertexGroups[loops[loopIndex].vertex_index]
+                keys.append(vertex_key(f3dVertDict[loopIndex], group, face.material_index))
+            tris.append((*keys, self.faceShade(face)))
+        self.flatPreferredKey = match_shades_to_keys(tris)
+
+    def seedFlatPool(self, materialIndex: int) -> None:
+        """Fill the pool for a fresh vertex buffer with the inherited vertices only.
+
+        Those come from a parent limb (SM64 skinning) and are already written out, so they
+        go in claimed: usable as a corner, never rewritten. Visibility of them follows the
+        same material region rule as vertInBuffer.
+        """
+        self.flatPool.reset()
+        self.flatSeededMaterialIndex = materialIndex
+
+        inherited = self.vertBuffer[: self.bufferStart]
+        if inherited and self.existingVertexMaterialRegions is not None:
+            region = self.existingVertexMaterialRegions.get(materialIndex)
+            inherited = inherited[region[0] : region[1]] if region is not None else []
+        for bufferVert in inherited:
+            self.flatPool.add(bufferVert, bufferVertKey(bufferVert), claimed=True, inherited=True)
+
+    def faceShade(self, face: bpy.types.MeshLoopTriangle) -> tuple:
+        # All loops of a flat shaded face normally agree. If they do not (smooth normals
+        # on a flat material), the first loop wins, which is what gets drawn today.
+        return shade_of(self.triConverterInfo.infoDict.f3dVert[face.loops[0]])
+
     def addFace(self, face: bpy.types.MeshLoopTriangle, stOffset):
         bufferVerts = []
         for loopIndex in face.loops:
@@ -1133,6 +1232,10 @@ class TriangleConverter:
             bufferVert.f3dVert.stOffset = stOffset
             bufferVerts.append(bufferVert)
 
+        if self.flatOptimization:
+            self.addFaceSharingVerts(bufferVerts, face)
+            return
+
         triIndices, addedVerts, ownVerts, flag = self.assignFace(bufferVerts, face)
 
         # We care only about load size, since loading is what takes up time.
@@ -1146,8 +1249,7 @@ class TriangleConverter:
             self.vertexBufferTriangles.append((triIndices, flag))
 
     def assignFace(self, bufferVerts: list[BufferVertex], face: bpy.types.MeshLoopTriangle):
-        """Which buffer vertices this face draws with, which of them are new to the buffer,
-        which are not inherited from a previous matrix transform, and the triangle flag."""
+        """Every corner keeps its own vertex, so no triangle needs a flag."""
         inherited = self.vertBuffer[: self.bufferStart]
         addedVerts, ownVerts = [], []
         for bufferVert in bufferVerts:
@@ -1156,6 +1258,67 @@ class TriangleConverter:
             if bufferVert not in inherited:
                 ownVerts.append(bufferVert)
         return bufferVerts, addedVerts, ownVerts, 0
+
+    def addFaceSharingVerts(self, bufferVerts: list[BufferVertex], face: bpy.types.MeshLoopTriangle):
+        """The flat shading path of addFace.
+
+        The provoking corner is chosen before anything is written, so that an overflow can
+        be flushed without having already rewritten a shade in the buffer being flushed.
+        """
+        if self.flatSeededMaterialIndex != face.material_index:
+            self.seedFlatPool(face.material_index)
+
+        keys = tuple(bufferVertKey(bufferVert) for bufferVert in bufferVerts)
+        shade = self.faceShade(face)
+        flag = self.chooseProvokingCorner(keys, shade)
+
+        added = self.flatPool.new_vertex_count(keys, flag, shade)
+        if len(self.vertBuffer) + added > self.triConverterInfo.f3d.vert_load_size:
+            self.processGeometry()
+            # The flushed vertices leave the buffer, so only inherited ones remain to share.
+            self.seedFlatPool(face.material_index)
+            flag = self.chooseProvokingCorner(keys, shade)
+            triIndices, addedVerts, ownVerts = self.shareFlatVerts(bufferVerts, keys, shade, flag)
+            self.vertBuffer = self.vertBuffer[: self.bufferStart] + ownVerts
+            self.vertexBufferTriangles = [(triIndices, flag)]
+        else:
+            triIndices, addedVerts, ownVerts = self.shareFlatVerts(bufferVerts, keys, shade, flag)
+            self.vertBuffer.extend(addedVerts)
+            self.vertexBufferTriangles.append((triIndices, flag))
+
+    def chooseProvokingCorner(self, keys: tuple, shade: tuple) -> int:
+        preferred = self.flatPreferredKey.get(shade)
+        if preferred is not None and preferred in keys:
+            return keys.index(preferred)
+        return min(range(3), key=lambda position: self.flatPool.new_vertex_count(keys, position, shade))
+
+    def shareFlatVerts(self, bufferVerts: list[BufferVertex], keys: tuple, shade: tuple, flag: int):
+        """Reuse buffer vertices where shade allows it, claiming the provoking one.
+
+        Returns the three vertices to draw with, the ones new to the buffer, and those not
+        inherited from a parent limb.
+        """
+        pool = self.flatPool
+        triIndices = [None, None, None]
+        addedVerts, ownVerts = [], []
+
+        # The provoking corner goes first: it may claim a vertex the others could reuse.
+        for position in [flag, *(other for other in range(3) if other != flag)]:
+            provoking = position == flag
+            slot = pool.provokable(keys[position], shade) if provoking else pool.reusable(keys[position])
+            if slot is None:
+                bufferVert = bufferVerts[position]
+                if provoking:
+                    write_shade(bufferVert.f3dVert, shade)
+                slot = pool.add(bufferVert, keys[position], claimed=provoking)
+                addedVerts.append(bufferVert)
+            elif provoking:
+                pool.claim(slot, shade)
+            if not slot.inherited and not any(vert is slot.buffer_vert for vert in ownVerts):
+                ownVerts.append(slot.buffer_vert)
+            triIndices[position] = slot.buffer_vert
+
+        return triIndices, addedVerts, ownVerts
 
     def finish(self, terminateDL):
         if len(self.vertexBufferTriangles) > 0:
@@ -1283,8 +1446,8 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
 
 
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
-    """`triangles` is a list of (three BufferVertex, flag), where flag selects which
-    vertex provides the shade of a flat shaded triangle and is 0 for everything else."""
+    """`triangles` is a list of (three BufferVertex, flag), where flag selects the
+    provoking vertex for flat shading and is 0 for everything else."""
     commands = []
     # Vertices reused from the buffer are its own objects, so look those up by identity
     # and fall back to equality for the ones addFace built fresh.
@@ -2028,12 +2191,34 @@ def f3d_writer_register():
     bpy.types.Scene.matWriteMethod = bpy.props.EnumProperty(items=enumMatWriteMethod)
     bpy.types.Scene.DLExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     bpy.types.Scene.DLTexDir = bpy.props.StringProperty(name="Include Path", default="levels/bob")
+    bpy.types.Scene.optimizeFlatShading = bpy.props.BoolProperty(
+        name="Optimize Flat Shaded Vertices",
+        description=(
+            "For materials with smooth shading disabled, share vertices across hard edges and pick "
+            "a provoking vertex per triangle, instead of loading one vertex per normal.\n"
+            "Applies to F3DEX and later. Original F3D passes the triangle flag as a separate byte, "
+            "whose microcode behaviour is not confirmed, so it is left out"
+        ),
+        default=False,
+    )
+    bpy.types.Scene.poisonFlatShading = bpy.props.BoolProperty(
+        name="Poison Unread Shade Values",
+        description=(
+            "Debug aid for the flat shading optimization. Writes a deliberately wrong shade into "
+            "vertices that provide shade to no triangle, so a wrong provoking vertex shows up as a "
+            "magenta or unlit face instead of a subtle shading difference.\n"
+            "Do not use for a real export"
+        ),
+        default=False,
+    )
 
 
 def f3d_writer_unregister():
     for cls in reversed(f3d_writer_classes):
         unregister_class(cls)
 
+    del bpy.types.Scene.poisonFlatShading
+    del bpy.types.Scene.optimizeFlatShading
     del bpy.types.Scene.DLTexDir
     del bpy.types.Scene.DLExportPath
     del bpy.types.Scene.matWriteMethod
