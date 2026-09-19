@@ -1070,7 +1070,10 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             )
 
         def resolveCameraPath(props: SM64_Properties, level_name: str):
-            return props.camera_volume_path.replace("{level}", level_name)
+            retPath: str = props.camera_volume_path
+            if "{level}" in retPath:
+                retPath = retPath.replace("{level}", level_name)
+            return retPath
 
         # Export camera triggers
         cameraPath = os.path.join(exportDir, resolveCameraPath(sm64_props, level_name))
@@ -1081,6 +1084,19 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
                 level_data.camera_data,
                 cameraPath,
                 "struct CameraTrigger *sCameraTriggers",
+                False,
+            )
+            fileStatus.cameraC = True
+        else:
+            if level_name in cameraPath:
+                with open(cameraPath, "a+") as f:
+                    pass
+            overwriteData(
+                "struct\s*CameraTrigger\s*",
+                levelCameraVolumeName,
+                level_data.camera_data,
+                cameraPath,
+                None,
                 False,
             )
             fileStatus.cameraC = True

@@ -46,6 +46,8 @@ def decomp_path_update(self, context: Context):
         return
     directory_path_checks(self.abs_decomp_path)
     fast64_settings.repo_settings_path = as_posix(self.abs_repo_file_path)
+    # set_prop_if_in_data(self, "camera_volume_path", data, "camera_volume_path")
+    # set_prop_if_in_data(self, "zoom_out_mask_path", data, "zoom_out_mask_path")
 
 
 class SM64_Properties(PropertyGroup):
@@ -242,7 +244,7 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "write_all", data, "write_all")
         set_prop_if_in_data(self, "lighting_engine_presets", data, "lighting_engine_presets")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
-        set_prop_if_in_data(self, "camera_volume_path", data, "camera_volume_path")\
+        set_prop_if_in_data(self, "camera_volume_path", data, "camera_volume_path")
         set_prop_if_in_data(self, "zoom_out_mask_path", data, "zoom_out_mask_path")
         if "custom_cmds" in data:
             self.custom_cmds.clear()
@@ -279,6 +281,8 @@ class SM64_Properties(PropertyGroup):
         if self.show_matstack_fix:
             warning.prop(self, "matstack_fix")
         warning.prop(self, "lighting_engine_presets")
+        warning.prop(self, "camera_volume_path")
+        warning.prop(self, "zoom_out_mask_path")
         col.separator()
 
         draw_custom_cmd_presets(self, col.box())
