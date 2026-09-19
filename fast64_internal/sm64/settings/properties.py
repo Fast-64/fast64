@@ -46,9 +46,6 @@ def decomp_path_update(self, context: Context):
         return
     directory_path_checks(self.abs_decomp_path)
     fast64_settings.repo_settings_path = as_posix(self.abs_repo_file_path)
-    # set_prop_if_in_data(self, "camera_volume_path", data, "camera_volume_path")
-    # set_prop_if_in_data(self, "zoom_out_mask_path", data, "zoom_out_mask_path")
-
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
