@@ -1120,10 +1120,7 @@ class TriangleConverter:
         self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
     def addFace(self, face: bpy.types.MeshLoopTriangle, stOffset):
-        triIndices = []
-        addedVerts = []  # verts added to existing vertexBuffer
-        allVerts = []  # all verts not in 'untouched' buffer region
-
+        bufferVerts = []
         for loopIndex in face.loops:
             loop = self.triConverterInfo.mesh.loops[loopIndex]
             vertexGroup = (
@@ -1134,22 +1131,31 @@ class TriangleConverter:
 
             bufferVert = self.getBufferVert(loop, face, vertexGroup)
             bufferVert.f3dVert.stOffset = stOffset
-            triIndices.append(bufferVert)
-            if not self.vertInBuffer(bufferVert, face.material_index):
-                addedVerts.append(bufferVert)
+            bufferVerts.append(bufferVert)
 
-            if bufferVert not in self.vertBuffer[: self.bufferStart]:
-                allVerts.append(bufferVert)
+        triIndices, addedVerts, ownVerts, flag = self.assignFace(bufferVerts, face)
 
         # We care only about load size, since loading is what takes up time.
         # Even if vert_buffer is larger, its still another load to fill it.
         if len(self.vertBuffer) + len(addedVerts) > self.triConverterInfo.f3d.vert_load_size:
             self.processGeometry()
-            self.vertBuffer = self.vertBuffer[: self.bufferStart] + allVerts
-            self.vertexBufferTriangles = [triIndices]
+            self.vertBuffer = self.vertBuffer[: self.bufferStart] + ownVerts
+            self.vertexBufferTriangles = [(triIndices, flag)]
         else:
             self.vertBuffer.extend(addedVerts)
-            self.vertexBufferTriangles.append(triIndices)
+            self.vertexBufferTriangles.append((triIndices, flag))
+
+    def assignFace(self, bufferVerts: list[BufferVertex], face: bpy.types.MeshLoopTriangle):
+        """Which buffer vertices this face draws with, which of them are new to the buffer,
+        which are not inherited from a previous matrix transform, and the triangle flag."""
+        inherited = self.vertBuffer[: self.bufferStart]
+        addedVerts, ownVerts = [], []
+        for bufferVert in bufferVerts:
+            if not self.vertInBuffer(bufferVert, face.material_index):
+                addedVerts.append(bufferVert)
+            if bufferVert not in inherited:
+                ownVerts.append(bufferVert)
+        return bufferVerts, addedVerts, ownVerts, 0
 
     def finish(self, terminateDL):
         if len(self.vertexBufferTriangles) > 0:
@@ -1277,21 +1283,30 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
 
 
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
-    triangles = copy.deepcopy(triangles)
+    """`triangles` is a list of (three BufferVertex, flag), where flag selects which
+    vertex provides the shade of a flat shaded triangle and is 0 for everything else."""
     commands = []
+    # Vertices reused from the buffer are its own objects, so look those up by identity
+    # and fall back to equality for the ones addFace built fresh.
+    indexByVert = {id(bufferVert): index for index, bufferVert in enumerate(vertexBuffer)}
+
+    def getIndex(bufferVert):
+        index = indexByVert.get(id(bufferVert))
+        return index if index is not None else vertexBuffer.index(bufferVert)
 
     def getIndices(tri):
-        return [vertexBuffer.index(v) for v in tri]
+        verts, flag = tri
+        return [getIndex(vert) for vert in verts] + [flag]
 
     t = 0
     while t < len(triangles):
         firstTriIndices = getIndices(triangles[t])
         t += 1
         if useSP2Triangle and t < len(triangles):
-            commands.append(SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0))
+            commands.append(SP2Triangles(*firstTriIndices, *getIndices(triangles[t])))
             t += 1
         else:
-            commands.append(SP1Triangle(*firstTriIndices, 0))
+            commands.append(SP1Triangle(*firstTriIndices))
 
     return commands
 
