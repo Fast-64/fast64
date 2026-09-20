@@ -1757,9 +1757,9 @@ class F3D:
         return int(((1 << self.G_TX_DXT_FRAC) + self.TXL2WORDS_4b(width) - 1) / self.TXL2WORDS_4b(width))
 
     def NUML(self, n):
-        if self.F3DEX_GBI_3:
-            return n * 0x10
         nVal = self.numLights[n]
+        if self.F3DEX_GBI_3:
+            return nVal * 0x10
         return ((nVal) * 24) if self.F3DEX_GBI_2 else (((nVal) + 1) * 32 + 0x80000000)
 
     def getLightMWO_a(self, n: str):
@@ -3629,7 +3629,7 @@ def _gsSP1Triangle_w1(v0, v1, v2):
 
 
 def _gsSP1Triangle_w1f(v0, v1, v2, flag, f3d):
-    if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
+    if not f3d.F3D_OLD_GBI:
         if flag == 0:
             return _gsSP1Triangle_w1(v0, v1, v2)
         elif flag == 1:
@@ -3740,7 +3740,7 @@ class SP2Triangles(GbiMacro):
     flag1: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
+        if not f3d.F3D_OLD_GBI:
             words = (
                 _SHIFTL(f3d.G_TRI2, 24, 8) | _gsSP1Triangle_w1f(self.v00, self.v01, self.v02, self.flag0, f3d)
             ), _gsSP1Triangle_w1f(self.v10, self.v11, self.v12, self.flag1, f3d)
@@ -3760,7 +3760,7 @@ class SPCullDisplayList(GbiMacro):
     vend: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
+        if not f3d.F3D_OLD_GBI:
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | _SHIFTL((self.vstart) * 2, 0, 16), _SHIFTL((self.vend) * 2, 0, 16)
         else:
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | ((0x0F & (self.vstart)) * 40), ((0x0F & ((self.vend) + 1)) * 40)
