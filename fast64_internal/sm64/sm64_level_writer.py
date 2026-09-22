@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import NamedTuple
 from dataclasses import dataclass, field
 from bpy.utils import register_class, unregister_class
+from .settings.properties import SM64_Properties
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 from .sm64_constants import cameraTriggerNames, levelIDNames, enumLevelNames
@@ -885,6 +886,7 @@ def export_level_script_c(obj, prev_level_script, level_name, level_data, level_
 
 def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExport, levelCameraVolumeName, DLFormat):
     fileStatus = SM64OptionalFileStatus()
+    sm64_props: SM64_Properties = bpy.context.scene.fast64.sm64
 
     if customExport:
         level_dir = os.path.join(exportDir, level_name)
@@ -904,7 +906,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     fModel = SM64Model(
         level_name + "_dl",
         DLFormat,
-        bpy.context.scene.fast64.sm64.gfx_write_method,
+        sm64_props.gfx_write_method,
     )
     childAreas = [child for child in obj.children if child.type == "EMPTY" and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
@@ -920,7 +922,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             prev_level_script.custom_cmds.append(
                 custom_props.get_final_cmd(
                     obj,
-                    bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+                    sm64_props.blender_to_sm64_scale,
                     child.matrix_world @ yUpToZUp,
                     child.matrix_local,
                     name=obj.name,
@@ -1067,8 +1069,14 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
                 Path("levels", level_name, "material.inc.h"),
             )
 
+        def resolveCameraPath(props: SM64_Properties, level_name: str):
+            retPath: str = props.camera_volume_path
+            if "{level}" in retPath:
+                retPath = retPath.replace("{level}", level_name)
+            return retPath
+
         # Export camera triggers
-        cameraPath = os.path.join(exportDir, "src/game/camera.c")
+        cameraPath = os.path.join(exportDir, resolveCameraPath(sm64_props, level_name))
         if os.path.exists(cameraPath):
             overwriteData(
                 "struct\s*CameraTrigger\s*",
@@ -1076,6 +1084,19 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
                 level_data.camera_data,
                 cameraPath,
                 "struct CameraTrigger *sCameraTriggers",
+                False,
+            )
+            fileStatus.cameraC = True
+        else:
+            if level_name in cameraPath:
+                with open(cameraPath, "a+") as f:
+                    pass
+            overwriteData(
+                "struct\s*CameraTrigger\s*",
+                levelCameraVolumeName,
+                level_data.camera_data,
+                cameraPath,
+                None,
                 False,
             )
             fileStatus.cameraC = True
@@ -1108,11 +1129,14 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
         courseMacro[1][1] = obj.starGetCutscenes.value()
         courseDefines.write(courseDefinesPath)
 
-        if os.path.exists(cameraPath):
-            zoomMasks = parseZoomMasks(cameraPath)
+        # Export Zoom Out masks
+        zoomOutMasksPath = os.path.join(exportDir, sm64_props.zoom_out_mask_path)
+
+        if os.path.exists(zoomOutMasksPath):
+            zoomMasks = parseZoomMasks(zoomOutMasksPath)
             zoomMasks.updateMaskCount(len(levelDefines.defineMacros))
             zoomMasks.setMask(levelIndex, zoomFlags)
-            zoomMasks.write(cameraPath)
+            zoomMasks.write(zoomOutMasksPath)
 
         if obj.actSelectorIgnore:
             add_act_selector_ignore(exportDir, levelEnum)
