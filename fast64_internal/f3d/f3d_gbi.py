@@ -3445,7 +3445,12 @@ class GbiMacro:
             else:
                 return field.name
         if hasattr(field, "__iter__") and type(field) is not str:
-            return " | ".join(map(str, field)) if len(field) else "0"
+            if not len(field):
+                return "0"
+            values = [str(value) for value in field]
+            if isinstance(field, (set, frozenset)):
+                values.sort()  # sort for reproducible exports
+            return " | ".join(values)
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
             return f"{temp:#0{self._hex + 2}x}"  # + 2 for the 0x part
