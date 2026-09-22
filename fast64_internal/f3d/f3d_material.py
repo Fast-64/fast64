@@ -4215,15 +4215,6 @@ class AddPresetF3D(AddPresetBase, Operator):
     bl_label = "Add F3D Material Preset"
     preset_menu = "MATERIAL_MT_f3d_presets"
 
-    # variable used for all preset values
-    # do NOT set "mat" in this operator, even in a for loop! it overrides this value
-    preset_defines = ["f3d_mat = bpy.context.material.f3d_mat"]
-
-    # properties to store in the preset
-    preset_values = [
-        "f3d_mat",
-    ]
-
     # where to store the preset
     preset_subdir = "f3d/user"
 
@@ -4369,16 +4360,12 @@ class AddPresetF3D(AddPresetBase, Operator):
                     file_preset = open(filepath, "w", encoding="utf-8")
                     file_preset.write("import bpy\n")
 
-                    if hasattr(self, "preset_defines"):
-                        for rna_path in self.preset_defines:
-                            exec(rna_path)
-                            file_preset.write("%s\n" % rna_path)
-                        file_preset.write("\n")
+                    f3d_mat = bpy.context.material.f3d_mat
+                    file_preset.write("f3d_mat = bpy.context.material.f3d_mat\n")
+                    file_preset.write("\n")
                     file_preset.write("bpy.context.material.f3d_update_flag = True\n")
 
-                    for rna_path in self.preset_values:
-                        value = eval(rna_path)
-                        rna_recursive_attr_expand(value, rna_path, 1)
+                    rna_recursive_attr_expand(f3d_mat, "f3d_mat", 1)
 
                     file_preset.write("bpy.context.material.f3d_update_flag = False\n")
                     file_preset.write(
