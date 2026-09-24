@@ -47,13 +47,6 @@ from .sm64_objects import (
     sm64_obj_unregister,
 )
 
-from .sm64_geolayout_parser import (
-    sm64_geo_parser_panel_register,
-    sm64_geo_parser_panel_unregister,
-    sm64_geo_parser_register,
-    sm64_geo_parser_unregister,
-)
-
 from .sm64_geolayout_writer import (
     sm64_geo_writer_panel_register,
     sm64_geo_writer_panel_unregister,
@@ -73,13 +66,6 @@ from .sm64_spline import (
     sm64_spline_unregister,
 )
 
-from .sm64_f3d_parser import (
-    sm64_dl_parser_panel_register,
-    sm64_dl_parser_panel_unregister,
-    sm64_dl_parser_register,
-    sm64_dl_parser_unregister,
-)
-
 from .sm64_f3d_writer import (
     sm64_dl_writer_panel_register,
     sm64_dl_writer_panel_unregister,
@@ -95,6 +81,12 @@ from .animation import (
     SM64_ActionAnimProperty,
 )
 
+from .sm64_level_importer import (
+    sm64_import_panel_register,
+    sm64_import_panel_unregister,
+    sm64_import_register,
+    sm64_import_unregister,
+)
 from .custom_cmd import custom_cmd_register, custom_cmd_unregister
 
 
@@ -113,11 +105,10 @@ def sm64_panel_register():
     sm64_bone_panel_register()
     sm64_cam_panel_register()
     sm64_obj_panel_register()
-    sm64_geo_parser_panel_register()
+    sm64_import_panel_register()
     sm64_geo_writer_panel_register()
     sm64_spline_panel_register()
     sm64_dl_writer_panel_register()
-    sm64_dl_parser_panel_register()
     anim_panel_register()
 
 
@@ -128,11 +119,10 @@ def sm64_panel_unregister():
     sm64_bone_panel_unregister()
     sm64_cam_panel_unregister()
     sm64_obj_panel_unregister()
-    sm64_geo_parser_panel_unregister()
+    sm64_import_panel_unregister()
     sm64_geo_writer_panel_unregister()
     sm64_spline_panel_unregister()
     sm64_dl_writer_panel_unregister()
-    sm64_dl_parser_panel_unregister()
     anim_panel_unregister()
 
 
@@ -145,12 +135,11 @@ def sm64_register(register_panels: bool):
     sm64_bone_register()
     sm64_cam_register()
     sm64_obj_register()
-    sm64_geo_parser_register()
+    sm64_import_register()
     sm64_geo_writer_register()
     sm64_level_register()
     sm64_spline_register()
     sm64_dl_writer_register()
-    sm64_dl_parser_register()
     settings_props_register()
     register_class(SM64_ActionProperty)
 
@@ -167,13 +156,12 @@ def sm64_unregister(unregister_panels: bool):
     sm64_bone_unregister()
     sm64_cam_unregister()
     sm64_obj_unregister()
-    sm64_geo_parser_unregister()
     sm64_geo_writer_unregister()
     sm64_level_unregister()
     sm64_spline_unregister()
     sm64_dl_writer_unregister()
-    sm64_dl_parser_unregister()
     settings_props_unregister()
+    sm64_import_unregister()
     unregister_class(SM64_ActionProperty)
 
     if unregister_panels:

@@ -230,7 +230,7 @@ class F3D:
             self.G_SPRITE2D_BASE = 9  # sprite command
 
             # IMMEDIATE commands
-            self.G_IMMFIRST = -65
+            self.G_IMMFIRST = 0xBF
             self.G_TRI1 = self.G_IMMFIRST - 0
             self.G_CULLDL = self.G_IMMFIRST - 1
             self.G_POPMTX = self.G_IMMFIRST - 2
