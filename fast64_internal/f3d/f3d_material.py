@@ -3656,7 +3656,7 @@ class RDPSettings(PropertyGroup):
     clip_ratio: bpy.props.IntProperty(
         default=1,
         min=1,
-        max=2**15 - 1,
+        max=6,
         update=update_node_values_with_preset,
     )
 
