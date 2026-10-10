@@ -112,7 +112,7 @@ class Scene:
         )
 
         # process collisions first so we can use it for animated materials (dumb but works!)
-        colHeader = CollisionHeader.new(
+        colHeader, degen_tris_found_in = CollisionHeader.new(
             f"{name}_collisionHeader",
             name,
             sceneObj,
@@ -204,7 +204,7 @@ class Scene:
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
         altHeader = altHeader if hasAlternateHeaders else None
-        return Scene(name, model, mainHeader, altHeader, rooms, colHeader, hasAlternateHeaders)
+        return Scene(name, model, mainHeader, altHeader, rooms, colHeader, hasAlternateHeaders), degen_tris_found_in
 
     def validateRoomIndices(self):
         """Checks if there are multiple rooms with the same room index"""
