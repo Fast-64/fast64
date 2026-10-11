@@ -756,7 +756,8 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input = blend_color_group.column()
             prop_input_name.prop(dataHolder, "set_blend", text="Blend Color")
             prop_input.prop(dataHolder, "blend_color", text="")
-            prop_input.enabled = dataHolder.set_blend
+            if not get_addon_preferences().allow_changing_unset_material_props:
+                prop_input.enabled = dataHolder.set_blend
 
 
 def tmemUsageUI(layout, textureProp):
@@ -856,7 +857,8 @@ class F3DPanel(Panel):
         prop_input.prop(f3dMat, "prim_color", text="")
         prop_input.prop(f3dMat, "prim_lod_frac", text="Prim LOD Fraction")
         prop_input.prop(f3dMat, "prim_lod_min", text="Min LOD Ratio")
-        prop_input.enabled = setProp
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = setProp
         return inputGroup
 
     def ui_env(self, material, layout, showCheckBox):
@@ -870,7 +872,8 @@ class F3DPanel(Panel):
             prop_input_name.label(text="Environment Color")
         prop_input.prop(material.f3d_mat, "env_color", text="")
         setProp = material.f3d_mat.set_env
-        prop_input.enabled = setProp
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = setProp
         return inputGroup
 
     def ui_chroma(self, material, layout, name, setName, setProp, showCheckBox):
@@ -887,7 +890,8 @@ class F3DPanel(Panel):
         prop_input.prop(f3d_mat, "key_width", text="Width")
         if f3d_mat.key_width[0] > 1 or f3d_mat.key_width[1] > 1 or f3d_mat.key_width[2] > 1:
             layout.box().label(text="NOTE: Keying is disabled for channels with width > 1.")
-        prop_input.enabled = setProp
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = setProp
         return inputGroup
 
     def ui_lights(self, f3d_mat: "F3DMaterialProperty", layout: UILayout, name, showCheckBox):
@@ -969,7 +973,8 @@ class F3DPanel(Panel):
         prop_k5.prop(material, "k5", text="K5")
         prop_k5.label(text=str(int(material.k5 * 255)))
 
-        prop_input.enabled = material.set_k0_5
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = material.set_k0_5
         return inputGroup
 
     def ui_lower_render_mode(self, material, layout, useDropdown):
@@ -1331,7 +1336,8 @@ class F3DPanel(Panel):
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
             combinerCol = combinerBox.row().split(factor=0.45)
-            combinerCol.enabled = f3dMat.set_combiner
+            if not get_addon_preferences().allow_changing_unset_material_props:
+                combinerCol.enabled = f3dMat.set_combiner
             drawCCProps(combinerCol, f3dMat.combiner1, False)
             drawCCProps(combinerCol, f3dMat.combiner1, True, not f3dMat.use_cel_shading)
             if f3dMat.use_cel_shading:
@@ -1342,7 +1348,8 @@ class F3DPanel(Panel):
             if is_two_cycle:
                 combinerBox2 = layout.box()
                 combinerBox2.label(text="Color Combiner Cycle 2")
-                combinerBox2.enabled = f3dMat.set_combiner
+                if not get_addon_preferences().allow_changing_unset_material_props:
+                    combinerBox2.enabled = f3dMat.set_combiner
                 combinerCol2 = combinerBox2.row().split(factor=0.45)
                 drawCCProps(combinerCol2, f3dMat.combiner2, False)
                 drawCCProps(combinerCol2, f3dMat.combiner2, True)
