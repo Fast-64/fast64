@@ -3804,6 +3804,10 @@ class SPClipRatio(GbiMacro):
             + gsMoveWd(f3d.G_MW_CLIP, f3d.G_MWO_CLIP_RPY, shortRatioPos, f3d)
         )
 
+    def to_c(self, static=True):
+        header = "gsSPClipRatio(" if static else "gSPClipRatio(glistp++, "
+        return f"{header}FRUSTRATIO_{self.ratio})"
+
     def size(self, f3d):
         return GFX_SIZE * 4
 
