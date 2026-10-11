@@ -170,6 +170,7 @@ def ootConvertArmatureToSkeleton(
         meshObj = meshObjs[0]
 
         vertexGroupInfo = getGroupIndices(armatureObj, meshObj, getGroupIndexFromname(meshObj, startBoneName))
+        meshObj.data.calc_loop_triangles()
         skeleton = ootConstructSkeleton(name, armatureObj, meshObj.data.loop_triangles, vertexGroupInfo)
         meshInfo = getInfoDict(meshObj, vertexGroupInfo)
 
