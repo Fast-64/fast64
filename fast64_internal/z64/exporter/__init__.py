@@ -53,7 +53,7 @@ class SceneExport:
     """This class is the main exporter class, it handles generating the C data and writing the files"""
 
     @staticmethod
-    def create_scene(originalSceneObj: Object, transform: Matrix, exportInfo: ExportInfo) -> Scene:
+    def create_scene(originalSceneObj: Object, transform: Matrix, exportInfo: ExportInfo):
         """Returns and creates scene data"""
         # init
         if originalSceneObj.type != "EMPTY" or originalSceneObj.ootEmptyType != "Scene":
@@ -70,7 +70,7 @@ class SceneExport:
 
         try:
             sceneName = f"{toAlnum(exportInfo.name)}_scene"
-            newScene = Scene.new(
+            newScene, degen_tris_found_in = Scene.new(
                 sceneName,
                 originalSceneObj,
                 sceneObj,
@@ -85,7 +85,7 @@ class SceneExport:
         finally:
             ootCleanupScene(originalSceneObj, allObjs)
 
-        return newScene
+        return newScene, degen_tris_found_in
 
     @staticmethod
     def export(originalSceneObj: Object, transform: Matrix, exportInfo: ExportInfo):
@@ -94,7 +94,7 @@ class SceneExport:
         from .decomp_edit.config import Config
 
         checkObjectReference(originalSceneObj, "Scene object")
-        scene = SceneExport.create_scene(originalSceneObj, transform, exportInfo)
+        scene, degen_tris_found_in = SceneExport.create_scene(originalSceneObj, transform, exportInfo)
 
         isCustomExport = exportInfo.isCustomExportPath
         exportPath = exportInfo.exportPath
@@ -135,3 +135,5 @@ class SceneExport:
                 f"ENTR_{sceneName.upper()}_{hackerootBootOption.spawnIndex}",
                 hackerootBootOption,
             )
+
+        return degen_tris_found_in
