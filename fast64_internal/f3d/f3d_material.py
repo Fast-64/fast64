@@ -2550,8 +2550,58 @@ def createOrUpdateSceneProperties():
         _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light1Dir")
         _nodeLight1Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light1Size")
 
-    # Set outputs from render settings
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
+
+    if bpy.app.version >= (3, 4, 0):
+        # ShaderNodeAttribute.attribute_type = "VIEW_LAYER" is new in 3.4.0
+        y = 0
+
+        def add_attribute_node(attribute_name_info, attribute_type, output_socket):
+            nonlocal y
+            if isinstance(attribute_name_info, tuple):
+                # the ShaderNodeAttribute can't access vector elements,
+                # so we target the vector instead and use a ShaderNodeSeparateXYZ to get the specific value
+                attribute_name, index = attribute_name_info
+            else:
+                attribute_name = attribute_name_info
+                index = None
+            attributeNode = new_group.nodes.new("ShaderNodeAttribute")
+            attributeNode: bpy.types.ShaderNodeAttribute
+            attributeNode.attribute_type = "VIEW_LAYER"
+            attributeNode.attribute_name = attribute_name
+            attributeNode.hide = True
+            attributeNode.location = (-500, y)
+            y -= 30
+            if index is not None:
+                attribute_type = "Vector"
+                separateNode = new_group.nodes.new("ShaderNodeSeparateXYZ")
+                separateNode.hide = True
+                separateNode.location = (-400, y)
+                y -= 30
+                new_group.links.new(separateNode.inputs[0], attributeNode.outputs["Vector"])
+                new_group.links.new(sceneOutputs.inputs[output_socket], separateNode.outputs[index])
+            else:
+                if attribute_type == "Fac":
+                    # The socket name changed across Blender versions, but not the order.
+                    # Just use the index
+                    attribute_type = 2
+                new_group.links.new(sceneOutputs.inputs[output_socket], attributeNode.outputs[attribute_type])
+
+        add_attribute_node("fast64.renderSettings.enableFogPreview", "Fac", "FogEnable")
+        add_attribute_node("fast64.renderSettings.fogPreviewColor", "Color", "FogColor")
+        add_attribute_node(("fast64.renderSettings.clippingPlanes", 0), "Fac", "F3D_NearClip")
+        add_attribute_node(("fast64.renderSettings.clippingPlanes", 1), "Fac", "F3D_FarClip")
+        add_attribute_node(("fast64.renderSettings.fogPreviewPosition", 0), "Fac", "FogNear")
+        add_attribute_node(("fast64.renderSettings.fogPreviewPosition", 1), "Fac", "FogFar")
+        add_attribute_node("fast64.renderSettings.ambientColor", "Color", "AmbientColor")
+        add_attribute_node("fast64.renderSettings.light0Color", "Color", "Light0Color")
+        add_attribute_node("fast64.renderSettings.light0Direction", "Vector", "Light0Dir")
+        add_attribute_node("fast64.renderSettings.light0SpecSize", "Fac", "Light0Size")
+        add_attribute_node("fast64.renderSettings.light1Color", "Color", "Light1Color")
+        add_attribute_node("fast64.renderSettings.light1Direction", "Vector", "Light1Dir")
+        add_attribute_node("fast64.renderSettings.light1SpecSize", "Fac", "Light1Size")
+
+    # Set outputs from render settings
     renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
 
     update_scene_props_from_render_settings(sceneOutputs, renderSettings)
