@@ -203,6 +203,8 @@ class Room:
         """Returns the C data of the room model"""
         roomModel = CData()
 
+        self.roomShape.model.add_refs_externs(roomModel)
+
         for i, entry in enumerate(self.roomShape.dl_entries):
             if entry.opaque is not None:
                 roomModel.append(entry.opaque.to_c(self.roomShape.model.f3d))

@@ -2450,6 +2450,8 @@ class FModel:
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
 
+        self.reference_to_extern: list[str] = []
+
     def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
@@ -2848,6 +2850,16 @@ class FModel:
 
     def freePalettes(self):
         pass
+
+    def add_refs_externs(self, data: CData):
+        for ref in self.reference_to_extern:
+            extern = f"extern u64 {ref}[];\n"
+
+            if extern not in data.source:
+                data.source += extern
+
+        if len(self.reference_to_extern) > 0:
+            data.source += "\n"
 
 
 class FTexRect(FModel):

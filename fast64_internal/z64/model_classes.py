@@ -563,10 +563,13 @@ class OOTTriangleConverter(TriangleConverter):
 
 
 class OOTModel(FModel):
-    def __init__(self, name, DLFormat, drawLayerOverride, draw_config: Optional[str] = None):
+    def __init__(
+        self, name, DLFormat, drawLayerOverride, draw_config: Optional[str] = None, context: str = "undefined"
+    ):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[TextureFlipbook] = []
         self.draw_config = draw_config
+        self.context = context  # ["skeleton", "scene", "dl"]
 
         FModel.__init__(self, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
@@ -754,18 +757,31 @@ class OOTModel(FModel):
         gfxList = fMaterial.material
         matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
 
-        for i in range(8, 14):
-            if getattr(matDrawLayer, f"segment{i:X}"):
-                is_animated_material = False
+        ignore_segments = False
 
-                if self.draw_config is not None and "mat_anim" in self.draw_config:
-                    is_animated_material = True
+        match self.context:
+            case "skeleton":
+                ignore_segments = bpy.context.scene.fast64.oot.skeletonExportSettings.ignore_segments
+            case "scene":
+                ignore_segments = bpy.context.scene.ootSceneExportSettings.ignore_segments
+            case "dl":
+                ignore_segments = bpy.context.scene.fast64.oot.DLExportSettings.ignore_segments
+            case _:
+                pass
 
-                gfxList.commands.append(
-                    DynamicMaterialDL(
-                        GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), is_animated_material
+        if not ignore_segments:
+            for i in range(8, 14):
+                if getattr(matDrawLayer, f"segment{i:X}"):
+                    is_animated_material = False
+
+                    if self.draw_config is not None and "mat_anim" in self.draw_config:
+                        is_animated_material = True
+
+                    gfxList.commands.append(
+                        DynamicMaterialDL(
+                            GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), is_animated_material
+                        )
                     )
-                )
 
         for i in range(0, 2):
             p = f"customCall{i}"
@@ -836,11 +852,12 @@ class OOTVertexGroupInfo(VertexGroupInfo):
 
 
 class OOTF3DContext(F3DContext):
-    def __init__(self, f3d, limbList, basePath):
+    def __init__(self, f3d, limbList, basePath, context="undefined"):
         self.limbList = limbList
         self.dlList = []  # in the order they are rendered
         self.isBillboard = False
         self.flipbooks = {}  # {(segment, draw layer) : TextureFlipbook}
+        self.context = context  # ["skeleton", "scene", "dl"]
 
         # the new assets system extracts CI textures as PNGs with the TLUT already applied
         # so we need to avoid reading TLUTs as the files don't exist outside the build folder
@@ -912,11 +929,24 @@ class OOTF3DContext(F3DContext):
                 return None
             return name
         else:
-            segment = pointer >> 24
-            if segment >= 0x08 and segment <= 0x0D:
-                setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
-                setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
-                self.materialChanged = True
+            ignore_segments = False
+
+            match self.context:
+                case "skeleton":
+                    ignore_segments = bpy.context.scene.fast64.oot.skeletonImportSettings.ignore_segments
+                case "scene":
+                    ignore_segments = bpy.context.scene.ootSceneImportSettings.ignore_segments
+                case "dl":
+                    ignore_segments = bpy.context.scene.fast64.oot.DLImportSettings.ignore_segments
+                case _:
+                    pass
+
+            if not ignore_segments:
+                segment = pointer >> 24
+                if segment >= 0x08 and segment <= 0x0D:
+                    setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
+                    setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
+                    self.materialChanged = True
             return None
         return name
 

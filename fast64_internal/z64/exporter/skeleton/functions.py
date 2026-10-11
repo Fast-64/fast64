@@ -265,7 +265,7 @@ def ootConvertArmatureToC(
     removeVanillaData = settings.removeVanillaData
     optimize = settings.optimize
 
-    fModel = OOTModel(skeletonName, DLFormat, drawLayer)
+    fModel = OOTModel(skeletonName, DLFormat, drawLayer, context="skeleton")
     skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
         originalArmatureObj, convertTransformMatrix, fModel, skeletonName, not savePNG, drawLayer, optimize
     )
@@ -327,6 +327,7 @@ def ootConvertArmatureToC(
     )
     skeletonC = skeleton.toC()
 
+    fModel.add_refs_externs(data)
     data.append(exportData.all())
     data.append(skeletonC)
 

@@ -50,14 +50,7 @@ class RoomEntries:
                 original_room_obj,
                 roomObj,
                 roomHeader.roomShape,
-                model.addSubModel(
-                    OOTModel(
-                        f"{roomName}_dl",
-                        model.DLFormat,
-                        None,
-                        model.draw_config,
-                    )
-                ),
+                model.addSubModel(OOTModel(f"{roomName}_dl", model.DLFormat, None, model.draw_config, context="scene")),
                 roomIndex,
                 sceneName,
                 exportInfo,

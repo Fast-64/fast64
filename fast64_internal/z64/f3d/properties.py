@@ -27,6 +27,7 @@ class OOTDLExportSettings(PropertyGroup):
         default="assets/objects/gameplay_keep",
         description="Used in #include for including image files",
     )
+    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     def draw_props(self, layout: UILayout):
         layout.label(text="Object name used for export.", icon="INFO")
@@ -46,6 +47,7 @@ class OOTDLExportSettings(PropertyGroup):
 
         layout.prop(self, "isCustom")
         layout.prop(self, "removeVanillaData")
+        layout.prop(self, "ignore_segments")
 
 
 class OOTDLImportSettings(PropertyGroup):
@@ -61,6 +63,7 @@ class OOTDLImportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
+    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "name", "DL")
@@ -82,6 +85,7 @@ class OOTDLImportSettings(PropertyGroup):
         layout.prop(self, "isCustom")
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
+        layout.prop(self, "ignore_segments")
 
 
 class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):

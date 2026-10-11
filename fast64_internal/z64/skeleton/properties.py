@@ -81,6 +81,7 @@ class OOTSkeletonExportSettings(PropertyGroup):
         + "If enabled, the skeleton limbs must be drawn in their normal order, "
         + "with nothing in between and no culling, otherwise the mesh will be corrupted.",
     )
+    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     def draw_props(self, layout: UILayout):
         layout.prop(self, "removeVanillaData")
@@ -91,6 +92,7 @@ class OOTSkeletonExportSettings(PropertyGroup):
             b.label(text="callbacks or cull limbs, will be corrupted.")
         layout.prop(self, "isCustom")
         layout.label(text="Object name used for export.", icon="INFO")
+        layout.prop(self, "ignore_segments")
         layout.prop(self, "isCustomFilename")
         if self.isCustomFilename:
             prop_split(layout, self, "filename", "Filename")
@@ -128,12 +130,14 @@ class OOTSkeletonImportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
+    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "drawLayer", "Import Draw Layer")
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
         layout.prop(self, "import_animations")
+        layout.prop(self, "ignore_segments")
         layout.prop(self, "isCustom")
         if self.isCustom:
             prop_split(layout, self, "name", "Skeleton")

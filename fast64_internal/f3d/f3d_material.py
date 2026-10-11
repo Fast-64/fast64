@@ -780,17 +780,15 @@ def rendermode_presets_checks(material: "F3DMaterialProperty"):
         no_flags_2 = rdp.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
         if no_flags_1 and no_flags_2:
             raise PluginError(
-                "Invalid combination of rendermode presets.\n" "Neither of these presets sets the rendermode flags."
+                "Invalid combination of rendermode presets.\nNeither of these presets sets the rendermode flags."
             )
         elif not no_flags_1 and not no_flags_2:
             raise PluginError(
-                "Invalid combination of rendermode presets.\n" "Both of these presets set the rendermode flags."
+                "Invalid combination of rendermode presets.\nBoth of these presets set the rendermode flags."
             )
     else:
         if no_flags_1:
-            raise PluginError(
-                "Invalid rendermode preset in 1-cycle.\n" "This preset does not set the rendermode flags."
-            )
+            raise PluginError("Invalid rendermode preset in 1-cycle.\nThis preset does not set the rendermode flags.")
 
 
 # UI Assumptions:
@@ -2986,6 +2984,10 @@ class TextureProperty(PropertyGroup):
         min=1,
         default=16,
     )
+    extern_refs: bpy.props.BoolProperty(
+        name="Extern Texture Reference",
+        description="Adds externs to the exported source, useful if the texture or palette reference is a symbol.",
+    )
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
@@ -3146,13 +3148,19 @@ def ui_image(
 
         prop_input.prop(textureProp, "use_tex_reference")
         if textureProp.use_tex_reference:
+            flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
+
+            if (len(textureProp.tex_reference) > 0 and not textureProp.tex_reference.lower().startswith("0x")) or (
+                not flipbook.enable and len(textureProp.pal_reference) > 0 and not textureProp.pal_reference.lower().startswith("0x")
+            ):
+                prop_input.prop(textureProp, "extern_refs")
+
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-            if textureProp.tex_format[:2] == "CI":
-                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
-                if flipbook is None or not flipbook.enable:
-                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+
+            if textureProp.tex_format[:2] == "CI" and not flipbook.enable:
+                prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
         else:
             prop_input.template_ID(
@@ -3996,8 +4004,7 @@ def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
     col.label(text="Saved to Repo Settings file", icon="PROPERTIES")
     multilineLabel(
         col,
-        text="If a material setting is the same as the default setting\n"
-        "it won't be set, otherwise a revert will be added.",
+        text="If a material setting is the same as the default setting\nit won't be set, otherwise a revert will be added.",
     )
     if scene.gameEditorMode == "Homebrew":
         multilineLabel(
