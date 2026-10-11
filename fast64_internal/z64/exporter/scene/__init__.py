@@ -380,6 +380,7 @@ class Scene:
                 '#include "z64player.h"',
                 '#include "z64room.h"',
                 '#include "z64scene.h"',
+                '#include "z64skybox.h"',
             ]
         else:
             includes = [
@@ -400,6 +401,7 @@ class Scene:
                 '#include "player.h"',
                 '#include "room.h"',
                 '#include "scene.h"',
+                '#include "skybox.h"',
             ]
 
         if is_hackeroot():
