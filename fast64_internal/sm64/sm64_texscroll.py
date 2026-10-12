@@ -142,11 +142,19 @@ def writeTexScrollBase(baseDir):
     texscrollCPath = os.path.join(baseDir, "src/game/texscroll.c")
     if not os.path.exists(texscrollCPath):
         texscrollCFile = open(texscrollCPath, "w", newline="\n")
+        if bpy.context.scene.fast64.sm64.hackersm64:
+            objHelpersInclude = ""
+        elif bpy.context.scene.fast64.sm64.refresh_version in (f"Refresh {x}" for x in range(3, 8)):
+            objHelpersInclude = '#include "object_helpers2.h"\n'
+        else:
+            objHelpersInclude = '#include "object_helpers.h"\n'
+
         scrollData = (
             '#include "types.h"\n'
             + '#include "include/segment_symbols.h"\n'
             + '#include "memory.h"\n'
             + '#include "engine/math_util.h"\n'
+            + objHelpersInclude
             + '#include "src/engine/behavior_script.h"\n'
             + '#include "tile_scroll.h"\n'
             + '#include "texscroll.h"\n\n'
