@@ -1,0 +1,94 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_anim_header glTF Animation Header",
+    "type": "object",
+    "description": "Animation header properties for SM64",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "extensions": {
+            "type": "object",
+            "properties": {
+                "FAST64_sm64_anim_header_hints": {
+                    "$ref": "FAST64_sm64_anim_header_hints.schema.json"
+                }
+            }
+        },
+        "name": {
+            "type": "string",
+            "description": "Specified name for the animation header variable",
+            "default": "anim_00"
+        },
+        "enum": {
+            "type": "string",
+            "description": "Specified enum name for the animation index",
+            "default": "ANIM_00"
+        },
+        "loop_points": {
+            "$ref": "sm64_anim_loop_points.schema.json"
+        },
+        "flags": {
+            "description": "Animation behavior flags",
+            "oneOf": [
+                {
+                    "type": "string",
+                    "description": "C flags field",
+                    "default": "ANIM_FLAG_NOLOOP"
+                },
+                {
+                    "type": "object",
+                    "description": "Individual boolean flags for the playback behavior",
+                    "properties": {
+                        "no_loop": {
+                            "type": "boolean",
+                            "description": "Animation does not repeat from the loop start after reaching the loop end frame",
+                            "default": false
+                        },
+                        "backwards": {
+                            "type": "boolean",
+                            "description": "Animation loops after reaching the loop start frame, used with acceleration to play backwards",
+                            "default": false
+                        },
+                        "no_acceleration": {
+                            "type": "boolean",
+                            "description": "Acceleration is not used when calculating the next animation frame",
+                            "default": false
+                        },
+                        "disabled": {
+                            "type": "boolean",
+                            "description": "Animation translation is not applied to shadows",
+                            "default": false
+                        },
+                        "no_trans": {
+                            "type": "boolean",
+                            "description": "Animation translation is not used during rendering (shadows included)",
+                            "default": false
+                        },
+                        "only_vertical": {
+                            "type": "boolean",
+                            "description": "Only vertical translation is applied, horizontal translation is ignored",
+                            "default": false
+                        },
+                        "only_horizontal": {
+                            "type": "boolean",
+                            "description": "Only horizontal translation is applied, vertical translation is ignored",
+                            "default": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "trans_divisor": {
+            "type": "integer",
+            "description": "If set to 0, the translation multiplier will be 1. Otherwise, the translation multiplier is determined by dividing the object's translation dividend (animYTrans) by this divisor",
+            "default": 1,
+            "minimum": 0,
+            "maximum": 65535
+        }
+    },
+    "additionalProperties": false
+}

@@ -14,7 +14,7 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
         scene = context.scene
         sm64_props = scene.fast64.sm64
 
-        if sm64_props.export_type == "C":
+        if sm64_props.legacy_export_type == "C":
             # If the repo settings tab is open, we pass show_repo_settings as False
             # because we want to draw those specfic properties in the repo settings box
             box = col.box().column()

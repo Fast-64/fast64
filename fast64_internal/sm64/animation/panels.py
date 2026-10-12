@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from bpy.utils import register_class, unregister_class
 from bpy.types import Context
 
+from ..sm64_utility import convert_old_export_enum
 from ...utility_anim import is_action_stashed, CreateAnimData, AddBasicAction, StashAction
 from ...panels import SM64_Panel
 
@@ -51,11 +52,11 @@ class SceneAnimPanelMain(SceneAnimPanel):
         sm64_props: SM64_Properties = context.scene.fast64.sm64
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
 
-        if sm64_props.export_type == "C":
+        if sm64_props.legacy_export_type == "C":
             if not sm64_props.hackersm64:
                 col.prop(sm64_props, "designated_prop", text="Designated Initialization for Tables")
         else:
-            combined_props.draw_anim_props(col, sm64_props.export_type, dma_structure_context(context))
+            combined_props.draw_anim_props(col, sm64_props.legacy_export_type, dma_structure_context(context))
             SM64_ExportAnimTable.draw_props(col)
         anim_obj = get_anim_obj(context)
         if anim_obj is None:
@@ -76,7 +77,7 @@ class ObjAnimPanelMain(ObjAnimPanel):
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
         get_anim_props(context).draw_props(
             self.layout,
-            sm64_props.export_type,
+            convert_old_export_enum(sm64_props.export_type),
             combined_props.export_header_type,
             get_anim_actor_name(context),
             combined_props.export_bhv,
@@ -110,12 +111,12 @@ class AnimationPanelAction(AnimationPanel):
 
         sm64_props: SM64_Properties = context.scene.fast64.sm64
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
-        if sm64_props.export_type != "C":
+        if sm64_props.legacy_export_type != "C":
             SM64_ExportAnim.draw_props(col)
         anim_props = get_anim_props(context)
 
         export_seperately = get_anim_props(context).export_seperately
-        if sm64_props.export_type == "C":
+        if sm64_props.legacy_export_type == "C":
             export_seperately = export_seperately or combined_props.export_single_action
         elif sm64_props.export_type == "Insertable Binary":
             export_seperately = True
@@ -127,7 +128,7 @@ class AnimationPanelAction(AnimationPanel):
             table_elements=anim_props.elements,
             updates_table=anim_props.update_table,
             export_seperately=export_seperately,
-            export_type=sm64_props.export_type,
+            export_type=convert_old_export_enum(sm64_props.export_type),
             actor_name=get_anim_actor_name(context),
             gen_enums=anim_props.gen_enums,
             dma=dma_structure_context(context),
