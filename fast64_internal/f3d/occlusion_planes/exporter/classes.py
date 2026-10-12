@@ -1,47 +1,48 @@
 from dataclasses import dataclass
 from mathutils import Vector
-from typing import List
+from bpy.types import Object
 
 from ....utility import CData, indent
 
 
 @dataclass
 class OcclusionPlaneCandidate:
-    v0: Vector
-    v1: Vector
-    v2: Vector
-    v3: Vector
+    verts: tuple[Vector, Vector, Vector, Vector]
     weight: float
 
-    def to_c(self):
-        def occVertexToC(vertex: Vector):
-            return indent * 3 + "{" + ", ".join([str(int(round(a))) for a in vertex]) + "},\n"
+    def vertex_to_c(self, vertex: Vector, indent_char: str):
+        coords = ", ".join([str(round(a)) for a in vertex])
+        return f"{indent_char}{{{coords}}},\n"
 
+    def vertices_to_c(self, indent_char: str):
+        return "".join(map(self.vertex_to_c, self.verts, [indent_char] * 4))
+
+    def to_c(self, indent_char: str) -> str:
         return (
-            indent
-            + "{\n"
-            + indent * 2
-            + "{\n"
-            + "".join(map(occVertexToC, [self.v0, self.v1, self.v2, self.v3]))
-            + indent * 2
-            + "},\n"
-            + indent * 2
-            + str(self.weight)
-            + "f\n"
-            + indent
-            + "},\n"
+            f"{indent_char}{{\n"
+            f"{indent_char * 2}{{\n"
+            f"{self.vertices_to_c(indent_char * 3)}"
+            f"{indent_char * 2}}},\n"
+            f"{indent_char * 2}{self.weight}f\n"
+            f"{indent_char}}},\n"
         )
 
 
 class OcclusionPlaneCandidatesList:
-    def __init__(self, ownerName):
-        self.planes: List[OcclusionPlaneCandidate] = []
-        self.name: str = ownerName + "_occlusionPlaneCandidates"
+    def __init__(self, owner_name: str):
+        self.planes: list[OcclusionPlaneCandidate] = []
+        self.name: str = owner_name + "_occlusionPlaneCandidates"
+        self.indent_char: str = indent
 
-    def to_c(self):
+    def add_plane(self, obj: Object, verts: tuple[Vector, Vector, Vector, Vector], weight: float):
+        self.planes.append(OcclusionPlaneCandidate(verts, weight))
+
+    def to_c(self) -> CData:
         cdata = CData()
         if len(self.planes) > 0:
-            name = "OcclusionPlaneCandidate " + self.name + "[" + str(len(self.planes)) + "]"
-            cdata.header = "extern " + name + ";\n"
-            cdata.source = name + " = {\n" + "".join(candidate.to_c() for candidate in self.planes) + "};\n\n"
+            name = f"OcclusionPlaneCandidate {self.name}[{len(self.planes)}]"
+            cdata.header = f"extern {name};\n"
+
+            plane_c_code = "".join(candidate.to_c(self.indent_char) for candidate in self.planes)
+            cdata.source = f"{name} = {{\n{plane_c_code}}};\n\n"
         return cdata

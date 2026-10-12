@@ -392,7 +392,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
                     indices.append(index)
             collision.triangles[collisionType].append(CollisionTriangle(indices, specialParam, room))
     if includeSpecials:
-        area = SM64_Area(areaIndex, "", "", "", None, None, [], name, None)
+        area = SM64_Area(areaIndex, "", "", "", None, None, [], name, None, False)
         # This assumes that only levels will export with included specials,
         # And that the collision exporter never will.
         start_process_sm64_objects(obj, area, transformMatrix, True)
