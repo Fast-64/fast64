@@ -7,6 +7,7 @@ import numpy as np
 from bpy.types import NodeTree, Mesh, Material, Context, Panel, PropertyGroup, UILayout
 from bpy.props import BoolProperty
 
+
 from ...utility import (
     json_to_prop_group,
     multilineLabel,
@@ -24,6 +25,8 @@ from ...gltf_utility import (
     suffix_function,
     get_version,
 )
+
+from ..abstract_materials import get_fake_color, apply_alpha, get_gamma_corrected
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
@@ -261,107 +264,6 @@ def multitex_checks(raise_large_multitex: bool, f3d_mat: F3DMaterialProperty):
             f"The two CI textures together contain a total of {len(rgba_colors)} colors,\n"
             "which can't fit in a CI8 palette (256)."
         )
-
-
-# Ideally we'd use mathutils.Color here but it does not support alpha (and mul for some reason)
-@dataclass
-class Color:
-    r: float = 0.0
-    g: float = 0.0
-    b: float = 0.0
-    a: float = 0.0
-
-    def wrap(self, min_value: float, max_value: float):
-        def wrap_value(value, min_value=min_value, max_value=max_value):
-            range_width = max_value - min_value
-            return ((value - min_value) % range_width) + min_value
-
-        return Color(wrap_value(self.r), wrap_value(self.g), wrap_value(self.b), wrap_value(self.a))
-
-    def to_clean_list(self):
-        def round_and_clamp(value):
-            return round(max(min(value, 1.0), 0.0), 4)
-
-        return [
-            round_and_clamp(self.r),
-            round_and_clamp(self.g),
-            round_and_clamp(self.b),
-            round_and_clamp(self.a),
-        ]
-
-    def __sub__(self, other):
-        return Color(self.r - other.r, self.g - other.g, self.b - other.b, self.a - other.a)
-
-    def __add__(self, other):
-        return Color(self.r + other.r, self.g + other.g, self.b + other.b, self.a + other.a)
-
-    def __mul__(self, other):
-        return Color(self.r * other.r, self.g * other.g, self.b * other.b, self.a * other.a)
-
-
-def get_color_component(inp: str, data: dict, previous_alpha: float) -> float:
-    if inp == "0":
-        return 0.0
-    elif inp == "1":
-        return 1.0
-    elif inp.startswith("COMBINED"):
-        return previous_alpha
-    elif inp == "LOD_FRACTION":
-        return 0.0  # Fast64 always uses black, let's do that for now
-    elif inp.startswith("PRIM"):
-        prim = data["primitive"]
-        if inp == "PRIM_LOD_FRAC":
-            return prim["loDFraction"]
-        if inp == "PRIMITIVE_ALPHA":
-            return prim["color"][3]
-    elif inp == "ENV_ALPHA":
-        return data["environment"]["color"][3]
-    elif inp.startswith("K"):
-        values = data["yuvConvert"]["values"]
-        if inp == "K4":
-            return values[4]
-        if inp == "K5":
-            return values[5]
-
-
-def get_color_from_input(inp: str, previous_color: Color, data: dict, is_alpha: bool, default_color: Color) -> Color:
-    if inp == "COMBINED" and not is_alpha:
-        return previous_color
-    elif inp == "CENTER":
-        return Color(*data["chromaKey"]["center"], 1.0)
-    elif inp == "SCALE":
-        return Color(*data["chromaKey"]["scale"], 1.0)
-    elif inp == "PRIMITIVE":
-        return Color(*data["primitive"]["color"])
-    elif inp == "ENVIRONMENT":
-        return Color(*data["environment"]["color"])
-    else:
-        value = get_color_component(inp, data, previous_color.a)
-        if value:
-            return Color(value, value, value, value)
-        return default_color
-
-
-def fake_color_from_cycle(cycle: list[str], previous_color: Color, data: dict, is_alpha=False):
-    default_colors = [Color(1.0, 1.0, 1.0, 1.0), Color(), Color(1.0, 1.0, 1.0, 1.0), Color()]
-    a, b, c, d = [
-        get_color_from_input(inp, previous_color, data, is_alpha, default_color)
-        for inp, default_color in zip(cycle, default_colors)
-    ]
-    sign_extended_c = c.wrap(-1.0, 1.0001)
-    unwrapped_result = (a - b) * sign_extended_c + d
-    result = unwrapped_result.wrap(-0.5, 1.5)
-    if is_alpha:
-        result = Color(previous_color.r, previous_color.g, previous_color.b, result.a)
-    return result
-
-
-def get_fake_color(data: dict):
-    fake_color = Color()
-    for cycle in data["combiner"]["cycles"]:  # Try to emulate solid colors
-        fake_color = fake_color_from_cycle(cycle["color"], fake_color, data)
-        fake_color = fake_color_from_cycle(cycle["alpha"], fake_color, data, True)
-    return fake_color.to_clean_list()
 
 
 class F3DExtensions(GlTF2SubExtension):
@@ -623,7 +525,7 @@ class F3DExtensions(GlTF2SubExtension):
             pbr.metallic_roughness_texture = textures["1"]
         elif textures:
             pbr.base_color_texture = list(textures.values())[0]
-        pbr.base_color_factor = get_fake_color(n64_data)
+        pbr.base_color_factor = get_fake_color(f3d_mat)
 
         if not f3d_mat.rdp_settings.g_lighting:
             self.append_extension(gltf2_material, "KHR_materials_unlit")
@@ -966,21 +868,6 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 
-def get_gamma_corrected(layer):
-    colors = np.empty((len(layer), 4), dtype=np.float32)
-    if bpy.app.version > (3, 2, 0):
-        layer.foreach_get("color", colors.ravel())
-    else:  # vectorized linear -> sRGB conversion
-        layer.foreach_get("color", colors.ravel())
-        mask = colors > 0.0031308
-        colors[mask] = 1.055 * (np.power(colors[mask], (1.0 / 2.4))) - 0.055
-        colors[~mask] *= 12.0
-    return colors.reshape((-1, 4))
-
-
-RGB_TO_LUM_COEF = np.array([0.2126729, 0.7151522, 0.0721750], np.float32)  # blender rgb -> lum coefficient
-
-
 def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
     if not get_settings().apply_alpha_to_col:
@@ -990,19 +877,7 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     print("F3D glTF: Applying alpha")
     if get_version() != (3, 2, 40) and get_version() < (4, 1, 0) and "Col" in blender_mesh.color_attributes:
         blender_mesh.color_attributes.active = blender_mesh.color_attributes["Col"]
-    color_layer = getColorLayer(blender_mesh, layer="Col")
-    alpha_layer = getColorLayer(blender_mesh, layer="Alpha")
-    if not color_layer or not alpha_layer:
-        return
-    color = get_gamma_corrected(color_layer)
-    rgb_alpha = get_gamma_corrected(alpha_layer)
-
-    alpha_median = np.dot(rgb_alpha[:, :3], RGB_TO_LUM_COEF)
-    color[:, 3] = alpha_median
-
-    color = color.flatten()
-    color = color.clip(0.0, 1.0)  # clamp
-    color_layer.foreach_set("color", color)
+    apply_alpha(blender_mesh)
 
 
 def get_fast64_custom_colors(blender_mesh):
