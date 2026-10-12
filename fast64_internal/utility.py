@@ -155,7 +155,10 @@ def unhideAllAndGetHiddenState(scene):
 
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.hide_view_clear()
+
+    if not scene.fast64.settings.internal_background_mode:
+        # the viewport is disabled when blender is ran in background mode, so we need to disable this to avoid errors
+        bpy.ops.object.hide_view_clear()
 
     hiddenLayerCols = []
 
