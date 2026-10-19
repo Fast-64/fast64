@@ -390,6 +390,12 @@ enumF3D = [
         "Variant of F3DEX2 family using vertex rejection instead of clipping",
         5,
     ),
+    (
+        "F3DEX2_PL",
+        "F3DEX2 (Point Lit)",
+        "Variant of F3DEX2 family with support for point lighting used in a few games including MM",
+        11,
+    ),
     ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen", 6),
     ("", "Homebrew", "", 8),
     ("RDPQ", "RDPQ", "Base libdragon microcode", 9),
