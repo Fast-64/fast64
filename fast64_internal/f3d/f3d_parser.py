@@ -1637,7 +1637,7 @@ class F3DContext:
                 rdp_settings: "RDPSettings" = mat.rdp_settings
 
                 if command.name == "gsSPClipRatio":
-                    rdp_settings.clip_ratio = math_eval(command.params[0], self.f3d)
+                    rdp_settings.clip_ratio = int(command.params[0].removeprefix("FRUSTRATIO_"))
                 elif command.name == "gsSPNumLights":
                     self.numLights = self.getLightCount(command.params[0])
                 elif command.name == "gsSPLight":
