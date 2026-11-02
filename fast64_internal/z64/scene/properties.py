@@ -608,7 +608,6 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
     )
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
     auto_add_room_objects: BoolProperty(name="Auto-add Missing Room Objects", default=True)
-    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     # keeping this on purpose, will be removed once old code is cleaned-up
     useNewExporter: BoolProperty(name="Use New Exporter", default=True)
@@ -628,7 +627,6 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
         layout.prop(self, "singleFile")
         layout.prop(self, "customExport")
         layout.prop(self, "auto_add_room_objects")
-        layout.prop(self, "ignore_segments")
         # layout.prop(self, "useNewExporter")
 
 

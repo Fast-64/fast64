@@ -757,31 +757,18 @@ class OOTModel(FModel):
         gfxList = fMaterial.material
         matDrawLayer = getattr(material.ootMaterial, drawLayer.lower())
 
-        ignore_segments = False
+        for i in range(8, 14):
+            if getattr(matDrawLayer, f"segment{i:X}"):
+                is_animated_material = False
 
-        match self.context:
-            case "skeleton":
-                ignore_segments = bpy.context.scene.fast64.oot.skeletonExportSettings.ignore_segments
-            case "scene":
-                ignore_segments = bpy.context.scene.ootSceneExportSettings.ignore_segments
-            case "dl":
-                ignore_segments = bpy.context.scene.fast64.oot.DLExportSettings.ignore_segments
-            case _:
-                pass
+                if self.draw_config is not None and "mat_anim" in self.draw_config:
+                    is_animated_material = True
 
-        if not ignore_segments:
-            for i in range(8, 14):
-                if getattr(matDrawLayer, f"segment{i:X}"):
-                    is_animated_material = False
-
-                    if self.draw_config is not None and "mat_anim" in self.draw_config:
-                        is_animated_material = True
-
-                    gfxList.commands.append(
-                        DynamicMaterialDL(
-                            GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), is_animated_material
-                        )
+                gfxList.commands.append(
+                    DynamicMaterialDL(
+                        GfxList(f"0x0{i:X}000000", GfxListTag.Material, DLFormat.Static), is_animated_material
                     )
+                )
 
         for i in range(0, 2):
             p = f"customCall{i}"

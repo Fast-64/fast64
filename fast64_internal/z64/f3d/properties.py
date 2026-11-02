@@ -27,7 +27,6 @@ class OOTDLExportSettings(PropertyGroup):
         default="assets/objects/gameplay_keep",
         description="Used in #include for including image files",
     )
-    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     def draw_props(self, layout: UILayout):
         layout.label(text="Object name used for export.", icon="INFO")
@@ -47,7 +46,6 @@ class OOTDLExportSettings(PropertyGroup):
 
         layout.prop(self, "isCustom")
         layout.prop(self, "removeVanillaData")
-        layout.prop(self, "ignore_segments")
 
 
 class OOTDLImportSettings(PropertyGroup):

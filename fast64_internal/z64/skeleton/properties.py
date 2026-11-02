@@ -81,7 +81,6 @@ class OOTSkeletonExportSettings(PropertyGroup):
         + "If enabled, the skeleton limbs must be drawn in their normal order, "
         + "with nothing in between and no culling, otherwise the mesh will be corrupted.",
     )
-    ignore_segments: BoolProperty(name="Ignore DL Segments", default=False)
 
     def draw_props(self, layout: UILayout):
         layout.prop(self, "removeVanillaData")
@@ -92,7 +91,6 @@ class OOTSkeletonExportSettings(PropertyGroup):
             b.label(text="callbacks or cull limbs, will be corrupted.")
         layout.prop(self, "isCustom")
         layout.label(text="Object name used for export.", icon="INFO")
-        layout.prop(self, "ignore_segments")
         layout.prop(self, "isCustomFilename")
         if self.isCustomFilename:
             prop_split(layout, self, "filename", "Filename")
