@@ -3151,7 +3151,9 @@ def ui_image(
             flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
 
             if (len(textureProp.tex_reference) > 0 and not textureProp.tex_reference.lower().startswith("0x")) or (
-                not flipbook.enable and len(textureProp.pal_reference) > 0 and not textureProp.pal_reference.lower().startswith("0x")
+                not flipbook.enable
+                and len(textureProp.pal_reference) > 0
+                and not textureProp.pal_reference.lower().startswith("0x")
             ):
                 prop_input.prop(textureProp, "extern_refs")
 
