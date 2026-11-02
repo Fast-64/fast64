@@ -563,10 +563,13 @@ class OOTTriangleConverter(TriangleConverter):
 
 
 class OOTModel(FModel):
-    def __init__(self, name, DLFormat, drawLayerOverride, draw_config: Optional[str] = None):
+    def __init__(
+        self, name, DLFormat, drawLayerOverride, draw_config: Optional[str] = None, context: str = "undefined"
+    ):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[TextureFlipbook] = []
         self.draw_config = draw_config
+        self.context = context  # ["skeleton", "scene", "dl"]
 
         FModel.__init__(self, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
@@ -836,11 +839,12 @@ class OOTVertexGroupInfo(VertexGroupInfo):
 
 
 class OOTF3DContext(F3DContext):
-    def __init__(self, f3d, limbList, basePath):
+    def __init__(self, f3d, limbList, basePath, context="undefined"):
         self.limbList = limbList
         self.dlList = []  # in the order they are rendered
         self.isBillboard = False
         self.flipbooks = {}  # {(segment, draw layer) : TextureFlipbook}
+        self.context = context  # ["skeleton", "scene", "dl"]
 
         # the new assets system extracts CI textures as PNGs with the TLUT already applied
         # so we need to avoid reading TLUTs as the files don't exist outside the build folder
@@ -912,11 +916,24 @@ class OOTF3DContext(F3DContext):
                 return None
             return name
         else:
-            segment = pointer >> 24
-            if segment >= 0x08 and segment <= 0x0D:
-                setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
-                setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
-                self.materialChanged = True
+            ignore_segments = False
+
+            match self.context:
+                case "skeleton":
+                    ignore_segments = bpy.context.scene.fast64.oot.skeletonImportSettings.ignore_segments
+                case "scene":
+                    ignore_segments = bpy.context.scene.ootSceneImportSettings.ignore_segments
+                case "dl":
+                    ignore_segments = bpy.context.scene.fast64.oot.DLImportSettings.ignore_segments
+                case _:
+                    pass
+
+            if not ignore_segments:
+                segment = pointer >> 24
+                if segment >= 0x08 and segment <= 0x0D:
+                    setattr(self.materialContext.ootMaterial.opaque, "segment" + format(segment, "1X"), True)
+                    setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
+                    self.materialChanged = True
             return None
         return name
 

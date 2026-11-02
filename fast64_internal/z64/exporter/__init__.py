@@ -76,7 +76,7 @@ class SceneExport:
                 sceneObj,
                 transform,
                 exportInfo,
-                OOTModel(f"{sceneName}_dl", DLFormat.Static, False),
+                OOTModel(f"{sceneName}_dl", DLFormat.Static, False, context="scene"),
             )
             newScene.validateScene()
 

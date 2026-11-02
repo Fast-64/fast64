@@ -376,7 +376,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     limbs_info = ootGetLimbs(skeletonData, skel_info.limbs_name, False)
 
-    f3dContext = OOTF3DContext(get_F3D_GBI(), limbs_info.limb_list, basePath)
+    f3dContext = OOTF3DContext(get_F3D_GBI(), limbs_info.limb_list, basePath, context="skeleton")
     f3dContext.mat().draw_layer.oot = drawLayer
     f3dContext.ignore_tlut = ignore_tlut
 

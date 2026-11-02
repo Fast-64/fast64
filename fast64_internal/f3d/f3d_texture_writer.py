@@ -131,7 +131,7 @@ class TileLoad:
                 raise PluginError(
                     f"Large texture material {self.materialName} has a face that needs"
                     + f" to cover texels {self.sl}-{self.sh} x {self.tl}-{self.th}"
-                    + f" ({self.sh-self.sl+1} x {self.th-self.tl+1} texels) "
+                    + f" ({self.sh - self.sl + 1} x {self.th - self.tl + 1} texels) "
                     + f"in format {self.texFormat}, which can't fit in TMEM."
                 )
         self.faces.append(face)
@@ -635,23 +635,34 @@ class MultitexManager:
         if self.ti0.useTex and self.ti1.useTex:
             if self.ti0.isTexCI != self.ti1.isTexCI:
                 raise PluginError("N64 does not support CI + non-CI texture. Must be both CI or neither CI.")
-            if (
-                self.ti0.isTexRef
-                and self.ti1.isTexRef
-                and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
-                and self.ti0.texProp.tex_reference_size != self.ti1.texProp.tex_reference_size
-            ):
-                raise PluginError("Two textures with the same reference must have the same size.")
+
+            def assert_size(is_pal: bool):
+                p_str = " palette " if is_pal else " "
+
+                is_ref_enabled = (
+                    self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
+                    if is_pal
+                    else self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
+                )
+
+                data_1 = self.ti0.texProp.pal_reference_size if is_pal else self.ti0.texProp.tex_reference_size
+                size_1 = list(data_1) if not isinstance(data_1, int) else [data_1]
+
+                data_2 = self.ti1.texProp.pal_reference_size if is_pal else self.ti1.texProp.tex_reference_size
+                size_2 = list(data_2) if not isinstance(data_2, int) else [data_2]
+
+                is_same_size = size_1[0] == size_2[0] and size_1[0] == size_2[0]
+
+                if self.ti0.isTexRef and self.ti1.isTexRef and is_ref_enabled and not is_same_size:
+                    raise PluginError(f"Two textures with the same{p_str}reference must have the same{p_str}size.")
+
+            assert_size(False)
+
             if self.isCI:
                 if self.ti0.palFormat != self.ti1.palFormat:
                     raise PluginError("Both CI textures must use the same palette format (usually RGBA16).")
-                if (
-                    self.ti0.isTexRef
-                    and self.ti1.isTexRef
-                    and self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
-                    and self.ti0.texProp.pal_reference_size != self.ti1.texProp.pal_reference_size
-                ):
-                    raise PluginError("Two textures with the same palette reference must have the same palette size.")
+
+                assert_size(True)
 
         self.palFormat = self.ti0.palFormat if self.ti0.useTex else self.ti1.palFormat
 
@@ -803,17 +814,18 @@ class MultitexManager:
                 or (  # reference
                     self.ti0.isTexRef
                     and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
-                    and self.ti0.texProp.tex_reference_size == self.ti1.texProp.tex_reference_size
+                    and list(self.ti0.texProp.tex_reference_size) == list(self.ti1.texProp.tex_reference_size)
                     and (  # ci format reference
                         not self.isCI
                         or (
                             self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
-                            and self.ti0.texProp.pal_reference_size == self.ti1.texProp.pal_reference_size
+                            and list(self.ti0.texProp.pal_reference_size) == list(self.ti1.texProp.pal_reference_size)
                         )
                     )
                 )
             )
         )
+
         useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
         tmemSize = 256 if self.isCI else 512
         self.ti1.texAddr = None  # must be set whenever tex 1 used (and loaded or tiled)

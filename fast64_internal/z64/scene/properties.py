@@ -646,6 +646,15 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
     includeCutscenes: BoolProperty(name="Cutscenes", default=False)
     includeAnimatedMats: BoolProperty(name="Animated Materials", default=False)
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    ignore_segments: BoolProperty(
+        name="Ignore DL Segments",
+        description=(
+            "Whether to ignore jumps to segmented addresses (like gsSPSegment(0x08000000)), "
+            "instead of importing them as Dynamic Material Properties. "
+            "This ignore option can be used to work around the importer wrongly setting some materials' segments"
+        ),
+        default=False,
+    )
 
     def draw_props(self, layout: UILayout, sceneOption: str):
         col = layout.column()
@@ -669,6 +678,7 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
             includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
 
         col.prop(self, "isCustomDest")
+        col.prop(self, "ignore_segments")
 
         if self.isCustomDest:
             prop_split(col, self, "destPath", "Directory")
