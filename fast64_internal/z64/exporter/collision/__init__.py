@@ -41,7 +41,7 @@ class CollisionUtility:
     """This class hosts different functions used to convert mesh data"""
 
     @staticmethod
-    def updateBounds(position: tuple[int, int, int], colBounds: list[tuple[int, int, int]]):
+    def updateBounds(position: tuple[int, int, int], colBounds: list[list[int]]):
         """This is used to update the scene's boundaries"""
 
         if len(colBounds) == 0:
@@ -95,7 +95,7 @@ class CollisionUtility:
         surfaceList: list[SurfaceType] = []
         polyList: list[CollisionPoly] = []
         vertexList: list[CollisionVertex] = []
-        colBounds: list[tuple[int, int, int]] = []
+        colBounds: list[list[int]] = []
 
         transformFromMeshObj: dict[Object, Matrix] = {}
         if dataHolder.type == "MESH" and not dataHolder.ignore_collision:
@@ -211,6 +211,9 @@ class CollisionUtility:
                 polyList.append(colPoly)
             surfaceList.append(surface)
             count += 1
+
+        if not colBounds:
+            colBounds = [[0, 0, 0], [0, 0, 0]]
 
         return colBounds, vertexList, polyList, surfaceList
 
