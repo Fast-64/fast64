@@ -3,6 +3,7 @@ import os
 
 from mathutils import Matrix
 from bpy.types import Object
+from ...game_data import game_data
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..model_classes import OOTModel
 from ..f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
@@ -92,6 +93,8 @@ class SceneExport:
         """Main function"""
         # circular import fixes
         from .decomp_edit.config import Config
+
+        game_data.z64.update(bpy.context, None)
 
         checkObjectReference(originalSceneObj, "Scene object")
         scene = SceneExport.create_scene(originalSceneObj, transform, exportInfo)

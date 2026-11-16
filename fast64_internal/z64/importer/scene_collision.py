@@ -19,8 +19,6 @@ from .classes import SharedSceneData
 
 from ..collision.constants import (
     ootEnumWallSetting,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
     ootEnumCameraCrawlspaceSType,
     enum_conveyor_speed,
 )
@@ -203,8 +201,8 @@ def parseSurfaceParams(
     col_props.hookshotable = surface_type.canHookshot
     col_props.echo = str(surface_type.echo)
     col_props.lightingSetting = surface_type.lightSetting
-    setCustomProperty(col_props, "terrain", str(surface_type.floorEffect), ootEnumCollisionTerrain)
-    setCustomProperty(col_props, "sound", str(surface_type.material), ootEnumCollisionSound)
+    setCustomProperty(col_props, "terrain", str(surface_type.floorEffect), game_data.z64.enum_floor_effect)
+    setCustomProperty(col_props, "sound", str(surface_type.material), game_data.z64.get_enum("sound"))
 
     col_props.ignoreCameraCollision = collision_poly.ignoreCamera
     col_props.ignoreActorCollision = collision_poly.ignoreEntity
