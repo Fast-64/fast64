@@ -93,6 +93,7 @@ oot_default_draw_layers = {
 default_draw_layers = {
     "SM64": sm64_default_draw_layers,
     "OOT": oot_default_draw_layers,
+    "MM": oot_default_draw_layers,
 }
 
 CCMUXDict = {
