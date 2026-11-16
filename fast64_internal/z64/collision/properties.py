@@ -11,8 +11,6 @@ from .constants import (
     ootEnumWallSetting,
     ootEnumConveyer,
     enum_conveyor_speed,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
 )
 
 
@@ -47,13 +45,21 @@ class OOTCameraPositionProperty(PropertyGroup):
     camSType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("camera_setting_type"), default=1)
     camSTypeCustom: StringProperty(default="CAM_SET_NONE")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
+    is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
+    use_setting_default_fov: BoolProperty(name="Use the default FoV from the camera setting", default=False)
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
         drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
         prop_split(layout, self, "index", "Camera Index")
-        layout.prop(self, "hasPositionData")
-        if self.hasPositionData:
-            prop_split(layout, cameraObj.data, "angle", "Field Of View")
+        layout.prop(self, "is_actor_cs_cam")
+
+        if not self.is_actor_cs_cam:
+            layout.prop(self, "hasPositionData")
+
+        layout.prop(self, "use_setting_default_fov")
+        if not self.is_actor_cs_cam and self.hasPositionData:
+            if not self.use_setting_default_fov:
+                prop_split(layout, cameraObj.data, "angle", "Field Of View")
             prop_split(layout, self, "bgImageOverrideIndex", "BG Index Override")
 
 
@@ -84,9 +90,9 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     echo: StringProperty(default="0x00")
     lightingSetting: IntProperty(default=0, min=0)
     terrainCustom: StringProperty(default="0x00")
-    terrain: EnumProperty(items=ootEnumCollisionTerrain, default="0x00")
+    terrain: EnumProperty(items=game_data.z64.enum_floor_effect, default="0x00")
     soundCustom: StringProperty(default="0x00")
-    sound: EnumProperty(items=ootEnumCollisionSound, default="0x00")
+    sound: EnumProperty(items=lambda self, context: game_data.z64.get_enum("sound"), default=1)
 
     def draw_props(self, layout: UILayout):
         layout.prop(
@@ -96,31 +102,34 @@ class OOTMaterialCollisionProperty(PropertyGroup):
             icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
         )
         if self.expandTab:
-            prop_split(layout, self, "exitID", "Exit ID")
-            prop_split(layout, self, "cameraID", "Camera ID")
+            prop_split(layout, self, "exitID", "Exit Index")
+            prop_split(layout, self, "cameraID", "Camera Index")
+            prop_split(layout, self, "lightingSetting", "Lighting Index")
             prop_split(layout, self, "echo", "Echo")
-            prop_split(layout, self, "lightingSetting", "Lighting")
-            drawEnumWithCustom(layout, self, "terrain", "Terrain", "")
-            drawEnumWithCustom(layout, self, "sound", "Sound", "")
+
+            enum_box = layout.box().column()
+            enum_box.label(text="Surface Settings")
+            drawEnumWithCustom(enum_box, self, "floorProperty", "Floor Type", "", "floorPropertyCustom")
+            drawEnumWithCustom(enum_box, self, "floorSetting", "Floor Property", "", "floorSettingCustom")
+            drawEnumWithCustom(enum_box, self, "terrain", "Floor Effect", "", "terrainCustom")
+            drawEnumWithCustom(enum_box, self, "sound", "Surface Material", "", "soundCustom")
+            drawEnumWithCustom(enum_box, self, "wallSetting", "Wall Type", "")
 
             layout.prop(self, "eponaBlock", text="Blocks Epona")
             layout.prop(self, "decreaseHeight", text="Decrease Height 1 Unit")
             layout.prop(self, "isWallDamage", text="Is Wall Damage")
             layout.prop(self, "hookshotable", text="Hookshotable")
-
-            drawEnumWithCustom(layout, self, "floorSetting", "Floor Property", "")
-            drawEnumWithCustom(layout, self, "wallSetting", "Wall Setting", "")
-            drawEnumWithCustom(layout, self, "floorProperty", "Floor Type", "")
-
             layout.prop(self, "ignoreCameraCollision", text="Ignore Camera Collision")
             layout.prop(self, "ignoreActorCollision", text="Ignore Actor Collision")
             layout.prop(self, "ignoreProjectileCollision", text="Ignore Projectile Collision")
-            prop_split(layout, self, "conveyorOption", "Conveyor Option")
+
+            conveyor_box = layout.box().column()
+            prop_split(conveyor_box, self, "conveyorOption", "Conveyor Option")
             if self.conveyorOption != "None":
-                prop_split(layout, self, "conveyorRotation", "Conveyor Rotation")
-                drawEnumWithCustom(layout, self, "conveyorSpeed", "Conveyor Speed", "")
+                prop_split(conveyor_box, self, "conveyorRotation", "Conveyor Rotation")
+                drawEnumWithCustom(conveyor_box, self, "conveyorSpeed", "Conveyor Speed", "")
                 if self.conveyorSpeed != "Custom":
-                    layout.prop(self, "conveyorKeepMomentum", text="Keep Momentum")
+                    conveyor_box.prop(self, "conveyorKeepMomentum", text="Keep Momentum")
 
 
 class OOTWaterBoxProperty(PropertyGroup):
