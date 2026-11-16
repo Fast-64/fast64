@@ -1744,7 +1744,7 @@ def get_blender_to_game_scale(context):
     match context.scene.gameEditorMode:
         case "SM64":
             return context.scene.fast64.sm64.blender_to_sm64_scale
-        case "OOT":
+        case "OOT" | "MM":
             return context.scene.ootBlenderScale
         case "F3D":
             # TODO: (V5) create F3D game editor mode, utilize that scale
@@ -1773,33 +1773,38 @@ def lightDataToObj(lightData):
     )
 
 
-def ootGetSceneOrRoomHeader(parent, idx, isRoom):
-    # This should be in oot_utility.py, but it is needed in f3d_material.py
+def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
+    from .game_data import game_data  # circular import fix
+
+    # This should be in z64/utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
     # settings stuff should be in a place which can import both SM64 and OoT
     # code without circular dependencies.
     if idx < 0:
         raise PluginError("Alternate scene/room header index too low: " + str(idx))
+
     target = "Room" if isRoom else "Scene"
     altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
+
     if idx == 0:
         return getattr(parent, "oot" + target + "Header")
-    elif 1 <= idx <= 3:
-        if idx == 1:
-            ret = altHeaders.childNightHeader
-        elif idx == 2:
-            ret = altHeaders.adultDayHeader
-        else:
-            ret = altHeaders.adultNightHeader
-        return None if ret.usePreviousHeader else ret
-    else:
-        if idx - 4 >= len(altHeaders.cutsceneHeaders):
-            return None
-        return altHeaders.cutsceneHeaders[idx - 4]
+    elif game_data.z64.is_oot():
+        if 1 <= idx <= (game_data.z64.cs_index_start - 1):
+            if idx == 1:
+                ret = altHeaders.childNightHeader
+            elif idx == 2:
+                ret = altHeaders.adultDayHeader
+            else:
+                ret = altHeaders.adultNightHeader
+            return None if ret.usePreviousHeader else ret
+
+    if idx - game_data.z64.cs_index_start >= len(altHeaders.cutsceneHeaders):
+        return None
+    return altHeaders.cutsceneHeaders[idx - game_data.z64.cs_index_start]
 
 
 def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
-    # This should be in oot_utility.py, but it is needed in render_settings.py
+    # This should be in z64/utility.py, but it is needed in render_settings.py
     # which creates a circular import. The real problem is that the F3D render
     # settings stuff should be in a place which can import both SM64 and OoT
     # code without circular dependencies.
@@ -2196,3 +2201,14 @@ class ExportUtils:
             print("\nExecution type:", exc_type)
             print("\nExecution value:", exc_value)
             print("\nTraceback:", traceback)
+
+
+def get_prop_annotations(cls):
+    prop_annotations = getattr(cls, "__annotations__", None)
+
+    if prop_annotations is None:
+        setattr(cls, "__annotations__", dict())
+        prop_annotations = getattr(cls, "__annotations__")
+
+    return prop_annotations
+

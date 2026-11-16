@@ -1,7 +1,6 @@
 import bpy
 
 from pathlib import Path
-from bpy.utils import register_class, unregister_class
 
 from ..game_data import game_data
 from ..utility import PluginError
@@ -10,7 +9,7 @@ from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
-from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
+from .props_panel_main import OOT_ObjectProperties, oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .collection_utility import collections_register, collections_unregister
 from .utility import setAllActorsVisibility
@@ -20,8 +19,7 @@ from .collision.properties import OOTCollisionExportSettings
 from .room.operators import room_ops_register, room_ops_unregister
 from .room.properties import room_props_register, room_props_unregister
 
-from .actor.operators import actor_ops_register, actor_ops_unregister
-from .actor.properties import actor_props_register, actor_props_unregister
+from .scene.properties import OOTSceneProperties
 
 from .f3d.operators import f3d_ops_register, f3d_ops_unregister
 from .f3d.properties import OOTDLExportSettings, OOTDLImportSettings, f3d_props_register, f3d_props_unregister
@@ -65,6 +63,8 @@ from .animated_mats.properties import (
     animated_mats_props_register,
     animated_mats_props_unregister,
 )
+
+from .actor_cutscene.properties import actor_cs_register, actor_cs_unregister
 
 from .hackeroot.operators import hackeroot_ops_register, hackeroot_ops_unregister
 from .hackeroot.properties import HackerOoTSettings, hackeroot_props_register, hackeroot_props_unregister
@@ -138,6 +138,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
         type=bpy.types.Object, poll=lambda self, obj: obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene"
     )
 
+    # internal
+    global_actor_cs_count: bpy.props.IntProperty(min=0, default=0)
+
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version
 
@@ -160,6 +163,12 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     def is_z64sceneh_present(self):
         return self.is_include_present("z64scene.h")
+
+    def can_use_new_actor_panel(self):
+        if game_data.z64.is_mm():
+            return False
+
+        return self.use_new_actor_panel
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
@@ -186,7 +195,19 @@ class OOT_Properties(bpy.types.PropertyGroup):
             del bpy.context.scene.fast64.oot["hackerFeaturesEnabled"]
 
 
-oot_classes = (OOT_Properties,)
+z64_register_on_enable = (
+    OOTBootupSceneOptions,
+    OOTDLExportSettings,
+    OOTDLImportSettings,
+    OOTSkeletonExportSettings,
+    OOTSkeletonImportSettings,
+    OOTAnimExportSettingsProperty,
+    OOTAnimImportSettingsProperty,
+    OOTCollisionExportSettings,
+    OOT_Properties,
+    OOTSceneProperties,
+    OOT_ObjectProperties,
+)
 
 
 def oot_panel_register():
@@ -204,96 +225,109 @@ def oot_panel_register():
 
 
 def oot_panel_unregister():
-    oot_operator_panel_unregister()
-    hackeroot_panels_unregister()
-    cutscene_panels_unregister()
-    collision_panels_unregister()
-    oot_obj_panel_unregister()
-    scene_panels_unregister()
-    spline_panels_unregister()
-    f3d_panels_unregister()
-    anim_panels_unregister()
-    skeleton_panels_unregister()
     animated_mats_panels_unregister()
+    skeleton_panels_unregister()
+    anim_panels_unregister()
+    spline_panels_unregister()
+    oot_obj_panel_unregister()
+    collision_panels_unregister()
+    f3d_panels_unregister()
+    scene_panels_unregister()
+    cutscene_panels_unregister()
+    hackeroot_panels_unregister()
+    oot_operator_panel_unregister()
+
+
+def z64_register_ops():
+    from .actor.operators import actor_ops_register
+
+    collision_ops_register()
+    scene_ops_register()
+    room_ops_register()
+    actor_ops_register()
+    anim_ops_register()
+    animated_mats_ops_register()
+    skeleton_ops_register()
+    cutscene_ops_register()
+    f3d_ops_register()
+    csMotion_ops_register()
 
 
 def oot_register(registerPanels):
+    from .actor.properties import actor_props_register
+
     hackeroot_props_register()
     hackeroot_ops_register()
+
     oot_operator_register()
     collections_register()
-    collision_ops_register()  # register first, so panel goes above mat panel
-    collision_props_register()
+
+    collision_props_register()  # register first, so panel goes above mat panel
     cutscene_props_register()
-    animated_mats_ops_register()
     animated_mats_props_register()
-    scene_ops_register()
     scene_props_register()
-    room_ops_register()
     room_props_register()
-    actor_ops_register()
     actor_props_register()
+    oot_obj_register()
     spline_props_register()
     f3d_props_register()
-    anim_ops_register()
-    skeleton_ops_register()
     skeleton_props_register()
-    cutscene_ops_register()
-    f3d_ops_register()
     file_register()
     anim_props_register()
+    actor_cs_register()
 
-    csMotion_ops_register()
     csMotion_props_register()
-    csMotion_panels_register()
     csMotion_preview_register()
     cutscene_preview_register()
 
-    oot_obj_register()
-
-    for cls in oot_classes:
-        register_class(cls)
+    z64_register_ops()
 
     if registerPanels:
         oot_panel_register()
 
 
-def oot_unregister(unregisterPanels):
+def z64_unregister_ops():
+    from .actor.operators import actor_ops_unregister
+
+    csMotion_ops_unregister()
+    f3d_ops_unregister()
+    cutscene_ops_unregister()
+    skeleton_ops_unregister()
+    animated_mats_ops_unregister()
+    anim_ops_unregister()
+    actor_ops_unregister()
+    room_ops_unregister()
+    scene_ops_unregister()
+    collision_ops_unregister()
+
+
+def oot_unregister(unregisterPanels: bool):
+    from .actor.properties import actor_props_unregister
+
     if unregisterPanels:
         oot_panel_unregister()
 
-    for cls in reversed(oot_classes):
-        unregister_class(cls)
+    z64_unregister_ops()
 
+    actor_cs_unregister()
+    oot_operator_unregister()
+    collections_unregister()
+    collision_props_unregister()
     oot_obj_unregister()
+    cutscene_props_unregister()
+    animated_mats_props_unregister()
+    scene_props_unregister()
+    room_props_unregister()
+    actor_props_unregister()
+    spline_props_unregister()
+    f3d_props_unregister()
+    skeleton_props_unregister()
+    file_unregister()
+    anim_props_unregister()
 
     cutscene_preview_unregister()
     csMotion_preview_unregister()
-    csMotion_panels_unregister()
-    csMotion_props_unregister()
-    csMotion_ops_unregister()
 
-    anim_props_unregister()
-    file_unregister()
-    f3d_ops_unregister()
-    cutscene_ops_unregister()
-    skeleton_props_unregister()
-    skeleton_ops_unregister()
-    anim_ops_unregister()
-    f3d_props_unregister()
-    spline_props_unregister()
-    actor_props_unregister()
-    actor_ops_unregister()
-    room_props_unregister()
-    room_ops_unregister()
-    scene_props_unregister()
-    scene_ops_unregister()
-    animated_mats_props_unregister()
-    animated_mats_ops_unregister()
-    cutscene_props_unregister()
-    collision_props_unregister()
-    collision_ops_unregister()
-    collections_unregister()
-    oot_operator_unregister()
+    csMotion_props_unregister()
     hackeroot_ops_unregister()
     hackeroot_props_unregister()

@@ -273,7 +273,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
 
     globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
-    naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
+    naviCup: EnumProperty(name="Navi Hints", default="NAVI_QUEST_HINTS_NONE", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     skyboxID: EnumProperty(name="Skybox", items=lambda self, context: game_data.z64.get_enum("skybox"), default=2)
@@ -700,7 +700,6 @@ classes = (
     OOTExtraCutsceneProperty,
     OOTSceneHeaderProperty,
     OOTAlternateSceneHeaderProperty,
-    OOTBootupSceneOptions,
     OOTRemoveSceneSettingsProperty,
     OOTExportSceneSettingsProperty,
     OOTImportSceneSettingsProperty,

@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import Optional
 
 from ...game_data import game_data
-from ...utility import PluginError, get_new_empty_object, parentObject, hexOrDecInt, gammaInverse
+from ...utility import PluginError, get_new_empty_object, parentObject, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import setCustomProperty, is_hackeroot, getEnumIndex
+from ..utility import setCustomProperty, is_hackeroot, getEnumIndex, parseColor
 from .constants import headerNames
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
@@ -29,10 +29,6 @@ from ..constants import (
     ootEnumNaviHints,
     ootEnumSkyboxLighting,
 )
-
-
-def parseColor(values: tuple[int, int, int]) -> tuple[float, float, float]:
-    return tuple(gammaInverse([value / 0xFF for value in values]))
 
 
 def parseDirection(index: int, values: tuple[int, int, int]) -> tuple[float, float, float] | int:
