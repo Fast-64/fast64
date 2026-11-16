@@ -2211,4 +2211,3 @@ def get_prop_annotations(cls):
         prop_annotations = getattr(cls, "__annotations__")
 
     return prop_annotations
-

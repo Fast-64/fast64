@@ -452,7 +452,7 @@ def gameEditorUpdate(scene: bpy.types.Scene, _context):
     game_data.update(scene.gameEditorMode)
     set_game_defaults(scene)
 
-     # reset `currentCutsceneIndex` when switching games
+    # reset `currentCutsceneIndex` when switching games
     if scene.gameEditorMode in {"OOT", "MM"}:
         for scene_obj in bpy.data.objects:
             scene_obj.ootAlternateSceneHeaders.currentCutsceneIndex = game_data.z64.cs_index_start

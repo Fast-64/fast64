@@ -228,7 +228,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                 if obj.ootEmptyType == "Cutscene":
                     OOTCutsceneProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
-                                obj.ootEmptyType = "CS Dummy Cue"
+                    obj.ootEmptyType = "CS Dummy Cue"
                 else:
                     print("WARNING: An Actor Cue has been detected outside an Actor Cue List: " + obj.name)
             elif obj.type == "ARMATURE" and game_data.z64.is_oot():

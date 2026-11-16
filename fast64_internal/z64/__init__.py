@@ -9,7 +9,13 @@ from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
-from .props_panel_main import OOT_ObjectProperties, oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
+from .props_panel_main import (
+    OOT_ObjectProperties,
+    oot_obj_panel_register,
+    oot_obj_panel_unregister,
+    oot_obj_register,
+    oot_obj_unregister,
+)
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .collection_utility import collections_register, collections_unregister
 from .utility import setAllActorsVisibility
