@@ -76,7 +76,9 @@ def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData
         orderIndex += 1
 
 
-def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, objName: str, orderIndex: str, is_actor_cs: bool):
+def parseCamPosData(
+    setting: str, sceneData: str, posDataName: str, index: int, objName: str, orderIndex: str, is_actor_cs: bool
+):
     camera = bpy.data.cameras.new("Camera")
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)

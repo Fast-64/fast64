@@ -118,7 +118,9 @@ def parseEntranceList(
     return entrances
 
 
-def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, str, list[int], tuple[int], tuple[int], str]:
+def parseActorInfo(
+    actorMatch: re.Match, nestedBrackets: bool
+) -> tuple[str, str, list[int], tuple[int], tuple[int], str]:
     spawn_flags = [0x0000] * 3
     actor_id_flags = 0x0000
 
@@ -174,7 +176,9 @@ def parseSpawnList(
     index = 0
     regex, nestedBrackets = getActorRegex(spawnList)
     for spawnMatch in re.finditer(regex, spawnList, flags=re.DOTALL):
-        actorID, actor_id_flags, position, rotation, spawn_flags, actorParam = parseActorInfo(spawnMatch, nestedBrackets)
+        actorID, actor_id_flags, position, rotation, spawn_flags, actorParam = parseActorInfo(
+            spawnMatch, nestedBrackets
+        )
         spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
         actorHash = (actorID, position, rotation, actorParam, spawnIndex, roomIndex)
 

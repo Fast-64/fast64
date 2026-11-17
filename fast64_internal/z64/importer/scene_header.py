@@ -305,12 +305,16 @@ def parse_mm_map_data(scene_header, scene_data: str, list_name: str):
         new_prop.flags = map_data[4]
 
 
-def parse_mm_map_data_chest(room_obj_list: list[Object], scene_header, scene_data: str, chest_count: int, list_name: str):
+def parse_mm_map_data_chest(
+    room_obj_list: list[Object], scene_header, scene_data: str, chest_count: int, list_name: str
+):
     data_match = getDataMatch(scene_data, list_name, ["MapDataChest", "MinimapChest"], "minimap chest")
     chest_map_data = data_match.strip().split("\n")
 
     if len(chest_map_data) != chest_count:
-        print(f"WARNING: chest count ({chest_count}) is different than parsed chest data length ({len(chest_map_data)})")
+        print(
+            f"WARNING: chest count ({chest_count}) is different than parsed chest data length ({len(chest_map_data)})"
+        )
 
     if room_obj_list is None or len(room_obj_list) == 0:
         raise PluginError("ERROR: The room list doesn't exist or is empty!")
@@ -431,7 +435,9 @@ def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, lis
 
             frame_data = [None] * len(prim_data)
             if use_frame_indices:
-                frame_match = getDataMatch(scene_data, params_data[4], "u16", "animated material color frame data", True)
+                frame_match = getDataMatch(
+                    scene_data, params_data[4], "u16", "animated material color frame data", True
+                )
                 frame_data = (
                     frame_match.strip()
                     .replace(" ", "")
@@ -645,7 +651,9 @@ def parseSceneCommands(
                 sceneHeader.skybox_texture_id = args[args_index]
                 args_index += 1
             setCustomProperty(sceneHeader, "skyboxID", args[args_index], game_data.z64.get_enum("skybox"))
-            setCustomProperty(sceneHeader, "skyboxCloudiness", args[args_index + 1], game_data.z64.get_enum("skybox_config"))
+            setCustomProperty(
+                sceneHeader, "skyboxCloudiness", args[args_index + 1], game_data.z64.get_enum("skybox_config")
+            )
             setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)
             command_list.remove(command)
         elif command == "SCENE_CMD_EXIT_LIST":
