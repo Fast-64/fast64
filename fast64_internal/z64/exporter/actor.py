@@ -12,6 +12,7 @@ class Actor:
         self.pos: list[int] = []
         self.rot = str()
         self.params = str()
+        self.cs_index = 0x7F # MM
 
     def getActorEntry(self):
         """Returns a single actor entry"""

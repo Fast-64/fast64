@@ -131,7 +131,7 @@ class SceneTransitionActors:
         return SceneTransitionActors(name, entries)
 
     @staticmethod
-    def from_data(raw_data: str, not_zapd_assets: bool):
+    def from_data(raw_data: str, not_zapd_assets: bool) -> "SceneTransitionActors":
         actor_list = []
 
         if not_zapd_assets:
@@ -155,7 +155,15 @@ class SceneTransitionActors:
             trans_actor.name = "(unset)"
             trans_actor.id = params[4]
             trans_actor.pos = [hexOrDecInt(params[5]), hexOrDecInt(params[6]), hexOrDecInt(params[7])]
-            trans_actor.rot = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
+
+            rot_y = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
+            if game_data.z64.is_mm():
+                rotY_int = int(rot_y, base=0)
+                rot_y = f"0x{(rotY_int >> 7) & 0x1FF:04X}"
+                trans_actor.cs_index = rotY_int & 0x7F
+
+            trans_actor.rot = rot_y
+
             trans_actor.params = params[9]
             trans_actor.roomFrom = hexOrDecInt(params[0])
             trans_actor.roomTo = hexOrDecInt(params[2])
