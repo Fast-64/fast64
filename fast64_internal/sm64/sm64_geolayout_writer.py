@@ -3097,7 +3097,8 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 linkedMesh.select_set(True)
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
-            bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=False)
+
             if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.is_actor_custom_export,
