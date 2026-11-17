@@ -150,8 +150,9 @@ class Z64_EnumData:
         for key in self.enumByKey.keys():
             setattr(self, f"enum_{key}", self.get_enum_data(key))
 
+        # Note: `CS_CMD_UNIMPLEMENTED_16` is an unused actor cue
         self.enum_cs_actor_cue_list_cmd_type = [
-            item for item in self.enum_cs_cmd if "actor_cue" in item[0] or "player_cue" in item[0]
+            item for item in self.enum_cs_cmd if "actor_cue" in item[0] or "player_cue" in item[0] or item[0] == "unimplemented_16"
         ]
         self.enum_cs_actor_cue_list_cmd_type.sort()
         self.enum_cs_actor_cue_list_cmd_type.insert(0, ("Custom", "Custom", "Custom"))
