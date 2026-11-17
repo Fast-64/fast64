@@ -1,6 +1,7 @@
 from ...utility import PluginError
 from ..utility import getHeaderSettings
 from .constants import headerNames
+from ...game_data import game_data
 
 
 class SharedSceneData:
@@ -18,6 +19,7 @@ class SharedSceneData:
         includeWaterBoxes: bool,
         includeCutscenes: bool,
         includeAnimatedMats: bool,
+        includeActorCs: bool,
         is_single_file: bool,
         is_fast64_data: bool,
         not_zapd_assets: bool,
@@ -39,6 +41,7 @@ class SharedSceneData:
         self.includeWaterBoxes = includeWaterBoxes
         self.includeCutscenes = includeCutscenes
         self.includeAnimatedMats = includeAnimatedMats
+        self.includeActorCs = includeActorCs
         self.is_single_file = is_single_file
         self.is_fast64_data = is_fast64_data
         self.not_zapd_assets = not_zapd_assets
@@ -61,7 +64,7 @@ class SharedSceneData:
         actorObj = dictToAdd[hash]
         headerSettings = getHeaderSettings(actorObj)
 
-        if headerIndex < 4:
+        if headerIndex < game_data.z64.cs_index_start:
             setattr(headerSettings, headerNames[headerIndex], True)
         else:
             cutsceneHeaders = headerSettings.cutsceneHeaders
