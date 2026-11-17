@@ -1,4 +1,4 @@
-# Ocarina Of Time
+# Ocarina Of Time and Majora's Mask
 
 ## Table of Contents
 1. [Getting Started](#getting-started)
@@ -13,19 +13,22 @@
 10. [Custom Skeleton Mesh Process](#custom-skeleton-mesh-process)
 11. [Cutscenes](#cutscenes)
 12. [Animated Materials](#animated-materials)
+13. [Actor Cutscenes](#actor-cutscenes)
 
 ### Getting Started
-1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
-2. Switch to the ``OOT`` tab. In ``OOT File Settings``, set your decomp path to the path of your [HackerOoT (recommended)](https://github.com/HackerN64/HackerOoT) or [OoT Decomp](https://github.com/zeldaret/oot/) repository on disk. Check `Enable HackerOoT Features` if using HackerOoT.
-3. In ``OOT Tools``, click `Add Scene` to create a basic scene.
+1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the `Fast64` tab, then `Fast64 Global Settings` and set `Game` to `OOT` or `MM`.
+2. Switch to the `Z64` tab. In `Workspace Settings`, set your decomp path to the path of your [HackerOoT](https://github.com/HackerN64/HackerOoT), [OoT Decomp](https://github.com/zeldaret/oot/) or [MM Decomp](https://github.com/zeldaret/mm) repository on disk. Set `Feature Set` to `HackerOoT` if using HackerOoT.
+3. In `OOT Tools`, click `Add Scene` to create a basic scene.
 4. Press `a` so that everything is selected, then click `Clear Transform`.
-5. In ``OOT Scene Exporter`` you can choose the scene to replace or add. Some scenes have some hardcoded things that will cause them to break, so choose something like ``Market Entrance (Child Day) (Entra)``.
-- To add a custom scene choose ``Custom`` in the scene search box, then choose in which folder you want to export the scene and which name you want it to be (note that Fast64 will force the scene name to be lower-case).
-- Enable ``Export as Single File`` if you want to have your scene in the same format as the other ones in decomp.
-6. Make sure you selected the right scene in ``Scene Object`` then click "Export Scene" to export it. When you click ``Add Scene`` this is set automatically.
+5. In `OOT Scene Exporter` you can choose the scene to replace or add. Some scenes have some hardcoded things that will cause them to break, so choose something like `Market Entrance (Child Day) (Entra)`.
+- To add a custom scene choose `Custom` in the scene search box, then choose in which folder you want to export the scene and which name you want it to be (note that Fast64 will force the scene name to be lower-case).
+- Enable `Export as Single File` if you want to have your scene in the same format as the other ones in decomp.
+6. Make sure you selected the right scene in `Scene Object` then click "Export Scene" to export it. When you click `Add Scene` this is set automatically.
 7. Compile and run the game.
-8. (Optional) In the ``View`` tab you may want to increase the ``Clip End`` value.
+8. (Optional) In the `View` tab you may want to increase the `Clip End` value.
 9. Note: You can read [this code](https://github.com/Dragorn421/oot/tree/mod_base_for_mods) to take a glance at what you can do for quality of life for testing.
+
+Note: You can use features from MM with OoT by enabling the MM features (see workspace settings when the game is set to `OOT`).
 
 ### Scene Overview
 In Blender, the "empty" object type is used to define different types of OOT data, including scenes and rooms.
@@ -44,30 +47,32 @@ Read the "Getting Started" section for information on scene exporting.
 
 ### Actors
 To add an actor you need to create a new empty object in Blender, the shape doesn't matter.
-When the empty object is created you can set the ``Actor`` object type in the ``Object Properties`` panel.
+When the empty object is created you can set the `Actor` object type in the `Object Properties` panel.
 
-To add actors to a scene, create a new Empty and parent it to a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below).
+To add actors to a scene, create a new Empty and parent it to a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select `Actor` as the Object Type. Use the `Select Actor ID` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below).
 
 Finally, every actors you are using needs their assets. In OoT they're called "Objects", if an actor is missing an object the code will not spawn the actor. To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item".
 
 Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies. Note that the object list must not contain more than 15 items.
 
 #### Actor Parameters
-Actor parameters can be found at https://wiki.cloudmodding.com/oot/Actor_List_(Variables). This documentation is NOT 100% accurate, you can get more informations with the OoT Decomp. Look for ``rot.z`` and ``params`` in the actor you want, some actors may use ``rot.x`` and ``rot.y``.
+Actor parameters can be found at https://wiki.cloudmodding.com/oot/Actor_List_(Variables). This documentation is NOT 100% accurate, you can get more informations with the OoT Decomp. Look for `rot.z` and `params` in the actor you want, some actors may use `rot.x` and `rot.y`.
 
 ### Exits
-The debug menu scene select can be found at ``SceneSelectEntry sScenes[]`` in ``src/overlays/gamestates/ovl_select/z_select.c``.
-The last field of a ``SceneSelectEntry`` is the index into ``gEntranceTable`` (found in ``src/code/z_scene_table.c``).
+The entrance table can be found in `tables/entrance_table.h`. For MM search `EntranceSceneId` in `include/z64scene.h`
+
+The debug menu scene select can be found at `SceneSelectEntry sScenes[]` in `src/overlays/gamestates/ovl_select/z_select.c`.
+The last field of a `SceneSelectEntry` is the index into `gEntranceTable` (found in `src/code/z_scene_table.c`).
 All exits are basically an index into this table. Due to the way it works it makes it difficult to add/remove entries without breaking everything. For now the user will have to manually manage this table. For more info check out https://wiki.cloudmodding.com/oot/Entrance_Table.
 
 ### Scene Draw Configuration And Dynamic Material Properties
-The scene object has a property called ``Draw Config``. This is an index into ``sSceneDrawHandlers`` in ``src/code/z_scene_table.c``.
-Each function in this table will load certain Gfx commands such as scrolling textures or setting color registers into the beginning of a RAM segment using ``gsSPSegment()``. In Blender, in the material properties window you can choose which commands are called at the beginning of the material drawing. For example, to get animated water you need to use segment 9 with the draw config 19 (0x13).
+The scene object has a property called `Draw Config`. This is an index into `sSceneDrawHandlers` in `src/code/z_scene_table.c`.
+Each function in this table will load certain Gfx commands such as scrolling textures or setting color registers into the beginning of a RAM segment using `gsSPSegment()`. In Blender, in the material properties window you can choose which commands are called at the beginning of the material drawing. For example, to get animated water you need to use segment 9 with the draw config 19 (0x13).
 
 ![](/images/oot_dynamic_material.png)
 
 Note that there are different segments loaded between the OPA (opaque) and XLU (transparent) draw layers.
-Additionally, for functions like ``Gfx_TexScroll()``, the x,y inputs are pre-shifted by <<2. For example, a % 128 means a repeat of the texture every 32 pixels.
+Additionally, for functions like `Gfx_TexScroll()`, the x,y inputs are pre-shifted by <<2. For example, a % 128 means a repeat of the texture every 32 pixels.
 
 ### Collision
 Collision properties are found underneath the material properties. Water boxes and collision properties will have references the properties "Camera", "Lighting", and "Exit", which reference the indices of the scene cameras, scene light list, and scene exit list respectively. If you want separate visual/collision geometry, you can set per mesh object "Ignore Collision" or "Ignore Render" in object inspector window.
@@ -145,12 +150,12 @@ For more informations about cutscenes [click here](cutscene_docs.md)
 
 **Creating the cutscene itself:**
 
-1. Start with using the ``Add Cutscene`` button from the OOT Panel. Name it ``Cutscene.YOUR_CS_NAME``, ``YOUR_CS_NAME`` being the name of your choice, it can be something like: ``Cutscene.fireTempleIntroCS``. Note that this object can't be parented to any object, also this will automatically create a new camera and it will also set the Blender scene's active camera to this one.
-2. Select the scene where you want to add the cutscene, and in the object properties go in the ``Cutscene`` tab then enable ``Write Cutscene``. In ``Data`` select ``Object`` and in ``Cutscene Object`` select the cutscene empty object you just created.
-3. Now you can create the camera shot. The ``Create Camera Shot`` button from the cutscene object's properties panel will add a basic shot with 4 bones that you can edit. To have a better idea of the position/angle of one point of the shot, you can change the display of the armature in the ``Object Data Properties`` panel (select the shot object first), choose ``Octahedral`` in ``Viewport Display`` then ``Display As``.
-4. The first and last bone of the shot won't be actual camera points, it defines the start and the end of a camera shot, this means a basic shot will only have 2 actual camera points. Either duplicate (``SHIFT+D``) or add a new bone to add more camera points. Note that these points will be exported in the order you can see in the view layer.
-5. You can edit the position and rotation of each bone in the ``Edit Mode`` after selecting the shot object. The "tail" (less large point) of a bone is the direction (the "look-at", or AT), and "head" (larger point) is the origin (the "eye").
-7. When you're done with your cutscene, exporting the scene will also export the camera shot and actor cue data. If you don't want to re-export the scene everytime, select the cutscene object you want to export and use ``Export Cutscene`` from ``OOT Cutscene Exporter`` in the OOT panel. In the ``File`` field, you can choose the scene of your choice (note that it can export into actors too). You can toggle the usage of decomp's names and macros with the ``Use Decomp for Export`` checkbox, you can also choose to insert the motion data in an existing cutscene (it will create a new array if it can't find it, it's based on the name of the object you selected). This is done by toggling the ``Export Motion Data Only`` checkbox.
+1. Start with using the `Add Cutscene` button from the OOT Panel. Name it `Cutscene.YOUR_CS_NAME`, `YOUR_CS_NAME` being the name of your choice, it can be something like: `Cutscene.fireTempleIntroCS`. Note that this object can't be parented to any object, also this will automatically create a new camera and it will also set the Blender scene's active camera to this one.
+2. Select the scene where you want to add the cutscene, and in the object properties go in the `Cutscene` tab then enable `Write Cutscene`. In `Data` select `Object` and in `Cutscene Object` select the cutscene empty object you just created.
+3. Now you can create the camera shot. The `Create Camera Shot` button from the cutscene object's properties panel will add a basic shot with 4 bones that you can edit. To have a better idea of the position/angle of one point of the shot, you can change the display of the armature in the `Object Data Properties` panel (select the shot object first), choose `Octahedral` in `Viewport Display` then `Display As`.
+4. The first and last bone of the shot won't be actual camera points, it defines the start and the end of a camera shot, this means a basic shot will only have 2 actual camera points. Either duplicate (`SHIFT+D`) or add a new bone to add more camera points. Note that these points will be exported in the order you can see in the view layer.
+5. You can edit the position and rotation of each bone in the `Edit Mode` after selecting the shot object. The "tail" (less large point) of a bone is the direction (the "look-at", or AT), and "head" (larger point) is the origin (the "eye").
+7. When you're done with your cutscene, exporting the scene will also export the camera shot and actor cue data. If you don't want to re-export the scene everytime, select the cutscene object you want to export and use `Export Cutscene` from `OOT Cutscene Exporter` in the OOT panel. In the `File` field, you can choose the scene of your choice (note that it can export into actors too). You can toggle the usage of decomp's names and macros with the `Use Decomp for Export` checkbox, you can also choose to insert the motion data in an existing cutscene (it will create a new array if it can't find it, it's based on the name of the object you selected). This is done by toggling the `Export Motion Data Only` checkbox.
 8. Compile the game.
 
 <details closed>
@@ -163,30 +168,30 @@ For more informations about cutscenes [click here](cutscene_docs.md)
 
 To be able to actually watch your cutscene you need to have a way to trigger it, this can be done by an actor (for instance) or using the entrance cutscene table. This guide will be explaining how to use an entrance.
 
-1. Open ``src/code/z_demo.c`` and add an ``#include`` with the path of the file containing your cutscene.
-2. Add an entry at the end of ``EntranceCutscene sEntranceCutsceneTable[]``, the format is:
-``{ ENTRANCE_NUMBER, AGE_RESTRICTION, FLAG, SEGMENT_ADDRESS }``
-- ``ENTRANCE_NUMBER`` is the entrance index in ``gEntranceTable``
-- ``AGE_RESTRICTION`` defines if you want to play your cutscene only as child (set it to 1), as adult (set it to 0) or both (set it to 2)
-- ``FLAG`` is the ``event_chk_inf`` flag that will prevent playing the cutscene everytime, you can use something unused like ``0x0F`` (https://wiki.cloudmodding.com/oot/Save_Format#event_chk_inf for more informations)
-- ``SEGMENT_ADDRESS`` is the important part. This is the memory address where your cutscene is located. Using the ``#include`` will allow you to use the name of the array containing the cutscene commands in the file you exported you're cutscene, if you named the cutscene object ``Cutscene.YOUR_CS_NAME`` then this array will be named ``YOUR_CS_NAME``, use that name for the segment address.
-3. Example with: ``{ ENTR_SPOT00_3, 2, EVENTCHKINF_A0, gHyruleFieldIntroCs },``
-- ``ENTR_SPOT00_3`` is the Hyrule Field entrance from Lost Woods, see ``entrance_table.h`` to view/add entrances
-- ``2`` means this cutscene can be watched as child AND as adult
-- ``EVENTCHKINF_A0`` is the flag set in the ``event_chk_inf`` table, this is a macro but you can use raw hex: ``0xA0``
-- ``gHyruleFieldIntroCs`` is the name of the array with the cutscene commands, as defined in ``extracted/VERSION/assets/scenes/overworld/spot00_scene.c``, ``CutsceneData gHyruleFieldIntroCs[]``
-4. Compile the game again and use the entrance you chose for ``sEntranceCutsceneTable`` and your cutscene should play.
+1. Open `src/code/z_demo.c` and add an `#include` with the path of the file containing your cutscene.
+2. Add an entry at the end of `EntranceCutscene sEntranceCutsceneTable[]`, the format is:
+`{ ENTRANCE_NUMBER, AGE_RESTRICTION, FLAG, SEGMENT_ADDRESS }`
+- `ENTRANCE_NUMBER` is the entrance index in `gEntranceTable`
+- `AGE_RESTRICTION` defines if you want to play your cutscene only as child (set it to 1), as adult (set it to 0) or both (set it to 2)
+- `FLAG` is the `event_chk_inf` flag that will prevent playing the cutscene everytime, you can use something unused like `0x0F` (https://wiki.cloudmodding.com/oot/Save_Format#event_chk_inf for more informations)
+- `SEGMENT_ADDRESS` is the important part. This is the memory address where your cutscene is located. Using the `#include` will allow you to use the name of the array containing the cutscene commands in the file you exported you're cutscene, if you named the cutscene object `Cutscene.YOUR_CS_NAME` then this array will be named `YOUR_CS_NAME`, use that name for the segment address.
+3. Example with: `{ ENTR_SPOT00_3, 2, EVENTCHKINF_A0, gHyruleFieldIntroCs },`
+- `ENTR_SPOT00_3` is the Hyrule Field entrance from Lost Woods, see `entrance_table.h` to view/add entrances
+- `2` means this cutscene can be watched as child AND as adult
+- `EVENTCHKINF_A0` is the flag set in the `event_chk_inf` table, this is a macro but you can use raw hex: `0xA0`
+- `gHyruleFieldIntroCs` is the name of the array with the cutscene commands, as defined in `extracted/VERSION/assets/scenes/overworld/spot00_scene.c`, `CutsceneData gHyruleFieldIntroCs[]`
+4. Compile the game again and use the entrance you chose for `sEntranceCutsceneTable` and your cutscene should play.
 
 Alternatively, you can use the map select to watch your cutscene, though note that this won't make it watchable during normal gameplay:
 
-1. Open ``src/overlays/gamestates/ovl_select/z_select.c``
-2. Either edit or add an entry inside ``SceneSelectEntry sScenes[]``, for instance: ``{ "My Scene", MapSelect_LoadGame, ENTR_MYSCENE_0 },`` (note that the entrance used is the first of the block you need to have for the scene)
-3. Compile the game, you may or may not need to run ``make clean`` first if you edited the entrance table
-4. Get on the map select then scroll until you see your new entry (in the previous example is will be called "My Scene") then press R to change the header, on the vanilla map select the first cutscene header will be called ``ﾃﾞﾓ00``, on HackerOoT it will be ``Cutscene 0`` then press A to start the cutscene.
+1. Open `src/overlays/gamestates/ovl_select/z_select.c`
+2. Either edit or add an entry inside `SceneSelectEntry sScenes[]`, for instance: `{ "My Scene", MapSelect_LoadGame, ENTR_MYSCENE_0 },` (note that the entrance used is the first of the block you need to have for the scene)
+3. Compile the game, you may or may not need to run `make clean` first if you edited the entrance table
+4. Get on the map select then scroll until you see your new entry (in the previous example is will be called "My Scene") then press R to change the header, on the vanilla map select the first cutscene header will be called `ﾃﾞﾓ00`, on HackerOoT it will be `Cutscene 0` then press A to start the cutscene.
 
-Note that you can have the actual address of your cutscene if you use ``sym_info.py`` from decomp. Example with ``gHyruleFieldIntroCs``:
-- Command: ``./sym_info.py gHyruleFieldIntroCs``
-- Result: ``Symbol gHyruleFieldIntroCs (RAM: 0x02013AA0, ROM: 0x27E9AA0, build/assets/scenes/overworld/spot00/spot00_scene.o)``
+Note that you can have the actual address of your cutscene if you use `sym_info.py` from decomp. Example with `gHyruleFieldIntroCs`:
+- Command: `./sym_info.py gHyruleFieldIntroCs`
+- Result: `Symbol gHyruleFieldIntroCs (RAM: 0x02013AA0, ROM: 0x27E9AA0, build/assets/scenes/overworld/spot00/spot00_scene.o)`
 
 If you have a softlock in-game then you probably did something wrong when creating the cutscene. Make sure you set up the bones properly. The softlock means the game is playing a cutscene but it's probably reading wrong data. Make sure the cutscene is exported, if it's not export it again.
 
@@ -270,3 +275,38 @@ Some of these events may require a "condition type", this is useful if you want 
 - strictly superior (`a > b`)
 - inferior or equal (`a <= b`)
 - superior or equal (`a >= b`)
+
+### Actor Cutscenes
+
+To get started, add an empty object with the "Actor Cutscene" type then add entries in the list.
+
+The informations required are the following:
+- `Priority`: how important the cutscene is, lower value means higher priority.
+- `Length`: the length of the cutscene, only useful when you're not using a cutscene script. Can be -1 if using a script.
+- `CS Cam ID`: the cutscene camera type. **IMPORTANT**: because of how `Play_AssignPlayerCsIdsFromScene` works, you need to match the order of the `PlayerCsId` enum (see `include/z64cutscene.h`) otherwise it won't work properly. Can be -1 if using a script.
+- `Script Index`: the index into the `CutsceneScriptEntry` array. **IMPORTANT**: this takes the priority over `CS Cam ID`, it's very important you leave this value to -1 if you don't want to use a script.
+- `Additional CS ID`: another index into `CutsceneEntry`, some actors might require using this (the actor responsible for "dawn/night of the X day", `en_test4`, requires this for instance).
+- `End Sound Effect`: the sound effect to play when the cutscene ends.
+- `Custom Value`: 0 - 99: actor-specific custom value. 100+: spawn. 255: none
+- `HUD Visibility`: which elements of the HUD to hide.
+- `End Cam`: the camera's behavior when the cutscene ends.
+- `Letterbox Size`: the size of the letterbox (the two black rectangles at the top and the bottom of the screen)
+
+If you want to use your own camera, add a camera object and enable "Is Actor CS Camera". Set the index, this is NOT the same order as normal scene cameras so choose 0 for the first actor cutscene camera you add. Finally, back in the actor cutscene entry, choose "Camera Object" as the value of `CS Cam ID` and select the camera you've just created. For the camera setting simply change that from the camera object you added.
+
+#### Three-Day Timer Actor Cutscenes
+
+This actor handles the day/night transitions (and going the "Dawn of the X Day" gamestates), to setup an actor cutscene for this actor, you need to know few things:
+- you need two different cameras
+- the cameras you will bind to the actor cutscene entry needs to use a "fixed" setting
+- you need two actor cutscene entries (one for the day, even though it's not used, and one for the night), the order doesn't really matter
+- you need to bind the `Actor CS Index` to the entry you will "use" for the day and it's required to set the `Additional CS ID` to the index of the night entry
+- it's also required to set the `Length` value, usually this is set to 90 frames, which corresponds to 4.5 seconds
+
+#### Treasure Chest Actor Cutscenes
+
+To achieve this you have two solutions:
+- enable `Use Global Actor Cutscene` and bind the `Actor CS Index` to a global entry
+- use actor-embedded actor cutscenes like the Three-Day Timer actor, but this is NOT recommended if you have several chests as it will increase the number of actor cutscene entries in the array
+
+For both cases the `CS Cam ID` of the actor cutscene entry need to be set to `Long Chest Opening` with a length of 135 frames (6.75 seconds) and the `Custom Value` need to be set to 1, the other parameters doesn't matter.

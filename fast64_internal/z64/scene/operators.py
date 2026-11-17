@@ -8,8 +8,9 @@ from bpy.ops import object
 from mathutils import Matrix, Vector
 
 from ...utility import PluginError, ExportUtils, raisePluginError, ootGetSceneOrRoomHeader
+from ...game_data import game_data
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_hackeroot
-from ..constants import ootEnumMusicSeq, ootEnumSceneID
+from ..constants import ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
 
 from ..exporter import SceneExport, Files
@@ -32,8 +33,9 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
+    game_data.z64.update(bpy.context, None)
     settings = bpy.context.scene.ootSceneImportSettings
-    parseScene(settings, settings.option)
+    parseScene(settings, settings.option if game_data.z64.is_oot() else settings.mm_option)
 
 
 class OOT_SearchSceneEnumOperator(Operator):
@@ -64,13 +66,41 @@ class OOT_SearchSceneEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
+class MM_SearchSceneEnumOperator(Operator):
+    bl_idname = "object.mm_search_scene_enum_operator"
+    bl_label = "Choose Scene"
+    bl_property = "scene_id"
+    bl_options = {"REGISTER", "UNDO"}
+
+    scene_id: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
+    op_name: StringProperty(default="Export")
+
+    def execute(self, context):
+        if self.op_name == "Export":
+            context.scene.ootSceneExportSettings.mm_option = self.scene_id
+        elif self.op_name == "Import":
+            context.scene.ootSceneImportSettings.mm_option = self.scene_id
+        elif self.op_name == "Remove":
+            context.scene.ootSceneRemoveSettings.mm_option = self.scene_id
+        else:
+            raise Exception(f'Invalid MM scene search operator name: "{self.op_name}"')
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.scene_id)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
 class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_idname = "object.oot_search_music_seq_enum_operator"
     bl_label = "Search Music Sequence"
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    ootMusicSeq: EnumProperty(items=lambda self, context: game_data.z64.get_enum("musicSeq"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 
@@ -141,10 +171,14 @@ class OOT_ExportScene(Operator):
             try:
                 settings = context.scene.ootSceneExportSettings
                 levelName = settings.name
-                option = settings.option
+                option = settings.option if game_data.z64.is_oot() else settings.mm_option
 
-                bootOptions = context.scene.fast64.oot.bootupSceneOptions
-                is_hackeroot_features = is_hackeroot()
+                bootOptions = None
+                is_hackeroot_features = False
+
+                if game_data.z64.is_oot():
+                    bootOptions = context.scene.fast64.oot.bootupSceneOptions
+                    is_hackeroot_features = is_hackeroot()
 
                 if settings.customExport:
                     isCustomExport = True
@@ -168,7 +202,7 @@ class OOT_ExportScene(Operator):
                     bpy.context.scene.saveTextures,
                     settings.singleFile,
                     context.scene.fast64.oot.useDecompFeatures if not is_hackeroot_features else is_hackeroot_features,
-                    bootOptions if is_hackeroot_features else None,
+                    bootOptions if bootOptions is not None and is_hackeroot_features else None,
                     settings.auto_add_room_objects,
                 )
 
@@ -204,7 +238,7 @@ class OOT_ExportScene(Operator):
 
 
 class OOT_RemoveScene(Operator):
-    """Remove an OOT scene from an existing decomp directory."""
+    """Remove a scene from an existing decomp directory."""
 
     bl_idname = "object.oot_remove_level"
     bl_label = "OOT Remove Scene"
@@ -212,7 +246,7 @@ class OOT_RemoveScene(Operator):
 
     def execute(self, context):
         settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
-        option = settings.option
+        option = settings.option if game_data.z64.is_oot() else settings.mm_option
 
         if settings.customExport:
             self.report({"ERROR"}, "You can only remove scenes from your decomp path.")
@@ -242,6 +276,7 @@ class OOT_RemoveScene(Operator):
 classes = (
     OOT_SearchMusicSeqEnumOperator,
     OOT_SearchSceneEnumOperator,
+    MM_SearchSceneEnumOperator,
     OOT_ImportScene,
     OOT_ExportScene,
     OOT_RemoveScene,

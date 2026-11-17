@@ -1,7 +1,8 @@
 from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
 from ...panels import OOT_Panel
-from ..constants import ootEnumSceneID
+from ...game_data import game_data
+from ..constants import ootEnumSceneID, mm_enum_scene_id
 from ..utility import getEnumName
 from .properties import (
     OOTExportSceneSettingsProperty,
@@ -14,6 +15,7 @@ from .operators import (
     OOT_ExportScene,
     OOT_RemoveScene,
     OOT_SearchSceneEnumOperator,
+    MM_SearchSceneEnumOperator,
 )
 
 
@@ -23,8 +25,13 @@ class OOT_ExportScenePanel(OOT_Panel):
 
     def drawSceneSearchOp(self, layout: UILayout, enumValue: str, opName: str):
         searchBox = layout.box().row()
-        searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
-        searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
+
+        if game_data.z64.is_oot():
+            searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
+            searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
+        else:
+            searchBox.operator(MM_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").op_name = opName
+            searchBox.label(text=getEnumName(mm_enum_scene_id, enumValue))
 
     def draw(self, context):
         col = self.layout.column()
@@ -35,7 +42,9 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
         if not settings.customExport:
-            self.drawSceneSearchOp(exportBox, settings.option, "Export")
+            self.drawSceneSearchOp(
+                exportBox, settings.option if game_data.z64.is_oot() else settings.mm_option, "Export"
+            )
         settings.draw_props(exportBox)
 
         exportBox.operator(OOT_ExportScene.bl_idname)
@@ -45,11 +54,12 @@ class OOT_ExportScenePanel(OOT_Panel):
         importBox.label(text="Scene Importer")
 
         importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
+        option = importSettings.option if game_data.z64.is_oot() else importSettings.mm_option
 
         if not importSettings.isCustomDest:
-            self.drawSceneSearchOp(importBox, importSettings.option, "Import")
+            self.drawSceneSearchOp(importBox, option, "Import")
 
-        importSettings.draw_props(importBox, importSettings.option)
+        importSettings.draw_props(importBox, option)
         importBox.operator(OOT_ImportScene.bl_idname)
 
         # Remove Scene
@@ -57,7 +67,8 @@ class OOT_ExportScenePanel(OOT_Panel):
         removeBox.label(text="Remove Scene")
 
         removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
-        self.drawSceneSearchOp(removeBox, removeSettings.option, "Remove")
+        option = removeSettings.option if game_data.z64.is_oot() else removeSettings.mm_option
+        self.drawSceneSearchOp(removeBox, option, "Remove")
         removeSettings.draw_props(removeBox)
 
         removeRow = removeBox.row()

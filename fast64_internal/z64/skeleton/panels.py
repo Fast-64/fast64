@@ -26,7 +26,7 @@ class OOT_SkeletonPanel(Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.box().column()
-        col.box().label(text="OOT Skeleton Inspector")
+        col.box().label(text="Z64 Skeleton Inspector")
         prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
         context.object.ootSkeleton.draw_props(col)
 

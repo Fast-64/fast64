@@ -6,22 +6,20 @@ import math
 from pathlib import Path
 from typing import List
 
-from ....f3d.f3d_gbi import F3D, get_F3D_GBI
-from ....f3d.f3d_parser import getImportData, parseF3D
+from ....f3d.f3d_gbi import get_F3D_GBI
+from ....f3d.f3d_parser import getImportData, parseF3D, parseMatrices
 from ....utility import (
     PluginError,
     hexOrDecInt,
     applyRotation,
     deselectAllObjects,
     selectSingleObject,
-    get_include_data,
-    removeComments,
 )
+from ....game_data import game_data
 from ...f3d_writer import ootReadActorScale
 from ...model_classes import LimbType, LimbSkinType, OOTF3DContext, ootGetIncludedAssetData
-from ...utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
+from ...utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums
 from ...texture_array import ootReadTextureArrays
-from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, get_anim_names
 from ...tools.quick_import import quick_import_exec
@@ -299,7 +297,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     isCustomImport = importSettings.isCustom
 
     if importSettings.mode != "Generic" and not importSettings.isCustom:
-        importInfo = ootSkeletonImportDict[importSettings.mode]
+        importInfo = game_data.z64.skeleton_dict[importSettings.mode]
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.actorOverlayName
@@ -387,6 +385,8 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     if actorScale is None:
         actorScale = getOOTScale(importSettings.actorScale)
+
+    parseMatrices(skeletonData, f3dContext, actorScale)
 
     smoothSkinned = "SkinAnimatedLimbData" in skeletonData
 
