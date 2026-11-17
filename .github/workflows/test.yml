@@ -1,0 +1,20 @@
+name: Linux test
+
+on:
+    push:
+        branches: [ "*" ]
+    pull_request:
+        branches: [ "*" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+            sudo apt install blender
+      - name: Build
+        run: |
+            blender -b --python test\test_cube_export.py
+            blender -b --python test\test_cube_import.py
