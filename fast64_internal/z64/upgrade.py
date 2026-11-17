@@ -150,6 +150,8 @@ def upgradeCutsceneSubProps(csListSubProp):
     # ``csListSubProp`` types: OOTCSTextProperty | OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty
     # based on ``upgradeObjectList``
 
+    game_data.z64.update(bpy.context, None)
+
     subPropsOldToNew = {
         # TextBox
         "messageId": "textID",
@@ -195,6 +197,8 @@ def upgradeCutsceneSubProps(csListSubProp):
 def upgradeCSListProps(csListProp):
     # ``csListProp`` type: ``OOTCSListProperty``
 
+    game_data.z64.update(bpy.context, None)
+
     csListPropOldToNew = {
         "textbox": "textList",
         "lighting": "lightSettingsList",
@@ -208,13 +212,16 @@ def upgradeCSListProps(csListProp):
 
     transferOldDataToNew(csListProp, csListPropOldToNew)
 
-    # both are enums but the item list is different (the old one doesn't have a "custom" entry)
-    convertOldDataToEnumData(
-        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", game_data.z64.enums.enum_cs_transition_type)]
-    )
+    if game_data.z64.is_oot():
+        # both are enums but the item list is different (the old one doesn't have a "custom" entry)
+        convertOldDataToEnumData(
+            csListProp, [Cutscene_UpgradeData("fxType", "transitionType", game_data.z64.enums.enum_cs_transition_type)]
+        )
 
 
 def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
+    game_data.z64.update(bpy.context, None)
+
     csPropOldToNew = {
         "csWriteTerminator": "csUseDestination",
         "csTermStart": "csDestinationStartFrame",
@@ -230,6 +237,7 @@ def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
 def upgradeCutsceneMotion(csMotionObj: Object):
     """Main upgrade logic for Cutscene Motion data from zcamedit"""
     objName = csMotionObj.name
+    game_data.z64.update(bpy.context, None)
 
     if csMotionObj.type == "EMPTY":
         csMotionProp = csMotionObj.ootCSMotionProperty
@@ -302,11 +310,15 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]
 
+    game_data.z64.update(bpy.context, None, True)
+
 
 #####################################
 # Actors
 #####################################
 def upgradeActors(actorObj: Object):
+    game_data.z64.update(bpy.context, None)
+
     # parameters
     actorProp = get_actor_prop_from_obj(actorObj)
     isCustom = False
