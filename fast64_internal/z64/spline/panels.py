@@ -22,7 +22,7 @@ class OOTSplinePanel(Panel):
 
     def draw(self, context):
         box = self.layout.box().column()
-        box.box().label(text="OOT Spline Inspector")
+        box.box().label(text="Z64 Spline Inspector")
         curve = context.object.data
         if curve.splines[0].type != "NURBS":
             box.label(text="Only NURBS curves are compatible.")

@@ -1,3 +1,4 @@
+from fast64.fast64_internal.z64.exporter.utility import Utility
 import bpy
 import re
 
@@ -5,6 +6,7 @@ from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Armature
 from ....utility import PluginError, deselectAllObjects, get_include_data
+from ...utility import is_oot_features
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
@@ -18,6 +20,7 @@ from ..constants import (
     ootCSSingleCommands,
     ootCSListAndSingleCommands,
     cmdToClass,
+    custom_values,
 )
 
 from ..classes import (
@@ -25,6 +28,11 @@ from ..classes import (
     CutsceneCmdCamPoint,
     Cutscene,
     CutsceneObjectFactory,
+    CutsceneCmdNewCamPoint,
+    CutsceneCmdCamMisc,
+    CutsceneCmdCamSpline,
+    CutsceneSplinePoint,
+    CutsceneCmdCamSplineList,
 )
 
 
@@ -50,9 +58,21 @@ class CutsceneImport(CutsceneObjectFactory):
     filePath: Optional[str]  # used when importing from the panel
     fileData: Optional[str]  # used when importing the cutscenes when importing a scene
     csName: Optional[str]  # used when import a specific cutscene
+    new_cs_system: bool
 
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
         """Returns the list of every parameter of the given command"""
+
+        # kinda hacky but better than duplicating the classes
+        if self.new_cs_system:
+            if cmdName in {"CS_START_SEQ", "CS_FADE_OUT_SEQ", "CS_LIGHT_SETTING"}:
+                paramNumber = 3
+            elif cmdName in {"CS_MISC", "CS_STOP_SEQ", "CS_TEXT_ALL_NORMAL_MASKS"}:
+                paramNumber = 4
+            elif cmdName in {"CS_TEXT_DEFAULT", "CS_TEXT_TYPE_1", "CS_TEXT_TYPE_3", "CS_TEXT_BOSSES_REMAINS"}:
+                paramNumber = 5
+            elif cmdName in {"CS_RUMBLE_CONTROLLER"}:
+                paramNumber = 6
 
         parenthesis = "(" if not cmdName.endswith("(") else ""
         data = data.strip().removeprefix(f"{cmdName}{parenthesis}").replace(" ", "").removesuffix(")")
@@ -71,6 +91,16 @@ class CutsceneImport(CutsceneObjectFactory):
     def getNewCutscene(self, csData: str, name: str):
         params = self.getCmdParams(csData, "CS_HEADER", Cutscene.paramNumber)
         return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
+
+    def correct_command_lists(self, command: str):
+        """If using the new cs system, moves standalone commands to the proper lists"""
+        if self.new_cs_system:
+            if command in ootCSSingleCommands:
+                ootCSSingleCommands.remove(command)
+            if command in ootCSListAndSingleCommands:
+                ootCSListAndSingleCommands.remove(command)
+            if command not in ootCSListEntryCommands:
+                ootCSListEntryCommands.append(command)
 
     def parse_cs_lines(self, cs_name: str, cs_data: list[str]):
         """
@@ -109,12 +139,20 @@ class CutsceneImport(CutsceneObjectFactory):
         else:
             raise PluginError("ERROR: File data can't be found!")
 
+        self.correct_command_lists("CS_TRANSITION")
+        self.correct_command_lists("CS_DESTINATION")
+
         # replace old names
         oldNames = list(ootCSLegacyToNewCmdNames.keys())
         fileData = fileData.replace("CS_CMD_CONTINUE", "CS_CAM_CONTINUE")
         fileData = fileData.replace("CS_CMD_STOP", "CS_CAM_STOP")
         for oldName in oldNames:
             fileData = fileData.replace(f"{oldName}(", f"{ootCSLegacyToNewCmdNames[oldName]}(")
+
+        # handle conflicts between the cs system of OoT and MM
+        if self.new_cs_system:
+            fileData = fileData.replace("CS_CAM_POINT", "CS_CAM_POINT_NEW")
+            fileData = fileData.replace("CS_RUMBLE", "CS_RUMBLE_CONTROLLER")
 
         # make a list of existing cutscene names, to skip importing them if found
         existingCutsceneNames = [
@@ -215,7 +253,7 @@ class CutsceneImport(CutsceneObjectFactory):
                             cmdListFound = False
                             parsedCS.append(parsedData)
                             parsedData = ""
-                    elif not "CutsceneData" in curCmd and not "};" in curCmd:
+                    elif "CutsceneData" not in curCmd and "};" not in curCmd:
                         print(f"WARNING: Unknown command found: ``{curCmd}``")
                         cmdListFound = False
 
@@ -226,7 +264,7 @@ class CutsceneImport(CutsceneObjectFactory):
 
         return parsedCutscenes
 
-    def getCutsceneList(self):
+    def getCutsceneList(self) -> list[Cutscene] | None:
         """Returns the list of cutscenes with the data processed"""
 
         parsedCutscenes = self.getParsedCutscenes()
@@ -273,7 +311,62 @@ class CutsceneImport(CutsceneObjectFactory):
                         else:
                             commandData = cmd(params)
 
-                        if cmdListName != "CS_TRANSITION" and cmdListName != "CS_DESTINATION":
+                        # treating new camera commands separately if using the new cs commands
+                        # as it became more complex to parse since it's basically a list in a list in a list
+                        if self.new_cs_system and "CAM" in cmdListName:
+                            foundEndCmd = False
+                            cur_point = 0
+                            at_list: list[CutsceneCmdNewCamPoint] = []
+                            eye_list: list[CutsceneCmdNewCamPoint] = []
+                            misc_list: list[CutsceneCmdCamMisc] = []
+                            cur_spline_entry: Optional[CutsceneCmdCamSpline] = None
+                            for d in cmdData:
+                                cmdEntryName = d.strip().split("(")[0]
+
+                                if foundEndCmd:
+                                    raise ValueError("ERROR: More camera commands after last one!")
+
+                                if "CS_CAM_END" in d:
+                                    foundEndCmd = True
+                                    continue
+
+                                entryCmd = cmdToClass[cmdEntryName]
+                                params = self.getCmdParams(d, cmdEntryName, entryCmd.paramNumber)
+                                listEntry = entryCmd.from_params(params)
+
+                                if cmdEntryName == "CS_CAM_SPLINE":
+                                    cur_spline_entry = listEntry
+                                elif cur_spline_entry is not None:
+                                    cs_data_entry_base = cmdToClass[cmdEntryName]
+                                    sub_params = self.getCmdParams(d, cmdEntryName, cs_data_entry_base.paramNumber)
+
+                                    if cur_point < cur_spline_entry.num_entries:
+                                        at_list.append(cs_data_entry_base.from_params(sub_params))
+                                        cur_point += 1
+                                    elif cur_point < cur_spline_entry.num_entries * 2:
+                                        eye_list.append(cs_data_entry_base.from_params(sub_params))
+                                        cur_point += 1
+                                    elif cur_point < cur_spline_entry.num_entries * 3:
+                                        misc_list.append(cs_data_entry_base.from_params(sub_params))
+                                        cur_point += 1
+
+                                    if cur_point == cur_spline_entry.num_entries * 3:
+                                        assert len(at_list) == len(eye_list) == len(misc_list)
+
+                                        for i, (at, eye, misc) in enumerate(zip(at_list, eye_list, misc_list)):
+                                            if i < len(at_list) - 1:
+                                                # ignore the last points, see the exporter to know why
+                                                cur_spline_entry.entries.append(CutsceneSplinePoint(at, eye, misc))
+
+                                        commandData.entries.append(cur_spline_entry)
+                                        cur_point = 0
+                                        at_list.clear()
+                                        eye_list.clear()
+                                        misc_list.clear()
+                                        cur_spline_entry = None
+                                else:
+                                    raise ValueError("ERROR: Invalid number of entries.")
+                        elif cmdListName != "CS_TRANSITION" and cmdListName != "CS_DESTINATION":
                             foundEndCmd = False
                             for d in cmdData:
                                 cmdEntryName = d.strip().split("(")[0]
@@ -448,6 +541,51 @@ class CutsceneImport(CutsceneObjectFactory):
 
         return endIndex + 1
 
+    def create_camera_shots(self, cs_obj: Object, spline_list: list[CutsceneCmdCamSplineList], cs_nbr: int):
+        scale = bpy.context.scene.ootBlenderScale
+        i = 0
+
+        # this is required to be able to change the object mode
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        for splines in spline_list:
+            start_index = i
+
+            for i, spline in enumerate(splines.entries, start_index):
+                new_shot = self.getNewArmatureObject(f"CS_{cs_nbr:02}.Camera Shot {i:02}", True, cs_obj)
+                shot_props = new_shot.data.ootCamShotProp
+                armature_data: Armature = new_shot.data
+
+                shot_props.shot_duration = spline.duration
+                # TODO: move this to the bones?
+                first_entry = spline.entries[0]
+                self.setPropOrCustom(
+                    shot_props,
+                    "shot_interp_type",
+                    Utility.enum_id_to_key(first_entry.at.interp_type, "cs_spline_interp_type"),
+                )
+                self.setPropOrCustom(
+                    shot_props,
+                    "shot_spline_rel_to",
+                    Utility.enum_id_to_key(first_entry.at.relative_to, "cs_spline_rel"),
+                )
+
+                for j, point in enumerate(spline.entries):
+                    bpy.ops.object.mode_set(mode="EDIT")
+                    boneName = f"CS_{cs_nbr:02}.Camera Point {j:02}"
+                    new_edit_bone = armature_data.edit_bones.new(boneName)
+                    new_edit_bone.head = getBlenderPosition(point.eye.pos, scale)
+                    new_edit_bone.tail = getBlenderPosition(point.at.pos, scale)
+                    bpy.ops.object.mode_set(mode="OBJECT")
+                    new_bone = armature_data.bones[boneName]
+
+                    # using the "AT" (look-at) data since this is what determines where the camera is looking
+                    # the "Eye" only sets the location of the camera
+                    new_bone.ootCamShotPointProp.shot_point_duration = point.at.duration
+                    new_bone.ootCamShotPointProp.shotPointViewAngle = point.misc.viewAngle
+                    new_bone.ootCamShotPointProp.shotPointRoll = point.misc.camRoll
+
     def setPropOrCustom(self, prop, propName: str, value):
         try:
             setattr(prop, propName, value)
@@ -456,19 +594,9 @@ class CutsceneImport(CutsceneObjectFactory):
             setattr(prop, f"{propName}Custom", value)
 
     def setSubPropertyData(self, subPropsData: dict[str, str], newSubElem, entry):
-        customNames = [
-            "csMiscType",
-            "csTextType",
-            "ocarinaAction",
-            "transitionType",
-            "csSeqID",
-            "csSeqPlayer",
-            "transition",
-        ]
-
         for key, value in subPropsData.items():
             if value is not None:
-                if key in customNames:
+                if key in custom_values:
                     valueToSet = getattr(entry, value)
                     self.setPropOrCustom(newSubElem, key, valueToSet)
                 else:
@@ -529,7 +657,8 @@ class CutsceneImport(CutsceneObjectFactory):
 
         for i, cutscene in enumerate(cutsceneList, csNumber):
             print(f'Found Cutscene "{cutscene.name}"! Importing...')
-            self.validateCameraData(cutscene)
+            if is_oot_features():
+                self.validateCameraData(cutscene)
             csName = f"Cutscene.{cutscene.name}"
             csObj = self.getNewCutsceneObject(csName, cutscene.frameCount, None)
             csProp = csObj.ootCutsceneProperty
@@ -538,30 +667,39 @@ class CutsceneImport(CutsceneObjectFactory):
             self.setActorCueData(csObj, cutscene.actorCueList, "Actor", i)
             self.setActorCueData(csObj, cutscene.playerCueList, "Player", i)
 
-            if len(cutscene.camEyeSplineList) > 0:
-                lastIndex = self.setCameraShotData(
-                    csObj, cutscene.camEyeSplineList, cutscene.camATSplineList, "splineEyeOrAT", 1, i
-                )
+            if is_oot_features():
+                if len(cutscene.camEyeSplineList) > 0:
+                    lastIndex = self.setCameraShotData(
+                        csObj, cutscene.camEyeSplineList, cutscene.camATSplineList, "splineEyeOrAT", 1, i
+                    )
 
-            if len(cutscene.camEyeSplineRelPlayerList) > 0:
-                lastIndex = self.setCameraShotData(
-                    csObj,
-                    cutscene.camEyeSplineRelPlayerList,
-                    cutscene.camATSplineRelPlayerList,
-                    "splineEyeOrATRelPlayer",
-                    lastIndex,
-                    i,
-                )
+                if len(cutscene.camEyeSplineRelPlayerList) > 0:
+                    lastIndex = self.setCameraShotData(
+                        csObj,
+                        cutscene.camEyeSplineRelPlayerList,
+                        cutscene.camATSplineRelPlayerList,
+                        "splineEyeOrATRelPlayer",
+                        lastIndex,
+                        i,
+                    )
 
-            if len(cutscene.camEyeList) > 0:
-                lastIndex = self.setCameraShotData(
-                    csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
-                )
+                if len(cutscene.camEyeList) > 0:
+                    lastIndex = self.setCameraShotData(
+                        csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
+                    )
+            else:
+                if len(cutscene.data.camSplineList) > 0:
+                    self.create_camera_shots(csObj, cutscene.data.camSplineList, i)
 
             if cutscene.destination is not None:
                 csProp.csUseDestination = True
                 csProp.csDestinationStartFrame = cutscene.destination.startFrame
-                self.setPropOrCustom(csProp, "csDestination", cutscene.destination.id)
+                self.setPropOrCustom(csProp, "csDestination", cutscene.destination.type)
+
+            if not is_oot_features() and cutscene.data.give_tatl is not None:
+                csProp.csUseDestination = True
+                csProp.csDestinationStartFrame = cutscene.data.destination.startFrame
+                self.setPropOrCustom(csProp, "cs_give_tatl", cutscene.data.give_tatl.giveTatl)
 
             propDataList = [
                 PropertyData("Text", {"textboxType": "id"}, True),
@@ -581,6 +719,25 @@ class CutsceneImport(CutsceneObjectFactory):
                     False,
                 ),
             ]
+
+            if not is_oot_features():
+                propDataList.extend(
+                    [
+                        PropertyData("MotionBlur", {"blur_type": "type"}, True),
+                        PropertyData(
+                            "TransitionGeneral",
+                            {
+                                "trans_general_type": "type",
+                                "trans_color": "rgb",
+                            },
+                            True,
+                        ),
+                        PropertyData("CreditsScene", {"credits_scene_type": "type"}, False),
+                        PropertyData("ModifySeq", {"mod_seq_type": "type"}, False),
+                        PropertyData("FadeOutAmbience", {}, True),
+                    ]
+                )
+
             self.setPropertyData(csProp, cutscene, propDataList)
 
             # Init camera + preview objects and setup the scene
