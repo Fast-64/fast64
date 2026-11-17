@@ -1,5 +1,6 @@
 from bpy.utils import register_class, unregister_class
 from ...panels import OOT_Panel
+from ..utility import is_oot_features
 from .operators import (
     OOT_AddWaterBox,
     OOT_AddDoor,
@@ -10,6 +11,7 @@ from .operators import (
     OOTClearTransformAndLock,
     OOTQuickImport,
     Z64_AddAnimatedMaterial,
+    Z64_AddActorCutscenes,
 )
 
 
@@ -18,16 +20,26 @@ class OoT_ToolsPanel(OOT_Panel):
     bl_label = "Tools"
 
     def draw(self, context):
-        col = self.layout.column()
+        col = self.layout.row(align=True)
         col.operator(OOT_AddWaterBox.bl_idname)
         col.operator(OOT_AddDoor.bl_idname)
+
+        col = self.layout.row(align=True)
         col.operator(OOT_AddScene.bl_idname)
         col.operator(OOT_AddRoom.bl_idname)
+
+        col = self.layout.row(align=True)
         col.operator(OOT_AddCutscene.bl_idname)
         col.operator(OOT_AddPath.bl_idname)
+
+        col = self.layout.row(align=True)
         col.operator(OOTClearTransformAndLock.bl_idname)
         col.operator(OOTQuickImport.bl_idname)
-        col.operator(Z64_AddAnimatedMaterial.bl_idname)
+
+        if not is_oot_features():
+            col = self.layout.row(align=True)
+            col.operator(Z64_AddAnimatedMaterial.bl_idname)
+            col.operator(Z64_AddActorCutscenes.bl_idname)
 
 
 oot_operator_panel_classes = [
@@ -44,6 +56,7 @@ toolOpsToRegister = [
     OOTClearTransformAndLock,
     OOTQuickImport,
     Z64_AddAnimatedMaterial,
+    Z64_AddActorCutscenes,
 ]
 
 
