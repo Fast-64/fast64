@@ -478,7 +478,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
         try:
             applyRotation([obj], math.radians(90), "X")
-            if context.scene.fast64.sm64.export_type == "C":
+            if context.scene.fast64.sm64.legacy_export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.is_actor_custom_export,
                     props.actor_custom_path,
@@ -501,7 +501,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                     level_name,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
+            elif context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
                 exportCollisionInsertableBinary(
                     obj,
                     final_transform,
@@ -566,7 +566,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
             applyRotation([obj], math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.export_type == "Binary":
+            if context.scene.fast64.sm64.legacy_export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -590,7 +590,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
         props = context.scene.fast64.sm64.combined_export
 
         col.prop(context.scene, "colIncludeChildren")
-        if context.scene.fast64.sm64.export_type == "Insertable Binary":
+        if context.scene.fast64.sm64.legacy_export_type == "Insertable Binary":
             col.prop(context.scene, "colInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "colStartAddr", "Start Address")
