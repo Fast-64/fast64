@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from bpy.types import Object
 
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, hexOrDecInt, indent
-from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTLightGroupProperty, Z64_MapDataChestProperty, Z64_MapDataRoomProperty
+from ...scene.properties import (
+    OOTSceneHeaderProperty,
+    OOTLightProperty,
+    OOTLightGroupProperty,
+    Z64_MapDataChestProperty,
+    Z64_MapDataRoomProperty,
+)
 from ...utility import getEvalParams, getEvalParamsInt, is_oot_features, getObjectList
 from ..utility import Utility
 from ....game_data import game_data

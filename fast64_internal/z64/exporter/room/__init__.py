@@ -14,6 +14,7 @@ from ..utility import Utility, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader
 from .shape import RoomShapeUtility, RoomShape, RoomShapeImageMulti, RoomShapeImageBase
 
+
 @dataclass
 class Room:
     """This class defines a room"""
