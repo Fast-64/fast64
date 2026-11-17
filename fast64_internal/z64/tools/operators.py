@@ -6,11 +6,12 @@ from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 
 from ...operators import AddWaterBox, addMaterialByName
-from ...utility import parentObject, setOrigin, get_new_empty_object
+from ...game_data import game_data
+from ...utility import PluginError, parentObject, setOrigin, get_new_empty_object
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
-from ..utility import getNewPath
+from ..utility import getNewPath, is_oot_features
+from ..actor_cutscene.properties import enum_end_cam, enum_end_sfx, enum_hud_visibility
 from .quick_import import QuickImportAborted, quick_import_exec
-
 
 class OOT_AddWaterBox(AddWaterBox):
     bl_idname = "object.oot_add_water_box"
@@ -98,6 +99,7 @@ class OOT_AddScene(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        roomObj.ootRoomHeader.timeSpeed = game_data.z64.default_time_speed
         entranceObj.ootEntranceProperty.tiedRoom = roomObj
         parentObject(roomObj, planeObj)
 
@@ -137,6 +139,7 @@ class OOT_AddRoom(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        roomObj.ootRoomHeader.timeSpeed = game_data.z64.default_time_speed
         sceneObj = context.scene.ootSceneExportObj
         if sceneObj is not None:
             indices = []
@@ -351,5 +354,60 @@ class Z64_AddAnimatedMaterial(Operator):
             keyframe_5 = new_am_item.color_params.keyframes.add()
             keyframe_5.frame_num = 59
             keyframe_5.prim_lod_frac = 128
+
+        return {"FINISHED"}
+
+class Z64_AddActorCutscenes(Operator):
+    bl_idname = "object.z64_add_actor_cs"
+    bl_label = "Add Actor CS"
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = "Adds a basic actor cutscene with the necessary entries for a scene"
+
+    obj_name: StringProperty(name="Object Name", default="Actor Cutscene")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "obj_name")
+
+        if is_oot_features():
+            self.layout.label(text="Warning: This is only useful when using MM features.", icon="ERROR")
+
+    def execute(self, context: Context):
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Actor Cutscene":
+                raise PluginError(f"ERROR: an actor cutscene object already exists! ({repr(obj.name)})")
+
+        actor_cs_obj = get_new_empty_object(self.obj_name)
+        actor_cs_obj.ootEmptyType = "Actor Cutscene"
+
+        entry_data_map = {
+            # CS Cam ID: [Priority, Length, Script Index, Additional CS ID, End SFX, Custom Value, HUD visibility, End Cam, Letterbox Size]
+            "CS_CAM_ID_GLOBAL_ITEM_OCARINA": [550, -1, -1, 1, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_ITEM_GET": [600, -1, -1, 2, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_ITEM_BOTTLE": [700, -1, -1, 3, 1, "255", 1, 2, 27],
+            "CS_CAM_ID_GLOBAL_ITEM_SHOW": [700, -1, -1, 4, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_WARP_PAD_MOON": [500, -1, -1, 5, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_MASK_TRANSFORMATION": [400, -1, -1, 6, 1, "255", 1, 2, 32],
+            "CS_CAM_ID_GLOBAL_DEATH": [100, -1, -1, 7, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_REVIVE": [200, -1, -1, 8, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_SONG_WARP": [700, -1, -1, 9, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_WARP_PAD_ENTRANCE": [700, -1, -1, 10, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_LONG_CHEST_OPENING": [900, 135, -1, -1, 1, "1", 1, 1, 32],
+        }
+
+        for cs_cam_id, data in entry_data_map.items():
+            new_entry = actor_cs_obj.z64_actor_cs_property.entries.add()
+            new_entry.cs_cam_id = cs_cam_id
+            new_entry.priority = data[0]
+            new_entry.length = data[1]
+            new_entry.script_index = data[2]
+            new_entry.additional_cs_id = data[3]
+            new_entry.end_sfx = enum_end_sfx[data[4]][0]
+            new_entry.custom_value = data[5]
+            new_entry.hud_visibility = enum_hud_visibility[data[6]][0]
+            new_entry.end_cam = enum_end_cam[data[7]][0]
+            new_entry.letterbox_size = data[8]
 
         return {"FINISHED"}
