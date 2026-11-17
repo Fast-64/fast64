@@ -7,6 +7,7 @@ from ....utility import CData
 from ...utility import is_oot_features
 from ...scene.properties import OOTSceneHeaderProperty
 from ..cutscene import SceneCutscene
+from ..collision import CollisionHeader
 from .general import SceneLighting, SceneInfos, SceneExits
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
 from .pathways import ScenePathways
@@ -40,13 +41,16 @@ class SceneHeader:
         useMacros: bool,
         use_mat_anim: bool,
         target_name: Optional[str],
+        col_header: CollisionHeader,
     ):
         entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
 
         animated_materials = None
         if use_mat_anim and not is_oot_features():
-            final_name = target_name if target_name is not None else f"{name}_AnimatedMaterial"
-            animated_materials = SceneAnimatedMaterial.new(final_name, props, target_name is not None)
+            final_name = target_name if target_name is not None else f"{name}_AnimMat"
+            animated_materials = SceneAnimatedMaterial.new(
+                final_name, props, target_name is not None, useMacros, col_header
+            )
 
         return SceneHeader(
             name,

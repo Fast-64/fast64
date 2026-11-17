@@ -77,6 +77,13 @@ from .tools import (
     oot_operator_unregister,
 )
 
+
+feature_set_enum = (
+    ("default", "Default", "Default"),
+    ("hackeroot", "HackerOoT", "HackerOoT"),
+)
+
+
 oot_versions_items = [
     ("Custom", "Custom", "Custom", 0),
     ("ntsc-1.0", "ntsc-1.0", "ntsc-1.0", 11),
@@ -108,7 +115,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
-    hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    feature_set: bpy.props.EnumProperty(name="Feature Set", default=0, items=feature_set_enum)
     headerTabAffectsVisibility: bpy.props.BoolProperty(
         default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
@@ -127,6 +134,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
     hackeroot_settings: bpy.props.PointerProperty(type=HackerOoTSettings)
     anim_mats_export_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialExportSettings)
     anim_mats_import_settings: bpy.props.PointerProperty(type=Z64_AnimatedMaterialImportSettings)
+    export_cutscene_obj: bpy.props.PointerProperty(
+        type=bpy.types.Object, poll=lambda self, obj: obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene"
+    )
 
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version
@@ -146,7 +156,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
         return include_file_path.exists()
 
     def is_globalh_present(self):
-        return self.is_include_present("global.h")
+        return self.oot_version == "legacy" or self.is_include_present("global.h")
 
     def is_z64sceneh_present(self):
         return self.is_include_present("z64scene.h")
@@ -166,6 +176,14 @@ class OOT_Properties(bpy.types.PropertyGroup):
         description="Use the new actor panel which provides detailed informations to set actor parameters.",
         default=True,
     )
+
+    @staticmethod
+    def upgrade_changed_props():
+        if "hackerFeaturesEnabled" in bpy.context.scene.fast64.oot:
+            bpy.context.scene.fast64.oot.feature_set = (
+                "hackeroot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "default"
+            )
+            del bpy.context.scene.fast64.oot["hackerFeaturesEnabled"]
 
 
 oot_classes = (OOT_Properties,)
@@ -200,6 +218,8 @@ def oot_panel_unregister():
 
 
 def oot_register(registerPanels):
+    hackeroot_props_register()
+    hackeroot_ops_register()
     oot_operator_register()
     collections_register()
     collision_ops_register()  # register first, so panel goes above mat panel
@@ -222,8 +242,6 @@ def oot_register(registerPanels):
     f3d_ops_register()
     file_register()
     anim_props_register()
-    hackeroot_props_register()
-    hackeroot_ops_register()
 
     csMotion_ops_register()
     csMotion_props_register()
@@ -255,8 +273,6 @@ def oot_unregister(unregisterPanels):
     csMotion_props_unregister()
     csMotion_ops_unregister()
 
-    hackeroot_ops_unregister()
-    hackeroot_props_unregister()
     anim_props_unregister()
     file_unregister()
     f3d_ops_unregister()
@@ -279,3 +295,5 @@ def oot_unregister(unregisterPanels):
     collision_ops_unregister()
     collections_unregister()
     oot_operator_unregister()
+    hackeroot_ops_unregister()
+    hackeroot_props_unregister()

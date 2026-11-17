@@ -44,9 +44,13 @@ class OOTBoneProperty(PropertyGroup):
 
 class OOTSkeletonProperty(PropertyGroup):
     LOD: PointerProperty(type=Object, poll=pollArmature)
+    isSkinLimb: BoolProperty()
 
     def draw_props(self, layout: UILayout):
-        prop_split(layout, self, "LOD", "LOD Skeleton")
+        prop_split(layout, self, "isSkinLimb", "Export as SkinLimbs (horses)")
+        if not self.isSkinLimb:
+            prop_split(layout, self, "LOD", "LOD Skeleton")
+
         if self.LOD is not None:
             layout.label(text="Make sure LOD has same bone structure.", icon="BONE_DATA")
 
@@ -117,17 +121,29 @@ class OOTSkeletonImportSettings(PropertyGroup):
     isCustom: BoolProperty(name="Use Custom Path")
     removeDoubles: BoolProperty(name="Remove Doubles On Import", default=True)
     importNormals: BoolProperty(name="Import Normals", default=True)
+    import_animations: BoolProperty(name="Import Animations", default=False)
     drawLayer: EnumProperty(name="Import Draw Layer", items=ootEnumDrawLayers)
     actorOverlayName: StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
+    ignore_segments: BoolProperty(
+        name="Ignore DL Segments",
+        description=(
+            "Whether to ignore jumps to segmented addresses (like gsSPSegment(0x08000000)), "
+            "instead of importing them as Dynamic Material Properties. "
+            "This ignore option can be used to work around the importer wrongly setting some materials' segments"
+        ),
+        default=False,
+    )
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "drawLayer", "Import Draw Layer")
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
+        layout.prop(self, "import_animations")
+        layout.prop(self, "ignore_segments")
         layout.prop(self, "isCustom")
         if self.isCustom:
             prop_split(layout, self, "name", "Skeleton")

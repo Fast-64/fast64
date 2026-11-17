@@ -14,7 +14,9 @@ from .importing import import_animations, get_enum_from_import_preset
 from .exporting import export_animation, export_animation_table
 from .utility import (
     animation_operator_checks,
+    check_for_headers_in_table,
     get_action_props,
+    get_active_diff_slot,
     get_anim_obj,
     get_scene_anim_props,
     get_anim_props,
@@ -42,7 +44,11 @@ def emulate_no_loop(scene: Scene):
 
     frame = scene.frame_current
     header_props = get_action_props(played_action).headers[anim_props.played_header]
-    _start, loop_start, end = header_props.get_loop_points(played_action)
+    _start, loop_start, end = (
+        anim_props.played_cached_start,
+        anim_props.played_cached_loop_start,
+        anim_props.played_cached_loop_end,
+    )
     if header_props.backwards:
         if frame < loop_start:
             if header_props.no_loop:
@@ -71,14 +77,16 @@ class SM64_PreviewAnim(OperatorBase):
         played_action = get_action(self.played_action)
         scene = context.scene
         anim_props = scene.fast64.sm64.animation
+        action_props = get_action_props(played_action)
 
         context.object.animation_data.action = played_action
-        action_props = get_action_props(played_action)
+        if bpy.app.version >= (5, 0, 0):
+            context.object.animation_data.action_slot = action_props.get_slot(played_action)
 
         if self.played_header >= len(action_props.headers):
             raise ValueError("Invalid Header Index")
         header_props: SM64_AnimHeaderProperties = action_props.headers[self.played_header]
-        start_frame = header_props.get_loop_points(played_action)[0]
+        start_frame, loop_start, end = header_props.get_loop_points(played_action)
         scene.frame_set(start_frame)
         scene.render.fps = 30
 
@@ -88,6 +96,9 @@ class SM64_PreviewAnim(OperatorBase):
 
         anim_props.played_header = self.played_header
         anim_props.played_action = played_action
+        anim_props.played_cached_start = start_frame
+        anim_props.played_cached_loop_start = loop_start
+        anim_props.played_cached_loop_end = end
 
 
 # TODO: update these to use CollectionOperatorBase
@@ -114,7 +125,8 @@ class SM64_AnimTableOps(OperatorBase):
         return True
 
     def execute_operator(self, context):
-        table_elements = get_anim_props(context).elements
+        anim_props = get_anim_props(context)
+        table_elements = anim_props.elements
         if self.op_name == "MOVE_UP":
             table_elements.move(self.index, self.index - 1)
         elif self.op_name == "MOVE_DOWN":
@@ -132,6 +144,8 @@ class SM64_AnimTableOps(OperatorBase):
         elif self.op_name == "ADD_ALL":
             action = bpy.data.actions[self.action_name]
             for header_variant in range(len(get_action_props(action).headers)):
+                if check_for_headers_in_table([(action, header_variant)], table_elements, anim_props.is_dma):
+                    continue
                 table_elements.add()
                 table_elements[-1].set_variant(action, header_variant)
         elif self.op_name == "REMOVE":
@@ -243,6 +257,28 @@ class SM64_AddNLATracksToTable(OperatorBase):
                     anim_props.elements[-1].set_variant(action, header_variant)
 
 
+class SM64_SetActionSlotFromObj(OperatorBase):
+    bl_idname = "scene.sm64_set_action_slot_from_object"
+    bl_label = "Set to active slot"
+    bl_description = "Sets the action slot to the object's active slot"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
+    icon = "ACTION_SLOT"
+
+    action_name: StringProperty(name="Action Name", default="")
+
+    @classmethod
+    def is_enabled(cls, context: Context, action_name: str, **_kwargs):
+        return get_active_diff_slot(context, get_action(action_name)) is not None
+
+    def execute_operator(self, context):
+        animation_operator_checks(context)
+        obj = get_anim_obj(context)
+        action = get_action(self.action_name)
+        action_props = get_action_props(action)
+        action_props.slot_identifier = obj.animation_data.action_slot.identifier
+
+
 class SM64_ExportAnimTable(OperatorBase):
     bl_idname = "scene.sm64_export_anim_table"
     bl_label = "Export Animation Table"
@@ -328,6 +364,7 @@ classes = (
     SM64_AnimTableOps,
     SM64_AnimVariantOps,
     SM64_AddNLATracksToTable,
+    SM64_SetActionSlotFromObj,
     SM64_ImportAnim,
     SM64_SearchAnimPresets,
     SM64_SearchAnimatedBhvs,

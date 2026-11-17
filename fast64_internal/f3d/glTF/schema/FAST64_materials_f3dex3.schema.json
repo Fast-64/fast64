@@ -1,0 +1,187 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_materials_f3dex3 glTF Material Extension",
+    "type": "object",
+    "description": "Sub-extension to FAST64_materials_f3d that implements F3DEX3 properties",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "celShading": {
+            "type": "object",
+            "properties": {
+                "tintPipeline": {
+                    "type": "string",
+                    "enum": [
+                        "CC",
+                        "TINT"
+                    ],
+                    "default": "CC"
+                },
+                "cutoutSource": {
+                    "type": "string",
+                    "enum": [
+                        "TEXEL0",
+                        "TEXEL1",
+                        "ENVIRONMENT"
+                    ],
+                    "default": "ENVIRONMENT"
+                },
+                "levels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "f3dex3_cel_level.schema.json"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
+        "ambientOcclusion": {
+            "type": "object",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the ambient occlusion values"
+                },
+                "ambient": {
+                    "type": "number",
+                    "description": "How much ambient occlusion (vertex alpha) affects ambient light intensity",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "default": 1.0
+                },
+                "directional": {
+                    "type": "number",
+                    "description": "How much ambient occlusion (vertex alpha) affects directional light intensity",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "default": 0.625
+                },
+                "point": {
+                    "type": "number",
+                    "description": "How much ambient occlusion (vertex alpha) affects point light intensity",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "default": 0.0
+                }
+            }
+        },
+        "fresnel": {
+            "type": "object",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the fresnel values"
+                },
+                "low": {
+                    "type": "number",
+                    "description": "Dot product value which gives shade alpha = 0. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
+                    "minimum": -1000.0,
+                    "maximum": 1000.0,
+                    "default": 0.7
+                },
+                "high": {
+                    "type": "number",
+                    "description": "Dot product value which gives shade alpha = FF. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
+                    "minimum": -1000.0,
+                    "maximum": 1000.0,
+                    "default": 0.4
+                }
+            }
+        },
+        "attributeOffset": {
+            "type": "object",
+            "properties": {
+                "st": {
+                    "type": "object",
+                    "properties": {
+                        "set": {
+                            "type": "boolean",
+                            "description": "When toggled the material should update the ST offset values"
+                        },
+                        "value": {
+                            "type": "array",
+                            "description": "Offset applied to ST (UV) coordinates, after texture scale. Units are texels. Usually for UV scrolling",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                                "type": "number",
+                                "minimum": -1024.0,
+                                "maximum": 1024.0,
+                                "default": 0.0
+                            },
+                            "default": [
+                                0.0,
+                                0.0
+                            ]
+                        }
+                    },
+                    "z": {
+                        "type": "object",
+                        "properties": {
+                            "set": {
+                                "type": "boolean",
+                                "description": "When toggled the material should update the Z offset values"
+                            },
+                            "value": {
+                                "type": "integer",
+                                "description": "Offset applied to Z coordinate. To fix decals, set Z mode to opaque and set Z attr offset to something like -2",
+                                "minimum": -32768,
+                                "maximum": 32767,
+                                "default": -2
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "geometryMode": {
+            "type": "object",
+            "properties": {
+                "ambientOcclusion": {
+                    "type": "boolean",
+                    "description": "Scales each type light intensity differently with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color",
+                    "default": false
+                },
+                "attroffsetZ": {
+                    "type": "boolean",
+                    "description": "Enables offsets to vertex ST values, usually for UV scrolling",
+                    "default": false
+                },
+                "attroffsetST": {
+                    "type": "boolean",
+                    "description": "Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this",
+                    "default": false
+                },
+                "packedNormals": {
+                    "type": "boolean",
+                    "description": "Packs vertex normals in unused 16 bits of each vertex, enabling simultaneous vertex colors and lighting",
+                    "default": false
+                },
+                "lightToAlpha": {
+                    "type": "boolean",
+                    "description": "Moves light intensity to shade alpha, used for cel shading and other effects",
+                    "default": false
+                },
+                "specularLighting": {
+                    "type": "boolean",
+                    "description": "Microcode lighting computes specular instead of diffuse component. If using, must set size field of every light in code",
+                    "default": false
+                },
+                "fresnelToColor": {
+                    "type": "boolean",
+                    "description": "Shade color derived from how much each vertex normal faces the camera. For bump mapping",
+                    "default": false
+                },
+                "fresnelToAlpha": {
+                    "type": "boolean",
+                    "description": "Shade alpha derived from how much each vertex normal faces the camera. For water, glass, ghosts, etc., or toon outlines",
+                    "default": false
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}

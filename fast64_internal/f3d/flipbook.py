@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional
 from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
 from .f3d_gbi import FImage
-from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
+from .f3d_material import all_combiner_uses
 from ..utility import prop_split, CollectionProperty
 from dataclasses import dataclass
 import dataclasses
@@ -256,6 +256,8 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 # we use a handler since update functions are not called when a property is animated.
 @persistent
 def flipbookAnimHandler(dummy):
+    from ..utility_anim import get_fcurves
+
     if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
         for obj in bpy.data.objects:
             if obj.type == "ARMATURE":
@@ -263,10 +265,15 @@ def flipbookAnimHandler(dummy):
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:
                     continue
-                action = obj.animation_data.action
+                action_slot = None
+                if bpy.app.version >= (5, 0, 0):
+                    action_slot = obj.animation_data.action_slot
+                    if action_slot is None:
+                        continue
+
+                fcurves = get_fcurves(obj.animation_data.action, action_slot)
                 if not (
-                    action.fcurves.find("ootLinkTextureAnim.eyes") is None
-                    or action.fcurves.find("ootLinkTextureAnim.mouth") is None
+                    fcurves.find("ootLinkTextureAnim.eyes") is None or fcurves.find("ootLinkTextureAnim.mouth") is None
                 ):
                     ootFlipbookAnimUpdate(obj.data, obj, "8", obj.ootLinkTextureAnim.eyes)
                     ootFlipbookAnimUpdate(obj.data, obj, "9", obj.ootLinkTextureAnim.mouth)
@@ -303,9 +310,10 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
 
 def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: int):
     flipbook = getattr(material.flipbookGroup, "flipbook" + str(texIndex))
-    for texNode in iter_tex_nodes(material.node_tree, texIndex):
-        if texNode.image is not flipbook.textures[flipbookIndex].image:
-            texNode.image = flipbook.textures[flipbookIndex].image
+    # Even with use_tex_reference set, much of the material logic still depends and runs from setting the tex.
+    # So this is the simplest way to preview the texture.
+    # Fiddling with the nodes directly would be a lot more complicated.
+    getattr(material.f3d_mat, f"tex{texIndex}").tex = flipbook.textures[flipbookIndex].image
 
 
 flipbook_classes = [

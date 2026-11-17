@@ -88,6 +88,7 @@ EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
     "socket_type",
     "in_out",
     "item_type",
+    "inferred_structure_type",
     "default_input",  # poorly documented, what does it do?
 )
 

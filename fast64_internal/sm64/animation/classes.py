@@ -115,7 +115,7 @@ class SM64_AnimData:
         indices_values = np.frombuffer(indices_reader.read_data(indices_size), dtype=">u2")
         for i in range(0, len(indices_values), 2):
             max_frame, offset = indices_values[i], indices_values[i + 1]
-            address, size = values_reader.start_address + (offset * 2), max_frame * 2
+            address, size = values_reader.start_address + int(offset * 2), int(max_frame) * 2
 
             values = np.frombuffer(values_reader.read_data(size, address), dtype=">i2", count=max_frame)
             self.pairs.append(SM64_AnimPair(values, address, address + size, offset).clean_frames())

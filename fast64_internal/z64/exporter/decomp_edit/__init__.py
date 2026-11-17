@@ -2,11 +2,15 @@ import os
 import re
 import shutil
 
+from typing import TYPE_CHECKING
+
 from ...utility import ExportInfo, RemoveInfo, getSceneDirFromLevelName
-from ..scene import Scene
 from ..file import SceneFile
 from .scene_table import SceneTableUtility
 from .spec import SpecUtility
+
+if TYPE_CHECKING:
+    from ..scene import Scene
 
 
 class Files:  # TODO: find a better name

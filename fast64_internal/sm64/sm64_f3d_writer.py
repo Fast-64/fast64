@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil, copy, bpy, re, os
+from typing import NamedTuple
 from io import BytesIO
 from math import ceil, log, radians
 from mathutils import Matrix, Vector
@@ -14,6 +15,7 @@ from ..f3d.f3d_material import (
     ui_procAnim,
     update_world_default_rendermode,
 )
+from .sm64_geolayout_utility import OverrideHash
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_utility import (
     END_IF_FOOTER,
@@ -26,7 +28,7 @@ from .sm64_utility import (
 )
 from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
-from typing import Tuple
+from .sm64_geolayout_classes import BaseDisplayListNode
 
 from ..f3d.f3d_bleed import BleedGraphics
 
@@ -102,12 +104,17 @@ enumHUDPaths = {
 }
 
 
+class GfxOverride(NamedTuple):
+    gfx: GfxList
+    nodes: list["BaseDisplayListNode"]
+
+
 class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
-        self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        self.no_light_direction = bpy.context.scene.fast64.sm64.use_matstack_fix
         self.layer_adapted_fmats = {}
-        self.draw_overrides: dict[FMesh, dict[tuple, tuple[GfxList, list["DisplayListNode"]]]] = {}
+        self.draw_overrides: dict[FMesh, dict[OverrideHash, GfxOverride]] = {}
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -124,7 +131,7 @@ class SM64GfxFormatter(GfxFormatter):
         self.functionNodeDraw = False
         GfxFormatter.__init__(self, scrollMethod, 8, "segmented_to_virtual")
 
-    def processGfxScrollCommand(self, commandIndex: int, command: GbiMacro, gfxListName: str) -> Tuple[str, str]:
+    def processGfxScrollCommand(self, commandIndex: int, command: GbiMacro, gfxListName: str) -> tuple[str, str]:
         tags: GfxTag = command.tags
         fMaterial: FMaterial = command.fMaterial
 

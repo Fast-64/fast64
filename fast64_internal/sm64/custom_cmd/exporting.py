@@ -185,6 +185,29 @@ class ArgExport(NamedTuple):
 
 
 @dataclasses.dataclass
+class ExportCombinedColor:
+    rgba: tuple[float, float, float, float]
+    bit_counts: tuple[int, int, int, int]
+
+    def to_c(self):
+        bit_count = sum(c for c in self.bit_counts)
+        elements = []
+        for c, v in zip(self.bit_counts, self.rgba):
+            if c == 0:
+                continue
+            bit_count -= c
+            rounded_value = round(v * (2**c - 1))
+            if bit_count == 0:
+                elements.append(f"{rounded_value}")
+            else:
+                elements.append(f"({rounded_value} << {bit_count})")
+        return f"({' | '.join(elements)})"
+
+    def to_binary(self):
+        return quantize_color(self.rgba, self.bit_counts)
+
+
+@dataclasses.dataclass
 class CustomCmd(BaseDisplayListNode):
     data: dict
     draw_layer: int | str | None = 0
@@ -236,10 +259,12 @@ class CustomCmd(BaseDisplayListNode):
         def run_eval(value, bit_count=32, signed=True):
             if (
                 (not self.data["skip_eval"] or binary)
-                and isinstance(value, (int, float, complex, tuple, list))
+                and isinstance(value, (int, float, complex, tuple, list, ExportCombinedColor))
                 and (not isinstance(value, bool) or binary)
                 and "eval_expression" in data
             ):
+                if isinstance(value, ExportCombinedColor):
+                    value = value.to_binary()
                 evaluated = math_eval(data["eval_expression"], {"x": value})
                 yield from tuple(ArgExport(x, bit_count, signed) for x in flatten(evaluated))
             else:
@@ -252,7 +277,8 @@ class CustomCmd(BaseDisplayListNode):
                 if round_to_sm64:
                     bit_counts = data.get("color_bits", (8, 8, 8, 8))
                     color = get_clean_color(data["color"], True, False, True)
-                    yield from run_eval(quantize_color(color, bit_counts), sum(bit_counts), False)
+                    combined_color = ExportCombinedColor(color, bit_counts)
+                    yield from run_eval(combined_color, sum(bit_counts), False)
                 else:
                     yield from run_eval(get_clean_color(data["color"], True, True, True), 32, False)
             case "PARAMETER":
@@ -328,6 +354,8 @@ class CustomCmd(BaseDisplayListNode):
                         value = "NULL"
                     elif isinstance(value, bool):
                         value = str(value).upper()
+                    elif hasattr(value, "to_c"):
+                        value = value.to_c()
                     group.append(str(value))
                 group_str = ", ".join(group)
                 if "name" in arg_data and arg_data["name"]:
@@ -371,6 +399,8 @@ class CustomCmd(BaseDisplayListNode):
                     elif isinstance(value, int):
                         value = cast_integer(value, bit_count, signed)
                         group += value.to_bytes(math.ceil(bit_count / 8), "big", signed=signed)
+                    elif hasattr(value, "to_binary"):
+                        group += value.to_binary()
                     else:
                         raise PluginError(f"{type(value)} not supported in binary")
                 groups.append((name, group))

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 import functools
 import re
 
@@ -8,7 +8,13 @@ from ...utility import findStartBones, PluginError, toAlnum
 from ..sm64_geolayout_utility import is_bone_animatable
 
 if TYPE_CHECKING:
-    from .properties import SM64_ActionAnimProperty, SM64_AnimProperties, SM64_ArmatureAnimProperties
+    from .properties import (
+        SM64_AnimHeaderProperties,
+        SM64_ActionAnimProperty,
+        SM64_AnimProperties,
+        SM64_AnimTableElementProperties,
+        SM64_ArmatureAnimProperties,
+    )
 
 
 def is_obj_animatable(obj: Object) -> bool:
@@ -163,3 +169,46 @@ def dma_structure_context(context: Context) -> bool:
     if get_anim_obj(context) is None:
         return False
     return get_anim_props(context).is_dma
+
+
+def check_for_headers_in_table(
+    headers: list[Union["SM64_AnimHeaderProperties", tuple[Action, int]]],
+    table: list["SM64_AnimTableElementProperties"],
+    dma: bool,
+) -> bool:
+    can_reference = not dma
+
+    remaining_headers = set(headers)
+    for element in table:
+        for header in list(remaining_headers):
+            if isinstance(header, tuple):
+                action, specific_variant = header
+                if (
+                    element.get_action(can_reference) == action
+                    and element.get_header(can_reference) is not None
+                    and element.variant == specific_variant
+                ):
+                    remaining_headers.remove(header)
+            else:
+                if element.get_action(can_reference) is not None and element.get_header(can_reference) == header:
+                    remaining_headers.remove(header)
+            if len(remaining_headers) == 0:
+                return True
+    return len(remaining_headers) == 0
+
+
+def check_for_action_in_table(
+    action: "SM64_ActionAnimProperty", table_elements: list["SM64_AnimTableElementProperties"], dma: bool
+) -> bool:
+    return any(element.get_action(not dma) == action for element in table_elements)
+
+
+def get_active_diff_slot(context: Context, action: Action = None):
+    obj = get_anim_obj(context)
+    if obj is None or action is None:
+        return None
+    if obj.animation_data is None or obj.animation_data.action_slot is None:
+        return None
+    if obj.animation_data.action != action:
+        return None
+    return obj.animation_data.action_slot

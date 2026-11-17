@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_materials_f3d glTF Material Extension",
+    "type": "object",
+    "description": "glTF extension that provides a representation of F3d fast64 mesh data. Right now only includes the sub-extension FAST64_mesh_f3d_new that implements post F3DLX properties",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "extensions": {
+            "type": "object",
+            "properties": {
+                "FAST64_mesh_f3d_new": {
+                    "$ref": "FAST64_mesh_f3d_new.schema.json"
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}

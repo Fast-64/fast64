@@ -112,6 +112,7 @@ class AnimationPanelAction(AnimationPanel):
         combined_props: SM64_CombinedObjectProperties = sm64_props.combined_export
         if sm64_props.export_type != "C":
             SM64_ExportAnim.draw_props(col)
+        anim_props = get_anim_props(context)
 
         export_seperately = get_anim_props(context).export_seperately
         if sm64_props.export_type == "C":
@@ -123,11 +124,12 @@ class AnimationPanelAction(AnimationPanel):
             action=action,
             specific_variant=None,
             in_table=False,
-            updates_table=get_anim_props(context).update_table,
+            table_elements=anim_props.elements,
+            updates_table=anim_props.update_table,
             export_seperately=export_seperately,
             export_type=sm64_props.export_type,
             actor_name=get_anim_actor_name(context),
-            gen_enums=get_anim_props(context).gen_enums,
+            gen_enums=anim_props.gen_enums,
             dma=dma_structure_context(context),
         )
 

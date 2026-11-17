@@ -1,8 +1,12 @@
 import os
 import re
 
+from typing import TYPE_CHECKING
+
 from ....utility import PluginError, readFile, writeFile
-from ...scene.properties import OOTBootupSceneOptions
+
+if TYPE_CHECKING:
+    from ...scene.properties import OOTBootupSceneOptions
 
 
 class Config:

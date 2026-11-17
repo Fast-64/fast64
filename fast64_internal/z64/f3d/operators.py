@@ -1,5 +1,6 @@
 import bpy
 import os
+from pathlib import Path
 import mathutils
 
 from bpy.types import Operator
@@ -9,7 +10,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from typing import Optional
 
-from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
+from ...utility import CData, PluginError, ExportUtils, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
@@ -31,12 +32,16 @@ from ..utility import (
 
 
 class OOTF3DGfxFormatter(OOTGfxFormatter):
-    def __init__(self, scrollMethod):
+    def __init__(self, scrollMethod, use_draw_layer_suffix=True):
         OOTGfxFormatter.__init__(self, scrollMethod)
+        self.use_draw_layer_suffix = use_draw_layer_suffix
 
     # override the function to give a custom name to the DL array
     def drawToC(self, f3d, gfxList, layer: Optional[str] = None):
-        return gfxList.to_c(f3d, name_override=f"{gfxList.name}_{layer.lower()}_dl")
+        name_override = None
+        if self.use_draw_layer_suffix and layer is not None:
+            name_override = f"{gfxList.name}_{layer.lower()}_dl"
+        return gfxList.to_c(f3d, name_override=name_override)
 
 
 def ootConvertMeshToC(
@@ -50,7 +55,13 @@ def ootConvertMeshToC(
     exportPath = bpy.path.abspath(settings.customPath)
     isCustomExport = settings.isCustom
     removeVanillaData = settings.removeVanillaData
-    name = toAlnum(originalObj.name)
+
+    obj_name = toAlnum(originalObj.name)
+    assert obj_name is not None
+
+    filename = toAlnum(settings.filename) if settings.isCustomFilename else obj_name
+    assert filename is not None
+
     overlayName = settings.actorOverlayName
     flipbookUses2DArray = settings.flipbookUses2DArray
     flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
@@ -58,15 +69,19 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(name, DLFormat, None)
+        fModel = OOTModel(obj_name, DLFormat, None, context="dl")
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
         )
 
-        # Since we provide a draw layer override, there should only be one fMesh.
+        # fMeshes is a dict where keys are draw layer names and values are the mesh for that draw layer.
+        # If there is more than one mesh we need to append a draw layer suffix on export to the original mesh name,
+        # to avoid exporting the same name twice.
+        use_draw_layer_suffix = len(fMeshes) > 1
+
         for fMesh in fMeshes.values():
-            fMesh.draw.name = name
+            fMesh.draw.name = obj_name
 
         ootCleanupScene(originalObj, allObjs)
 
@@ -74,7 +89,6 @@ def ootConvertMeshToC(
         ootCleanupScene(originalObj, allObjs)
         raise Exception(str(e))
 
-    filename = settings.filename if settings.isCustomFilename else name
     data = CData()
     data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
 
@@ -90,9 +104,11 @@ def ootConvertMeshToC(
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
-        TextureExportSettings(False, saveTextures, includeDir, path), OOTF3DGfxFormatter(ScrollMethod.Vertex)
+        TextureExportSettings(False, saveTextures, includeDir, path),
+        OOTF3DGfxFormatter(ScrollMethod.Vertex, use_draw_layer_suffix=use_draw_layer_suffix),
     )
 
+    fModel.add_refs_externs(data)
     data.append(exportData.all())
 
     if isCustomExport:
@@ -104,11 +120,11 @@ def ootConvertMeshToC(
 
     if not isCustomExport:
         writeTextureArraysExisting(bpy.context.scene.ootDecompPath, overlayName, False, flipbookArrayIndex2D, fModel)
-        addIncludeFiles(folderName, path, name)
+        addIncludeFiles(folderName, path, filename)
         if removeVanillaData:
             headerPath = os.path.join(path, folderName + ".h")
             sourcePath = os.path.join(path, folderName + ".c")
-            removeDL(sourcePath, headerPath, name)
+            removeDL(sourcePath, headerPath, filename)
 
 
 class OOT_ImportDL(Operator):
@@ -127,7 +143,7 @@ class OOT_ImportDL(Operator):
         try:
             settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
             name = settings.name
-            folderName = settings.folder
+            folderName: str = settings.folder
             importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
             basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
@@ -138,17 +154,45 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [
-                ootGetObjectPath(isCustomImport, importPath, folderName, True),
-                ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
-            ]
+            paths = None
+
+            # Check if folderName exists under assets/objects (if it is committed)
+            if not isCustomImport:
+                assets_folder = Path(abspath(context.scene.ootDecompPath)) / "assets" / "objects" / folderName
+                if assets_folder.exists():
+                    paths = list(map(str, assets_folder.glob("*.[ch]")))
+                    if not paths:
+                        paths = None
+
+            # Otherwise search in extracted/
+            if paths is None:
+                paths = [
+                    ootGetObjectPath(isCustomImport, importPath, folderName, True),
+                    ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
+                ]
 
             filedata = getImportData(paths)
-            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
+            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath, context="dl")
+
+            # Test for "new" (post-ZAPD) assets system.
+            is_2025_assets_system = "{\n#include" in filedata
+            # The "new" assets system does not extract TLUTs, they are directly applied to the png images.
+            # So don't try to apply TLUTs as they can't be found in extracted/ anyway.
+            f3dContext.ignore_tlut = is_2025_assets_system
 
             scale = None
             if not isCustomImport:
-                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
+                filedata = (
+                    ootGetIncludedAssetData(
+                        [
+                            basePath,
+                            str(Path(basePath) / context.scene.fast64.oot.get_extracted_path()),
+                        ],
+                        paths,
+                        filedata,
+                    )
+                    + filedata
+                )
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
@@ -188,41 +232,42 @@ class OOT_ExportDL(Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-        obj = None
-        if context.mode != "OBJECT":
-            object.mode_set(mode="OBJECT")
-        if len(context.selected_objects) == 0:
-            raise PluginError("Mesh not selected.")
-        obj = context.active_object
-        if obj.type != "MESH":
-            raise PluginError("Mesh not selected.")
-
-        finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
-
-        try:
-            # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
-            # 	context.scene.geoExportPath, context.scene.geoLevelName,
-            # 	context.scene.geoLevelOption)
-
-            saveTextures = context.scene.saveTextures
-            exportSettings = context.scene.fast64.oot.DLExportSettings
-
-            ootConvertMeshToC(
-                obj,
-                finalTransform,
-                DLFormat.Static,
-                saveTextures,
-                exportSettings,
-            )
-
-            self.report({"INFO"}, "Success!")
-            return {"FINISHED"}
-
-        except Exception as e:
+        with ExportUtils() as export_utils:
+            obj = None
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
-            raisePluginError(self, e)
-            return {"CANCELLED"}  # must return a set
+            if len(context.selected_objects) == 0:
+                raise PluginError("Mesh not selected.")
+            obj = context.active_object
+            if obj.type != "MESH":
+                raise PluginError("Mesh not selected.")
+
+            finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
+
+            try:
+                # exportPath, levelName = getPathAndLevel(context.scene.geoCustomExport,
+                # 	context.scene.geoExportPath, context.scene.geoLevelName,
+                # 	context.scene.geoLevelOption)
+
+                saveTextures = context.scene.saveTextures
+                exportSettings = context.scene.fast64.oot.DLExportSettings
+
+                ootConvertMeshToC(
+                    obj,
+                    finalTransform,
+                    DLFormat.Static,
+                    saveTextures,
+                    exportSettings,
+                )
+
+                self.report({"INFO"}, "Success!")
+                return {"FINISHED"}
+
+            except Exception as e:
+                if context.mode != "OBJECT":
+                    object.mode_set(mode="OBJECT")
+                raisePluginError(self, e)
+                return {"CANCELLED"}  # must return a set
 
 
 oot_dl_writer_classes = (

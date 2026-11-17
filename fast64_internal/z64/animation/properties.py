@@ -31,9 +31,10 @@ class OOTAnimExportSettingsProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout):
         layout.label(text="Exports active animation on selected object.", icon="INFO")
-        layout.prop(self, "isCustomFilename")
-        if self.isCustomFilename:
-            prop_split(layout, self, "filename", "Filename")
+        if not self.isLink:
+            layout.prop(self, "isCustomFilename")
+            if self.isCustomFilename:
+                prop_split(layout, self, "filename", "Filename")
         if self.isCustom:
             prop_split(layout, self, "customPath", "Folder")
         elif not self.isLink:

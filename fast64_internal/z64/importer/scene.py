@@ -114,14 +114,21 @@ def parseScene(
         file_path = Path(sceneFolderPath).resolve() / f"{sceneName}.c"
     is_single_file = True
 
+    tried_file_paths = [file_path]
+
     if not file_path.exists():
         file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene_main.c"
         is_single_file = False
+        tried_file_paths.append(file_path)
 
     if not file_path.exists():
-        raise PluginError("ERROR: scene not found!")
+        raise PluginError(f"ERROR: scene not found at {' nor '.join(map(str, tried_file_paths))}!")
 
-    sceneData = file_path.read_text()
+    try:
+        sceneData = file_path.read_text()
+    except Exception:
+        print("file_path =", file_path)
+        raise
 
     if not is_single_file:
         # get the other scene files for non-single file fast64 exports
@@ -168,7 +175,7 @@ def parseScene(
     )
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath), context="scene")
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 

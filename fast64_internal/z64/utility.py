@@ -1,6 +1,7 @@
 import bpy
 import math
 import os
+from pathlib import Path
 import re
 import traceback
 
@@ -253,10 +254,13 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 
 
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else None
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
-            return f"{extracted}/" + sceneDir + name
+            s = sceneDir + name
+            if extracted is not None:
+                s = f"{extracted}/{s}"
+            return s
     return None
 
 
@@ -346,32 +350,6 @@ class OOTObjectCategorizer:
                 self.meshes.append(obj)
 
 
-def clear_mesh_children(scene_obj: Object, scene_objs: list[Object]):
-    """Forces objects to not be parented to a mesh object to avoid transform issues, default is the scene object but this tries to parent to the room object if present in the hierarchy"""
-    room_list = getObjectList(scene_objs, "EMPTY", "Room")
-
-    def assign_new_parent(obj: Object, new_parent: Object):
-        """Updates the parent and the matrix inverse to keep the transform"""
-        matrix = obj.matrix_world.copy()
-        obj.parent = new_parent
-        obj.matrix_parent_inverse = new_parent.matrix_world.inverted()
-        obj.matrix_local = new_parent.matrix_world.inverted() @ matrix
-
-    for obj in scene_objs:
-        assign_scene = True
-
-        if obj.parent is not None and obj.parent.type == "MESH":
-            # assign the object to the first matching room empty, assign to the scene object by default
-            for room_obj in room_list:
-                if obj in room_obj.children_recursive:
-                    assign_new_parent(obj, room_obj)
-                    assign_scene = False
-                    break
-
-            if assign_scene:
-                assign_new_parent(obj, scene_obj)
-
-
 # This also sets all origins relative to the scene object.
 def ootDuplicateHierarchy(
     obj: Object, ignoreAttr: Optional[str], includeEmpties: bool, objectCategorizer: OOTObjectCategorizer
@@ -388,9 +366,6 @@ def ootDuplicateHierarchy(
         bpy.ops.object.make_single_user(obdata=True)
 
         objectCategorizer.sortObjects(allObjs)
-
-        # parent any children of a mesh to the mesh's parent to prevent said children to be misplaced because of `setOrigin` moving the mesh
-        clear_mesh_children(objectCategorizer.sceneObj, allObjs)
 
         meshObjs = objectCategorizer.meshes
         deselectAllObjects()
@@ -521,7 +496,9 @@ def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, inc
 def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     if isCustomExport:
-        filepath = exportPath
+        # The custom .c references _WIDTH/_HEIGHT defines from its sibling .h, read that too.
+        root, ext = os.path.splitext(exportPath)
+        filepath = root + ".h" if ext == ".c" else exportPath
     else:
         filepath = os.path.join(
             ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, False),
@@ -879,7 +856,9 @@ def getEvalParamsInt(input: str):
     try:
         return _eval(node.body)
     except:
-        print("WARNING: something wrong happened:", traceback.print_exc())
+        print("WARNING: something wrong happened:")
+        print("input:", input)
+        traceback.print_exc()
         return None
 
 
@@ -1060,9 +1039,34 @@ def is_oot_features():
     return (
         game_data.z64.is_oot()
         and not bpy.context.scene.fast64.oot.mm_features
-        and not bpy.context.scene.fast64.oot.hackerFeaturesEnabled
+        and bpy.context.scene.fast64.oot.feature_set == "default"
     )
 
 
 def is_hackeroot():
-    return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.hackerFeaturesEnabled
+    return game_data.z64.is_oot() and bpy.context.scene.fast64.oot.feature_set == "hackeroot"
+
+
+def add_include_to_spec_segment(spec_p: Path, segment: str, inc: str):
+    spec_content = spec_p.read_text()
+    new_spec_lines = []
+    in_segment = False
+    in_target_segment = False
+    found_existing_include = False
+    include_line_to_add = f'    include "{inc}"\n'
+    for l in spec_content.splitlines(keepends=True):
+        if l.strip() == "beginseg":
+            in_segment = True
+        if l.strip() == "endseg":
+            if in_target_segment and not found_existing_include:
+                new_spec_lines.append(include_line_to_add)
+            in_segment = False
+            in_target_segment = False
+        if in_segment and l.split() == f'name "{segment}"'.split():
+            in_target_segment = True
+        if in_target_segment and l.split() == include_line_to_add.split():
+            found_existing_include = True
+        new_spec_lines.append(l)
+    new_spec_content = "".join(new_spec_lines)
+    if new_spec_content != spec_content:
+        spec_p.write_text(new_spec_content)

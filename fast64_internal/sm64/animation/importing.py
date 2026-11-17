@@ -13,7 +13,7 @@ from mathutils import Quaternion
 
 from ...f3d.f3d_parser import math_eval
 from ...utility import PluginError, decodeSegmentedAddr, filepath_checks, path_checks, intToHex
-from ...utility_anim import create_basic_action
+from ...utility_anim import create_basic_action, get_fcurves, create_new_fcurve
 
 from ..sm64_constants import AnimInfo, level_pointers
 from ..sm64_level_parser import parseLevelAtPointer
@@ -39,6 +39,9 @@ from .classes import (
 from .constants import ACTOR_PRESET_INFO, TABLE_ENUM_LIST_PATTERN, TABLE_ENUM_PATTERN, TABLE_PATTERN
 
 if TYPE_CHECKING:
+    if bpy.app.version >= (5, 0, 0):
+        from bpy.types import ActionSlot
+
     from .properties import (
         SM64_AnimImportProperties,
         SM64_ArmatureAnimProperties,
@@ -75,15 +78,13 @@ def naive_flip_diff(a1: np.ndarray, a2: np.ndarray) -> np.ndarray:
 class FramesHolder:
     frames: np.ndarray = dataclasses.field(default_factory=list)
 
-    def populate_action(self, action: Action, pose_bone: PoseBone, path: str):
-        for property_index in range(3):
-            f_curve = action.fcurves.new(
-                data_path=pose_bone.path_from_id(path),
-                index=property_index,
-                action_group=pose_bone.name,
-            )
+    def populate_action(self, action: Action, action_slot: "ActionSlot", pose_bone: PoseBone, path: str):
+        fcurves = get_fcurves(action, action_slot)
+        for index in range(3):
+            data_path = pose_bone.path_from_id(path)
+            f_curve = create_new_fcurve(fcurves, data_path, index=index, action_group=pose_bone.name)
             for time, frame in enumerate(self.frames):
-                f_curve.keyframe_points.insert(time, frame[property_index], options={"FAST"})
+                f_curve.keyframe_points.insert(time, frame[index], options={"FAST"})
 
 
 def euler_to_quaternion(euler_angles: np.ndarray):
@@ -133,7 +134,7 @@ class RotationFramesHolder(FramesHolder):
             result.append([x[1]] + list(x[0]))
         return result
 
-    def populate_action(self, action: Action, pose_bone: PoseBone, path: str = ""):
+    def populate_action(self, action: Action, action_slot: "ActionSlot", pose_bone: PoseBone, path: str = ""):
         rotation_mode = pose_bone.rotation_mode
         rotation_mode_name = {
             "QUATERNION": "rotation_quaternion",
@@ -149,14 +150,11 @@ class RotationFramesHolder(FramesHolder):
         else:
             rotations = self.get_euler(rotation_mode)
             size = 3
-        for property_index in range(size):
-            f_curve = action.fcurves.new(
-                data_path=data_path,
-                index=property_index,
-                action_group=pose_bone.name,
-            )
+        fcurves = get_fcurves(action, action_slot)
+        for index in range(size):
+            f_curve = create_new_fcurve(fcurves, data_path, index=index, action_group=pose_bone.name)
             for frame, rotation in enumerate(rotations):
-                f_curve.keyframe_points.insert(frame, rotation[property_index], options={"FAST"})
+                f_curve.keyframe_points.insert(frame, rotation[index], options={"FAST"})
 
 
 @dataclasses.dataclass
@@ -201,9 +199,9 @@ class IntermidiateAnimationBone:
             frames = self.continuity_filter(frames)
         self.rotation.frames = frames
 
-    def populate_action(self, action: Action, pose_bone: PoseBone):
-        self.translation.populate_action(action, pose_bone, "location")
-        self.rotation.populate_action(action, pose_bone, "")
+    def populate_action(self, action: Action, action_slot: "ActionSlot", pose_bone: PoseBone):
+        self.translation.populate_action(action, action_slot, pose_bone, "location")
+        self.rotation.populate_action(action, action_slot, pose_bone, "")
 
 
 def from_header_class(
@@ -371,7 +369,7 @@ def animation_import_to_blender(
     force_quaternion: bool,
     continuity_filter: bool,
 ):
-    action = create_basic_action(obj, "")
+    action, action_slot = create_basic_action(obj)
     try:
         if anim_import.data:
             print("Converting pairs to intermidiate data.")
@@ -388,7 +386,7 @@ def animation_import_to_blender(
             for pose_bone, bone_data in zip(bones, bones_data):
                 if force_quaternion:
                     pose_bone.rotation_mode = "QUATERNION"
-                bone_data.populate_action(action, pose_bone)
+                bone_data.populate_action(action, action_slot, pose_bone)
 
         from_anim_class(get_action_props(action), action, anim_import, actor_name, use_custom_name, import_type)
         return action

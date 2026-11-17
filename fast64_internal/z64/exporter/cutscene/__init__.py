@@ -145,7 +145,7 @@ class Cutscene:
                     '#include "command_macros_base.h"',
                     '#include "z64cutscene_commands.h"',
                 ]
-            else:
+            elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
                 includes = [
                     '#include "ultra64.h"',
                     '#include "sequence.h"',
@@ -154,6 +154,16 @@ class Cutscene:
                     '#include "z64cutscene_commands.h"',
                     '#include "z64ocarina.h"',
                     '#include "z64player.h"',
+                ]
+            else:
+                includes = [
+                    '#include "ultra64.h"',
+                    '#include "sequence.h"',
+                    '#include "math.h"',
+                    '#include "cutscene.h"',
+                    '#include "cutscene_commands.h"',
+                    '#include "ocarina.h"',
+                    '#include "player.h"',
                 ]
 
             filedata.header = (

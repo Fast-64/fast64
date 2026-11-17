@@ -4,7 +4,7 @@ from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
-from bpy.types import UILayout, Scene, World
+from bpy.types import UILayout, Scene, World, Object
 from bpy.props import FloatVectorProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -259,6 +259,17 @@ def getGroupNameFromIndex(obj, index):
         if group.index == index:
             return group.name
     return None
+
+
+def getBoneIndexFromGroupIndex(obj: bpy.types.Object, armature: bpy.types.Armature, index: int) -> int:
+    group = obj.vertex_groups[index]
+    groupName = group.name
+    boneIndex = armature.bones.find(groupName)
+
+    if boneIndex == -1:
+        raise PluginError(f"Bone: {groupName} not found in Armature: {armature.name}")
+    else:
+        return boneIndex
 
 
 def copyPropertyCollection(from_prop, to_prop, do_clear: bool = True):
@@ -646,7 +657,10 @@ def cast_integer(value: int, bits: int, signed: bool):
 
 
 to_s16 = lambda x: cast_integer(round(x), 16, True)
-radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
+
+
+def radians_to_s16(value: float, signed=True) -> int:
+    return cast_integer(round(value * 2**16 / (2 * math.pi)), 16, signed)
 
 
 def int_from_s16(value: int) -> int:
@@ -729,6 +743,10 @@ def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
     target_mat.translation = target_loc
     mesh.transform(target_mat.inverted())
     obj.matrix_world = target_mat
+
+    delta = original_mat.translation - target_mat.translation
+    for child in obj.children_recursive:
+        child.location += delta
 
 
 def checkIfPathExists(filePath):
@@ -816,9 +834,9 @@ def store_original_mtx():
         # negative scales produce a rotation, we need to remove that since
         # scales will be applied to the transform for each object
         loc, rot, _scale = obj.matrix_local.decompose()
-        obj["original_mtx"] = Matrix.LocRotScale(loc, rot, None)
+        obj["original_mtx"] = list(Matrix.LocRotScale(loc, rot, None))
         loc, rot, scale = obj.matrix_world.decompose()
-        obj["original_mtx_world"] = Matrix.LocRotScale(loc, rot, scale)
+        obj["original_mtx_world"] = list(Matrix.LocRotScale(loc, rot, scale))
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -1184,20 +1202,34 @@ def getDirectionGivenAppVersion():
         return 1
 
 
-def applyRotation(objList, angle, axis):
-    bpy.context.scene.tool_settings.use_transform_data_origin = False
-    bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
-    bpy.context.scene.tool_settings.use_transform_skip_children = False
+def applyRotation(objs: Iterable[Object], angle: float, axis: str):
+    """Each object will only apply this rotation once"""
+    rot_mat = Matrix.Rotation(angle, 4, axis).inverted()
 
-    deselectAllObjects()
-    for obj in objList:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = objList[0]
+    objs = set(objs)
+    for obj in objs:
+        # rotate object
+        obj.matrix_world = rot_mat @ obj.matrix_world
+        bpy.context.view_layer.update()
 
-    direction = getDirectionGivenAppVersion()
+        original_basis = obj.matrix_basis.copy()
+        local_loc = original_basis.translation.copy()
 
-    bpy.ops.transform.rotate(value=direction * angle, orient_axis=axis, orient_type="GLOBAL")
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        bake_matrix = original_basis.copy()
+        # don´t apply translation to the mesh
+        bake_matrix.translation = (0, 0, 0)
+        obj.matrix_basis = Matrix.Translation(local_loc)
+
+        # apply transformations
+        if obj.data is not None:
+            if hasattr(obj.data, "transform"):
+                obj.data.transform(bake_matrix)
+            if hasattr(obj.data, "update"):
+                obj.data.update()
+
+        for child in obj.children:  # apply the same matrix we applied to the mesh to the children's transforms
+            child.matrix_local = bake_matrix @ child.matrix_local
+        bpy.context.view_layer.update()
 
 
 def doRotation(angle, axis):
@@ -1390,7 +1422,7 @@ def exportColor(lightColor):
 def get_clean_color(color: list, include_alpha=False, round_color=True, srgb_to_linear=False) -> list:
     color = list(color)
     if srgb_to_linear:
-        color = gammaInverse(color[:3]) + color[3:]
+        color = gammaCorrect(color[:3]) + color[3:]
     color = color[: 4 if include_alpha else 3]
     if include_alpha and len(color) < 4:
         color = color + [1.0]
@@ -1417,6 +1449,7 @@ def bytesToHexClean(value, byteSize=4):
 
 
 def intToHex(value, byte_size=4, signed=True):
+    value = int(value)
     return format(value if signed else cast_integer(value, byte_size * 8, False), f"#0{(byte_size * 2 + 2)}x")
 
 
@@ -1791,10 +1824,21 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     return col, dir
 
 
-def getTextureSuffixFromFormat(texFmt):
-    # if texFmt == "RGBA16":
-    #     return "rgb5a1"
-    return texFmt.lower()
+def getTextureSuffixFromFormat(texFmt: str, ciFmt: str | None, isPalette: bool):
+    if bpy.context.scene.fast64.settings.texture_name_includes_ci_format:
+        if ciFmt:
+            fmtName = f"{texFmt}_{ciFmt}"
+        else:
+            fmtName = texFmt
+    else:
+        if isPalette:
+            if ciFmt is None:
+                raise PluginError("Internal error, getTextureSuffixFromFormat required ciFmt but wasn't specified")
+            fmtName = ciFmt
+        else:
+            fmtName = texFmt
+
+    return fmtName.lower()
 
 
 # https://stackoverflow.com/a/241506
@@ -1865,10 +1909,38 @@ def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whit
         if prop in blacklist or (whitelist and prop not in whitelist):
             continue
         default = getattr(prop_group, prop)
-        if hasattr(default, "from_dict"):
-            default.from_dict(data.get(prop, None))
+        if isinstance(default, list) or type(default).__name__ == "bpy_prop_collection_idprop":
+            if prop in data:
+                default.clear()
+            for element in data.get(prop, default):
+                default.add()
+                if hasattr(default[-1], "from_dict"):
+                    default[-1].from_dict(element)
+                else:
+                    json_to_prop_group(default[-1], element, blacklist, whitelist)
+        elif hasattr(default, "from_dict"):
+            default.from_dict(data.get(prop, {}))
         else:
             setattr(prop_group, prop, data.get(prop, default))
+
+
+def fix_invalid_props(prop_group):
+    """Fixes simple invalid values like deprecated enums and values that are out of range."""
+    for prop_attr in iter_prop(prop_group):
+        if prop_attr in {"rna_type", "name"}:
+            continue
+        prop_value = getattr(prop_group, prop_attr)
+        prop_def: bpy.types.Property = prop_group.bl_rna.properties[prop_attr]
+        if prop_def.type == "COLLECTION":
+            for element in prop_value:
+                fix_invalid_props(element)
+        elif prop_def.type == "POINTER" and isinstance(prop_value, bpy.types.PropertyGroup):
+            fix_invalid_props(prop_value)
+        elif prop_def.type == "ENUM":
+            if prop_value not in [enum.identifier for enum in prop_def.enum_items]:
+                prop_group[prop_attr] = prop_def.default
+        elif prop_value is not None:  # Sets this again, ensures ints, floats and colors are within their range
+            prop_group[prop_attr] = prop_value
 
 
 T = TypeVar("T")
@@ -2013,7 +2085,9 @@ def wrap_func_with_error_message(error_message: Callable):
 
 
 def as_posix(path: Path) -> str:
-    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
+    if isinstance(path, Path):
+        path = path.as_posix()
+    return path.replace("\\", "/")  # Windows path sometimes still has backslashes?
 
 
 def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
@@ -2104,3 +2178,31 @@ def get_new_empty_object(
 ):
     """Creates and returns a new empty object"""
     return get_new_object(name, None, do_select, location, rotation_euler, scale, parent)
+
+
+class ExportUtils:
+    def __init__(self):
+        # get areas that are currently in local view mode
+        self.areas = []
+        for area in bpy.context.screen.areas:
+            if area.type == "VIEW_3D" and area.spaces.active.local_view is not None:
+                self.areas.append(area)
+
+    def __enter__(self):
+        # disable local views if enabled
+        for area in self.areas:
+            with bpy.context.temp_override(area=area):
+                bpy.ops.view3d.localview()
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # restore local views
+        for area in self.areas:
+            with bpy.context.temp_override(area=area):
+                bpy.ops.view3d.localview()
+
+        if exc_value:
+            print("\nExecution type:", exc_type)
+            print("\nExecution value:", exc_value)
+            print("\nTraceback:", traceback)

@@ -131,7 +131,7 @@ class TileLoad:
                 raise PluginError(
                     f"Large texture material {self.materialName} has a face that needs"
                     + f" to cover texels {self.sl}-{self.sh} x {self.tl}-{self.th}"
-                    + f" ({self.sh-self.sl+1} x {self.th-self.tl+1} texels) "
+                    + f" ({self.sh - self.sl + 1} x {self.th - self.tl + 1} texels) "
                     + f"in format {self.texFormat}, which can't fit in TMEM."
                 )
         self.faces.append(face)
@@ -277,8 +277,10 @@ def maybeSaveSingleLargeTextureSetup(
 # Functions for texture and palette definitions
 
 
-def getTextureNamesFromBasename(baseName: str, texOrPalFormat: str, parent: Union[FModel, FTexRect], isPalette: bool):
-    suffix = getTextureSuffixFromFormat(texOrPalFormat)
+def getTextureNamesFromBasename(
+    baseName: str, texFmt: str, ciFmt: Union[str, None], parent: Union[FModel, FTexRect], isPalette: bool
+):
+    suffix = getTextureSuffixFromFormat(texFmt, ciFmt, isPalette)
     imageName = parent.name + "_" + baseName + "_"
     if isPalette:
         imageName += "pal_"
@@ -297,14 +299,19 @@ def getImageName(image: bpy.types.Image):
         return getNameFromPath(image.filepath, True)
 
 
-def getTextureNamesFromImage(image: bpy.types.Image, texFormat: str, parent: Union[FModel, FTexRect]):
-    return getTextureNamesFromBasename(getImageName(image), texFormat, parent, False)
+def getTextureNamesFromImage(
+    image: bpy.types.Image, texFmt: str, ciFmt: Union[str, None], parent: Union[FModel, FTexRect]
+):
+    return getTextureNamesFromBasename(getImageName(image), texFmt, ciFmt, parent, False)
 
 
 def getTextureNamesFromProp(texProp: TextureProperty, parent: Union[FModel, FTexRect]):
     if texProp.use_tex_reference:
         raise PluginError("Internal error, invalid use of getTextureNamesFromProp")
-    return getTextureNamesFromImage(texProp.tex, texProp.tex_format, parent)
+
+    return getTextureNamesFromImage(
+        texProp.tex, texProp.tex_format, texProp.ci_format if texProp.is_ci else None, parent
+    )
 
 
 def checkDuplicateTextureName(parent: Union[FModel, FTexRect], name):
@@ -340,7 +347,7 @@ def saveOrGetPaletteDefinition(
         # print(f"Palette already exists")
         return paletteKey, fPalette
 
-    paletteName, filename = getTextureNamesFromBasename(palBaseName, palFmt, parent, True)
+    paletteName, filename = getTextureNamesFromBasename(palBaseName, texFmt, palFmt, parent, True)
     fPalette = FImage(paletteName, palFormat, "G_IM_SIZ_16b", 1, palLen, filename)
 
     parent.addTexture(paletteKey, fPalette, fMaterial)
@@ -628,23 +635,34 @@ class MultitexManager:
         if self.ti0.useTex and self.ti1.useTex:
             if self.ti0.isTexCI != self.ti1.isTexCI:
                 raise PluginError("N64 does not support CI + non-CI texture. Must be both CI or neither CI.")
-            if (
-                self.ti0.isTexRef
-                and self.ti1.isTexRef
-                and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
-                and self.ti0.texProp.tex_reference_size != self.ti1.texProp.tex_reference_size
-            ):
-                raise PluginError("Two textures with the same reference must have the same size.")
+
+            def assert_size(is_pal: bool):
+                p_str = " palette " if is_pal else " "
+
+                is_ref_enabled = (
+                    self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
+                    if is_pal
+                    else self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
+                )
+
+                data_1 = self.ti0.texProp.pal_reference_size if is_pal else self.ti0.texProp.tex_reference_size
+                size_1 = list(data_1) if not isinstance(data_1, int) else [data_1]
+
+                data_2 = self.ti1.texProp.pal_reference_size if is_pal else self.ti1.texProp.tex_reference_size
+                size_2 = list(data_2) if not isinstance(data_2, int) else [data_2]
+
+                is_same_size = size_1[0] == size_2[0] and size_1[0] == size_2[0]
+
+                if self.ti0.isTexRef and self.ti1.isTexRef and is_ref_enabled and not is_same_size:
+                    raise PluginError(f"Two textures with the same{p_str}reference must have the same{p_str}size.")
+
+            assert_size(False)
+
             if self.isCI:
                 if self.ti0.palFormat != self.ti1.palFormat:
                     raise PluginError("Both CI textures must use the same palette format (usually RGBA16).")
-                if (
-                    self.ti0.isTexRef
-                    and self.ti1.isTexRef
-                    and self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
-                    and self.ti0.texProp.pal_reference_size != self.ti1.texProp.pal_reference_size
-                ):
-                    raise PluginError("Two textures with the same palette reference must have the same palette size.")
+
+                assert_size(True)
 
         self.palFormat = self.ti0.palFormat if self.ti0.useTex else self.ti1.palFormat
 
@@ -796,17 +814,18 @@ class MultitexManager:
                 or (  # reference
                     self.ti0.isTexRef
                     and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
-                    and self.ti0.texProp.tex_reference_size == self.ti1.texProp.tex_reference_size
+                    and list(self.ti0.texProp.tex_reference_size) == list(self.ti1.texProp.tex_reference_size)
                     and (  # ci format reference
                         not self.isCI
                         or (
                             self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
-                            and self.ti0.texProp.pal_reference_size == self.ti1.texProp.pal_reference_size
+                            and list(self.ti0.texProp.pal_reference_size) == list(self.ti1.texProp.pal_reference_size)
                         )
                     )
                 )
             )
         )
+
         useLargeTextures = material.mat_ver > 3 and f3dMat.use_large_textures
         tmemSize = 256 if self.isCI else 512
         self.ti1.texAddr = None  # must be set whenever tex 1 used (and loaded or tiled)
@@ -823,15 +842,17 @@ class MultitexManager:
         elif not useLargeTextures or self.ti0.tmemSize + self.ti1.tmemSize <= tmemSize:
             self.ti1.texAddr = self.ti0.tmemSize
             tmemOccupied = self.ti0.tmemSize + self.ti1.tmemSize
-            if not self.ti0.useTex and not self.ti1.useTex:
-                self.texDimensions = [32, 32]
-                fMaterial.largeTexFmt = "RGBA16"
-            elif not self.ti1.useTex or f3dMat.uv_basis == "TEXEL0":
+            uv_basis = f3dMat.uv_basis_index
+            if uv_basis == 0:
                 self.texDimensions = self.ti0.imageDims
                 fMaterial.largeTexFmt = self.ti0.texFormat
-            else:
+            elif uv_basis == 1:
                 self.texDimensions = self.ti1.imageDims
                 fMaterial.largeTexFmt = self.ti1.texFormat
+            elif uv_basis == None:
+                self.texDimensions = [32, 32]
+                fMaterial.largeTexFmt = "RGBA16"
+
         else:  # useLargeTextures
             if self.ti0.useTex and self.ti1.useTex:
                 tmemOccupied = tmemSize

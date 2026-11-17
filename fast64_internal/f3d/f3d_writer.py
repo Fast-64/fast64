@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, Any, List
+from typing import Union, Optional, Callable, Any, List, TypeVar, Generic, cast
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -9,6 +9,7 @@ from bpy.utils import register_class, unregister_class
 from .f3d_enums import *
 from .f3d_material import (
     all_combiner_uses,
+    get_tex_basis_size,
     getMaterialScrollDimensions,
     isTexturePointSampled,
     get_textlut_mode,
@@ -63,8 +64,11 @@ class VertexGroupInfo:
         self.vertexGroupToLimb = {}
 
 
-class MeshInfo:
-    def __init__(self):
+VG = TypeVar("VG", bound=VertexGroupInfo | None)
+
+
+class MeshInfo(Generic[VG]):
+    def __init__(self, groupInfo: VG = None) -> None:
         self.vert = {}  # all faces connected to a vert
         self.edge = {}  # all faces connected to an edge
         self.f3dVert = {}  # f3d vertex of a given loop
@@ -72,16 +76,16 @@ class MeshInfo:
         self.validNeighbors = {}  # all neighbors of a face with a valid connecting edge
         self.texDimensions = {}  # texture dimensions for each material
 
-        self.vertexGroupInfo = None
+        self.vertexGroupInfo: VG = groupInfo
 
 
 def get_original_name(obj: bpy.types.Object):
     return getattr(obj, "original_name", obj.name)
 
 
-def getInfoDict(obj: bpy.types.Object):
+def getInfoDict(obj: bpy.types.Object, groupInfo: VG = None) -> MeshInfo[VG]:
     try:
-        return getInfoDict_impl(obj)
+        return getInfoDict_impl(obj, groupInfo)
     except:
         print(f"Error in getInfoDict_impl(obj name = {get_original_name(obj)!r})")
         raise
@@ -91,6 +95,7 @@ def check_face_materials(
     obj_name: str,
     material_slots: "bpy.types.bpy_prop_collection[bpy.types.MaterialSlot]",
     faces: "bpy.types.MeshPolygons | bpy.types.MeshLoopTriangles",
+    requires_f3d: bool = True,
 ):
     """
     Check if all faces are correctly assigned to a F3D material
@@ -110,7 +115,9 @@ def check_face_materials(
                 " Assign the faces to a valid slot."
                 f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
             )
-        material = material_slots[material_index].material
+        material = material_slots[material_index]
+        if isinstance(material, bpy.types.MaterialSlot):
+            material = material.material
         if material is None:
             raise PluginError(
                 f"Mesh object {obj_name} has faces"
@@ -118,14 +125,14 @@ def check_face_materials(
                 " Set a material for the slot or assign the faces to an actual material."
                 f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
             )
-        if not material.is_f3d:
+        if requires_f3d and not material.is_f3d:
             raise PluginError(
                 f"Mesh object {obj_name} has faces"
                 f" assigned to a material which is not a F3D material: {material.name}"
             )
 
 
-def getInfoDict_impl(obj: bpy.types.Object):
+def getInfoDict_impl(obj: bpy.types.Object, groupInfo: VG) -> MeshInfo[VG]:
     mesh: bpy.types.Mesh = obj.data
     material_slots = obj.material_slots
     if len(mesh.materials) == 0 or len(material_slots) == 0:
@@ -143,7 +150,7 @@ def getInfoDict_impl(obj: bpy.types.Object):
     if bpy.app.version < (4, 1, 0):
         mesh.calc_normals_split()
 
-    infoDict = MeshInfo()
+    infoDict = MeshInfo(groupInfo)
 
     vertDict = infoDict.vert
     edgeDict = infoDict.edge
@@ -251,6 +258,13 @@ def fixLargeUVs(obj):
                 f"There are some faces on your mesh object {get_original_name(obj)}"
                 " that are assigned to an empty material slot."
             )
+
+        # ignore materials using texture references (avoids getTexDimensions throwing an error)
+        # TODO: find a better way
+        if (material.f3d_mat.tex0.tex_set and material.f3d_mat.tex0.use_tex_reference) or (
+            material.f3d_mat.tex1.tex_set and material.f3d_mat.tex1.use_tex_reference
+        ):
+            continue
 
         if material not in texSizeDict:
             texSizeDict[material] = getTexDimensions(material)
@@ -443,6 +457,18 @@ def saveStaticModel(
     fMeshes: dict[str, FMesh] = {}
     for material_index, faces in faces_by_mat.items():
         material = obj.material_slots[material_index].material
+
+        def try_append_refs(tex):
+            if tex.tex_set and tex.use_tex_reference and tex.extern_refs:
+                if len(tex.tex_reference) > 0 and not tex.tex_reference.lower().startswith("0x"):
+                    fModel.reference_to_extern.append(tex.tex_reference)
+
+                if len(tex.pal_reference) > 0 and not tex.pal_reference.lower().startswith("0x"):
+                    fModel.reference_to_extern.append(tex.pal_reference)
+
+        try_append_refs(material.f3d_mat.tex0)
+        try_append_refs(material.f3d_mat.tex1)
+        fModel.reference_to_extern = list(set(fModel.reference_to_extern))  # remove duplicates
 
         if drawLayerField is not None and material.mat_ver > 3:
             drawLayer = getattr(material.f3d_mat.draw_layer, drawLayerField)
@@ -704,52 +730,6 @@ def saveTriangleStrip(triConverter, faces, faceSTOffsets, mesh, terminateDL):
     return triConverter.currentGroupIndex
 
 
-def saveMeshByFaces(
-    material,
-    faces,
-    fModel,
-    fMesh,
-    obj,
-    drawLayer,
-    convertTextureData,
-    currentGroupIndex,
-    triConverterInfo,
-    existingVertData,
-    matRegionDict,
-    lastMaterialName,
-):
-    """
-    lastMaterialName is for optimization; set it to None to disable optimization.
-    """
-
-    if len(faces) == 0:
-        print("0 Faces Provided.")
-        return
-    fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-
-    if material.name != lastMaterialName:
-        fMesh.add_material_call(fMaterial)
-    triGroup = fMesh.tri_group_new(fMaterial)
-    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
-
-    triConverter = TriangleConverter(
-        triConverterInfo,
-        texDimensions,
-        material,
-        currentGroupIndex,
-        triGroup,
-        copy.deepcopy(existingVertData),
-        copy.deepcopy(matRegionDict),
-    )
-
-    currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
-
-    if fMaterial.revert is not None:
-        fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
-
-    return currentGroupIndex
-
-
 @dataclass
 class LoopConvertInfo:
     uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop]
@@ -797,10 +777,10 @@ class F3DVert:
             and self.alpha == other.alpha
         )
 
-    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)) -> Vtx:
-        # Position (8 bytes)
-        position = [int(round(floatValue)) for floatValue in (transformMatrix @ self.position)]
+    def convertPosition(self, transformMatrix: Matrix) -> list[int]:
+        return [int(round(floatValue)) for floatValue in (transformMatrix @ self.position)]
 
+    def convertUV(self, texDimensions, isPointSampled: bool, tex_scale=(1, 1)) -> List[int]:
         # UV (4 bytes)
         # For F3D, Bilinear samples the point from the center of the pixel.
         # However, Point samples from the corner.
@@ -817,7 +797,9 @@ class F3DVert:
             convertFloatToFixed16(self.uv[0] * texDimensions[0] - pixelOffset[0]),
             convertFloatToFixed16(self.uv[1] * texDimensions[1] - pixelOffset[1]),
         ]
+        return uv
 
+    def convertNormalRGB(self, transformMatrix: Matrix):
         packedNormal = 0
         if self.normal is not None:
             # normal transformed correctly.
@@ -834,6 +816,14 @@ class F3DVert:
                 int(round(normal[2] * 127)).to_bytes(1, "big", signed=True)[0],
             ]
         colorOrNormal.append(scaleToU8(self.alpha).to_bytes(1, "big")[0])
+
+        return colorOrNormal, packedNormal
+
+    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)) -> Vtx:
+        # Position (8 bytes)
+        position = self.convertPosition(transformMatrix)
+        uv = self.convertUV(texDimensions, isPointSampled, tex_scale)
+        colorOrNormal, packedNormal = self.convertNormalRGB(transformMatrix)
 
         return Vtx(position, uv, colorOrNormal, packedNormal)
 
@@ -873,19 +863,49 @@ class TriangleConverterInfo:
             "TriangleConverterInfo must be extended with getMatrixAddrFromGroup implemented for game specific uses."
         )
 
-    def getTransformMatrix(self, groupIndex):
+    def getTransformMatrix(self, groupIndex) -> Matrix:
         if self.armature is None or groupIndex is None:
             groupMatrix = mathutils.Matrix.Identity(4)
         else:
             if groupIndex not in self.groupNames:
                 self.groupNames[groupIndex] = getGroupNameFromIndex(self.obj, groupIndex)
             name = self.groupNames[groupIndex]
-            if name not in self.armature.bones:
-                print("Vertex group " + name + " not found in bones.")
+            if name is None:
+                groupMatrix = mathutils.Matrix.Identity(4)
+            elif name not in self.armature.bones:
+                print("Vertex group " + str(name) + " not found in bones.")
                 groupMatrix = mathutils.Matrix.Identity(4)
             else:
                 groupMatrix = self.armature.bones[name].matrix_local.inverted()
         return self.transformMatrix @ groupMatrix
+
+
+def cel_shading_checks(f3d_mat):
+    cel = f3d_mat.cel_shading
+    if f3d_mat.rdp_settings.zmode != "ZMODE_OPA":
+        raise PluginError("When using cel shading, the zmode in the blender / rendermode must be opaque.")
+    if len(cel.levels) == 0:
+        raise PluginError("Cel shading has no cel levels")
+
+    # Don't want to have to change back and forth arbitrarily between decal and
+    # opaque mode. So if you're using both lighter and darker, need to do those
+    # first before switching to decal.
+    wrote_dark = wrote_light = uses_decal = False
+    for level in cel.levels:
+        if level.threshMode == "Darker":
+            if wrote_dark:
+                uses_decal = True
+                continue
+            wrote_dark = True
+        else:
+            if wrote_light:
+                uses_decal = True
+                continue
+            wrote_light = True
+        if uses_decal:
+            raise PluginError("Must use Lighter and Darker cel levels before duplicating either of them")
+
+    return uses_decal
 
 
 # existingVertexData is used for cases where we want to assume the presence of vertex data
@@ -898,8 +918,8 @@ class TriangleConverter:
         material: bpy.types.Material,
         currentGroupIndex,
         triGroup: FTriGroup,
-        existingVertexData: list[BufferVertex],
-        existingVertexMaterialRegions,
+        existingVertexData: list[BufferVertex] | None,
+        existingVertexMaterialRegions: dict[int, tuple[int, int]] | None,
     ):
         self.triConverterInfo = triConverterInfo
         self.currentGroupIndex = currentGroupIndex
@@ -943,6 +963,14 @@ class TriangleConverter:
             limbVerts[bufferVert.groupIndex].append(bufferVert)
 
         return limbVerts
+
+    def getBufferVert(
+        self, loop: bpy.types.MeshLoop, face: bpy.types.MeshLoopTriangle, groupIndex: int | None
+    ) -> BufferVertex:
+        bufferVert = BufferVertex(
+            getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), groupIndex, face.material_index
+        )
+        return bufferVert
 
     def processGeometry(self):
         # Sort verts by limb index, then load current limb verts
@@ -1024,33 +1052,10 @@ class TriangleConverter:
         cel = f3dMat.cel_shading
         f3d = get_F3D_GBI()
 
-        # Don't want to have to change back and forth arbitrarily between decal and
-        # opaque mode. So if you're using both lighter and darker, need to do those
-        # first before switching to decal.
-        if f3dMat.rdp_settings.zmode != "ZMODE_OPA":
-            raise PluginError(
-                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque."
-            )
-        wroteLighter = wroteDarker = usesDecal = False
-        if len(cel.levels) == 0:
-            raise PluginError(f"Material {self.material.name} with cel shading has no cel levels")
-        for level in cel.levels:
-            if level.threshMode == "Darker":
-                if wroteDarker:
-                    usesDecal = True
-                elif usesDecal:
-                    raise PluginError(
-                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
-                    )
-                wroteDarker = True
-            else:
-                if wroteLighter:
-                    usesDecal = True
-                elif usesDecal:
-                    raise PluginError(
-                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
-                    )
-                wroteLighter = True
+        try:
+            usesDecal = cel_shading_checks(f3dMat)
+        except Exception as exc:
+            raise PluginError(f"Material {self.material.name}: {str(exc)}") from exc
 
         # Because this might not be the first tri list in the object with this
         # material, we have to set things even if they were set up already in
@@ -1133,7 +1138,7 @@ class TriangleConverter:
         # Disable alpha compare culling for future DLs
         self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
-    def addFace(self, face, stOffset):
+    def addFace(self, face: bpy.types.MeshLoopTriangle, stOffset):
         triIndices = []
         addedVerts = []  # verts added to existing vertexBuffer
         allVerts = []  # all verts not in 'untouched' buffer region
@@ -1145,9 +1150,8 @@ class TriangleConverter:
                 if self.triConverterInfo.vertexGroupInfo is not None
                 else None
             )
-            bufferVert = BufferVertex(
-                getF3DVert(loop, face, self.convertInfo, self.triConverterInfo.mesh), vertexGroup, face.material_index
-            )
+
+            bufferVert = self.getBufferVert(loop, face, vertexGroup)
             bufferVert.f3dVert.stOffset = stOffset
             triIndices.append(bufferVert)
             if not self.vertInBuffer(bufferVert, face.material_index):
@@ -1176,7 +1180,16 @@ class TriangleConverter:
             self.triList.commands.append(SPEndDisplayList())
 
 
-def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mesh: bpy.types.Mesh):
+VT = TypeVar("VT", bound="F3DVert")
+
+
+def getF3DVert(
+    loop: bpy.types.MeshLoop,
+    face,
+    convertInfo: LoopConvertInfo,
+    mesh: bpy.types.Mesh,
+    vertOverride: type[VT] = F3DVert,
+) -> VT:
     position: Vector = mesh.vertices[loop.vertex_index].co.copy().freeze()
     # N64 is -Y, Blender is +Y
     uv: Vector = convertInfo.uv_data[loop.index].uv.copy()
@@ -1191,7 +1204,7 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     normal = getLoopNormal(loop) if has_normal else None
     alpha = color[3]
 
-    return F3DVert(position, uv, rgb, normal, alpha)
+    return vertOverride(position, uv, rgb, normal, alpha)
 
 
 def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
@@ -1206,6 +1219,53 @@ def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
             round(loop.normal[2] * 2**16) / 2**16,
         )
     ).freeze()
+
+
+def saveMeshByFaces(
+    material: bpy.types.Material,
+    faces: list[bpy.types.MeshLoopTriangle],
+    fModel: FModel,
+    fMesh: FMesh,
+    obj: bpy.types.Object,
+    drawLayer: str,
+    convertTextureData: bool,
+    currentGroupIndex: int | None,
+    triConverterInfo: TriangleConverterInfo,
+    existingVertData: list[BufferVertex] | None,
+    matRegionDict: dict[int, tuple[int, int]] | None,
+    lastMaterialName: str | None,
+    converterOverride: type[TriangleConverter] = TriangleConverter,
+):
+    """
+    lastMaterialName is for optimization; set it to None to disable optimization.
+    """
+
+    if len(faces) == 0:
+        print("0 Faces Provided.")
+        return
+    fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
+
+    if material.name != lastMaterialName:
+        fMesh.add_material_call(fMaterial)
+    triGroup = fMesh.tri_group_new(fMaterial)
+    fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
+
+    triConverter = converterOverride(
+        triConverterInfo,
+        texDimensions,
+        material,
+        currentGroupIndex,
+        triGroup,
+        copy.deepcopy(existingVertData),
+        copy.deepcopy(matRegionDict),
+    )
+
+    currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
+
+    if fMaterial.revert is not None:
+        fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
+
+    return currentGroupIndex
 
 
 @functools.lru_cache(0)
@@ -1264,34 +1324,14 @@ defaultLighting = [
 
 def getTexDimensions(material):
     f3dMat = material.f3d_mat
-
-    texDimensions0 = None
-    texDimensions1 = None
     useDict = all_combiner_uses(f3dMat)
-    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-        if f3dMat.tex0.use_tex_reference:
-            texDimensions0 = f3dMat.tex0.tex_reference_size
-        else:
-            if f3dMat.tex0.tex is None:
-                raise PluginError('In material "' + material.name + '", a texture has not been set.')
-            texDimensions0 = f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1]
-    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-        if f3dMat.tex1.use_tex_reference:
-            texDimensions1 = f3dMat.tex1.tex_reference_size
-        else:
-            if f3dMat.tex1.tex is None:
-                raise PluginError('In material "' + material.name + '", a texture has not been set.')
-            texDimensions1 = f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1]
 
-    if texDimensions0 is not None and texDimensions1 is not None:
-        texDimensions = texDimensions0 if f3dMat.uv_basis == "TEXEL0" else texDimensions1
-    elif texDimensions0 is not None:
-        texDimensions = texDimensions0
-    elif texDimensions1 is not None:
-        texDimensions = texDimensions1
-    else:
-        texDimensions = [32, 32]
-    return texDimensions
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set and not f3dMat.tex0.tex:
+        raise PluginError('In material "' + material.name + '", texture 0 has not been set.')
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set and not f3dMat.tex1.tex:
+        raise PluginError('In material "' + material.name + '", texture 1 has not been set.')
+
+    return get_tex_basis_size(f3dMat)
 
 
 @wrap_func_with_error_message(lambda args: (f"In material '{args['material'].name}': "))

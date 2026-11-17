@@ -175,7 +175,7 @@ class OOTObjectPanel(bpy.types.Panel):
             csProp.draw_props(box, obj)
 
         elif obj.ootEmptyType == "Animated Materials":
-            if is_oot_features() and not context.scene.fast64.oot.hackerFeaturesEnabled:
+            if is_oot_features() and context.scene.fast64.oot.feature_set == "default":
                 box.label(text="This required MM or HackerOoT features to be enabled.")
             else:
                 anim_props: Z64_AnimatedMaterialProperty = obj.fast64.oot.animated_materials

@@ -1,7 +1,7 @@
 # Macros are all copied over from gbi.h
 from __future__ import annotations
 
-from typing import Sequence, Union, Tuple
+from typing import Sequence, Union, Tuple, TypeVar
 from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
 from ..utility import *
@@ -1757,20 +1757,22 @@ class F3D:
         return int(((1 << self.G_TX_DXT_FRAC) + self.TXL2WORDS_4b(width) - 1) / self.TXL2WORDS_4b(width))
 
     def NUML(self, n):
-        if self.F3DEX_GBI_3:
-            return n * 0x10
         nVal = self.numLights[n]
+        if self.F3DEX_GBI_3:
+            return nVal * 0x10
         return ((nVal) * 24) if self.F3DEX_GBI_2 else (((nVal) + 1) * 32 + 0x80000000)
 
-    def getLightMWO_a(self, n):
-        if n.startswith("G_MWO_aLIGHT_") and hasattr(self, n):
-            return getattr(self, n)
+    def getLightMWO_a(self, n: str):
+        mwo_value = f"G_MWO_a{n}"
+        if hasattr(self, mwo_value):
+            return getattr(self, mwo_value)
         else:
             raise PluginError("Invalid G_MWO_a value for lights: " + n)
 
-    def getLightMWO_b(self, n):
-        if n.startswith("G_MWO_bLIGHT_") and hasattr(self, n):
-            return getattr(self, n)
+    def getLightMWO_b(self, n: str):
+        mwo_value = f"G_MWO_b{n}"
+        if hasattr(self, mwo_value):
+            return getattr(self, mwo_value)
         else:
             raise PluginError("Invalid G_MWO_b value for lights: " + n)
 
@@ -2332,6 +2334,86 @@ class FPaletteKey:
         return self.palFormat == __o.palFormat and self.imagesSharingPalette == __o.imagesSharingPalette
 
 
+class FMesh:
+    def __init__(self, name, DLFormat, drawLayer=None):
+        self.name = name
+        # GfxList
+        self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
+        # list of FTriGroup
+        self.triangleGroups: list[FTriGroup] = []
+        # VtxList
+        self.cullVertexList = None
+        self.draw_overrides: list[GfxList] = []
+        self.DLFormat = DLFormat
+        self.drawLayer = drawLayer
+
+        # Used to avoid consecutive calls to the same material if unnecessary
+        self.currentFMaterial = None
+
+    def add_material_call(self, fMaterial):
+        sameMaterial = self.currentFMaterial is fMaterial
+        if not sameMaterial:
+            self.currentFMaterial = fMaterial
+            self.draw.commands.append(SPDisplayList(fMaterial.material))
+        else:
+            lastCommand = self.draw.commands[-1]
+            if isinstance(lastCommand, SPDisplayList) and lastCommand.displayList == fMaterial.revert:
+                self.draw.commands.remove(lastCommand)
+
+    def add_cull_vtx(self):
+        self.cullVertexList = VtxList(self.name + "_vtx_cull")
+
+    def get_ptr_addresses(self, f3d):
+        addresses = self.draw.get_ptr_addresses(f3d)
+        for triGroup in self.triangleGroups:
+            addresses.extend(triGroup.get_ptr_addresses(f3d))
+        for cmd_list in self.draw_overrides:
+            addresses.extend(cmd_list.get_ptr_addresses(f3d))
+        return addresses
+
+    def tri_group_new(self, fMaterial):
+        # Always static DL
+        triGroup = FTriGroup(self.name, len(self.triangleGroups), fMaterial)
+        self.triangleGroups.append(triGroup)
+        return triGroup
+
+    def set_addr(self, startAddress, f3d):
+        addrRange = self.draw.set_addr(startAddress, f3d)
+        startAddress = addrRange[0]
+        for triGroup in self.triangleGroups:
+            addrRange = triGroup.set_addr(addrRange[1], f3d)
+        if self.cullVertexList is not None:
+            addrRange = self.cullVertexList.set_addr(addrRange[1])
+        for cmd_list in self.draw_overrides:
+            addrRange = cmd_list.set_addr(addrRange[1], f3d)
+        return startAddress, addrRange[1]
+
+    def save_binary(self, romfile, f3d, segments):
+        self.draw.save_binary(romfile, f3d, segments)
+        for triGroup in self.triangleGroups:
+            triGroup.save_binary(romfile, f3d, segments)
+        if self.cullVertexList is not None:
+            self.cullVertexList.save_binary(romfile)
+        for cmd_list in self.draw_overrides:
+            cmd_list.save_binary(romfile, f3d, segments)
+
+    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
+        staticData = CData()
+
+        if self.cullVertexList is not None:
+            staticData.append(self.cullVertexList.to_c())
+
+        for triGroup in self.triangleGroups:
+            staticData.append(triGroup.to_c(f3d, gfxFormatter))
+
+        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=self.drawLayer)
+
+        for cmd_list in self.draw_overrides:
+            dynamicData.append(cmd_list.to_c(f3d))
+
+        return staticData, dynamicData
+
+
 class FModel:
     def __init__(
         self,
@@ -2339,7 +2421,7 @@ class FModel:
         DLFormat: "DLFormat",
         matWriteMethod: GfxMatWriteMethod,
     ):
-        self.name = name  # used for texture prefixing
+        self.name = toAlnum(name)  # used for texture prefixing
         # dict of light name : Lights
         self.lights: dict[str, Lights] = {}
         # dict of (texture, (texture format, palette format)) : FImage
@@ -2367,6 +2449,8 @@ class FModel:
         self.no_light_direction = False
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
+
+        self.reference_to_extern: list[str] = []
 
     def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         """
@@ -2447,14 +2531,19 @@ class FModel:
         fMaterial.usedLights.append(key)
         self.lights[key] = value
 
-    def addMesh(self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False):
+    MT = TypeVar("MT", bound=FMesh)
+
+    def addMesh(
+        self, name, namePrefix, drawLayer, isSkinned, contextObj, dedup=False, meshOverride: type[MT] = FMesh
+    ) -> MT:
         final_name = getFMeshName(name, namePrefix, drawLayer, isSkinned)
         if dedup:
+            base_name = final_name
             for i in range(1, len(self.meshes) + 2):
                 if final_name in self.meshes:
-                    final_name = f"{name}_{i:03}"
+                    final_name = f"{base_name}_{i:03}"
         checkUniqueBoneNames(self, final_name, name)
-        self.meshes[final_name] = mesh = FMesh(final_name, self.DLFormat)
+        self.meshes[final_name] = mesh = meshOverride(final_name, self.DLFormat, drawLayer=drawLayer)
         self.onAddMesh(mesh, contextObj)
         return mesh
 
@@ -2762,6 +2851,16 @@ class FModel:
     def freePalettes(self):
         pass
 
+    def add_refs_externs(self, data: CData):
+        for ref in self.reference_to_extern:
+            extern = f"extern u64 {ref}[];\n"
+
+            if extern not in data.source:
+                data.source += extern
+
+        if len(self.reference_to_extern) > 0:
+            data.source += "\n"
+
 
 class FTexRect(FModel):
     def __init__(self, name, matWriteMethod):
@@ -2883,86 +2982,6 @@ class FLODGroup:
             self.subdraws.clear()
 
         self.draw.commands.append(SPEndDisplayList())
-
-
-class FMesh:
-    def __init__(self, name, DLFormat):
-        self.name = name
-        # GfxList
-        self.draw = GfxList(name, GfxListTag.Draw, DLFormat)
-        # list of FTriGroup
-        self.triangleGroups: list[FTriGroup] = []
-        # VtxList
-        self.cullVertexList = None
-        self.draw_overrides: list[GfxList] = []
-        self.DLFormat = DLFormat
-
-        # Used to avoid consecutive calls to the same material if unnecessary
-        self.currentFMaterial = None
-
-    def add_material_call(self, fMaterial):
-        sameMaterial = self.currentFMaterial is fMaterial
-        if not sameMaterial:
-            self.currentFMaterial = fMaterial
-            self.draw.commands.append(SPDisplayList(fMaterial.material))
-        else:
-            lastCommand = self.draw.commands[-1]
-            if isinstance(lastCommand, SPDisplayList) and lastCommand.displayList == fMaterial.revert:
-                self.draw.commands.remove(lastCommand)
-
-    def add_cull_vtx(self):
-        self.cullVertexList = VtxList(self.name + "_vtx_cull")
-
-    def get_ptr_addresses(self, f3d):
-        addresses = self.draw.get_ptr_addresses(f3d)
-        for triGroup in self.triangleGroups:
-            addresses.extend(triGroup.get_ptr_addresses(f3d))
-        for cmd_list in self.draw_overrides:
-            addresses.extend(cmd_list.get_ptr_addresses(f3d))
-        return addresses
-
-    def tri_group_new(self, fMaterial):
-        # Always static DL
-        triGroup = FTriGroup(self.name, len(self.triangleGroups), fMaterial)
-        self.triangleGroups.append(triGroup)
-        return triGroup
-
-    def set_addr(self, startAddress, f3d):
-        addrRange = self.draw.set_addr(startAddress, f3d)
-        startAddress = addrRange[0]
-        for triGroup in self.triangleGroups:
-            addrRange = triGroup.set_addr(addrRange[1], f3d)
-        if self.cullVertexList is not None:
-            addrRange = self.cullVertexList.set_addr(addrRange[1])
-        for cmd_list in self.draw_overrides:
-            addrRange = cmd_list.set_addr(addrRange[1], f3d)
-        return startAddress, addrRange[1]
-
-    def save_binary(self, romfile, f3d, segments):
-        self.draw.save_binary(romfile, f3d, segments)
-        for triGroup in self.triangleGroups:
-            triGroup.save_binary(romfile, f3d, segments)
-        if self.cullVertexList is not None:
-            self.cullVertexList.save_binary(romfile)
-        for cmd_list in self.draw_overrides:
-            cmd_list.save_binary(romfile, f3d, segments)
-
-    def to_c(self, f3d: F3D, gfxFormatter: GfxFormatter):
-        staticData = CData()
-
-        if self.cullVertexList is not None:
-            staticData.append(self.cullVertexList.to_c())
-
-        for triGroup in self.triangleGroups:
-            staticData.append(triGroup.to_c(f3d, gfxFormatter))
-
-        draw_layer = "Opaque" if "Opaque" in self.name else "Transparent" if "Transparent" in self.name else "Overlay"
-        dynamicData = gfxFormatter.drawToC(f3d, self.draw, layer=draw_layer)
-
-        for cmd_list in self.draw_overrides:
-            dynamicData.append(cmd_list.to_c(f3d))
-
-        return staticData, dynamicData
 
 
 class FTriGroup:
@@ -3438,7 +3457,12 @@ class GbiMacro:
             else:
                 return field.name
         if hasattr(field, "__iter__") and type(field) is not str:
-            return " | ".join(map(str, field)) if len(field) else "0"
+            if not len(field):
+                return "0"
+            values = [str(value) for value in field]
+            if isinstance(field, (set, frozenset)):
+                values.sort()  # sort for reproducible exports
+            return " | ".join(values)
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
             return f"{temp:#0{self._hex + 2}x}"  # + 2 for the 0x part
@@ -3622,7 +3646,7 @@ def _gsSP1Triangle_w1(v0, v1, v2):
 
 
 def _gsSP1Triangle_w1f(v0, v1, v2, flag, f3d):
-    if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
+    if not f3d.F3D_OLD_GBI:
         if flag == 0:
             return _gsSP1Triangle_w1(v0, v1, v2)
         elif flag == 1:
@@ -3733,7 +3757,7 @@ class SP2Triangles(GbiMacro):
     flag1: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
+        if not f3d.F3D_OLD_GBI:
             words = (
                 _SHIFTL(f3d.G_TRI2, 24, 8) | _gsSP1Triangle_w1f(self.v00, self.v01, self.v02, self.flag0, f3d)
             ), _gsSP1Triangle_w1f(self.v10, self.v11, self.v12, self.flag1, f3d)
@@ -3753,7 +3777,7 @@ class SPCullDisplayList(GbiMacro):
     vend: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DLP_GBI or f3d.F3DEX_GBI:
+        if not f3d.F3D_OLD_GBI:
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | _SHIFTL((self.vstart) * 2, 0, 16), _SHIFTL((self.vend) * 2, 0, 16)
         else:
             words = _SHIFTL(f3d.G_CULLDL, 24, 8) | ((0x0F & (self.vstart)) * 40), ((0x0F & ((self.vend) + 1)) * 40)
@@ -4082,7 +4106,7 @@ class SPLightColor(GbiMacro):
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.color_to_int(), f3d) + gsMoveWd(
-            f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.col, f3d
+            f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.color_to_int(), f3d
         )
 
     def to_c(self, static=True):

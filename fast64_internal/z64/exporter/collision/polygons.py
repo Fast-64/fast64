@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Vector
+from bpy.types import Object
 
 from ....utility import PluginError, CData, hexOrDecInt, indent
 
@@ -19,6 +20,7 @@ class CollisionPoly:
     useMacros: bool
 
     type: Optional[int] = field(init=False, default=None)
+    index_to_obj: Optional[dict[int, Object]] = field(init=False, default=None)
 
     @staticmethod
     def from_data(poly_data: list[str], not_zapd_assets: bool):

@@ -1,6 +1,6 @@
 import bpy
-import math
 import ctypes
+import math
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -10,7 +10,16 @@ from bpy.ops import object
 from typing import Optional
 
 from ....game_data import game_data
-from ....utility import PluginError, CData, toAlnum, unhideAllAndGetHiddenState, restoreHiddenState, indent
+from ....utility import (
+    PluginError,
+    CData,
+    toAlnum,
+    unhideAllAndGetHiddenState,
+    restoreHiddenState,
+    cleanupDuplicatedObjects,
+    indent,
+)
+
 from ...utility import (
     OOTObjectCategorizer,
     convertIntTo2sComplement,
@@ -18,6 +27,7 @@ from ...utility import (
     ootGetPath,
     ootGetObjectPath,
 )
+
 from ...collision.properties import OOTCollisionExportSettings
 from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
@@ -101,8 +111,10 @@ class CollisionUtility:
                     raise PluginError(f"'{meshObj.name}' must have a material associated with it.")
 
                 meshObj.data.calc_loop_triangles()
-                for face in meshObj.data.loop_triangles:
-                    colProp = meshObj.material_slots[face.material_index].material.ootCollisionProperty
+                for i, face in enumerate(meshObj.data.loop_triangles):
+                    material = meshObj.material_slots[face.material_index].material
+                    colProp = material.ootCollisionProperty
+                    raise_error = False
 
                     # get bounds and vertices data
                     planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
@@ -119,13 +131,26 @@ class CollisionUtility:
                     )
                     distance = convertIntTo2sComplement(distance, 2, True)
 
+                    def sq(val):
+                        return val * val
+
                     nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)
                     ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2)
                     nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
-                    magSqr = nx * nx + ny * ny + nz * nz
+                    magSqr = sq(nx) + sq(ny) + sq(nz)
                     if magSqr <= 0:
-                        print("INFO: Ignore denormalized triangle.")
-                        continue
+                        raise_error = True
+
+                    # for walls only, see https://github.com/zeldaret/oot/blob/eb5dac74d6435baf85ced9158d3ff915ba8872ca/src/code/z_bgcheck.c#L751
+                    if normal[1] >= -0.8 and normal[1] <= 0.5:
+                        normal_xz = math.sqrt(sq(normal[0]) + sq(normal[2]))
+                        if math.fabs(normal_xz) < 0.008:
+                            raise_error = True
+
+                    if raise_error:
+                        raise PluginError(
+                            f"degenerate triangle detected on mesh object '{meshObj.name}' (material name is '{material.name}')"
+                        )
 
                     indices: list[int] = []
                     for pos in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
@@ -162,52 +187,23 @@ class CollisionUtility:
                         indices[1], indices[2] = indices[2], indices[1]
 
                     # get surface type and collision poly data
-                    useConveyor = colProp.conveyorOption != "None"
-                    if useConveyor:
-                        if colProp.conveyorSpeed == "Custom":
-                            conveyorSpeed = colProp.conveyorSpeedCustom
-                        else:
-                            conveyorSpeed = int(colProp.conveyorSpeed, base=16) + (
-                                4 if colProp.conveyorKeepMomentum else 0
-                            )
-                    else:
-                        conveyorSpeed = 0
-
-                    surfaceType = SurfaceType(
-                        colProp.cameraID,
-                        colProp.exitID,
-                        game_data.z64.get_enum_value("floor_type", Utility.getPropValue(colProp, "floorProperty")),
-                        0,  # unused?
-                        game_data.z64.get_enum_value("wall_type", Utility.getPropValue(colProp, "wallSetting")),
-                        game_data.z64.get_enum_value("floor_property", Utility.getPropValue(colProp, "floorSetting")),
-                        colProp.decreaseHeight,
-                        colProp.eponaBlock,
-                        game_data.z64.get_enum_value("surface_material", Utility.getPropValue(colProp, "sound")),
-                        game_data.z64.get_enum_value("floor_effect", Utility.getPropValue(colProp, "terrain")),
-                        colProp.lightingSetting,
-                        int(colProp.echo, base=16),
-                        colProp.hookshotable,
-                        conveyorSpeed,
-                        int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
-                        colProp.isWallDamage,
-                        useMacros,
-                    )
+                    surfaceType = SurfaceType.new(colProp, useMacros, material)
 
                     if surfaceType not in colPolyFromSurfaceType:
                         colPolyFromSurfaceType[surfaceType] = []
 
-                    colPolyFromSurfaceType[surfaceType].append(
-                        CollisionPoly(
-                            indices,
-                            colProp.ignoreCameraCollision,
-                            colProp.ignoreActorCollision,
-                            colProp.ignoreProjectileCollision,
-                            colProp.conveyorOption == "Land",
-                            normal,
-                            ctypes.c_short(distance).value,
-                            useMacros,
-                        )
+                    new_col_poly = CollisionPoly(
+                        indices,
+                        colProp.ignoreCameraCollision,
+                        colProp.ignoreActorCollision,
+                        colProp.ignoreProjectileCollision,
+                        colProp.conveyorOption == "Land",
+                        normal,
+                        ctypes.c_short(distance).value,
+                        useMacros,
                     )
+                    new_col_poly.index_to_obj = {i: meshObj}
+                    colPolyFromSurfaceType[surfaceType].append(new_col_poly)
 
         count = 0
         for surface, colPolyList in colPolyFromSurfaceType.items():
@@ -306,6 +302,8 @@ class CollisionHeader:
             source_path.write_text(filedata.source, encoding="utf-8", newline="\n")
         else:
             raise PluginError("ERROR: exporting collision with ignore collision enabled!")
+
+        cleanupDuplicatedObjects([obj])
 
     def getCmd(self):
         """Returns the collision header scene command"""

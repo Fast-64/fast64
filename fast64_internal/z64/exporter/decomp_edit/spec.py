@@ -4,11 +4,13 @@ import re
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from ....utility import PluginError, writeFile, indent
 from ...utility import ExportInfo, getSceneDirFromLevelName
-from ..scene import Scene
 from ..file import SceneFile
+
+if TYPE_CHECKING:
+    from ..scene import Scene
 
 
 def get_spec_path(export_path: str):
