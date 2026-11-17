@@ -3,11 +3,11 @@ import bpy
 import os
 
 from pathlib import Path
+from ....game_data import game_data
 from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
 from ....f3d.f3d_writer import getInfoDict, MeshInfo
 from ...f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
-from ...model_classes import LimbType, LimbSkinType, OOTModel, OOTGfxFormatter, OOTVertexGroupInfo, OOTVert
-from ...skeleton.constants import ootSkeletonImportDict
+from ...model_classes import LimbSkinType, OOTModel, OOTGfxFormatter, OOTVertexGroupInfo
 from ...skeleton.properties import OOTSkeletonExportSettings
 from ...skeleton.utility import (
     ootDuplicateArmatureAndRemoveRotations,
@@ -243,7 +243,7 @@ def ootConvertArmatureToC(
     settings: OOTSkeletonExportSettings,
 ):
     if settings.mode != "Generic" and not settings.isCustom:
-        importInfo = ootSkeletonImportDict[settings.mode]
+        importInfo = game_data.z64.skeleton_dict[settings.mode]
         skeletonName = importInfo.skeletonName
         filename = skeletonName
         folderName = importInfo.folderName
