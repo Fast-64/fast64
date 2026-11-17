@@ -1,5 +1,6 @@
 import bpy
 
+from ...game_data import game_data
 from ...utility import hexOrDecInt, parentObject
 from .utility import getDataMatch, createCurveFromPoints, unsetAllHeadersExceptSpecified
 from .classes import SharedSceneData
@@ -8,12 +9,14 @@ from .classes import SharedSceneData
 def parsePath(
     sceneObj: bpy.types.Object,
     sceneData: str,
-    pathName: str,
+    points_ptr: str,
+    opt_path_idx: str | None,
+    custom_value: str | None,
     headerIndex: int,
     sharedSceneData: SharedSceneData,
     orderIndex: int,
 ):
-    pathData = getDataMatch(sceneData, pathName, "Vec3s", "path", strip=True)
+    pathData = getDataMatch(sceneData, points_ptr, "Vec3s", "path", strip=True)
     pathPointsEntries = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     pathPointsInfo = []
     for pathPoint in pathPointsEntries:
@@ -25,9 +28,13 @@ def parsePath(
     if sharedSceneData.addHeaderIfItemExists(pathPoints, "Curve", headerIndex):
         return
 
-    curveObj = createCurveFromPoints(pathPoints, pathName)
+    curveObj = createCurveFromPoints(pathPoints, points_ptr)
     splineProp = curveObj.ootSplineProperty
     splineProp.index = orderIndex
+
+    if game_data.z64.is_mm() and opt_path_idx is not None and custom_value is not None:
+        splineProp.opt_path_index = int(opt_path_idx)
+        splineProp.custom_value = int(custom_value)
 
     unsetAllHeadersExceptSpecified(splineProp.headerSettings, headerIndex)
     sharedSceneData.pathDict[pathPoints] = curveObj
@@ -45,5 +52,10 @@ def parsePathList(
     pathData = getDataMatch(sceneData, pathListName, "Path", "path list", strip=True)
     pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     for i, pathEntry in enumerate(pathList):
-        numPoints, pathName = [value.strip() for value in pathEntry.split(",")]
-        parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData, i)
+        if game_data.z64.is_oot():
+            count, points_ptr = [value.strip() for value in pathEntry.split(",")]
+            opt_path_idx = custom_value = None
+        else:
+            count, opt_path_idx, custom_value, points_ptr = [value.strip() for value in pathEntry.split(",")]
+
+        parsePath(sceneObj, sceneData, points_ptr, opt_path_idx, custom_value, headerIndex, sharedSceneData, i)
