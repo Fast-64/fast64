@@ -1,7 +1,15 @@
 import bpy
 
 from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
-from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty, FloatVectorProperty
+from bpy.props import (
+    StringProperty,
+    EnumProperty,
+    IntProperty,
+    BoolProperty,
+    CollectionProperty,
+    PointerProperty,
+    FloatVectorProperty,
+)
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ...game_data import game_data
@@ -120,7 +128,9 @@ class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
     topOptionTextID: StringProperty(name="", default="0xFFFF")
     bottomOptionTextID: StringProperty(name="", default="0xFFFF")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
-    csTextType: EnumProperty(name="Text Type", items=lambda self, context: game_data.z64.get_enum("csTextType"), default=1)
+    csTextType: EnumProperty(
+        name="Text Type", items=lambda self, context: game_data.z64.get_enum("csTextType"), default=1
+    )
     csTextTypeCustom: StringProperty(default="CS_TEXT_CUSTOM")
 
     def getName(self):
@@ -493,7 +503,7 @@ class OOTCutsceneProperty(PropertyGroup):
             for listName in csListsNames:
                 for csListSubProp in getattr(csListProp, listName):
                     upgradeCutsceneSubProps(csListSubProp)
-            
+
             if csListProp.listType == "Transition":
                 new_entry = csListProp.transition_list.add()
 

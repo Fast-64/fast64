@@ -136,4 +136,6 @@ class CutsceneCmdTextList(CutsceneCmdBase):
         if len(self.entries) == 0:
             raise PluginError("ERROR: Entry list is empty!")
 
-        return self.getGenericListCmd("CS_TEXT_LIST", self.entryTotal) + "".join(entry.getCmd() for entry in self.entries)
+        return self.getGenericListCmd("CS_TEXT_LIST", self.entryTotal) + "".join(
+            entry.getCmd() for entry in self.entries
+        )
