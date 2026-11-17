@@ -10,7 +10,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import ExportInfo, is_hackeroot
+from ...utility import ExportInfo, is_hackeroot, is_oot_features
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -65,6 +65,7 @@ def get_anm_mat_target_name(scene_obj: Object, alt_prop: OOTSceneHeaderProperty,
 
                 target_prop = scene_obj.ootAlternateSceneHeaders.cutsceneHeaders[cs_index]
             else:
+                assert game_data.z64.is_oot(), "game can't be MM for alt header's anim. mat. export"
                 prop_name, index = header_map[target_prop.internal_anim_mat_header]
                 target_prop = getattr(scene_obj.ootAlternateSceneHeaders, prop_name)
 
@@ -143,33 +144,34 @@ class Scene:
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = sceneObj.ootAlternateSceneHeaders
 
-        for i, header in enumerate(altHeaderList, 1):
-            altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
+        if game_data.z64.is_oot():
+            for i, header in enumerate(altHeaderList, 1):
+                altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
 
-            if altP.usePreviousHeader:
-                continue
+                if altP.usePreviousHeader:
+                    continue
 
-            try:
-                target_name = get_anm_mat_target_name(sceneObj, altP, name, i)
+                try:
+                    target_name = get_anm_mat_target_name(sceneObj, altP, name, i)
 
-                setattr(
-                    altHeader,
-                    header,
-                    SceneHeader.new(
-                        f"{name}_header{i:02}",
-                        altP,
-                        sceneObj,
-                        transform,
-                        i,
-                        exportInfo.useMacros,
-                        use_mat_anim,
-                        target_name,
-                        colHeader,
-                    ),
-                )
-                hasAlternateHeaders = True
-            except Exception as exc:
-                raise PluginError(f"In alternate scene header {header}: {exc}") from exc
+                    setattr(
+                        altHeader,
+                        header,
+                        SceneHeader.new(
+                            f"{name}_header{i:02}",
+                            altP,
+                            sceneObj,
+                            transform,
+                            i,
+                            exportInfo.useMacros,
+                            use_mat_anim,
+                            target_name,
+                            colHeader,
+                        ),
+                    )
+                    hasAlternateHeaders = True
+                except Exception as exc:
+                    raise PluginError(f"In alternate scene header {header}: {exc}") from exc
 
         altHeader.cutscenes = []
         for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start):
@@ -192,6 +194,7 @@ class Scene:
             except Exception as exc:
                 raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
 
+        # process room after scene because of actor cutscenes requiring to be processed before actors
         rooms = RoomEntries.new(
             f"{name}_roomList",
             name.removesuffix("_scene"),
@@ -263,6 +266,8 @@ class Scene:
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
             + (curHeader.anim_mat.get_cmd() if curHeader.anim_mat is not None else "")
+            + (curHeader.map_data.get_cmds() if curHeader.map_data is not None and curHeader.map_data.is_used() else "")
+            + (curHeader.actor_cs.get_cmds() if curHeader.actor_cs is not None and curHeader.actor_cs.is_used() else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )
@@ -277,11 +282,12 @@ class Scene:
         altHeaderPtrs = None
 
         if self.hasAlternateHeaders:
-            headers = [
-                (self.altHeader.childNight, "Child Night"),
-                (self.altHeader.adultDay, "Adult Day"),
-                (self.altHeader.adultNight, "Adult Night"),
-            ]
+            if game_data.z64.is_oot():
+                headers = [
+                    (self.altHeader.childNight, "Child Night"),
+                    (self.altHeader.adultDay, "Adult Day"),
+                    (self.altHeader.adultNight, "Adult Night"),
+                ]
 
             for i, csHeader in enumerate(self.altHeader.cutscenes):
                 headers.append((csHeader, f"Cutscene No. {i + 1}"))
@@ -295,7 +301,8 @@ class Scene:
                 for i, (curHeader, _) in enumerate(headers, 1)
             )
 
-        headers.insert(0, (self.mainHeader, "Child Day (Default)"))
+        header_name = "Child Day (Default)" if is_oot_features() else "Default"
+        headers.insert(0, (self.mainHeader, header_name))
         for i, (curHeader, headerDesc) in enumerate(headers):
             if curHeader is not None:
                 sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
@@ -355,7 +362,15 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        if bpy.context.scene.fast64.oot.is_globalh_present():
+        if game_data.z64.is_mm():
+            # temp solution until mm headers are split (or figure out which ones are required)
+            includes = [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+                '#include "command_macros_base.h"',
+            ]
+        elif bpy.context.scene.fast64.oot.is_globalh_present():
             includes = [
                 '#include "ultra64.h"',
                 '#include "macros.h"',

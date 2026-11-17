@@ -245,10 +245,11 @@ class Cutscene:
 class SceneCutscene:
     """This class hosts cutscene data"""
 
+    name: str
     entries: list[Cutscene]
 
     @staticmethod
-    def new(props: OOTSceneHeaderProperty, headerIndex: int, useMacros: bool):
+    def new(name: str, props: OOTSceneHeaderProperty, headerIndex: int, useMacros: bool):
         csObj: Object = props.csWriteObject
         cutsceneObjects: list[Object] = [extraCS.csObject for extraCS in props.extraCutscenes]
         entries: list[Cutscene] = []
@@ -276,7 +277,7 @@ class SceneCutscene:
                     entries.append(
                         Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.fast64.oot.exportMotionOnly)
                     )
-        return SceneCutscene(entries)
+        return SceneCutscene(name, entries)
 
     def to_c(self):
         """Returns the cutscene script entry list (for MM)"""
