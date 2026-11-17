@@ -1,12 +1,13 @@
 import bpy
 
-from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene, EditBone
+from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, EditBone
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from ...upgrade import upgradeCutsceneMotion
-from ...utility import getEnumName
+from ...utility import getEnumName, is_oot_features
+from ....utility import prop_split
 from ....game_data import game_data
-from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from ..constants import ootEnumCSMotionCamMode
 
 from .operators import (
     CutsceneCmdAddActorCue,
@@ -33,7 +34,9 @@ def getNextCuesStartFrame(self):
 
 class CutsceneCmdActorCueListProperty(PropertyGroup):
     commandType: EnumProperty(
-        items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="actor_cue_0_0"
+        items=lambda self, context: game_data.z64.get_enum("actor_cue_list_cmd_type"),
+        name="CS Actor Cue Command Type",
+        default=1,
     )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
     actorCueListToPreview: PointerProperty(
@@ -58,7 +61,7 @@ class CutsceneCmdActorCueListProperty(PropertyGroup):
                 OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:"
             )
             searchOp.objName = objName
-            searchBox.label(text=getEnumName(ootEnumCSActorCueListCommandType, self.commandType))
+            searchBox.label(text=getEnumName(game_data.z64.get_enum("actor_cue_list_cmd_type"), self.commandType))
 
             if self.commandType == "Custom":
                 split = box.split(factor=0.5)
@@ -87,7 +90,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
         get=lambda self: getNextCuesStartFrame(self),
     )
 
-    playerCueID: EnumProperty(items=game_data.z64.enums.enum_cs_player_cue_id, default="cueid_none")
+    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum("playerCueID"), default=1)
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )
@@ -117,7 +120,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
                 split = box.split(factor=0.5)
                 searchOp = split.operator(OOT_SearchPlayerCueIdEnumOperator.bl_idname, icon="VIEWZOOM", text=label)
                 searchOp.objName = objName
-                split.label(text=getEnumName(game_data.z64.enums.enum_cs_player_cue_id, self.playerCueID))
+                split.label(text=getEnumName(game_data.z64.get_enum("playerCueID"), self.playerCueID))
 
             if not isPlayer or self.playerCueID == "Custom":
                 split = box.split(factor=0.5)
@@ -147,24 +150,51 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
         default="splineEyeOrAT",
     )
 
+    shot_duration: IntProperty(min=0, default=120)
+    shot_spline_rel_to: EnumProperty(items=lambda self, context: game_data.z64.get_enum("spline_rel_to"), default=1)
+    shot_spline_rel_to_custom: StringProperty(default="CS_CAM_REL_CUSTOM")
+
+    shot_interp_type: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum("spline_interp_type"),
+        name="Interpolation Type",
+        description="values 1-3 only uses a single point from the cmd, values 4-5 uses multiple points from the cmd, value 6 only uses a single point from the cmd",
+        default=5,
+    )
+    shot_interp_type_custom: StringProperty(default="CS_CAM_INTERP_CUSTOM")
+
     def getEndFrame(self, camShotObj: Object = None):
         if camShotObj is None:
             camShotObj = bpy.context.view_layer.objects.active
 
         if camShotObj.type == "ARMATURE":
+            shot_frame = self.shotStartFrame if game_data.z64.is_oot() else self.shot_duration
             boneFrameList: list[int] = [bone.ootCamShotPointProp.shotPointFrame for bone in camShotObj.data.bones]
             # "fake" eye end frame
-            return self.shotStartFrame + max(2, sum(frame for frame in boneFrameList)) + 1
+            return shot_frame + max(2, sum(frame for frame in boneFrameList)) + 1
         return -1
 
     def draw_props(self, layout: UILayout, label: str):
+        # update manually since we don't use shared enum mode
+        game_data.z64.update(bpy.context, None)
+
         box = layout.box()
         box.label(text=label)
-        split = box.split(factor=0.5)
-        split.prop(self, "shotStartFrame")
-        split.prop(self, "shotEndFrame")
-        box.row().prop(self, "shotCamMode", expand=True)
-        box.operator(CutsceneCmdAddBone.bl_idname)
+        if game_data.z64.is_oot():
+            split = box.split(factor=0.5)
+            split.prop(self, "shotStartFrame")
+            split.prop(self, "shotEndFrame")
+            box.row().prop(self, "shotCamMode", expand=True)
+        else:
+            layout_shot = box.column()
+            prop_split(layout_shot, self, "shot_duration", "Duration")
+            prop_split(layout_shot, self, "shot_spline_rel_to", "Camera Relative To")
+            if self.shot_spline_rel_to == "Custom":
+                prop_split(layout_shot, self, "shot_spline_rel_to_custom", "")
+
+            prop_split(layout_shot, self, "shot_interp_type", "Camera Interpolation Type")
+            if self.shot_interp_type == "Custom":
+                prop_split(layout_shot, self, "shot_interp_type_custom", "")
+            prop_split(layout_shot, self, "shotEndFrame", "End Frame")
 
 
 class CutsceneCmdCameraShotPointProperty(PropertyGroup):
@@ -197,6 +227,8 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         set=lambda self, value: self.setValue(value, "roll"),
     )
 
+    shot_point_duration: IntProperty(min=0, default=30, name="Duration")
+
     # internal usage only
     frame: IntProperty(default=30, min=0)
     viewAngle: FloatProperty(default=60.0, min=0.01, max=179.99)
@@ -227,7 +259,8 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         box = layout.box()
         box.label(text="Bone / Key point:")
         row = box.row()
-        for propName in ["shotPointFrame", "shotPointViewAngle", "shotPointRoll"]:
+        first_prop = "shotPointFrame" if is_oot_features() else "shot_point_duration"
+        for propName in [first_prop, "shotPointViewAngle", "shotPointRoll"]:
             row.prop(self, propName)
 
         row = box.row()

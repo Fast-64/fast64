@@ -1,12 +1,15 @@
 import bpy
+
 from bpy.utils import register_class, unregister_class
-from ..utility import prop_split, gammaInverse
+from ..game_data import game_data
+from ..utility import PluginError, prop_split, gammaInverse
 from .utility import getSceneObj, getRoomObj, is_oot_features
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
 from .animated_mats.properties import Z64_AnimatedMaterialProperty
+from .actor_cutscene.properties import Z64_ActorCutsceneProperty
 from .cutscene.motion.properties import (
     OOTCutsceneMotionProperty,
     CutsceneCmdActorCueListProperty,
@@ -39,12 +42,12 @@ ootEnumEmptyType = [
     ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
     ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
     ("Animated Materials", "Animated Materials", "Animated Materials"),
+    ("Actor Cutscene", "Actor Cutscene", "Actor Cutscene"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
-    objName = obj.name
     obj.ootSceneHeader.draw_props(box.box(), None, None, obj)
     if obj.ootSceneHeader.menuTab == "Alternate":
         obj.ootAlternateSceneHeaders.draw_props(box.box(), obj)
@@ -126,7 +129,7 @@ class OOTObjectPanel(bpy.types.Panel):
     def draw(self, context):
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         box = self.layout.box()
-        box.box().label(text="OOT Object Inspector")
+        box.box().label(text="Z64 Object Inspector")
         obj = context.object
         objName = obj.name
         prop_split(box, obj, "ootEmptyType", "Object Type")
@@ -139,7 +142,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
         if obj.ootEmptyType == "Actor":
             actorProp: OOTActorProperty = obj.ootActorProperty
-            actorProp.draw_props(box, altRoomProp, obj)
+            actorProp.draw_props(box, obj, altSceneProp, altRoomProp)
 
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty
@@ -181,6 +184,10 @@ class OOTObjectPanel(bpy.types.Panel):
                 anim_props: Z64_AnimatedMaterialProperty = obj.fast64.oot.animated_materials
                 anim_props.draw_props(box, obj)
 
+        elif obj.ootEmptyType == "Actor Cutscene":
+            actor_cs_props: Z64_ActorCutsceneProperty = obj.z64_actor_cs_property
+            actor_cs_props.draw_props(box, obj, altSceneProp)
+
         elif obj.ootEmptyType in [
             "CS Actor Cue List",
             "CS Player Cue List",
@@ -207,8 +214,13 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 
     @staticmethod
     def upgrade_changed_props():
+        if bpy.context.scene.fast64.get_addon_version() < (2, 3, 1):
+            raise PluginError(
+                "ERROR: Upgrading on this version is deprecated. Please update to an older version and update again to this one."
+            )
+
         for obj in bpy.data.objects:
-            if obj.type == "EMPTY":
+            if obj.type == "EMPTY" and game_data.z64.is_oot():
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
                 if obj.ootEmptyType in {"Actor", "Entrance", "Transition Actor"}:
@@ -216,16 +228,10 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                 if obj.ootEmptyType == "Cutscene":
                     OOTCutsceneProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
-                    OOTCutsceneMotionProperty.upgrade_object(obj)
-
-                    if "Point." in obj.name:
-                        parentObj = obj.parent
-                        if parentObj is not None:
-                            if parentObj.children[-1] == obj:
-                                obj.ootEmptyType = "CS Dummy Cue"
-                        else:
-                            print("WARNING: An Actor Cue has been detected outside an Actor Cue List: " + obj.name)
-            elif obj.type == "ARMATURE":
+                    obj.ootEmptyType = "CS Dummy Cue"
+                else:
+                    print("WARNING: An Actor Cue has been detected outside an Actor Cue List: " + obj.name)
+            elif obj.type == "ARMATURE" and game_data.z64.is_oot():
                 parentObj = obj.parent
                 if parentObj is not None and (
                     parentObj.name.startswith("Cutscene.") or parentObj.ootEmptyType == "Cutscene"
@@ -249,8 +255,6 @@ class OOTCullGroupProperty(bpy.types.PropertyGroup):
 
 
 oot_obj_classes = (
-    OOTSceneProperties,
-    OOT_ObjectProperties,
     OOTCullGroupProperty,
     OOT_ManualUpgrade,
 )
@@ -273,7 +277,7 @@ def oot_obj_register():
         register_class(cls)
 
     bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
-        name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
+        name="Z64 Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
     )
 
     bpy.types.Scene.ootActiveHeaderLock = bpy.props.BoolProperty(default=False)

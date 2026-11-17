@@ -1,6 +1,7 @@
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
+from ...game_data import game_data
 from ...utility import PluginError, indent
 from ..utility import ootConvertTranslation, ootConvertRotation
 from ..actor.properties import OOTActorHeaderProperty
@@ -37,28 +38,48 @@ class Utility:
     def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
-        preset = headerSettings.sceneSetupPreset
+        if game_data.z64.is_oot():
+            preset = headerSettings.sceneSetupPreset
 
-        if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
-            return True
+            if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
+                return True
 
-        if preset == "Custom":
-            for i, header in enumerate(["childDay"] + altHeaderList):
-                if getattr(headerSettings, f"{header}Header") and i == headerIndex:
-                    return True
+            if preset == "Custom":
+                for i, header in enumerate(["childDay"] + altHeaderList):
+                    if getattr(headerSettings, f"{header}Header") and i == headerIndex:
+                        return True
+        else:
+            if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
+                return True
 
-            for csHeader in headerSettings.cutsceneHeaders:
-                if csHeader.headerIndex == headerIndex:
-                    return True
+        for csHeader in headerSettings.cutsceneHeaders:
+            if csHeader.headerIndex == headerIndex:
+                return True
 
         return False
 
     @staticmethod
-    def getPropValue(data, propName: str):
+    def getPropValue(data, prop_name: str, custom_name: str | None = None, enum_key: str | None = None):
         """Returns a property's value based on if the value is 'Custom'"""
 
-        value = getattr(data, propName)
-        return value if value != "Custom" else getattr(data, f"{propName}Custom")
+        value = getattr(data, prop_name)
+
+        if value != "Custom":
+            if enum_key is not None:
+                return game_data.z64.enums.enumByKey[enum_key].item_by_key[value].id
+            else:
+                return value
+        elif custom_name is not None:
+            if enum_key is not None:
+                return game_data.z64.enums.enumByKey[enum_key].item_by_key[getattr(data, custom_name)].id
+            else:
+                return getattr(data, custom_name)
+
+        return getattr(data, f"{prop_name}Custom")
+
+    @staticmethod
+    def enum_id_to_key(enum_value_id: str, enum_key: str):
+        return game_data.z64.enums.enumByKey[enum_key].item_by_id[enum_value_id].key
 
     @staticmethod
     def getConvertedTransformWithOrientation(
