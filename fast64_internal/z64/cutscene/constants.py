@@ -26,7 +26,7 @@ from .classes import (
     CutsceneCmdFadeSeqList,
     CutsceneCmdRumbleController,
     CutsceneCmdRumbleControllerList,
-    CutsceneCmdDestination,
+    CutsceneCmdDestination, CutsceneCmdCamSplineList, CutsceneCmdCamSpline, CutsceneCmdNewCamPoint, CutsceneCmdCamMisc, CutsceneCmdTransitionList, CutsceneCmdMotionBlurList, CutsceneCmdModifySeqList, CutsceneCmdMotionBlur, CutsceneCmdModifySeq, CutsceneCmdChooseCreditsScenesList, CutsceneCmdChooseCreditsScenes, CutsceneCmdTransitionGeneralList, CutsceneCmdTransitionGeneral, CutsceneCmdGiveTatl,
 )
 
 
@@ -57,6 +57,14 @@ csListTypeToIcon = {
     "FadeOutSeqList": "IPO_EASE_IN_OUT",
     "MiscList": "OPTIONS",
     "RumbleList": "OUTLINER_OB_FORCE_FIELD",
+
+    # from new system
+    "MotionBlurList": "ONIONSKIN_ON",
+    "ModifySeqList": "IPO_CONSTANT",
+    "CreditsSceneList": "WORLD",
+    "TransitionGeneralList": "COLORSET_06_VEC",
+    "StartAmbienceList": "SNAP_FACE",
+    "FadeOutAmbienceList": "IPO_EASE_IN_OUT",
 }
 
 ootEnumCSTextboxType = [
@@ -65,7 +73,16 @@ ootEnumCSTextboxType = [
     ("OcarinaAction", "Ocarina Action", "Learn Song"),
 ]
 
-ootEnumCSTextboxTypeIcons = ["FILE_TEXT", "HIDE_ON", "FILE_SOUND"]
+ootEnumCSTextboxTypeIcons = {
+    "Text": "FILE_TEXT",
+    "None": "HIDE_ON",
+    "OcarinaAction": "FILE_SOUND",
+    "Default": "FILE_TEXT",
+    "Type1": "ALIGN_LEFT",
+    "Type3": "ALIGN_CENTER",
+    "BossesRemains": "GHOST_ENABLED",
+    "AllNormalMasks": "RECOVER_LAST",
+}
 
 ootCSSubPropToName = {
     "startFrame": "Start Frame",
@@ -91,16 +108,34 @@ ootCSSubPropToName = {
     "rumbleSourceStrength": "Source Strength",
     "rumbleDuration": "Duration",
     "rumbleDecreaseRate": "Decrease Rate",
+    "rumble_type": "Rumble Type",
+    # Transition
+    "transition_type": "Transition Type",
+    # Motion Blur
+    "blur_type": "Motion Blur Type",
+    # Transition General
+    "trans_general_type": "Transition Type",
+    "trans_color": "Transition Color",
+    # Choose Credits Scene
+    "credits_scene_type": "Credits Scene Type",
+    # Modify Seq
+    "mod_seq_type": "Modify Seq Type",
     # Lists
     "TextList": "Text List",
     "TimeList": "Time List",
     "FadeOutSeqList": "Fade-Out Seq List",
-    "Transition": "Transition",
+    "Transition": "Transition List",
     "StartSeqList": "Start Seq List",
     "MiscList": "Misc List",
     "LightSettingsList": "Light Settings List",
     "StopSeqList": "Stop Seq List",
     "RumbleList": "Rumble List",
+    "MotionBlurList": "Motion Blur List",
+    "ModifySeqList": "Modify Seq List",
+    "CreditsSceneList": "Choose Credits Scene List",
+    "TransitionGeneralList": "Transition General List",
+    "StartAmbienceList": "Start Ambience List",
+    "FadeOutAmbienceList": "Fade-Out Ambience List",
 }
 
 ootEnumCSMotionCamMode = [
@@ -108,7 +143,6 @@ ootEnumCSMotionCamMode = [
     ("splineEyeOrATRelPlayer", "Spline Rel. Player", "Relative to Player's location/yaw"),
     ("eyeOrAT", "Eye/AT Point", "Single Eye/AT point (not recommended)"),
 ]
-
 
 ootCSLegacyToNewCmdNames = {
     "CS_CAM_POS_LIST": "CS_CAM_EYE_SPLINE",
@@ -139,6 +173,8 @@ ootCSLegacyToNewCmdNames = {
     "CS_PLAY_BGM": "L_CS_START_SEQ",
     "CS_STOP_BGM_LIST": "CS_STOP_SEQ_LIST",
     "CS_STOP_BGM": "L_CS_STOP_SEQ",
+    "CS_BEGIN_CUTSCENE": "CS_HEADER",
+    "CS_END": "CS_END_OF_SCRIPT",
 }
 
 ootCSListCommands = [
@@ -162,6 +198,15 @@ ootCSListCommands = [
     "CS_PLAY_BGM_LIST",
     "CS_STOP_BGM_LIST",
     "CS_LIGHTING_LIST",
+    # from new system
+    "CS_CAM_SPLINE_LIST",
+    "CS_TRANSITION_LIST",
+    "CS_DESTINATION_LIST",
+    "CS_MOTION_BLUR_LIST",
+    "CS_MODIFY_SEQ_LIST",
+    "CS_CHOOSE_CREDITS_SCENES_LIST",
+    "CS_TRANSITION_GENERAL_LIST",
+    "CS_GIVE_TATL_LIST",
 ]
 
 ootCSListEntryCommands = [
@@ -186,11 +231,28 @@ ootCSListEntryCommands = [
     "L_CS_LIGHT_SETTING",
     "L_CS_START_SEQ",
     "L_CS_STOP_SEQ",
+    # from new system
+    "CS_CAM_POINT_NEW",
+    "CS_CAM_MISC",
+    "CS_CAM_END",
+    "CS_CAM_SPLINE",  # technically a list but treating it as an entry
+    "CS_TEXT_DEFAULT",
+    "CS_TEXT_TYPE_1",
+    "CS_TEXT_TYPE_3",
+    "CS_TEXT_BOSSES_REMAINS",
+    "CS_TEXT_ALL_NORMAL_MASKS",
+    "CS_MOTION_BLUR",
+    "CS_MODIFY_SEQ",
+    "CS_CHOOSE_CREDITS_SCENES",
+    "CS_TRANSITION_GENERAL",
+    "CS_GIVE_TATL",
 ]
 
 ootCSSingleCommands = [
     "CS_HEADER",
     "CS_END_OF_SCRIPT",
+
+    # note: `CutsceneImport.correct_command_lists()` can move these ones in `ootCSListEntryCommands`
     "CS_TRANSITION",
     "CS_DESTINATION",
 ]
@@ -198,6 +260,20 @@ ootCSSingleCommands = [
 ootCSListAndSingleCommands = ootCSSingleCommands + ootCSListCommands
 ootCSListAndSingleCommands.remove("CS_HEADER")
 ootCutsceneCommandsC = ootCSSingleCommands + ootCSListCommands + ootCSListEntryCommands
+
+custom_values = [
+    "csMiscType",
+    "csTextType",
+    "ocarinaAction",
+    "csSeqID",
+    "csSeqPlayer",
+    "rumble_type",
+    "transition_type",
+    "blur_type",
+    "trans_general_type",
+    "credits_scene_type",
+    "mod_seq_type",
+]
 
 cmdToClass = {
     "CS_CAM_POINT": CutsceneCmdCamPoint,
@@ -231,4 +307,24 @@ cmdToClass = {
     "CS_ACTOR_CUE_LIST": CutsceneCmdActorCueList,
     "CS_PLAYER_CUE_LIST": CutsceneCmdActorCueList,
     "CS_DESTINATION": CutsceneCmdDestination,
+    # from new system
+    "CS_CAM_SPLINE_LIST": CutsceneCmdCamSplineList,
+    "CS_CAM_SPLINE": CutsceneCmdCamSpline,
+    "CS_CAM_POINT_NEW": CutsceneCmdNewCamPoint,
+    "CS_CAM_MISC": CutsceneCmdCamMisc,
+    "CS_TRANSITION_LIST": CutsceneCmdTransitionList,
+    "CS_TEXT_DEFAULT": CutsceneCmdText,
+    "CS_TEXT_TYPE_1": CutsceneCmdText,
+    "CS_TEXT_TYPE_3": CutsceneCmdText,
+    "CS_TEXT_BOSSES_REMAINS": CutsceneCmdText,
+    "CS_TEXT_ALL_NORMAL_MASKS": CutsceneCmdText,
+    "CS_MOTION_BLUR_LIST": CutsceneCmdMotionBlurList,
+    "CS_MOTION_BLUR": CutsceneCmdMotionBlur,
+    "CS_MODIFY_SEQ_LIST": CutsceneCmdModifySeqList,
+    "CS_MODIFY_SEQ": CutsceneCmdModifySeq,
+    "CS_CHOOSE_CREDITS_SCENES_LIST": CutsceneCmdChooseCreditsScenesList,
+    "CS_CHOOSE_CREDITS_SCENES": CutsceneCmdChooseCreditsScenes,
+    "CS_TRANSITION_GENERAL_LIST": CutsceneCmdTransitionGeneralList,
+    "CS_TRANSITION_GENERAL": CutsceneCmdTransitionGeneral,
+    "CS_GIVE_TATL": CutsceneCmdGiveTatl,
 }
