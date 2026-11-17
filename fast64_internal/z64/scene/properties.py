@@ -23,9 +23,7 @@ from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
 from ..animated_mats.properties import Z64_AnimatedMaterial
 
 from ..constants import (
-    ootEnumMusicSeq,
     ootEnumSceneID,
-    ootEnumGlobalObject,
     ootEnumNaviHints,
     ootEnumSkyboxLighting,
     ootEnumMapLocation,
@@ -33,6 +31,7 @@ from ..constants import (
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
     ootEnumHeaderMenuComplete,
+    mm_enum_scene_id,
 )
 
 ootEnumSceneMenuAlternate = [
@@ -120,16 +119,20 @@ class OOTExitProperty(PropertyGroup):
         box.prop(self, "expandTab", text="Exit " + str(index + 1), icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
         if self.expandTab:
             drawCollectionOps(box, index, "Exit", headerIndex, objName)
-            drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
-            if self.exitIndex != "Custom":
-                box.label(text='This is unfinished, use "Custom".')
-                exitGroup = box.column()
-                exitGroup.enabled = False
-                drawEnumWithCustom(exitGroup, self, "scene", "Scene", "")
-                exitGroup.prop(self, "continueBGM", text="Continue BGM")
-                exitGroup.prop(self, "displayTitleCard", text="Display Title Card")
-                drawEnumWithCustom(exitGroup, self, "fadeInAnim", "Fade In Animation", "")
-                drawEnumWithCustom(exitGroup, self, "fadeOutAnim", "Fade Out Animation", "")
+
+            if game_data.z64.is_oot():
+                drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
+                if self.exitIndex != "Custom":
+                    box.label(text='This is unfinished, use "Custom".')
+                    exitGroup = box.column()
+                    exitGroup.enabled = False
+                    drawEnumWithCustom(exitGroup, self, "scene", "Scene", "")
+                    exitGroup.prop(self, "continueBGM", text="Continue BGM")
+                    exitGroup.prop(self, "displayTitleCard", text="Display Title Card")
+                    drawEnumWithCustom(exitGroup, self, "fadeInAnim", "Fade In Animation", "")
+                    drawEnumWithCustom(exitGroup, self, "fadeOutAnim", "Fade Out Animation", "")
+            else:
+                prop_split(box, self, "exitIndexCustom", "Exit Index")
 
 
 class OOTLightProperty(PropertyGroup):
@@ -267,15 +270,74 @@ class OOTExtraCutsceneProperty(PropertyGroup):
     )
 
 
+def minimap_chest_poll(self: "Z64_MapDataChestProperty", object: Object):
+    return (
+        object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actor_id == "ACTOR_EN_BOX"
+    )
+
+
+class Z64_MapDataChestProperty(PropertyGroup):
+    expand_tab: BoolProperty(name="Expand Tab")
+
+    # used to get the room index, the coordinates and the chest flag
+    chest_obj: PointerProperty(type=Object, poll=minimap_chest_poll, name="Chest Empty Object")
+
+    def draw_props(self, layout: UILayout, index: int, header_index: int, obj_name: str):
+        box = layout.box()
+        box.prop(
+            self,
+            "expand_tab",
+            text=f"Chest Actor No.{index + 1}",
+            icon="TRIA_DOWN" if self.expand_tab else "TRIA_RIGHT",
+        )
+
+        if self.expand_tab:
+            drawCollectionOps(box, index, "Minimap Chest", header_index, obj_name)
+            box.prop(self, "chest_obj")
+
+
+class Z64_MapDataRoomProperty(PropertyGroup):
+    expand_tab: BoolProperty(name="Expand Tab")
+
+    map_id: StringProperty(name="Minimap ID", default="MAP_DATA_NO_MAP")
+    center_x: IntProperty(name="Center X", default=0)
+    floor_y: IntProperty(name="Floor Y", default=0)
+    center_z: IntProperty(name="Center Z", default=0)
+    flags: StringProperty(name="Flags", default="0x0000")
+
+    def draw_props(self, layout: UILayout, index: int, header_index: int, obj_name: str):
+        box = layout.box()
+        box.prop(
+            self,
+            "expand_tab",
+            text=f"Minimap Room Index {index}",
+            icon="TRIA_DOWN" if self.expand_tab else "TRIA_RIGHT",
+        )
+
+        if self.expand_tab:
+            drawCollectionOps(box, index, "Minimap Room", header_index, obj_name)
+            prop_split(box, self, "map_id", "Minimap ID")
+            prop_split(box, self, "center_x", "Center X")
+            prop_split(box, self, "floor_y", "Floor Y")
+            prop_split(box, self, "center_z", "Center Z")
+            prop_split(box, self, "flags", "Flags")
+
+
 class OOTSceneHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
-    globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
+    ## SCENE_CMD_SPECIAL_FILES
+    globalObject: EnumProperty(
+        name="Global Object", default=2, items=lambda self, context: game_data.z64.get_enum("globalObject")
+    )
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
+
+    # OoT exclusive
     naviCup: EnumProperty(name="Navi Hints", default="NAVI_QUEST_HINTS_NONE", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
+    ## SCENE_CMD_SKYBOX_SETTINGS
     skyboxID: EnumProperty(name="Skybox", items=lambda self, context: game_data.z64.get_enum("skybox"), default=2)
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
     skyboxCloudiness: EnumProperty(
@@ -292,12 +354,13 @@ class OOTSceneHeaderProperty(PropertyGroup):
         name="Skybox Lighting Custom", default="0x00", update=on_update_oot_render_settings
     )
 
-    mapLocation: EnumProperty(name="Map Location", items=ootEnumMapLocation, default="0x00")
-    mapLocationCustom: StringProperty(name="Skybox Lighting Custom", default="0x00")
-    cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
-    cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
+    # MM exclusive
+    skybox_texture_id: StringProperty(name="Skybox Texture ID", default="0x00")
 
-    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    ## SCENE_CMD_SOUND_SETTINGS
+    musicSeq: EnumProperty(
+        name="Music Sequence", items=lambda self, context: game_data.z64.get_enum("musicSeq"), default=1
+    )
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
     nightSeq: EnumProperty(
         name="Nighttime SFX", items=lambda self, context: game_data.z64.get_enum("nature_id"), default=1
@@ -334,9 +397,31 @@ class OOTSceneHeaderProperty(PropertyGroup):
         default=False,
     )
 
+    ## SCENE_CMD_MISC_SETTINGS
+    # OoT exclusive
+    mapLocation: EnumProperty(name="Map Location", items=ootEnumMapLocation, default="0x00")
+    mapLocationCustom: StringProperty(name="Skybox Lighting Custom", default="0x00")
+    cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
+    cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
     title_card_name: StringProperty(
         name="Title Card", default="none", description="Segment name of the title card to use"
     )
+
+    ## SCENE_CMD_SET_REGION_VISITED (MM exclusive)
+    set_region_visited: BoolProperty(
+        name="Set Region Visited Flag",
+        default=False,
+        description="Sets a flag that indicates the region has been visited. Scene indices are mapped to their region in `gSceneIdsPerRegion` from `z_inventory.c`",
+    )
+
+    ## SCENE_CMD_MINIMAP_INFO (MM exclusive, note: room informations are defined in `OOTRoomHeaderProperty`)
+    minimap_room_expand: BoolProperty(name="Expand Tab")
+    minimap_room_list: CollectionProperty(type=Z64_MapDataRoomProperty, name="Minimap Room List")
+    minimap_scale: IntProperty(name="Minimap Scale", default=0)
+
+    ## SCENE_CMD_MINIMAP_COMPASS_ICON_INFO (MM exclusive)
+    minimap_chest_expand: BoolProperty(name="Expand Tab")
+    minimap_chest_list: CollectionProperty(type=Z64_MapDataChestProperty, name="Minimap Chest List")
 
     reuse_anim_mat: BoolProperty(default=False)
     reuse_anim_mat_cs_index: IntProperty(min=game_data.z64.cs_index_start, default=game_data.z64.cs_index_start)
@@ -395,10 +480,15 @@ class OOTSceneHeaderProperty(PropertyGroup):
             layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
             if not self.expandTab:
                 return
-        if headerIndex is not None and headerIndex > 3:
+        if headerIndex is not None and headerIndex > (game_data.z64.cs_index_start - 1):
             drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, obj.name)
 
-        if headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
+        if (
+            game_data.z64.is_oot()
+            and headerIndex is not None
+            and headerIndex > 0
+            and headerIndex < game_data.z64.cs_index_start
+        ):
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -414,19 +504,33 @@ class OOTSceneHeaderProperty(PropertyGroup):
         if menuTab == "General":
             general = layout.column()
             general.box().label(text="General")
+
+            # General
             drawEnumWithCustom(general, self, "globalObject", "Global Object", "")
-            drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
+
+            if game_data.z64.is_oot():
+                drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
+
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
                 prop_split(general, self, "title_card_name", "Title Card")
                 if bpy.context.scene.ootSceneExportSettings.customExport:
                     general.label(text="Custom Export Path enabled, title card will be ignored.", icon="INFO")
+
+            if not is_oot_features():
+                general.prop(self, "set_region_visited")
+
             general.prop(self, "appendNullEntrance")
 
+            # Skybox And Sound
             skyboxAndSound = layout.column()
             skyboxAndSound.box().label(text="Skybox And Sound")
+
+            if not is_oot_features():
+                prop_split(skyboxAndSound, self, "skybox_texture_id", "Skybox Texture ID")
+
             drawEnumWithCustom(skyboxAndSound, self, "skyboxID", "Skybox", "")
-            drawEnumWithCustom(skyboxAndSound, self, "skyboxCloudiness", "Cloudiness", "")
+            drawEnumWithCustom(skyboxAndSound, self, "skyboxCloudiness", "Skybox Config", "")
             drawEnumWithCustom(skyboxAndSound, self, "musicSeq", "Music Sequence", "")
             musicSearch = skyboxAndSound.operator(OOT_SearchMusicSeqEnumOperator.bl_idname, icon="VIEWZOOM")
             musicSearch.objName = obj.name
@@ -434,10 +538,44 @@ class OOTSceneHeaderProperty(PropertyGroup):
             drawEnumWithCustom(skyboxAndSound, self, "nightSeq", "Nighttime SFX", "")
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
 
-            cameraAndWorldMap = layout.column()
-            cameraAndWorldMap.box().label(text="Camera And World Map")
-            drawEnumWithCustom(cameraAndWorldMap, self, "mapLocation", "Map Location", "")
-            drawEnumWithCustom(cameraAndWorldMap, self, "cameraMode", "Camera Mode", "")
+            # Camera And World Map | Minimap Settings
+            if is_oot_features():
+                cameraAndWorldMap = layout.column()
+                cameraAndWorldMap.box().label(text="Camera And World Map")
+                drawEnumWithCustom(cameraAndWorldMap, self, "mapLocation", "Map Location", "")
+                drawEnumWithCustom(cameraAndWorldMap, self, "cameraMode", "Camera Mode", "")
+            else:
+                minimap = layout.column()
+                minimap.box().label(text="Minimap Settings")
+                prop_split(minimap, self, "minimap_scale", "Minimap Scale")
+
+                map_room_box = minimap.column().box()
+                list_length = len(self.minimap_room_list)
+                item_count = "Empty" if list_length == 0 else f"{list_length} item{'s' if list_length > 1 else ''}"
+                map_room_box.prop(
+                    self,
+                    "minimap_room_expand",
+                    text=f"Minimap Room List ({item_count})",
+                    icon="TRIA_DOWN" if self.minimap_room_expand else "TRIA_RIGHT",
+                )
+                if self.minimap_room_expand:
+                    for i in range(list_length):
+                        self.minimap_room_list[i].draw_props(map_room_box, i, headerIndex, obj.name)
+                    drawAddButton(map_room_box, list_length, "Minimap Room", headerIndex, obj.name)
+
+                chest_box = minimap.column().box()
+                list_length = len(self.minimap_chest_list)
+                item_count = "Empty" if list_length == 0 else f"{list_length} item{'s' if list_length > 1 else ''}"
+                chest_box.prop(
+                    self,
+                    "minimap_chest_expand",
+                    text=f"Minimap Chest List ({item_count})",
+                    icon="TRIA_DOWN" if self.minimap_chest_expand else "TRIA_RIGHT",
+                )
+                if self.minimap_chest_expand:
+                    for i in range(list_length):
+                        self.minimap_chest_list[i].draw_props(chest_box, i, headerIndex, obj.name)
+                    drawAddButton(chest_box, list_length, "Minimap Chest", headerIndex, obj.name)
 
         elif menuTab == "Lighting":
             lighting = layout.column()
@@ -528,20 +666,25 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
     def draw_props(self, layout: UILayout, obj: Object):
         headerSetup = layout.column()
         headerSetupBox = headerSetup.column()
+        oot_can_draw_cs_header = False
 
-        menu_tab_map = {
-            "Child Night": ("childNightHeader", 1),
-            "Adult Day": ("adultDayHeader", 2),
-            "Adult Night": ("adultNightHeader", 3),
-            "Cutscene": ("cutsceneHeaders", game_data.z64.cs_index_start),
-        }
+        if game_data.z64.is_oot():
+            menu_tab_map = {
+                "Child Night": ("childNightHeader", 1),
+                "Adult Day": ("adultDayHeader", 2),
+                "Adult Night": ("adultNightHeader", 3),
+                "Cutscene": ("cutsceneHeaders", game_data.z64.cs_index_start),
+            }
 
-        headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
-        attr_name, header_index = menu_tab_map[self.headerMenuTab]
+            headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
+            attr_name, header_index = menu_tab_map[self.headerMenuTab]
 
-        if header_index < 4:
-            getattr(self, attr_name).draw_props(headerSetupBox, None, header_index, obj)
-        else:
+            if header_index < game_data.z64.cs_index_start:
+                getattr(self, attr_name).draw_props(headerSetupBox, None, header_index, obj)
+            else:
+                oot_can_draw_cs_header = True
+
+        if game_data.z64.is_mm() or oot_can_draw_cs_header:
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, obj.name)
             index = self.currentCutsceneIndex
@@ -589,9 +732,10 @@ class OOTRemoveSceneSettingsProperty(PropertyGroup):
     subFolder: StringProperty(name="Subfolder", default="overworld")
     customExport: BoolProperty(name="Custom Export Path")
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    mm_option: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
 
     def draw_props(self, layout: UILayout):
-        if self.option == "Custom":
+        if game_data.z64.is_oot() and self.option == "Custom" or self.mm_option == "Custom":
             prop_split(layout, self, "subFolder", "Subfolder")
             prop_split(layout, self, "name", "Name")
 
@@ -607,6 +751,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
         description="Does not split the scene and rooms into multiple files.",
     )
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    mm_option: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
     auto_add_room_objects: BoolProperty(name="Auto-add Missing Room Objects", default=True)
 
     # keeping this on purpose, will be removed once old code is cleaned-up
@@ -618,7 +763,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
             prop_split(layout, self, "name", "Name")
             customExportWarning(layout)
         else:
-            if self.option == "Custom":
+            if game_data.z64.is_oot() and self.option == "Custom" or self.mm_option == "Custom":
                 prop_split(layout, self, "subFolder", "Subfolder")
                 prop_split(layout, self, "name", "Name")
 
@@ -645,7 +790,9 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
     includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
     includeCutscenes: BoolProperty(name="Cutscenes", default=False)
     includeAnimatedMats: BoolProperty(name="Animated Materials", default=False)
+    includeActorCs: BoolProperty(name="Actor Cutscenes", default=False)
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
+    mm_option: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
     ignore_segments: BoolProperty(
         name="Ignore DL Segments",
         description=(
@@ -676,6 +823,7 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
         includeButtons4 = col.row(align=True)
         if not is_oot_features():
             includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
+            includeButtons4.prop(self, "includeActorCs", toggle=1)
 
         col.prop(self, "isCustomDest")
         col.prop(self, "ignore_segments")
@@ -684,15 +832,22 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
             prop_split(col, self, "destPath", "Directory")
             prop_split(col, self, "name", "Name")
         else:
-            if self.option == "Custom":
+            if game_data.z64.is_oot() and self.option == "Custom" or self.mm_option == "Custom":
                 prop_split(col, self, "subFolder", "Subfolder")
                 prop_split(col, self, "name", "Name")
 
-        if "SCENE_JABU_JABU" in sceneOption:
+        if game_data.z64.is_oot() and "SCENE_JABU_JABU" in sceneOption:
             col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
+
+        if not is_oot_features() and not self.includeActors:
+            col.label(text="MapDataChest won't be imported.", icon="ERROR")
 
 
 classes = (
+    # MM exclusive
+    Z64_MapDataChestProperty,
+    Z64_MapDataRoomProperty,
+    # Common
     OOTExitProperty,
     OOTLightProperty,
     OOTLightGroupProperty,
