@@ -273,6 +273,10 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
         collection = getCollectionFromIndex(obj, "tod_lights", subIndex, False)
     elif collectionType == "Exit":
         collection = getCollectionFromIndex(obj, "exitList", subIndex, False)
+    elif collectionType == "Minimap Chest":
+        collection = getCollectionFromIndex(obj, "minimap_chest_list", subIndex, False)
+    elif collectionType == "Minimap Room":
+        collection = getCollectionFromIndex(obj, "minimap_room_list", subIndex, False)
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
     elif collectionType == "Animated Mat. List":
@@ -296,6 +300,12 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
             collection = props.entries[collection_index].tex_timed_cycle_params.keyframes
         elif collectionType == "Animated Mat. Surface":
             collection = props.entries[collection_index].surface_params.meshes
+    elif collectionType == "Actor CS":
+        collection = obj.z64_actor_cs_property.entries
+    elif collectionType == "Actor CS Headers":
+        collection = obj.z64_actor_cs_property.header_settings.cutsceneHeaders
+    elif collectionType == "Actor Halfday":
+        collection = obj.ootActorProperty.halfday_bits
     elif collectionType == "Curve":
         collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):

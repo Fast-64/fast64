@@ -7,7 +7,7 @@ from bpy.types import Object
 
 from ....utility import PluginError, CData, hexOrDecInt, indent
 from ....game_data import game_data
-from ...utility import getObjectList, getEvalParams
+from ...utility import getObjectList, getEvalParams, is_oot_features
 from ...actor.properties import OOTActorProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -84,7 +84,8 @@ class SceneTransitionActors:
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
             actorProp: OOTActorProperty = transActorProp.actor
-            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actorProp.actor_id != "None":
+            actor_id: str = actorProp.actor_id
+            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
 
@@ -98,24 +99,30 @@ class SceneTransitionActors:
                 front = (fromIndex, Utility.getPropValue(transActorProp, "cameraTransitionFront"))
                 back = (toIndex, Utility.getPropValue(transActorProp, "cameraTransitionBack"))
 
-                if actorProp.actor_id == "Custom":
+                if actor_id == "Custom":
                     transActor.id = actorProp.actor_id_custom
                 else:
-                    transActor.id = actorProp.actor_id
+                    transActor.id = actor_id
 
                 transActor.name = (
-                    game_data.z64.actors.actorsByID[actorProp.actor_id].name.replace(
-                        f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
-                    )
-                    if actorProp.actor_id != "Custom"
+                    game_data.z64.actors.actorsByID[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    if actor_id != "Custom"
                     else "Custom Actor"
                 )
 
                 transActor.pos = pos
-                transActor.rot = f"DEG_TO_BINANG({(rot[1] * (180 / 0x8000)):.3f})"  # TODO: Correct axis?
+
+                rot_deg = rot[1] * (180 / 0x8000)
+                if is_oot_features():
+                    transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"  # TODO: Correct axis?
+                else:
+                    transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({actorProp.actor_cs_index} & 0x7F)"
+
                 transActor.params = (
                     actorProp.params
-                    if bpy.context.scene.fast64.oot.use_new_actor_panel and actorProp.actor_id != "Custom"
+                    if game_data.z64.is_oot()
+                    and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
+                    and actorProp.actor_id != "Custom"
                     else actorProp.params_custom
                 )
                 transActor.roomFrom, transActor.cameraFront = front
@@ -208,26 +215,36 @@ class SceneEntranceActors:
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
             actorProp: OOTActorProperty = entranceProp.actor
-            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actorProp.actor_id != "None":
+            actor_id: str = actorProp.actor_id
+            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
                 entranceActor.name = (
-                    game_data.z64.actors.actorsByID[actorProp.actor_id].name.replace(
-                        f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
-                    )
-                    if actorProp.actor_id != "Custom"
+                    game_data.z64.actors.actorsByID[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    if actor_id != "Custom"
                     else "Custom Actor"
                 )
 
                 entranceActor.id = "ACTOR_PLAYER" if not entranceProp.customActor else actorProp.actor_id_custom
                 entranceActor.pos = pos
-                entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
-                entranceActor.params = (
-                    actorProp.params
-                    if bpy.context.scene.fast64.oot.use_new_actor_panel and not entranceProp.customActor
-                    else actorProp.params_custom
-                )
+
+                if is_oot_features():
+                    entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+                else:
+                    # MM seems to use degrees directly
+                    entranceActor.rot = ", ".join(f"SPAWN_ROT_FLAGS({round(r * (180 / 0x8000))}, 0x00)" for r in rot)
+
+                # force custom params for MM (temp solution until the xml is documented properly)
+                if (
+                    game_data.z64.is_oot()
+                    and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
+                    and not entranceProp.customActor
+                ):
+                    entranceActor.params = actorProp.params
+                else:
+                    entranceActor.params = actorProp.params_custom
+
                 if entranceProp.tiedRoom is not None:
                     entranceActor.roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
                 else:
@@ -284,7 +301,7 @@ class SceneSpawns(Utility):
         """Returns the spawn array"""
 
         spawnList = CData()
-        listName = f"Spawn {self.name}"
+        listName = f"Spawn {self.name}" if game_data.z64.is_oot() else f"EntranceEntry {self.name}"
 
         # .h
         spawnList.header = f"extern {listName}[];\n"

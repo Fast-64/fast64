@@ -149,8 +149,8 @@ enumF3DSource = [
 ]
 
 defaultMaterialPresets = {
-    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid"},
-    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
+    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid", "MM": "oot_shaded_solid"},
+    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture", "MM": "oot_shaded_texture"},
 }
 
 F3D_GEO_MODES = {
@@ -258,7 +258,7 @@ def get_world_layer_defaults(scene, game_mode: str, layer: str):
             getattr(world, f"draw_layer_{layer}_cycle_1", ""),
             getattr(world, f"draw_layer_{layer}_cycle_2", ""),
         )
-    elif game_mode == "OOT":
+    elif game_mode in {"OOT", "MM"}:
         return (
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
@@ -4202,7 +4202,7 @@ class MATERIAL_MT_f3d_presets(Menu):
                     paths += bpy.utils.preset_paths("f3d/sm64_lighting_engine")
                 else:
                     paths += bpy.utils.preset_paths("f3d/sm64")
-            elif game == "oot":
+            elif game in {"oot", "mm"}:
                 paths += bpy.utils.preset_paths("f3d/oot")
                 if bpy.context.scene.f3d_type == "F3DEX3":
                     paths += bpy.utils.preset_paths("f3d/oot_f3dex3")
@@ -5185,7 +5185,7 @@ class F3DRenderSettingsPanel(Panel):
             prop_split(globalSettingsBox, renderSettings, "light1SpecSize", "Light 1 Specular Size")
         prop_split(globalSettingsBox, renderSettings, "useWorldSpaceLighting", "Use World Space Lighting")
 
-        if context.scene.gameEditorMode in ["SM64", "OOT"]:
+        if context.scene.gameEditorMode in ["SM64", "OOT", "MM"]:
             layout.separator(factor=0.5)
             gameSettingsBox = layout.box()
             gameSettingsBox.label(text="Preview Context")
@@ -5197,7 +5197,7 @@ class F3DRenderSettingsPanel(Panel):
 
                     gameSettingsBox.prop(renderSettings, "sm64Area")
 
-                case "OOT":
+                case "OOT" | "MM":
                     if renderSettings.ootSceneObject is not None:
                         gameSettingsBox.prop(renderSettings, "useObjectRenderPreview", text="Use Scene for Preview")
 

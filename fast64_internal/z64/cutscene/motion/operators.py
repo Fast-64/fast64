@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from ....utility import PluginError
 from ....game_data import game_data
 from ..classes import CutsceneObjectFactory
-from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
 from .utility import (
     setupActorCuePreview,
@@ -26,9 +25,10 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
     objFactory = CutsceneObjectFactory()
     playerOrActor = "Player" if isPlayer else "Actor"
-    newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "actor_cue_0_0", None)
     index, csPrefix = getNameInformations(csObj, f"{playerOrActor} Cue List", None)
-    newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
+    newActorCueListObj = objFactory.getNewActorCueListObject(
+        f"{csPrefix}.{playerOrActor} Cue List {index:02}", "actor_cue_0_0", None
+    )
 
     # add a basic actor cue and the dummy one
     for i in range(2):
@@ -418,7 +418,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_property = "commandType"
     bl_options = {"REGISTER", "UNDO"}
 
-    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, default="actor_cue_0_0")
+    commandType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("actor_cue_list_cmd_type"), default=1)
     objName: StringProperty()
 
     def execute(self, context):
@@ -440,7 +440,7 @@ class OOT_SearchPlayerCueIdEnumOperator(Operator):
     bl_property = "playerCueID"
     bl_options = {"REGISTER", "UNDO"}
 
-    playerCueID: EnumProperty(items=game_data.z64.enums.enum_cs_player_cue_id, default="cueid_none")
+    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum("playerCueID"), default=1)
     objName: StringProperty()
 
     def execute(self, context):
