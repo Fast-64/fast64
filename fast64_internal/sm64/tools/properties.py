@@ -21,10 +21,15 @@ class SM64_AddrConvProperties(PropertyGroup):
     level: EnumProperty(items=enumLevelNames, name="Level", default="castle_inside")
     clipboard: BoolProperty(name="Copy to Clipboard", default=True)
 
-    def upgrade_changed_props(self, scene: Scene):
+    def upgrade_scene(self, scene: Scene):
+        if self.version >= self.cur_version:
+            return
         upgrade_old_prop(self, "address", scene, "convertibleAddr", fix_forced_base_16=True)
         upgrade_old_prop(self, "level", scene, "level")
-        self.version = SM64_AddrConvProperties.cur_version
+        self.set_to_newest_version()
+
+    def set_to_newest_version(self):
+        self.version = self.cur_version
 
     def draw_props(self, layout: UILayout, import_rom: PathLike = None):
         col = layout.column()
