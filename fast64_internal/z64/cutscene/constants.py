@@ -26,7 +26,21 @@ from .classes import (
     CutsceneCmdFadeSeqList,
     CutsceneCmdRumbleController,
     CutsceneCmdRumbleControllerList,
-    CutsceneCmdDestination, CutsceneCmdCamSplineList, CutsceneCmdCamSpline, CutsceneCmdNewCamPoint, CutsceneCmdCamMisc, CutsceneCmdTransitionList, CutsceneCmdMotionBlurList, CutsceneCmdModifySeqList, CutsceneCmdMotionBlur, CutsceneCmdModifySeq, CutsceneCmdChooseCreditsScenesList, CutsceneCmdChooseCreditsScenes, CutsceneCmdTransitionGeneralList, CutsceneCmdTransitionGeneral, CutsceneCmdGiveTatl,
+    CutsceneCmdDestination,
+    CutsceneCmdCamSplineList,
+    CutsceneCmdCamSpline,
+    CutsceneCmdNewCamPoint,
+    CutsceneCmdCamMisc,
+    CutsceneCmdTransitionList,
+    CutsceneCmdMotionBlurList,
+    CutsceneCmdModifySeqList,
+    CutsceneCmdMotionBlur,
+    CutsceneCmdModifySeq,
+    CutsceneCmdChooseCreditsScenesList,
+    CutsceneCmdChooseCreditsScenes,
+    CutsceneCmdTransitionGeneralList,
+    CutsceneCmdTransitionGeneral,
+    CutsceneCmdGiveTatl,
 )
 
 
@@ -57,7 +71,6 @@ csListTypeToIcon = {
     "FadeOutSeqList": "IPO_EASE_IN_OUT",
     "MiscList": "OPTIONS",
     "RumbleList": "OUTLINER_OB_FORCE_FIELD",
-
     # from new system
     "MotionBlurList": "ONIONSKIN_ON",
     "ModifySeqList": "IPO_CONSTANT",
@@ -251,7 +264,6 @@ ootCSListEntryCommands = [
 ootCSSingleCommands = [
     "CS_HEADER",
     "CS_END_OF_SCRIPT",
-
     # note: `CutsceneImport.correct_command_lists()` can move these ones in `ootCSListEntryCommands`
     "CS_TRANSITION",
     "CS_DESTINATION",

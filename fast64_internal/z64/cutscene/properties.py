@@ -1,7 +1,15 @@
 import bpy
 
 from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
-from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty, FloatVectorProperty
+from bpy.props import (
+    StringProperty,
+    EnumProperty,
+    IntProperty,
+    BoolProperty,
+    CollectionProperty,
+    PointerProperty,
+    FloatVectorProperty,
+)
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ...game_data import game_data
@@ -493,7 +501,7 @@ class OOTCutsceneProperty(PropertyGroup):
             for listName in csListsNames:
                 for csListSubProp in getattr(csListProp, listName):
                     upgradeCutsceneSubProps(csListSubProp)
-            
+
             if csListProp.listType == "Transition":
                 new_entry = csListProp.transition_list.add()
 

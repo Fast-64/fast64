@@ -260,7 +260,9 @@ class SceneCutscene:
         for csObj in cutsceneObjects:
             if csObj is not None:
                 if csObj.ootEmptyType != "Cutscene":
-                    raise PluginError("ERROR: Object selected as cutscene is wrong type, must be empty with Cutscene type")
+                    raise PluginError(
+                        "ERROR: Object selected as cutscene is wrong type, must be empty with Cutscene type"
+                    )
                 elif csObj.parent is not None:
                     raise PluginError("ERROR: Cutscene empty object should not be parented to anything")
 

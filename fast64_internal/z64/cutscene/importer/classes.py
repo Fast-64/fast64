@@ -19,14 +19,20 @@ from ..constants import (
     ootCSListEntryCommands,
     ootCSSingleCommands,
     ootCSListAndSingleCommands,
-    cmdToClass, custom_values,
+    cmdToClass,
+    custom_values,
 )
 
 from ..classes import (
     CutsceneCmdActorCueList,
     CutsceneCmdCamPoint,
     Cutscene,
-    CutsceneObjectFactory, CutsceneCmdNewCamPoint, CutsceneCmdCamMisc, CutsceneCmdCamSpline, CutsceneSplinePoint, CutsceneCmdCamSplineList,
+    CutsceneObjectFactory,
+    CutsceneCmdNewCamPoint,
+    CutsceneCmdCamMisc,
+    CutsceneCmdCamSpline,
+    CutsceneSplinePoint,
+    CutsceneCmdCamSplineList,
 )
 
 
