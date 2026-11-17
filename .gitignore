@@ -5,3 +5,5 @@ __pycache__/
 fast64_updater/
 .python-version
 .idea
+ruff.toml
+ty.toml
