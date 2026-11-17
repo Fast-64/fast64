@@ -34,6 +34,7 @@ def get_scene_enum_from_name(scene_name: str):
     else:
         return mm_scene_name_to_id.get(scene_name, f"SCENE_{scene_name.upper()}")
 
+
 @dataclass
 class SceneTableEntry:
     """Defines an entry of ``scene_table.h``"""
