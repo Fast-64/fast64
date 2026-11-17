@@ -13,6 +13,7 @@ from ..utility import getNewPath, is_oot_features
 from ..actor_cutscene.properties import enum_end_cam, enum_end_sfx, enum_hud_visibility
 from .quick_import import QuickImportAborted, quick_import_exec
 
+
 class OOT_AddWaterBox(AddWaterBox):
     bl_idname = "object.oot_add_water_box"
 
@@ -356,6 +357,7 @@ class Z64_AddAnimatedMaterial(Operator):
             keyframe_5.prim_lod_frac = 128
 
         return {"FINISHED"}
+
 
 class Z64_AddActorCutscenes(Operator):
     bl_idname = "object.z64_add_actor_cs"

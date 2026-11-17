@@ -136,7 +136,9 @@ def findIndexIntoArrayReference(arrayName: str, segmentParam: str, actorData: st
 # gSomeTexture
 def findSingleTextureReference(segmentParam: str) -> re.Match:
     return (
-        re.search(r"[a-zA-Z0-9\_]*", segmentParam, flags=re.DOTALL) and segmentParam[0] == "g" and segmentParam[1].isupper()
+        re.search(r"[a-zA-Z0-9\_]*", segmentParam, flags=re.DOTALL)
+        and segmentParam[0] == "g"
+        and segmentParam[1].isupper()
     )
 
 
@@ -151,7 +153,7 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
         else:
             file_regex = r"TexturePtr\s*([0-9a-zA-Z\_]*)\s*\[[0-9a-zA-Z_]*\s*\]\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;"
 
-        for texArray2DMatch in re.finditer(file_regex, actorData, flags=re.DOTALL  | re.MULTILINE):
+        for texArray2DMatch in re.finditer(file_regex, actorData, flags=re.DOTALL | re.MULTILINE):
             arrayMatchData = [
                 arrayMatch.group(1)
                 for arrayMatch in re.finditer(r"\{(((?!\}).)*)\}", texArray2DMatch.group(2), flags=re.DOTALL)
@@ -174,7 +176,9 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
         array_type = "void" if game_data.z64.is_oot() else "TexturePtr"
 
         for texArrayMatch in re.finditer(
-            array_type + r"\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}", actorData, flags=re.DOTALL | re.MULTILINE
+            array_type + r"\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}",
+            actorData,
+            flags=re.DOTALL | re.MULTILINE,
         ):
             arrayName = texArrayMatch.group(1).strip()
             textureList = stripComments([item for item in texArrayMatch.group(2).split(",")])
