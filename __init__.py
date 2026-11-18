@@ -340,11 +340,25 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.AddonUpdaterPreferences):
+class Fast64AddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.AddonUpdaterPreferences):
     bl_idname = __package__
 
+    allow_changing_unset_material_props: bpy.props.BoolProperty(
+        name="Allow changing unset material props",
+        description=(
+            'Allow changing material properties for which the "set" checkbox is unchecked. '
+            "By default such properties are disabled in the UI. "
+            "This affects the prim/env/blend colors, chroma keys, K0-K5 and combiner properties"
+        ),
+    )
+
     def draw(self, context):
+        self.layout.prop(self, "allow_changing_unset_material_props")
         addon_updater_ops.update_settings_ui(self, context)
+
+
+def get_addon_preferences() -> Fast64AddonPreferences:
+    return bpy.context.preferences.addons[__package__].preferences
 
 
 classes = (
@@ -468,7 +482,7 @@ def register():
 
     # Register addon updater first,
     # this way if a broken version fails to register the user can still pick another version.
-    register_class(ExampleAddonPreferences)
+    register_class(Fast64AddonPreferences)
     addon_updater_ops.register(bl_info)
 
     register_class(Matrix4x4Property)
@@ -554,4 +568,4 @@ def unregister():
     bpy.app.handlers.load_post.remove(after_load)
 
     addon_updater_ops.unregister()
-    unregister_class(ExampleAddonPreferences)
+    unregister_class(Fast64AddonPreferences)
