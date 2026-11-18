@@ -290,6 +290,7 @@ class OOTActorProperty(PropertyGroup):
     halfday_bits: CollectionProperty(type=Z64_HalfdayItem)
     use_global_actor_cs: BoolProperty(name="Use Global Actor Cutscene", default=False)
     actor_cs_index: IntProperty(min=0, max=127, default=127)
+    actor_flags: StringProperty(default="0x0000")
 
     @staticmethod
     def upgrade_object(obj: Object):
@@ -544,6 +545,9 @@ class OOTActorProperty(PropertyGroup):
 
             split.label(text="Actor ID")
             split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor_id))
+
+            if not is_oot_features():
+                prop_split(actorIDBox, self, "actor_flags", "Actor Flags")
 
             if (
                 game_data.z64.is_oot()

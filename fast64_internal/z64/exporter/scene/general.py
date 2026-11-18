@@ -276,7 +276,7 @@ class SceneInfos:
             drawConfigKey = props.sceneTableEntry.drawConfig
             drawConfig = game_data.z64.get_enum_value("draw_config", drawConfigKey)
         return SceneInfos(
-            Utility.getPropValue(props, "globalObject"),
+            Utility.getPropValue(props, "globalObject", enum_key="global_object"),
             Utility.getPropValue(props, "naviCup") if game_data.z64.is_oot() else "NAVI_QUEST_HINTS_NONE",
             drawConfig,
             props.appendNullEntrance,

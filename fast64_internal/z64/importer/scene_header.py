@@ -202,8 +202,12 @@ def parseRoomList(
 
     if use_macros:
         regex = r"ROM_FILE\((.*?)\)"
-    else:
+    elif game_data.z64.is_oot():
         regex = r"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,"
+    elif game_data.z64.is_mm():
+        regex = r"{([\(\)\sA-Za-z0-9\_]*),\s?([\(\)\sA-Za-z0-9\_]*)\}\s*,"
+    else:
+        raise PluginError("ERROR: invalid operating mode")
 
     # Assumption that alternate scene headers all use the same room list.
     for roomMatch in re.finditer(regex, roomList, flags=re.DOTALL):
@@ -456,6 +460,7 @@ def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, lis
 
                 if use_frame_indices:
                     assert frame is not None
+                    color_entry.validate_frame_num()
                     color_entry.frame_num = int(frame, base=0)
 
                 color_entry.prim_lod_frac = prim_color[4]

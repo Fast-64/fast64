@@ -107,10 +107,13 @@ class Scene:
         model: OOTModel,
     ):
         i = 0
-        use_mat_anim = (
-            "mat_anim" in sceneObj.ootSceneHeader.sceneTableEntry.drawConfig
-            or bpy.context.scene.ootSceneExportSettings.customExport
-        )
+
+        draw_cfg = sceneObj.ootSceneHeader.sceneTableEntry.drawConfig
+
+        if draw_cfg == "Custom":
+            use_mat_anim = True
+        else:
+            use_mat_anim = "mat_anim" in draw_cfg or bpy.context.scene.ootSceneExportSettings.customExport
 
         # process collisions first so we can use it for animated materials (dumb but works!)
         colHeader = CollisionHeader.new(

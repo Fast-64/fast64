@@ -27,10 +27,10 @@ from .utility import (
 
 
 def set_actor_params(actorProp, actor_id, actor_params):
-    if actorProp.actor_id != "Custom":
+    if game_data.z64.is_oot() and actorProp.actor_id != "Custom":
         try:
             actorProp.set_param_value(actor_params, "Params")
-        except:
+        except Exception:
             print("Failed to parse params " + actor_params + " for actor " + actor_id + ":")
             traceback.print_exc()
             print("Defaulting to custom")
@@ -140,9 +140,9 @@ def parseActorInfo(
             )
         else:
             if "|" in actorID:
-                split = actorID.split(" | ")
-                actorID = split[0]
-                actor_id_flags = split[1]
+                split = actorID.split("|")
+                actorID = split[0].strip()
+                actor_id_flags = split[1].strip()
 
             spawn_rotation = []
             spawn_flags = []
@@ -236,6 +236,8 @@ def parseActorList(
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             if not is_oot_features():
+                actorProp.actor_flags = actor_id_flags
+
                 if sharedSceneData.includeActorCs:
                     actorProp.actor_cs_index = spawn_flags[1]
                     actorProp.use_global_actor_cs = actorProp.actor_cs_index < 127

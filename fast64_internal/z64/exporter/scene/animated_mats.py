@@ -588,14 +588,14 @@ class AnimatedMatColorSwitchParams:
             (params_name + " = {\n")
             + indent
             + "{ "
-            + f", ".join(
+            + ", ".join(
                 "{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}, {entry[4]}" + " }"
                 for entry in self.prim_colors
             )
             + " },\n"
             + indent
             + "{ "
-            + f", ".join("{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }" for entry in self.env_colors)
+            + ", ".join("{ " + f"{entry[0]}, {entry[1]}, {entry[2]}, {entry[3]}" + " }" for entry in self.env_colors)
             + " },\n"
             + indent
             + "{ "
@@ -619,12 +619,18 @@ class AnimatedMaterial:
         self.name = base_name
         self.entries = []
         self.event_map: dict[int, tuple[str, str, CData]] = {}  # type index to event data
-        self.cam_type = (
-            game_data.z64.get_enum_value("anim_mats_cam_type", props.cam_type)
-            if props.cam_type != "Custom"
-            else props.cam_type_custom
-        )
-        self.cam_on_event = "true" if props.cam_on_event and self.cam_type != "anim_mat_camera_type_none" else "false"
+        self.cam_type = None
+        self.cam_on_event = None
+
+        if is_hackeroot():
+            self.cam_type = (
+                game_data.z64.get_enum_value("anim_mats_cam_type", props.cam_type)
+                if props.cam_type != "Custom"
+                else props.cam_type_custom
+            )
+            self.cam_on_event = (
+                "true" if props.cam_on_event and self.cam_type != "anim_mat_camera_type_none" else "false"
+            )
 
         if len(props.entries) == 0:
             return
@@ -636,19 +642,23 @@ class AnimatedMaterial:
             "anim_mat_type_color_lerp": (AnimatedMatColorParams, "color_params"),
             "anim_mat_type_color_nonlinear_interp": (AnimatedMatColorParams, "color_params"),
             "anim_mat_type_tex_cycle": (AnimatedMatTexCycleParams, "tex_cycle_params"),
-            "anim_mat_type_color_cycle": (AnimatedMatColorParams, "color_params"),
-            "anim_mat_type_tex_timed_cycle": (AnimatedMatTexTimedCycleParams, "tex_timed_cycle_params"),
-            "anim_mat_type_texture": (AnimatedMatTextureParams, "texture_params"),
-            "anim_mat_type_multitexture": (AnimatedMatMultiTextureParams, "multitexture_params"),
-            "anim_mat_type_event": (AnimatedMatEventParams, None),
-            "anim_mat_type_surface_swap": (AnimatedMatSurfaceSwapParams, "surface_params"),
-            "anim_mat_type_oscillating_two_tex": (AnimatedMatTexScrollParams, "tex_scroll_params"),
-            "anim_mat_type_color_switch": (AnimatedMatColorSwitchParams, "color_switch_params"),
         }
+
+        if is_hackeroot():
+            type_list_map |= {
+                "anim_mat_type_color_cycle": (AnimatedMatColorParams, "color_params"),
+                "anim_mat_type_tex_timed_cycle": (AnimatedMatTexTimedCycleParams, "tex_timed_cycle_params"),
+                "anim_mat_type_texture": (AnimatedMatTextureParams, "texture_params"),
+                "anim_mat_type_multitexture": (AnimatedMatMultiTextureParams, "multitexture_params"),
+                "anim_mat_type_event": (AnimatedMatEventParams, None),
+                "anim_mat_type_surface_swap": (AnimatedMatSurfaceSwapParams, "surface_params"),
+                "anim_mat_type_oscillating_two_tex": (AnimatedMatTexScrollParams, "tex_scroll_params"),
+                "anim_mat_type_color_switch": (AnimatedMatColorSwitchParams, "color_switch_params"),
+            }
 
         for i, item in enumerate(props.entries):
             type = item.type if item.type != "Custom" else item.type_custom
-            if type != "Custom" and type != "anim_mat_type_none":
+            if type != "Custom" and type != "anim_mat_type_none" and type in type_list_map:
                 class_def, prop_name = type_list_map[type]
                 props = getattr(item, prop_name) if type != "anim_mat_type_event" else None
                 self.entries.append(
@@ -695,7 +705,7 @@ class AnimatedMaterial:
 
                 entries.append(
                     f"MATERIAL_SEGMENT_NUM(0x{entry.segment_num:02X}), "
-                    + f"{game_data.z64.get_enum_value('anim_mats_type', entry.type)}, "
+                    + f"{game_data.z64.get_enum_value('anim_mats_type', entry.type, force_index=game_data.z64.is_mm())}, "
                     + (
                         f"{'&' if 'tex_scroll' not in entry.type else ''}{entry.name},"
                         if entry.type != "anim_mat_type_event"
@@ -845,7 +855,7 @@ class SceneAnimatedMaterial:
 
         if is_hackeroot():
             am = self.animated_material
-            assert am is not None
+            assert am is not None and am.cam_type is not None and am.cam_on_event is not None
             cmd = f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}, MATERIAL_CAM_PARAMS({am.cam_type}, {am.cam_on_event})),\n"
         else:
             cmd = f"SCENE_CMD_ANIMATED_MATERIAL_LIST({self.name}),\n"

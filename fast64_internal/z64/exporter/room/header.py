@@ -226,6 +226,8 @@ class RoomActors:
                 if is_oot_features():
                     actor.rot = ", ".join(rotation)
                 else:
+                    actor.id = f"{actor.id} | {actorProp.actor_flags}"
+
                     halfday_bits = 0
 
                     if actorProp.halfday_all:

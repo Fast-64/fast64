@@ -21,7 +21,7 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
 
         if game_data.z64.is_oot():
-            prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
+            prop_split(col, context.scene, "oot_decomp_path", "Decomp Path")
         else:
             prop_split(col, context.scene.fast64.oot, "mm_decomp_path", "Decomp Path")
 
@@ -66,19 +66,7 @@ def file_register():
         else:
             return bpy.context.scene.fast64.oot.mm_decomp_path
 
-    def set_decomp_path(value: str):
-        game_data.z64.update(bpy.context, None)
-        if game_data.z64.is_oot():
-            bpy.context.scene.fast64.oot.oot_decomp_path = value
-        else:
-            bpy.context.scene.fast64.oot.mm_decomp_path = value
-
-    Scene.ootDecompPath = StringProperty(
-        name="Decomp Folder",
-        subtype="FILE_PATH",
-        get=lambda self: get_decomp_path(),
-        set=lambda self, value: set_decomp_path(value),
-    )
+    Scene.ootDecompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH", get=lambda self: get_decomp_path())
 
 
 def file_unregister():

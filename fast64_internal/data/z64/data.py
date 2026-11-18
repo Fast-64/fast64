@@ -957,10 +957,10 @@ class Z64_Data:
         self.update(bpy.context, None)
         return self.enum_map[prop_name]
 
-    def get_enum_value(self, enum_key: str, item_key: str):
+    def get_enum_value(self, enum_key: str, item_key: str, force_index: bool = False):
         enum = self.enums.enumByKey[enum_key]
 
-        if bpy.context.scene.fast64.oot.useDecompFeatures:
+        if not force_index and bpy.context.scene.fast64.oot.useDecompFeatures:
             return enum.item_by_key[item_key].id
         else:
             return str(enum.item_by_key[item_key].index)

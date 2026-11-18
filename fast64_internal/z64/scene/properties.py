@@ -625,7 +625,8 @@ class OOTSceneHeaderProperty(PropertyGroup):
             if headerIndex is not None:
                 layout.prop(self, "reuse_anim_mat", text="Use Existing Material Anim.")
 
-            if "mat_anim" not in obj.ootSceneHeader.sceneTableEntry.drawConfig:
+            draw_cfg = obj.ootSceneHeader.sceneTableEntry.drawConfig
+            if draw_cfg != "Custom" and "mat_anim" not in draw_cfg:
                 wrong_box = layout.box().column()
                 wrong_box.label(text="Wrong Draw Config", icon="ERROR")
 
