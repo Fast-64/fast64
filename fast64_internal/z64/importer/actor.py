@@ -122,7 +122,7 @@ def parseActorInfo(
     actorMatch: re.Match, nestedBrackets: bool
 ) -> tuple[str, str, list[int], tuple[int], tuple[int], str]:
     spawn_flags = [0x0000] * 3
-    actor_id_flags = 0x0000
+    actor_id_flags = "0x0000"
 
     if nestedBrackets:
         actorID = actorMatch.group(1).strip()
