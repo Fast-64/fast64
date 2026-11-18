@@ -67,43 +67,74 @@ def setupCompositorNodes():
     # get the existing nodes
     nodeTree = bpy.context.scene.node_tree
     nodeRenderLayer = nodeComposite = nodeRGBTrans = nodeAlphaOver = nodeRGBMisc = nodeMixRGBMisc = None
-    node_motion_blur = None
-    for node in nodeTree.nodes.values():
-        if node.type == "R_LAYERS":
-            nodeRenderLayer = node
-        if node.type == "COMPOSITE":
-            nodeComposite = node
-        if node.label == "CSTrans_RGB":
-            nodeRGBTrans = node
-        if node.label == "CSMisc_RGB":
-            nodeRGBMisc = node
-        if node.label == "CSPreview_AlphaOver":
-            nodeAlphaOver = node
-        if node.label == "CSMisc_MixRGB":
-            nodeMixRGBMisc = node
-        if node.label == "CSMotionBlur":
-            node_motion_blur = node
+    node_sep = node_motion_blur = None
+
+    if len(nodeTree.nodes) <= 8:
+        for node in nodeTree.nodes.values():
+            if node.type == "R_LAYERS":
+                nodeRenderLayer = node
+            if node.type == "COMPOSITE":
+                nodeComposite = node
+            if node.label == "CSTrans_RGB":
+                nodeRGBTrans = node
+            if node.label == "CSMisc_RGB":
+                nodeRGBMisc = node
+            if node.label == "CSPreview_AlphaOver":
+                nodeAlphaOver = node
+            if node.label == "CSMisc_MixRGB":
+                nodeMixRGBMisc = node
+            if node.label == "CSMotionBlur":
+                node_motion_blur = node
+
+            if bpy.app.version >= (4, 0, 0):
+                if node.label == "CSMisc_Separate":
+                    node_sep = node
+    else:
+        # clear the node list if we have extra ones we don't want
+        nodeTree.nodes.clear()
 
     # create or set the data of each nodes
-    nodeRenderLayer = getNode(nodeRenderLayer, "CompositorNodeRLayers", "CSPreview_RenderLayer", (-300, 0))
-    nodeRGBMisc = getNode(nodeRGBMisc, "CompositorNodeRGB", "CSMisc_RGB", (-200, -200))
+    nodeRenderLayer = getNode(nodeRenderLayer, "CompositorNodeRLayers", "CSPreview_RenderLayer", (-500, 0))
+    nodeComposite = getNode(nodeComposite, "CompositorNodeComposite", "CSPreview_Composite", (500, 0))
+    nodeRGBMisc = getNode(nodeRGBMisc, "CompositorNodeRGB", "CSMisc_RGB", (-500, -200))
     nodeRGBTrans = getNode(nodeRGBTrans, "CompositorNodeRGB", "CSTrans_RGB", (0, -200))
-    nodeMixRGBMisc = getNode(nodeMixRGBMisc, "CompositorNodeMixRGB", "CSMisc_MixRGB", (0, 0))
-    nodeAlphaOver = getNode(nodeAlphaOver, "CompositorNodeAlphaOver", "CSPreview_AlphaOver", (200, 0))
+    nodeAlphaOver = getNode(nodeAlphaOver, "CompositorNodeAlphaOver", "CSPreview_AlphaOver", (300, 0))
     node_motion_blur = getNode(node_motion_blur, "CompositorNodeDBlur", "CSMotionBlur", (400, 0))
-    nodeComposite = getNode(nodeComposite, "CompositorNodeComposite", "CSPreview_Composite", (600, 0))
 
-    # link the nodes together
-    nodeTree.links.new(nodeMixRGBMisc.inputs[1], nodeRenderLayer.outputs[0])
-    nodeTree.links.new(nodeMixRGBMisc.inputs[2], nodeRGBMisc.outputs[0])
-    nodeTree.links.new(nodeAlphaOver.inputs[1], nodeMixRGBMisc.outputs[0])
+    if bpy.app.version < (4, 0, 0):
+        nodeMixRGBMisc = getNode(nodeMixRGBMisc, "CompositorNodeMixRGB", "CSMisc_MixRGB", (0, 0))
+
+        # link the nodes together
+        nodeTree.links.new(nodeMixRGBMisc.inputs[1], nodeRenderLayer.outputs[0])
+        nodeTree.links.new(nodeMixRGBMisc.inputs[2], nodeRGBMisc.outputs[0])
+        nodeTree.links.new(nodeAlphaOver.inputs[1], nodeMixRGBMisc.outputs[0])
+
+        # misc settings
+        nodeMixRGBMisc.use_alpha = True
+    else:
+        # on 4.0+ we need to bind the color alpha to the "factor" input of the rgb mix
+
+        nodeMixRGBMisc = getNode(nodeMixRGBMisc, "ShaderNodeMix", "CSMisc_MixRGB", (0, 50))
+        node_sep = getNode(node_sep, "CompositorNodeSeparateColor", "CSMisc_Separate", (-200, -200))
+
+        # link the nodes together
+        nodeTree.links.new(nodeMixRGBMisc.inputs[6], nodeRenderLayer.outputs[0])
+        nodeTree.links.new(nodeMixRGBMisc.inputs[7], nodeRGBMisc.outputs[0])
+        nodeTree.links.new(nodeAlphaOver.inputs[1], nodeMixRGBMisc.outputs[2])
+        nodeTree.links.new(node_sep.inputs[0], nodeRGBMisc.outputs[0])
+        nodeTree.links.new(nodeMixRGBMisc.inputs[0], node_sep.outputs[3])
+
+        # misc settings
+        nodeMixRGBMisc.data_type = "RGBA"
+        nodeMixRGBMisc.clamp_result = False
+        nodeMixRGBMisc.clamp_factor = False
+        node_sep.mode = "RGB"
+
     nodeTree.links.new(nodeAlphaOver.inputs[2], nodeRGBTrans.outputs[0])
     nodeTree.links.new(nodeComposite.inputs[0], nodeAlphaOver.outputs[0])
     nodeTree.links.new(node_motion_blur.inputs[0], nodeAlphaOver.outputs[0])
     nodeTree.links.new(nodeComposite.inputs[0], node_motion_blur.outputs[0])
 
-    # misc settings
-    nodeMixRGBMisc.use_alpha = True
     nodeMixRGBMisc.blend_type = "COLOR"
     bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewNodesReady = True
 
