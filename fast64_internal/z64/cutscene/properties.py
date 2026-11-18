@@ -471,7 +471,7 @@ class OOTCutsceneProperty(PropertyGroup):
     cs_give_tatl_start_frame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
     next_entrance: StringProperty(default="0xFFFF")
-    play_on_spawn: IntProperty(min=0, default=0)
+    play_on_spawn: IntProperty(min=0, default=0xFF)
     spawn_flag_type: EnumProperty(
         items=[
             ("Custom", "Custom", "Custom"),

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object
 
+from ....game_data import game_data
 from ....utility import PluginError, CData, indent
 from ...utility import getCustomProperty, is_oot_features
 from ...scene.properties import OOTSceneHeaderProperty
@@ -65,7 +66,11 @@ class Cutscene:
                 spawn_flag if game_data.z64.is_mm() or not is_oot_features() else None,
             )
 
-        return None
+        # return empty cutscene
+        assert name is not None
+        return Cutscene(
+            name, CutsceneData(useMacros, motionOnly), int(), int(), useMacros, motionOnly, None, None, None
+        )
 
     @staticmethod
     def export(cs_obj: Object, skip_includes: bool = False, skip_endif: bool = False):
@@ -254,10 +259,12 @@ class SceneCutscene:
         cutsceneObjects: list[Object] = [extraCS.csObject for extraCS in props.extraCutscenes]
         entries: list[Cutscene] = []
 
-        if headerIndex > 0 and len(cutsceneObjects) > 0:
-            raise PluginError("ERROR: Extra cutscenes can only belong to the main header!")
+        if is_oot_features():
+            if headerIndex > 0 and len(cutsceneObjects) > 0:
+                raise PluginError("ERROR: Extra cutscenes can only belong to the main header!")
 
-        cutsceneObjects.insert(0, csObj)
+            cutsceneObjects.insert(0, csObj)
+
         for csObj in cutsceneObjects:
             if csObj is not None:
                 if csObj.ootEmptyType != "Cutscene":
@@ -267,10 +274,12 @@ class SceneCutscene:
                 elif csObj.parent is not None:
                     raise PluginError("ERROR: Cutscene empty object should not be parented to anything")
 
-                writeType = props.csWriteType
                 csWriteCustom = None
-                if writeType == "Custom":
-                    csWriteCustom = getCustomProperty(props, "csWriteCustom")
+
+                if game_data.z64.is_oot():
+                    writeType = props.csWriteType
+                    if writeType == "Custom":
+                        csWriteCustom = getCustomProperty(props, "csWriteCustom")
 
                 if props.writeCutscene:
                     # if csWriteCustom is None then the name will auto-set from the csObj passed in the class

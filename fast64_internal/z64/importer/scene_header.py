@@ -556,6 +556,43 @@ def parse_actor_cs(scene_obj: Object, header_index: int, scene_data: str, list_n
     bpy.context.scene.fast64.oot.global_actor_cs_count = len(props.entries)
 
 
+def parse_cs_script_list(scene_obj: Object, header_index: int, scene_data: str, list_name: str, expected_count: int):
+    data_match = getDataMatch(scene_data, list_name, "CutsceneScriptEntry", "scripted cs list")
+    cs_data = data_match.strip().replace(" ", "").replace("{", "").replace("}", "").split("\n")
+
+    # note: if we want to import cutscenes all the scripts are gonna be processed before the scene is
+    cs_map: dict[str, Object] = {
+        cs_obj.name.removeprefix("Cutscene."): cs_obj
+        for cs_obj in bpy.data.objects
+        if cs_obj.type == "EMPTY" and cs_obj.ootEmptyType == "Cutscene"
+    }
+
+    assert len(cs_data) == expected_count
+    for data in cs_data:
+        split = data.removesuffix(",").split(",")
+        cs_obj = cs_map[split[0]]
+        props = cs_obj.ootCutsceneProperty
+
+        props.next_entrance = split[1]
+        props.play_on_spawn = int(split[2], base=16)
+
+        if split[3].startswith("0x"):
+            props.spawn_flag_type = "CS_SPAWN_FLAG_ONCE"
+            props.spawn_flag = split[3]
+        else:
+            assert split[3].startswith("CS_SPAWN_FLAG_")
+            props.spawn_flag_type = split[3]
+
+        main_scene_props = scene_obj.ootSceneHeader
+        if header_index == 0:
+            extracs_props = main_scene_props.extraCutscenes
+        else:
+            extracs_props = scene_obj.ootAlternateSceneHeaders.cutsceneHeaders[header_index - 1].extraCutscenes
+
+        new_entry = extracs_props.add()
+        new_entry.csObject = cs_obj
+
+
 def parseSceneCommands(
     sceneName: Optional[str],
     sceneObj: Optional[bpy.types.Object],
@@ -714,6 +751,10 @@ def parseSceneCommands(
                 if sharedSceneData.includeActorCs:
                     # Delay until cameras are processed, if used
                     delayed_commands[command] = args
+                command_list.remove(command)
+            elif command == "SCENE_CMD_CUTSCENE_SCRIPT_LIST":
+                if sharedSceneData.includeCutscenes:
+                    parse_cs_script_list(sceneObj, headerIndex, sceneData, stripName(args[1]), hexOrDecInt(args[0]))
                 command_list.remove(command)
 
     # requires `SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST`

@@ -1,4 +1,3 @@
-from fast64.fast64_internal.z64.exporter.utility import Utility
 import bpy
 import re
 
@@ -19,21 +18,158 @@ from ..constants import (
     ootCSListEntryCommands,
     ootCSSingleCommands,
     ootCSListAndSingleCommands,
-    cmdToClass,
     custom_values,
 )
 
 from ..classes import (
-    CutsceneCmdActorCueList,
-    CutsceneCmdCamPoint,
-    Cutscene,
     CutsceneObjectFactory,
+)
+
+# TODO: move these classes to a common place outside the exporter
+from ...exporter.utility import Utility
+from ...exporter.cutscene import Cutscene
+from ...exporter.cutscene.actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
+from ...exporter.cutscene.text import (
+    CutsceneCmdTextList,
+    CutsceneCmdText,
+    CutsceneCmdTextNone,
+    CutsceneCmdTextOcarinaAction,
+)
+
+from ...exporter.cutscene.seq import (
+    CutsceneCmdStartStopSeqList,
+    CutsceneCmdFadeSeqList,
+    CutsceneCmdStartStopSeq,
+    CutsceneCmdFadeSeq,
+    CutsceneCmdModifySeq,
+    CutsceneCmdModifySeqList,
+)
+
+from ...exporter.cutscene.misc import (
+    CutsceneCmdLightSetting,
+    CutsceneCmdTime,
+    CutsceneCmdMisc,
+    CutsceneCmdRumbleController,
+    CutsceneCmdDestination,
+    CutsceneCmdMiscList,
+    CutsceneCmdRumbleControllerList,
+    CutsceneCmdTransition,
+    CutsceneCmdTransitionList,
+    CutsceneCmdLightSettingList,
+    CutsceneCmdTimeList,
+    CutsceneCmdMotionBlur,
+    CutsceneCmdMotionBlurList,
+    CutsceneCmdChooseCreditsScenes,
+    CutsceneCmdChooseCreditsScenesList,
+    CutsceneCmdTransitionGeneral,
+    CutsceneCmdTransitionGeneralList,
+    CutsceneCmdGiveTatl,
+)
+
+from ...exporter.cutscene.camera import (
+    CutsceneCmdCamPoint,
+    CutsceneCmdCamEyeSpline,
+    CutsceneCmdCamATSpline,
+    CutsceneCmdCamEyeSplineRelToPlayer,
+    CutsceneCmdCamATSplineRelToPlayer,
+    CutsceneCmdCamEye,
+    CutsceneCmdCamAT,
     CutsceneCmdNewCamPoint,
     CutsceneCmdCamMisc,
-    CutsceneCmdCamSpline,
     CutsceneSplinePoint,
+    CutsceneCmdCamSpline,
     CutsceneCmdCamSplineList,
 )
+
+cmdToClass = {
+    "CS_CAM_POINT": CutsceneCmdCamPoint,
+    "CS_MISC": CutsceneCmdMisc,
+    "CS_LIGHT_SETTING": CutsceneCmdLightSetting,
+    "CS_TIME": CutsceneCmdTime,
+    "CS_FADE_OUT_SEQ": CutsceneCmdFadeSeq,
+    "CS_RUMBLE_CONTROLLER": CutsceneCmdRumbleController,
+    "CS_TEXT": CutsceneCmdText,
+    "CS_TEXT_NONE": CutsceneCmdTextNone,
+    "CS_TEXT_OCARINA_ACTION": CutsceneCmdTextOcarinaAction,
+    "CS_START_SEQ": CutsceneCmdStartStopSeq,
+    "CS_STOP_SEQ": CutsceneCmdStartStopSeq,
+    "CS_ACTOR_CUE": CutsceneCmdActorCue,
+    "CS_PLAYER_CUE": CutsceneCmdActorCue,
+    "CS_CAM_EYE_SPLINE": CutsceneCmdCamEyeSpline,
+    "CS_CAM_AT_SPLINE": CutsceneCmdCamATSpline,
+    "CS_CAM_EYE_SPLINE_REL_TO_PLAYER": CutsceneCmdCamEyeSplineRelToPlayer,
+    "CS_CAM_AT_SPLINE_REL_TO_PLAYER": CutsceneCmdCamATSplineRelToPlayer,
+    "CS_CAM_EYE": CutsceneCmdCamEye,
+    "CS_CAM_AT": CutsceneCmdCamAT,
+    "CS_MISC_LIST": CutsceneCmdMiscList,
+    "CS_TRANSITION": CutsceneCmdTransition,
+    "CS_TEXT_LIST": CutsceneCmdTextList,
+    "CS_LIGHT_SETTING_LIST": CutsceneCmdLightSettingList,
+    "CS_TIME_LIST": CutsceneCmdTimeList,
+    "CS_FADE_OUT_SEQ_LIST": CutsceneCmdFadeSeqList,
+    "CS_RUMBLE_CONTROLLER_LIST": CutsceneCmdRumbleControllerList,
+    "CS_START_SEQ_LIST": CutsceneCmdStartStopSeqList,
+    "CS_STOP_SEQ_LIST": CutsceneCmdStartStopSeqList,
+    "CS_ACTOR_CUE_LIST": CutsceneCmdActorCueList,
+    "CS_PLAYER_CUE_LIST": CutsceneCmdActorCueList,
+    "CS_DESTINATION": CutsceneCmdDestination,
+    # from new system
+    "CS_CAM_SPLINE_LIST": CutsceneCmdCamSplineList,
+    "CS_CAM_SPLINE": CutsceneCmdCamSpline,
+    "CS_CAM_POINT_NEW": CutsceneCmdNewCamPoint,
+    "CS_CAM_MISC": CutsceneCmdCamMisc,
+    "CS_TRANSITION_LIST": CutsceneCmdTransitionList,
+    "CS_TEXT_DEFAULT": CutsceneCmdText,
+    "CS_TEXT_TYPE_1": CutsceneCmdText,
+    "CS_TEXT_TYPE_3": CutsceneCmdText,
+    "CS_TEXT_BOSSES_REMAINS": CutsceneCmdText,
+    "CS_TEXT_ALL_NORMAL_MASKS": CutsceneCmdText,
+    "CS_MOTION_BLUR_LIST": CutsceneCmdMotionBlurList,
+    "CS_MOTION_BLUR": CutsceneCmdMotionBlur,
+    "CS_MODIFY_SEQ_LIST": CutsceneCmdModifySeqList,
+    "CS_MODIFY_SEQ": CutsceneCmdModifySeq,
+    "CS_CHOOSE_CREDITS_SCENES_LIST": CutsceneCmdChooseCreditsScenesList,
+    "CS_CHOOSE_CREDITS_SCENES": CutsceneCmdChooseCreditsScenes,
+    "CS_TRANSITION_GENERAL_LIST": CutsceneCmdTransitionGeneralList,
+    "CS_TRANSITION_GENERAL": CutsceneCmdTransitionGeneral,
+    "CS_GIVE_TATL": CutsceneCmdGiveTatl,
+}
+
+list_type_to_list_prop_member = {
+    "Text": "textList",
+    "Misc": "miscList",
+    "Transition": "transition_list",
+    "LightSettings": "lightSettingsList",
+    "Time": "timeList",
+    "Rumble": "rumbleList",
+    "MotionBlur": "motion_blur_list",
+    "TransitionGeneral": "trans_general_list",
+    "CreditsScene": "credits_scene_list",
+    "ModifySeq": "mod_seq_list",
+    "StartSeq": "seqList",
+    "StopSeq": "seqList",
+    "FadeOutSeq": "seqList",
+    "StartAmbience": "seqList",
+    "FadeOutAmbience": "seqList",
+}
+
+list_type_to_cs_data_member = {
+    "Text": "textList",
+    "Misc": "miscList",
+    "Transition": "transitionList",
+    "LightSettings": "lightSettingsList",
+    "Time": "timeList",
+    "Rumble": "rumbleList",
+    "MotionBlur": "motion_blur_list",
+    "TransitionGeneral": "transition_general_list",
+    "CreditsScene": "credits_scene_list",
+    "ModifySeq": "modify_seq_list",
+    "StartSeq": "seqList",
+    "StopSeq": "seqList",
+    "FadeOutSeq": "fadeSeqList",
+    "StartAmbience": "start_ambience_list",
+    "FadeOutAmbience": "fade_out_ambience_list",
+}
 
 
 @dataclass
@@ -88,9 +224,12 @@ class CutsceneImport(CutsceneObjectFactory):
             )
         return params
 
-    def getNewCutscene(self, csData: str, name: str):
+    def getNewCutscene(self, csData: str, name: str, use_macros: bool, motion_only: bool):
         params = self.getCmdParams(csData, "CS_HEADER", Cutscene.paramNumber)
-        return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
+        new_cs = Cutscene.new(name, None, use_macros, motion_only)
+        new_cs.totalEntries = getInteger(params[0])
+        new_cs.frameCount = getInteger(params[1])
+        return new_cs
 
     def correct_command_lists(self, command: str):
         """If using the new cs system, moves standalone commands to the proper lists"""
@@ -168,7 +307,7 @@ class CutsceneImport(CutsceneObjectFactory):
         # parse cutscenes
         cs_data_map: dict[str, list[str]] = {}
         cs_list_map: dict[str, list[str]] = {}
-        foundCutscene = False
+        csName = None
         for line in fileLines:
             if not line.startswith("//") and not line.startswith("/*"):
                 if "CutsceneData " in line:
@@ -176,16 +315,15 @@ class CutsceneImport(CutsceneObjectFactory):
                     csName = line.split(" ")[1].split("[")[0]
                     if csName in existingCutsceneNames:
                         print(f"WARNING: Cutscene '{csName}' already exists in this blend's data.")
-                    foundCutscene = True
                     cs_data_map[csName] = []
                     print(f"INFO: Found cutscene '{csName}' in the file data.")
 
-                if foundCutscene:
+                if csName is not None:
                     next_line = fileLines[fileLines.index(line) + 1]
 
                     if "#include" in next_line:
                         cs_data_map[csName] = get_include_data(next_line).split("\n")
-                        foundCutscene = False
+                        csName = None
                     else:
                         s_line = line.strip()
                         cs_cmd = s_line.split("(")[0]
@@ -195,11 +333,11 @@ class CutsceneImport(CutsceneObjectFactory):
                                 cs_data_map[csName][-1] += line
 
                         if s_line.startswith("CS_") and not s_line.startswith("CS_FLOAT"):
-                            if self.csName is None or self.csName == cs_name:
+                            if self.csName is None or self.csName == csName:
                                 cs_data_map[csName].append(line)
 
                         if "};" in line:
-                            foundCutscene = False
+                            csName = None
 
         for cs_name, cs_data in cs_data_map.items():
             cs_list_map[cs_name] = self.parse_cs_lines(cs_name, cs_data)
@@ -247,7 +385,7 @@ class CutsceneImport(CutsceneObjectFactory):
                                 parsedData += line
                             elif not cmdListFound and curCmd in ootCSListEntryCommands:
                                 print(f"{cs_name}, command:\n{line}")
-                                raise PluginError(f"ERROR: Found a list entry outside a list inside ``{cs_name}``!")
+                                raise PluginError(f"ERROR: Found a list entry outside a list inside `{cs_name}`!")
 
                         if cmdListFound and nextCmd == "CS_END_OF_SCRIPT" or nextCmd in ootCSListAndSingleCommands:
                             cmdListFound = False
@@ -264,7 +402,7 @@ class CutsceneImport(CutsceneObjectFactory):
 
         return parsedCutscenes
 
-    def getCutsceneList(self) -> list[Cutscene] | None:
+    def getCutsceneList(self, use_macros: bool, motion_only: bool) -> list[Cutscene] | None:
         """Returns the list of cutscenes with the data processed"""
 
         parsedCutscenes = self.getParsedCutscenes()
@@ -283,35 +421,38 @@ class CutsceneImport(CutsceneObjectFactory):
         # that will be used later when creating Blender objects to complete the import
         for parsedCS in parsedCutscenes:
             cutscene = None
+
             for data in parsedCS.csData:
                 cmdData = data.removesuffix("\n").split("\n")
                 cmdListData = cmdData.pop(0)
                 cmdListName = cmdListData.strip().split("(")[0]
 
-                # create a new cutscene data
                 if cmdListName == "CS_HEADER":
-                    cutscene = self.getNewCutscene(data, parsedCS.csName)
-
-                # if we have a cutscene, create and add the commands data in it
+                    # create a new cutscene data
+                    cutscene = self.getNewCutscene(data, parsedCS.csName, use_macros, motion_only)
                 elif cutscene is not None and data.startswith(f"{cmdListName}("):
+                    # if we have a cutscene, create and add the commands data in it
                     isPlayer = cmdListData.startswith("CS_PLAYER_CUE_LIST(")
                     isStartSeq = cmdListData.startswith("CS_START_SEQ_LIST(")
                     isStopSeq = cmdListData.startswith("CS_STOP_SEQ_LIST(")
 
-                    cmd = cmdToClass.get(cmdListName)
-                    if cmd is not None:
-                        cmdList = getattr(cutscene, "playerCueList" if isPlayer else cmd.listName)
+                    cs_list_raw_cmd = cmdToClass.get(cmdListName)
+                    if cs_list_raw_cmd is not None:
+                        cmdList = getattr(cutscene.data, "playerCueList" if isPlayer else cs_list_raw_cmd.listName)
 
-                        paramNumber = cmd.paramNumber - 1 if isPlayer else cmd.paramNumber
+                        paramNumber = cs_list_raw_cmd.paramNumber - 1 if isPlayer else cs_list_raw_cmd.paramNumber
                         params = self.getCmdParams(cmdListData, cmdListName, paramNumber)
-                        if isStartSeq or isStopSeq:
-                            commandData = cmd(params, type="start" if isStartSeq else "stop")
-                        elif cmdListData.startswith("CS_ACTOR_CUE_LIST(") or isPlayer:
-                            commandData = cmd(params, isPlayer=isPlayer)
-                        else:
-                            commandData = cmd(params)
 
-                        # treating new camera commands separately if using the new cs commands
+                        if isStartSeq or isStopSeq:
+                            new_cs_list_data = cs_list_raw_cmd.from_params(
+                                params, type="start" if isStartSeq else "stop"
+                            )
+                        elif cmdListData.startswith("CS_ACTOR_CUE_LIST(") or isPlayer:
+                            new_cs_list_data = cs_list_raw_cmd.from_params(params, isPlayer=isPlayer)
+                        else:
+                            new_cs_list_data = cs_list_raw_cmd.from_params(params)
+
+                        # treating camera commands separately if using the new cs commands
                         # as it became more complex to parse since it's basically a list in a list in a list
                         if self.new_cs_system and "CAM" in cmdListName:
                             foundEndCmd = False
@@ -358,7 +499,7 @@ class CutsceneImport(CutsceneObjectFactory):
                                                 # ignore the last points, see the exporter to know why
                                                 cur_spline_entry.entries.append(CutsceneSplinePoint(at, eye, misc))
 
-                                        commandData.entries.append(cur_spline_entry)
+                                        new_cs_list_data.entries.append(cur_spline_entry)
                                         cur_point = 0
                                         at_list.clear()
                                         eye_list.clear()
@@ -367,6 +508,9 @@ class CutsceneImport(CutsceneObjectFactory):
                                 else:
                                     raise ValueError("ERROR: Invalid number of entries.")
                         elif cmdListName != "CS_TRANSITION" and cmdListName != "CS_DESTINATION":
+                            # this condition still works for both versions since the list name actually ends with "_LIST",
+                            # same thing in the next if/else block when it adds the data to the `Cutscene` class
+
                             foundEndCmd = False
                             for d in cmdData:
                                 cmdEntryName = d.strip().split("(")[0]
@@ -384,15 +528,23 @@ class CutsceneImport(CutsceneObjectFactory):
                                 entryCmd = cmdToClass[cmdEntryName]
                                 params = self.getCmdParams(d, cmdEntryName, entryCmd.paramNumber)
 
-                                if "CS_LIGHT_SETTING(" in d or isStartSeq or isStopSeq:
-                                    listEntry = entryCmd(params, isLegacy=isLegacy)
+                                if "CS_LIGHT_SETTING(" in d:
+                                    listEntry = entryCmd.from_params(params, isLegacy)
+                                elif isPlayer:
+                                    listEntry = entryCmd.from_params(params, True)
+                                elif isStartSeq or isStopSeq:
+                                    listEntry = entryCmd.from_params(
+                                        params, "start" if isStartSeq else "stop", isLegacy
+                                    )
+                                elif "CS_TEXT_" in cmdEntryName:
+                                    listEntry = entryCmd.from_params(params, cmdEntryName)
                                 else:
-                                    listEntry = entryCmd(params)
-                                commandData.entries.append(listEntry)
+                                    listEntry = entryCmd.from_params(params)
+                                new_cs_list_data.entries.append(listEntry)
                         if cmdListName == "CS_DESTINATION":
-                            cutscene.destination = commandData
+                            cutscene.data.destination = new_cs_list_data
                         else:
-                            cmdList.append(commandData)
+                            cmdList.append(new_cs_list_data)
                     else:
                         print(f"WARNING: `{cmdListName}` is not implemented yet!")
 
@@ -465,9 +617,13 @@ class CutsceneImport(CutsceneObjectFactory):
         """Safety checks to make sure the camera data is correct"""
 
         camLists: list[tuple[str, list, list]] = [
-            ("Eye and AT Spline", cutscene.camEyeSplineList, cutscene.camATSplineList),
-            ("Eye and AT Spline Rel to Player", cutscene.camEyeSplineRelPlayerList, cutscene.camATSplineRelPlayerList),
-            ("Eye and AT", cutscene.camEyeList, cutscene.camATList),
+            ("Eye and AT Spline", cutscene.data.camEyeSplineList, cutscene.data.camATSplineList),
+            (
+                "Eye and AT Spline Rel to Player",
+                cutscene.data.camEyeSplineRelPlayerList,
+                cutscene.data.camATSplineRelPlayerList,
+            ),
+            ("Eye and AT", cutscene.data.camEyeList, cutscene.data.camATList),
         ]
 
         for camType, eyeList, atList in camLists:
@@ -591,7 +747,7 @@ class CutsceneImport(CutsceneObjectFactory):
             setattr(prop, propName, value)
         except TypeError:
             setattr(prop, propName, "Custom")
-            setattr(prop, f"{propName}Custom", value)
+            setattr(prop, f"{propName}_custom" if "_" in propName else f"{propName}Custom", value)
 
     def setSubPropertyData(self, subPropsData: dict[str, str], newSubElem, entry):
         for key, value in subPropsData.items():
@@ -604,49 +760,43 @@ class CutsceneImport(CutsceneObjectFactory):
 
     def setPropertyData(self, csProp: "OOTCutsceneProperty", cutscene: Cutscene, propDataList: list[PropertyData]):
         for data in propDataList:
-            listName = f"{data.listType[0].lower() + data.listType[1:]}List"
-            dataList = getattr(cutscene, (listName if data.listType != "FadeOutSeq" else "fadeSeqList"))
+            listName = list_type_to_list_prop_member[data.listType]
+            dataList = getattr(cutscene.data, list_type_to_cs_data_member[data.listType])
             for list in dataList:
                 newElem: "OOTCSListProperty" = csProp.csLists.add()
+                newElem.listType = f"{data.listType}List" if data.listType != "Transition" else data.listType
 
-                if data.listType == "Seq":
-                    type = "StartSeqList" if list.type == "start" else "StopSeqList"
-                else:
-                    type = f"{data.listType}List" if data.listType != "Transition" else data.listType
-                newElem.listType = type
+                list.entries.sort(key=lambda elem: elem.startFrame)
+                for entry in list.entries:
+                    name = listName
+                    if data.listType in {"StartSeq", "StopSeq", "StartAmbience", "FadeOutSeq"}:
+                        name = "seqList"
 
-                if data.listType == "Transition":
-                    newElem.transitionStartFrame = list.startFrame
-                    newElem.transitionEndFrame = list.endFrame
-                    self.setSubPropertyData(data.subPropsData, newElem, list)
-                else:
-                    list.entries.sort(key=lambda elem: elem.startFrame)
-                    for entry in list.entries:
-                        newSubElem = getattr(newElem, "seqList" if "fadeOut" in listName else listName).add()
-                        newSubElem.startFrame = entry.startFrame
+                    newSubElem = getattr(newElem, name).add()
+                    newSubElem.startFrame = entry.startFrame
 
-                        if data.useEndFrame:
-                            newSubElem.endFrame = entry.endFrame
+                    if data.useEndFrame:
+                        newSubElem.endFrame = entry.endFrame
 
-                        if data.listType == "Text":
-                            self.setPropOrCustom(newSubElem, "textboxType", entry.id)
-                            match entry.id:
-                                case "Text":
-                                    newSubElem.textID = f"0x{entry.textId:04X}"
-                                    self.setPropOrCustom(newSubElem, "csTextType", entry.type)
-                                case "None":
-                                    pass
-                                case "OcarinaAction":
-                                    newSubElem.ocarinaMessageId = f"0x{entry.messageId:04X}"
-                                    self.setPropOrCustom(newSubElem, "ocarinaAction", entry.ocarinaActionId)
-                                case _:
-                                    raise PluginError("ERROR: Unknown text type!")
-                        self.setSubPropertyData(data.subPropsData, newSubElem, entry)
+                    if data.listType == "Text":
+                        self.setPropOrCustom(newSubElem, "textboxType", entry.id)
+                        match entry.id:
+                            case "Text":
+                                newSubElem.textID = f"0x{entry.textId:04X}"
+                                self.setPropOrCustom(newSubElem, "csTextType", entry.type)
+                            case "None":
+                                pass
+                            case "OcarinaAction":
+                                newSubElem.ocarinaMessageId = f"0x{entry.messageId:04X}"
+                                self.setPropOrCustom(newSubElem, "ocarinaAction", entry.ocarinaActionId)
+                            case _:
+                                raise PluginError("ERROR: Unknown text type!")
+                    self.setSubPropertyData(data.subPropsData, newSubElem, entry)
 
-    def setCutsceneData(self, csNumber):
+    def setCutsceneData(self, csNumber, use_macros: bool, motion_only: bool):
         """Creates the cutscene empty objects from the file data"""
 
-        cutsceneList = self.getCutsceneList()
+        cutsceneList = self.getCutsceneList(use_macros, motion_only)
 
         if cutsceneList is None:
             # if it's none then there's no cutscene in the file
@@ -664,37 +814,37 @@ class CutsceneImport(CutsceneObjectFactory):
             csProp = csObj.ootCutsceneProperty
             csNumber = i
 
-            self.setActorCueData(csObj, cutscene.actorCueList, "Actor", i)
-            self.setActorCueData(csObj, cutscene.playerCueList, "Player", i)
+            self.setActorCueData(csObj, cutscene.data.actorCueList, "Actor", i)
+            self.setActorCueData(csObj, cutscene.data.playerCueList, "Player", i)
 
             if is_oot_features():
-                if len(cutscene.camEyeSplineList) > 0:
+                if len(cutscene.data.camEyeSplineList) > 0:
                     lastIndex = self.setCameraShotData(
-                        csObj, cutscene.camEyeSplineList, cutscene.camATSplineList, "splineEyeOrAT", 1, i
+                        csObj, cutscene.data.camEyeSplineList, cutscene.data.camATSplineList, "splineEyeOrAT", 1, i
                     )
 
-                if len(cutscene.camEyeSplineRelPlayerList) > 0:
+                if len(cutscene.data.camEyeSplineRelPlayerList) > 0:
                     lastIndex = self.setCameraShotData(
                         csObj,
-                        cutscene.camEyeSplineRelPlayerList,
-                        cutscene.camATSplineRelPlayerList,
+                        cutscene.data.camEyeSplineRelPlayerList,
+                        cutscene.data.camATSplineRelPlayerList,
                         "splineEyeOrATRelPlayer",
                         lastIndex,
                         i,
                     )
 
-                if len(cutscene.camEyeList) > 0:
+                if len(cutscene.data.camEyeList) > 0:
                     lastIndex = self.setCameraShotData(
-                        csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
+                        csObj, cutscene.data.camEyeList, cutscene.data.camATList, "eyeOrAT", lastIndex, i
                     )
             else:
                 if len(cutscene.data.camSplineList) > 0:
                     self.create_camera_shots(csObj, cutscene.data.camSplineList, i)
 
-            if cutscene.destination is not None:
+            if cutscene.data.destination is not None:
                 csProp.csUseDestination = True
-                csProp.csDestinationStartFrame = cutscene.destination.startFrame
-                self.setPropOrCustom(csProp, "csDestination", cutscene.destination.type)
+                csProp.csDestinationStartFrame = cutscene.data.destination.startFrame
+                self.setPropOrCustom(csProp, "csDestination", cutscene.data.destination.id)
 
             if not is_oot_features() and cutscene.data.give_tatl is not None:
                 csProp.csUseDestination = True
@@ -704,10 +854,12 @@ class CutsceneImport(CutsceneObjectFactory):
             propDataList = [
                 PropertyData("Text", {"textboxType": "id"}, True),
                 PropertyData("Misc", {"csMiscType": "type"}, True),
-                PropertyData("Transition", {"transitionType": "type"}, True),
+                PropertyData("Transition", {"transition_type": "type"}, True),
                 PropertyData("LightSettings", {"lightSettingsIndex": "lightSetting"}, False),
                 PropertyData("Time", {"hour": "hour", "minute": "minute"}, False),
-                PropertyData("Seq", {"csSeqID": "seqId"}, False),
+                PropertyData("StartSeq", {"csSeqID": "seqId"}, True),
+                PropertyData("StopSeq", {"csSeqID": "seqId"}, True),
+                PropertyData("StartAmbience", {"csSeqID": "seqId"}, True),
                 PropertyData("FadeOutSeq", {"csSeqPlayer": "seqPlayer"}, True),
                 PropertyData(
                     "Rumble",
@@ -715,6 +867,7 @@ class CutsceneImport(CutsceneObjectFactory):
                         "rumbleSourceStrength": "sourceStrength",
                         "rumbleDuration": "duration",
                         "rumbleDecreaseRate": "decreaseRate",
+                        "rumble_type": "type",
                     },
                     False,
                 ),
