@@ -3,24 +3,26 @@ import re
 import bpy
 import mathutils
 
+from bpy.types import Object
 from pathlib import Path
 from typing import Optional
 
 from ...game_data import game_data
-from ...utility import PluginError, get_new_empty_object, parentObject, hexOrDecInt, gammaInverse
+from ...utility import PluginError, get_new_empty_object, parentObject, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import setCustomProperty, is_hackeroot, getEnumIndex
+from ..utility import getEvalParams, setCustomProperty, is_oot_features, getEnumIndex, twos_complement, parseColor
 from .constants import headerNames
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
-from .scene_collision import parseCollisionHeader
+from .scene_collision import parseCollisionHeader, parseCamDataList
 from .scene_pathways import parsePathList
 from ..animated_mats.properties import Z64_AnimatedMaterial
+from ..actor_cutscene.properties import enum_cs_cam_id, enum_end_cam, enum_end_sfx, enum_hud_visibility
 
 from ..constants import (
     ootEnumAudioSessionPreset,
@@ -29,10 +31,6 @@ from ..constants import (
     ootEnumNaviHints,
     ootEnumSkyboxLighting,
 )
-
-
-def parseColor(values: tuple[int, int, int]) -> tuple[float, float, float]:
-    return tuple(gammaInverse([value / 0xFF for value in values]))
 
 
 def parseDirection(index: int, values: tuple[int, int, int]) -> tuple[float, float, float] | int:
@@ -136,7 +134,7 @@ def parseLightList(
         # try to convert the custom value to an int
         try:
             custom_value = hexOrDecInt(sceneHeader.skyboxLightingCustom)
-        except:
+        except Exception:
             custom_value = None
 
         # for older decomps, make sure it's using the right thing for convenience
@@ -204,8 +202,12 @@ def parseRoomList(
 
     if use_macros:
         regex = r"ROM_FILE\((.*?)\)"
+    elif game_data.z64.is_oot():
+        regex = r"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,"
+    elif game_data.z64.is_mm():
+        regex = r"{([\(\)\sA-Za-z0-9\_]*),\s?([\(\)\sA-Za-z0-9\_]*)\}\s*,"
     else:
-        regex = rf"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,"
+        raise PluginError("ERROR: invalid operating mode")
 
     # Assumption that alternate scene headers all use the same room list.
     for roomMatch in re.finditer(regex, roomList, flags=re.DOTALL):
@@ -252,7 +254,7 @@ def parseRoomList(
         # This is done to avoid including large collision data in regex searches.
         try:
             collisionHeaderIndex = sceneData.index("CollisionHeader ")
-        except:
+        except Exception:
             collisionHeaderIndex = 0
         sharedRoomData = sceneData[collisionHeaderIndex:]
         roomObj = parseRoomCommands(
@@ -288,6 +290,71 @@ def parseAlternateSceneHeaders(
             parseSceneCommands(
                 sceneObj.name, sceneObj, roomObjs, altHeadersList[i], sceneData, f3dContext, i + 1, sharedSceneData
             )
+
+
+def parse_mm_map_data(scene_header, scene_data: str, list_name: str):
+    data_match = getDataMatch(scene_data, list_name, ["MapDataScene", "MinimapList"], "minimap scene", False)
+    scene_map_data = data_match.strip().split(", ")
+    scene_header.minimap_scale = int(scene_map_data[1], base=0)
+
+    data_match = getDataMatch(scene_data, scene_map_data[0], ["MapDataRoom", "MinimapEntry"], "minimap room")
+    room_map_data = data_match.strip().split("\n")
+    for data in room_map_data:
+        map_data = data.strip().removeprefix("{ ").removesuffix(" },").split(", ")
+        new_prop = scene_header.minimap_room_list.add()
+        new_prop.map_id = map_data[0]
+        new_prop.center_x = twos_complement(map_data[1], 16)
+        new_prop.floor_y = twos_complement(map_data[2], 16)
+        new_prop.center_z = twos_complement(map_data[3], 16)
+        new_prop.flags = map_data[4]
+
+
+def parse_mm_map_data_chest(
+    room_obj_list: list[Object], scene_header, scene_data: str, chest_count: int, list_name: str
+):
+    data_match = getDataMatch(scene_data, list_name, ["MapDataChest", "MinimapChest"], "minimap chest")
+    chest_map_data = data_match.strip().split("\n")
+
+    if len(chest_map_data) != chest_count:
+        print(
+            f"WARNING: chest count ({chest_count}) is different than parsed chest data length ({len(chest_map_data)})"
+        )
+
+    if room_obj_list is None or len(room_obj_list) == 0:
+        raise PluginError("ERROR: The room list doesn't exist or is empty!")
+
+    for data in chest_map_data:
+        map_data = data.strip().removeprefix("{ ").removesuffix(" },").split(", ")
+        chest_room_id, chest_flag, chest_pos_x, chest_pos_y, chest_pos_z = map_data
+
+        # fetch room
+        chest_room = None
+        for room in room_obj_list:
+            if getattr(room.ootRoomHeader, "roomIndex") == int(chest_room_id, base=0):
+                chest_room = room
+                break
+
+        # fetch chest actor (based on the chest flag and room index, maybe we should check for the coordinates too?)
+        chest_actor_obj = None
+        if chest_room is not None:
+            for child_obj in chest_room.children_recursive:
+                if child_obj.type == "EMPTY" and child_obj.ootEmptyType == "Actor":
+                    actor_id: str = getattr(child_obj.ootActorProperty, "actor_id")
+                    actor_params = int(getEvalParams(child_obj.ootActorProperty.params_custom), base=0)
+
+                    if actor_id in {"ACTOR_EN_BOX"}:
+                        actor_chest_flag = actor_params & 0x1F
+                        if actor_chest_flag == int(chest_flag, base=0):
+                            chest_actor_obj = child_obj
+                            break
+        else:
+            raise PluginError("ERROR: Chest's Room not found!")
+
+        if chest_actor_obj is not None:
+            new_prop = scene_header.minimap_chest_list.add()
+            new_prop.chest_obj = chest_actor_obj
+        else:
+            raise PluginError("ERROR: Chest Object not found!")
 
 
 def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, list_name: str):
@@ -393,6 +460,7 @@ def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, lis
 
                 if use_frame_indices:
                     assert frame is not None
+                    color_entry.validate_frame_num()
                     color_entry.frame_num = int(frame, base=0)
 
                 color_entry.prim_lod_frac = prim_color[4]
@@ -423,6 +491,106 @@ def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, lis
             for frame_num in frames:
                 cycle_entry = entry.tex_cycle_params.keyframes.add()
                 cycle_entry.texture_index = frame_num
+
+
+def set_actor_cs_property(value: str, enum: tuple[str, str, str], data, prop_name: str, is_cam: bool = False):
+    enum_index = None
+
+    try:
+        if is_cam:
+            # since the value is negative it will simply go backwards in the list
+            enum_index = int(value, base=0)
+
+            # use camera obj pointer mode if the value is not negative
+            if enum_index >= 0:
+                enum_index = 1
+        else:
+            # accounting for custom value
+            enum_index = int(value, base=0) + 1
+    except Exception:
+        enum_index = getEnumIndex(enum, value)
+
+    if enum_index is not None:
+        setattr(data, prop_name, enum[enum_index][0])
+    else:
+        setattr(data, prop_name, "Custom")
+        setattr(data, f"{prop_name}_custom", value)
+
+
+def parse_actor_cs(scene_obj: Object, header_index: int, scene_data: str, list_name: str):
+    data_match = getDataMatch(scene_data, list_name, "CutsceneEntry", "actor cs")
+    actor_cs_data = data_match.strip().replace(" ", "").replace("{", "").replace("}", "").split("\n")
+
+    # TODO: implement alt headers
+    if header_index != 0:
+        return
+
+    actor_cs_obj = get_new_empty_object("Actor Cutscene")
+    actor_cs_obj.ootEmptyType = "Actor Cutscene"
+    parentObject(scene_obj, actor_cs_obj)
+
+    props = actor_cs_obj.z64_actor_cs_property
+
+    for data in actor_cs_data:
+        split = data.removesuffix(",").split(",")
+
+        new_entry = props.entries.add()
+        new_entry.priority = int(split[0], base=0)
+        new_entry.length = int(split[1], base=0)
+        set_actor_cs_property(split[2], enum_cs_cam_id, new_entry, "cs_cam_id", True)
+        new_entry.script_index = int(split[3], base=0)
+        new_entry.additional_cs_id = int(split[4], base=0)
+        set_actor_cs_property(split[5], enum_end_sfx, new_entry, "end_sfx")
+        new_entry.custom_value = split[6]
+        set_actor_cs_property(split[7], enum_hud_visibility, new_entry, "hud_visibility")
+        set_actor_cs_property(split[8], enum_end_cam, new_entry, "end_cam")
+        new_entry.letterbox_size = int(split[9], base=0)
+
+        if new_entry.cs_cam_id == "Camera":
+            for obj in bpy.data.objects:
+                cam_props = obj.ootCameraPositionProperty
+                if obj.type == "CAMERA" and cam_props.is_actor_cs_cam and cam_props.index == int(split[2], base=0):
+                    new_entry.cs_cam_obj = obj
+                    break
+
+    bpy.context.scene.fast64.oot.global_actor_cs_count = len(props.entries)
+
+
+def parse_cs_script_list(scene_obj: Object, header_index: int, scene_data: str, list_name: str, expected_count: int):
+    data_match = getDataMatch(scene_data, list_name, "CutsceneScriptEntry", "scripted cs list")
+    cs_data = data_match.strip().replace(" ", "").replace("{", "").replace("}", "").split("\n")
+
+    # note: if we want to import cutscenes all the scripts are gonna be processed before the scene is
+    cs_map: dict[str, Object] = {
+        cs_obj.name.removeprefix("Cutscene."): cs_obj
+        for cs_obj in bpy.data.objects
+        if cs_obj.type == "EMPTY" and cs_obj.ootEmptyType == "Cutscene"
+    }
+
+    assert len(cs_data) == expected_count
+    for data in cs_data:
+        split = data.removesuffix(",").split(",")
+        cs_obj = cs_map[split[0]]
+        props = cs_obj.ootCutsceneProperty
+
+        props.next_entrance = split[1]
+        props.play_on_spawn = int(split[2], base=16)
+
+        if split[3].startswith("0x"):
+            props.spawn_flag_type = "CS_SPAWN_FLAG_ONCE"
+            props.spawn_flag = split[3]
+        else:
+            assert split[3].startswith("CS_SPAWN_FLAG_")
+            props.spawn_flag_type = split[3]
+
+        main_scene_props = scene_obj.ootSceneHeader
+        if header_index == 0:
+            extracs_props = main_scene_props.extraCutscenes
+        else:
+            extracs_props = scene_obj.ootAlternateSceneHeaders.cutsceneHeaders[header_index - 1].extraCutscenes
+
+        new_entry = extracs_props.add()
+        new_entry.csObject = cs_obj
 
 
 def parseSceneCommands(
@@ -547,7 +715,7 @@ def parseSceneCommands(
                 csObjName = f"Cutscene.{args[0]}"
                 try:
                     sceneHeader.csWriteObject = bpy.data.objects[csObjName]
-                except:
+                except Exception:
                     print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
             command_list.remove(command)
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
@@ -558,12 +726,45 @@ def parseSceneCommands(
             command_list.remove(command)
 
         # handle Majora's Mask (or modded OoT) exclusive commands
-        elif game_data.z64.is_mm() or is_hackeroot():
-            if command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
+        elif not is_oot_features():
+            if command == "SCENE_CMD_SET_REGION_VISITED":
+                sceneHeader.set_region_visited = True
+                command_list.remove(command)
+            elif command in {"SCENE_CMD_MINIMAP_INFO", "SCENE_CMD_MAP_DATA"}:
+                parse_mm_map_data(sceneHeader, sceneData, stripName(args[0]))
+                command_list.remove(command)
+            elif command in {"SCENE_CMD_MINIMAP_COMPASS_ICON_INFO", "SCENE_CMD_MAP_DATA_CHESTS"}:
+                # Delay until rooms and actors are processed
+                delayed_commands[command] = args
+                command_list.remove(command)
+            elif command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
                 if sharedSceneData.includeAnimatedMats:
                     parse_animated_material(sceneHeader.animated_material, sceneData, stripName(args[0]))
                 command_list.remove(command)
+            elif command == "SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST":
+                if sharedSceneData.includeActorCs:
+                    # TODO: implement alt headers
+                    if headerIndex == 0:
+                        parseCamDataList(sceneObj, stripName(args[1]), sceneData, True)
+                command_list.remove(command)
+            elif command == "SCENE_CMD_ACTOR_CUTSCENE_LIST":
+                if sharedSceneData.includeActorCs:
+                    # Delay until cameras are processed, if used
+                    delayed_commands[command] = args
+                command_list.remove(command)
+            elif command == "SCENE_CMD_CUTSCENE_SCRIPT_LIST":
+                if sharedSceneData.includeCutscenes:
+                    parse_cs_script_list(sceneObj, headerIndex, sceneData, stripName(args[1]), hexOrDecInt(args[0]))
+                command_list.remove(command)
 
+    # requires `SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST`
+    if "SCENE_CMD_ACTOR_CUTSCENE_LIST" in delayed_commands:
+        if sharedSceneData.includeActorCs:
+            args = delayed_commands["SCENE_CMD_ACTOR_CUTSCENE_LIST"]
+            parse_actor_cs(sceneObj, headerIndex, sceneData, stripName(args[1]))
+        delayed_commands.pop("SCENE_CMD_ACTOR_CUTSCENE_LIST")
+
+    # requires `SCENE_CMD_ACTOR_CUTSCENE_LIST`
     if "SCENE_CMD_ROOM_LIST" in delayed_commands:
         args = delayed_commands["SCENE_CMD_ROOM_LIST"]
         # Assumption that all scenes use the same room list.
@@ -599,6 +800,9 @@ def parseSceneCommands(
                 entranceList = None
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, stripName(args[0]), f3dContext, sharedSceneData)
+        elif command in {"SCENE_CMD_MINIMAP_COMPASS_ICON_INFO", "SCENE_CMD_MAP_DATA_CHESTS"}:
+            if sharedSceneData.includeActors:
+                parse_mm_map_data_chest(roomObjs, sceneHeader, sceneData, int(args[0], base=0), stripName(args[1]))
 
     if len(command_list) > 0:
         print(f"INFO: The following scene commands weren't processed for header {headerIndex}:")

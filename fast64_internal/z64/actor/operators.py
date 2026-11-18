@@ -12,7 +12,7 @@ class OOT_SearchChestContentEnumOperator(Operator):
     bl_property = "chest_content"
     bl_options = {"REGISTER", "UNDO"}
 
-    chest_content: EnumProperty(items=game_data.z64.actors.ootEnumChestContent, default="item_heart")
+    chest_content: EnumProperty(items=lambda self, context: game_data.z64.get_enum("chest_content"), default=1)
     obj_name: StringProperty()
     prop_name: StringProperty()
 
@@ -33,7 +33,7 @@ class OOT_SearchNaviMsgIDEnumOperator(Operator):
     bl_property = "navi_msg_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    navi_msg_id: EnumProperty(items=game_data.z64.actors.ootEnumNaviMessageData, default="msg_00")
+    navi_msg_id: EnumProperty(items=lambda self, context: game_data.z64.get_enum("navi_msg_id"), default=1)
     obj_name: StringProperty()
     prop_name: StringProperty()
 

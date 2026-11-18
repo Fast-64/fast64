@@ -1,3 +1,4 @@
+import bpy
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, FloatProperty
 from bpy.types import Scene
@@ -19,7 +20,10 @@ class OOT_FileSettingsPanel(OOT_Panel):
         col.scale_y = 1.1  # extra padding, makes it easier to see these main settings
         prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
 
-        prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
+        if game_data.z64.is_oot():
+            prop_split(col, context.scene, "oot_decomp_path", "Decomp Path")
+        else:
+            prop_split(col, context.scene.fast64.oot, "mm_decomp_path", "Decomp Path")
 
         is_oot = game_data.z64.is_oot()
         version = "oot_version" if is_oot else "mm_version"
@@ -53,7 +57,16 @@ def file_register():
         register_class(cls)
 
     Scene.ootBlenderScale = FloatProperty(name="Blender To OOT Scale", default=10, update=on_update_render_settings)
-    Scene.ootDecompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
+
+    # TODO: remove `ootDecompPath` entirely
+    def get_decomp_path():
+        game_data.z64.update(bpy.context, None)
+        if game_data.z64.is_oot():
+            return bpy.context.scene.fast64.oot.oot_decomp_path
+        else:
+            return bpy.context.scene.fast64.oot.mm_decomp_path
+
+    Scene.ootDecompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH", get=lambda self: get_decomp_path())
 
 
 def file_unregister():

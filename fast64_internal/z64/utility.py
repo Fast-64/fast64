@@ -12,7 +12,7 @@ from typing import Callable, Optional, TYPE_CHECKING, List
 from dataclasses import dataclass
 
 from ..game_data import game_data
-from .constants import ootSceneIDToName
+from .constants import ootSceneIDToName, mm_scene_id_to_name
 
 
 from ..utility import (
@@ -28,6 +28,7 @@ from ..utility import (
     binOps,
     deselectAllObjects,
     selectSingleObject,
+    gammaInverse,
 )
 
 if TYPE_CHECKING:
@@ -178,11 +179,16 @@ ootSceneDirs = {
 }
 
 
-def sceneNameFromID(sceneID):
-    if sceneID in ootSceneIDToName:
-        return ootSceneIDToName[sceneID]
+def sceneNameFromID(scene_id: str):
+    if game_data.z64.is_oot():
+        scene_id_to_name = ootSceneIDToName
     else:
-        raise PluginError("Cannot find scene ID " + str(sceneID))
+        scene_id_to_name = mm_scene_id_to_name
+
+    if scene_id in scene_id_to_name:
+        return scene_id_to_name[scene_id]
+    else:
+        raise PluginError("Cannot find scene ID " + str(scene_id))
 
 
 def getOOTScale(actorScale: float) -> float:
@@ -255,12 +261,14 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else None
-    for sceneDir, dirLevels in ootSceneDirs.items():
-        if name in dirLevels:
-            s = sceneDir + name
-            if extracted is not None:
-                s = f"{extracted}/{s}"
-            return s
+
+    if game_data.z64.is_oot():
+        for sceneDir, dirLevels in ootSceneDirs.items():
+            if name in dirLevels:
+                return f"{extracted}/" + sceneDir + name
+    else:
+        return f"{extracted}/assets/scenes/{name}"
+
     return None
 
 
@@ -604,19 +612,29 @@ def setCustomProperty(
     setattr(data, custom_name if custom_name is not None else f"{prop}Custom", value)
 
 
-def getCustomProperty(data, prop):
+def getCustomProperty(data, prop, custom_prop_name: Optional[str] = None):
+    # TODO: cleanup prop names and remove `custom_prop_name`
     value = getattr(data, prop)
-    return value if value != "Custom" else getattr(data, prop + str("Custom"))
+
+    if value != "Custom":
+        return value
+    elif custom_prop_name is not None:
+        return getattr(data, custom_prop_name)
+
+    return getattr(data, prop + "Custom")
 
 
-def convertIntTo2sComplement(value, length, signed):
+def convertIntTo2sComplement(value: int, length: int, signed: bool):
     return int.from_bytes(int(round(value)).to_bytes(length, "big", signed=signed), "big")
 
 
-def drawEnumWithCustom(panel, data, attribute, name, customName):
+def drawEnumWithCustom(panel, data, attribute, name, customName, custom_prop_name: Optional[str] = None):
+    # TODO: cleanup prop names and remove `custom_prop_name`
     prop_split(panel, data, attribute, name)
     if getattr(data, attribute) == "Custom":
-        prop_split(panel, data, attribute + "Custom", customName)
+        if custom_prop_name is None:
+            custom_prop_name = attribute + "Custom"
+        prop_split(panel, data, custom_prop_name, customName)
 
 
 def getEnumName(enumItems, value):
@@ -679,11 +697,11 @@ def getHeaderSettings(actorObj: bpy.types.Object):
     return headerSettings
 
 
-def getActiveHeaderIndex() -> int:
+def getActiveHeaderIndex() -> tuple[int, bool | None, bool | None, bool | None]:
     # All scenes/rooms should have synchronized tabs from property callbacks
     headerObjs = [obj for obj in bpy.data.objects if obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room"]
     if len(headerObjs) == 0:
-        return 0
+        return (0, None, None, None)
 
     headerObj = headerObjs[0]
     if headerObj.ootEmptyType == "Scene":
@@ -696,21 +714,27 @@ def getActiveHeaderIndex() -> int:
     if header.menuTab != "Alternate":
         headerIndex = 0
     else:
-        if altHeader.headerMenuTab == "Child Night":
-            headerIndex = 1
-        elif altHeader.headerMenuTab == "Adult Day":
-            headerIndex = 2
-        elif altHeader.headerMenuTab == "Adult Night":
-            headerIndex = 3
+        if game_data.z64.is_oot():
+            if altHeader.headerMenuTab == "Child Night":
+                headerIndex = 1
+            elif altHeader.headerMenuTab == "Adult Day":
+                headerIndex = 2
+            elif altHeader.headerMenuTab == "Adult Night":
+                headerIndex = 3
+            else:
+                headerIndex = altHeader.currentCutsceneIndex
         else:
             headerIndex = altHeader.currentCutsceneIndex
 
-    return (
-        headerIndex,
-        altHeader.childNightHeader.usePreviousHeader,
-        altHeader.adultDayHeader.usePreviousHeader,
-        altHeader.adultNightHeader.usePreviousHeader,
-    )
+    if game_data.z64.is_oot():
+        return (
+            headerIndex,
+            altHeader.childNightHeader.usePreviousHeader,
+            altHeader.adultDayHeader.usePreviousHeader,
+            altHeader.adultNightHeader.usePreviousHeader,
+        )
+    else:
+        return (headerIndex, None, None, None)
 
 
 def setAllActorsVisibility(self, context: bpy.types.Context):
@@ -726,24 +750,37 @@ def setAllActorsVisibility(self, context: bpy.types.Context):
         setActorVisibility(actorObj, activeHeaderInfo)
 
 
-def setActorVisibility(actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, bool, bool, bool]):
+def setActorVisibility(
+    actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, Optional[bool], Optional[bool], Optional[bool]]
+):
     headerIndex, childNightHeader, adultDayHeader, adultNightHeader = activeHeaderInfo
-    usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
-    if headerIndex < 4:
-        while usePreviousHeader[headerIndex]:
-            headerIndex -= 1
+
+    if game_data.z64.is_oot():
+        usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
+
+        if headerIndex < 4:
+            while usePreviousHeader[headerIndex]:
+                headerIndex -= 1
 
     headerSettings = getHeaderSettings(actorObj)
+
     if headerSettings is None:
         return
-    if headerSettings.sceneSetupPreset == "All Scene Setups":
-        actorObj.hide_set(False)
-    elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":
-        actorObj.hide_set(headerIndex >= 4)
-    elif headerSettings.sceneSetupPreset == "Custom":
-        actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
+
+    if game_data.z64.is_oot():
+        if headerSettings.sceneSetupPreset == "All Scene Setups":
+            actorObj.hide_set(False)
+        elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":
+            actorObj.hide_set(headerIndex >= 4)
+        elif headerSettings.sceneSetupPreset == "Custom":
+            actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
+        else:
+            print("Error: unhandled header case")
     else:
-        print("Error: unhandled header case")
+        if headerSettings.include_in_all_setups:
+            actorObj.hide_set(False)
+        else:
+            actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
 
 
 def onMenuTabChange(self, context: bpy.types.Context):
@@ -954,7 +991,7 @@ def getNewPath(type: str, isClosedShape: bool):
 
 
 def getObjectList(
-    objList: list[Object],
+    objList: list[Object] | tuple[Object, ...],
     objType: str,
     emptyType: Optional[str] = None,
     splineType: Optional[str] = None,
@@ -1064,3 +1101,15 @@ def add_include_to_spec_segment(spec_p: Path, segment: str, inc: str):
     new_spec_content = "".join(new_spec_lines)
     if new_spec_content != spec_content:
         spec_p.write_text(new_spec_content)
+
+
+# from https://stackoverflow.com/a/6727975
+def twos_complement(hexstr: str, bits: int):
+    value = int(hexstr, 16)
+    if value & (1 << (bits - 1)):
+        value -= 1 << bits
+    return value
+
+
+def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
+    return tuple(gammaInverse([hexOrDecInt(value) / 0xFF for value in values]))

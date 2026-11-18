@@ -51,7 +51,6 @@ class Z64_AnimatedMatColorKeyFrame(PropertyGroup):
         self.validate_frame_num()
 
     def on_frame_num_get(self):
-        self.validate_frame_num()
         return self.internal_frame_num
 
     prim_lod_frac: IntProperty(name="Primitive LOD Frac", min=0, max=255, default=128)
@@ -136,7 +135,6 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
         self.update_keyframes()
 
     def on_length_get(self):
-        self.update_keyframes()
         return self.internal_keyframe_length
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):
@@ -593,7 +591,8 @@ class Z64_AnimatedMaterialItem(PropertyGroup):
                 layout_type.label(text="This requires HackerOoT features.", icon="ERROR")
                 return
 
-            self.events.draw_props(layout.column(), owner, "EventManager (Embed)", header_index, index)
+            if is_hackeroot():
+                self.events.draw_props(layout.column(), owner, "EventManager (Embed)", header_index, index)
 
             if self.type == "Custom":
                 layout_type.label(
@@ -655,12 +654,13 @@ class Z64_AnimatedMaterial(PropertyGroup):
             layout.label(text="This requires MM features.", icon="ERROR")
             return
 
-        prop_split(layout, self, "cam_type", "Camera Type")
-        if self.cam_type == "Custom":
-            prop_split(layout, self, "cam_type_custom", "Camera Type Custom")
+        if is_hackeroot():
+            prop_split(layout, self, "cam_type", "Camera Type")
+            if self.cam_type == "Custom":
+                prop_split(layout, self, "cam_type_custom", "Camera Type Custom")
 
-        if self.cam_type != "anim_mat_camera_type_none":
-            layout.prop(self, "cam_on_event", text="Camera On Event")
+            if self.cam_type != "anim_mat_camera_type_none":
+                layout.prop(self, "cam_on_event", text="Camera On Event")
 
         if index is not None:
             layout.prop(

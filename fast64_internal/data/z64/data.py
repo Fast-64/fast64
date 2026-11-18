@@ -883,6 +883,7 @@ class Z64_Data:
             self.enum_cs_list_type = oot_enum_cs_list_type
             self.skeleton_dict = oot_skeleton_dict
             self.enum_skeleton_mode = oot_enum_skeleton_mode
+            self.default_time_speed = 1.0
         elif self.game == "MM":
             self.cs_index_start = 1
             self.cs_list_type_to_cmd["Transition"] = "CS_TRANSITION_LIST"
@@ -898,6 +899,7 @@ class Z64_Data:
             self.enum_cs_list_type = mm_enum_cs_list_type
             self.skeleton_dict = mm_skeleton_dict
             self.enum_skeleton_mode = mm_enum_skeleton_mode
+            self.default_time_speed = 0.3
         else:
             raise ValueError(f"ERROR: unsupported game {repr(self.game)}")
 
@@ -955,10 +957,10 @@ class Z64_Data:
         self.update(bpy.context, None)
         return self.enum_map[prop_name]
 
-    def get_enum_value(self, enum_key: str, item_key: str):
+    def get_enum_value(self, enum_key: str, item_key: str, force_index: bool = False):
         enum = self.enums.enumByKey[enum_key]
 
-        if bpy.context.scene.fast64.oot.useDecompFeatures:
+        if not force_index and bpy.context.scene.fast64.oot.useDecompFeatures:
             return enum.item_by_key[item_key].id
         else:
             return str(enum.item_by_key[item_key].index)

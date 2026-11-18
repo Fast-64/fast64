@@ -1,3 +1,4 @@
+from mathutils import Matrix
 import bpy
 import re
 
@@ -5,8 +6,14 @@ from dataclasses import dataclass
 from bpy.types import Object
 
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, hexOrDecInt, indent
-from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTLightGroupProperty
-from ...utility import getEvalParamsInt
+from ...scene.properties import (
+    OOTSceneHeaderProperty,
+    OOTLightProperty,
+    OOTLightGroupProperty,
+    Z64_MapDataChestProperty,
+    Z64_MapDataRoomProperty,
+)
+from ...utility import getEvalParams, getEvalParamsInt, is_oot_features, getObjectList
 from ..utility import Utility
 from ....game_data import game_data
 
@@ -237,13 +244,14 @@ class SceneInfos:
     # Skybox
     skyboxID: str
     skyboxConfig: str
+    skybox_texture_id: str  # MM
 
     # Sound
     sequenceID: str
     ambienceID: str
     specID: str
 
-    ### Camera And World Map ###
+    ### Camera And World Map (OoT) ###
 
     # World Map
     worldMapLocation: str
@@ -251,44 +259,63 @@ class SceneInfos:
     # Camera
     sceneCamType: str
 
+    ### Region Visited (MM) ###
+
+    set_region_visited: bool
+
     @staticmethod
     def new(props: OOTSceneHeaderProperty, sceneObj: Object):
+        if is_oot_features():
+            skybox_texture_id = ""
+        else:
+            skybox_texture_id = Utility.getPropValue(props, "skybox_texture_id")
+
         if props.sceneTableEntry.drawConfig == "Custom":
             drawConfig = props.sceneTableEntry.drawConfigCustom
         else:
             drawConfigKey = props.sceneTableEntry.drawConfig
             drawConfig = game_data.z64.get_enum_value("draw_config", drawConfigKey)
         return SceneInfos(
-            Utility.getPropValue(props, "globalObject"),
-            Utility.getPropValue(props, "naviCup"),
+            Utility.getPropValue(props, "globalObject", enum_key="global_object"),
+            Utility.getPropValue(props, "naviCup") if game_data.z64.is_oot() else "NAVI_QUEST_HINTS_NONE",
             drawConfig,
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
             Utility.getPropValue(props, "title_card_name"),
             Utility.getPropValue(props, "skyboxID"),
             Utility.getPropValue(props, "skyboxCloudiness"),
+            skybox_texture_id,
             Utility.getPropValue(props, "musicSeq"),
             Utility.getPropValue(props, "nightSeq"),
             Utility.getPropValue(props, "audioSessionPreset"),
-            Utility.getPropValue(props, "mapLocation"),
-            Utility.getPropValue(props, "cameraMode"),
+            Utility.getPropValue(props, "mapLocation") if is_oot_features() else "",
+            Utility.getPropValue(props, "cameraMode") if is_oot_features() else "",
+            props.set_region_visited if not is_oot_features() else False,
         )
 
     def getCmds(self, lights: SceneLighting):
         """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
+        commands = [
+            f"SCENE_CMD_SOUND_SETTINGS({self.specID}, {self.ambienceID}, {self.sequenceID})",
+            f"SCENE_CMD_SPECIAL_FILES({self.naviHintType}, {self.keepObjectID})",
+        ]
 
-        return (
-            indent
-            + f",\n{indent}".join(
+        if is_oot_features():
+            commands.extend(
                 [
-                    f"SCENE_CMD_SOUND_SETTINGS({self.specID}, {self.ambienceID}, {self.sequenceID})",
                     f"SCENE_CMD_MISC_SETTINGS({self.sceneCamType}, {self.worldMapLocation})",
-                    f"SCENE_CMD_SPECIAL_FILES({self.naviHintType}, {self.keepObjectID})",
                     f"SCENE_CMD_SKYBOX_SETTINGS({self.skyboxID}, {self.skyboxConfig}, {lights.envLightMode})",
                 ]
             )
-            + ",\n"
-        )
+        else:
+            commands.append(
+                f"SCENE_CMD_SKYBOX_SETTINGS({self.skybox_texture_id}, {self.skyboxID}, {self.skyboxConfig}, {lights.envLightMode})"
+            )
+
+            if self.set_region_visited:
+                commands.append("SCENE_CMD_SET_REGION_VISITED()")
+
+        return indent + f",\n{indent}".join(commands) + ",\n"
 
 
 @dataclass
@@ -332,3 +359,116 @@ class SceneExits(Utility):
         )
 
         return exitListC
+
+
+class MapDataChest:
+    def __init__(self, chest_prop: Z64_MapDataChestProperty, scene_obj: Object, transform: Matrix):
+        if chest_prop.chest_obj is None:
+            raise PluginError("ERROR: The chest empty object is unset.")
+
+        pos, _, _, _ = Utility.getConvertedTransform(transform, scene_obj, chest_prop.chest_obj, True)
+
+        self.room_idx = self.get_room_index(chest_prop, scene_obj)
+        self.chest_flag = int(getEvalParams(chest_prop.chest_obj.ootActorProperty.params_custom), base=0) & 0x1F
+        self.pos = pos
+
+    def get_room_index(self, chest_prop: Z64_MapDataChestProperty, scene_obj: Object) -> int:
+        room_obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Room")
+
+        for room_obj in room_obj_list:
+            if chest_prop.chest_obj in room_obj.children_recursive:
+                return room_obj.ootRoomHeader.roomIndex
+
+        raise PluginError(f"ERROR: Can't find the room associated with '{chest_prop.chest_obj.name}'")
+
+    def to_c(self):
+        return "{ " + f"{self.room_idx}, {self.chest_flag}, {self.pos[0]}, {self.pos[1]}, {self.pos[2]}" + " }"
+
+
+class MapDataRoom:
+    def __init__(self, room_prop: Z64_MapDataRoomProperty):
+        self.map_id: str = room_prop.map_id
+        self.center_x: int = room_prop.center_x
+        self.floor_y: int = room_prop.floor_y
+        self.center_z: int = room_prop.center_z
+        self.flags: str = room_prop.flags
+
+    def to_c(self):
+        return "{ " + f"{self.map_id}, {self.center_x}, {self.floor_y}, {self.center_z}, {self.flags}" + " }"
+
+
+@dataclass
+class SceneMapData:
+    """This class hosts exit data"""
+
+    name: str
+    map_scale: int
+    room_list: list[MapDataRoom]
+    chest_list: list[MapDataChest]
+
+    @staticmethod
+    def new(name: str, props: OOTSceneHeaderProperty, scene_obj: Object, transform: Matrix):
+        return SceneMapData(
+            name,
+            props.minimap_scale,
+            [MapDataRoom(room_prop) for room_prop in props.minimap_room_list],
+            [MapDataChest(chest_prop, scene_obj, transform) for chest_prop in props.minimap_chest_list],
+        )
+
+    def is_used(self):
+        return not is_oot_features() and (len(self.room_list) > 0 or len(self.chest_list) > 0)
+
+    def get_cmds(self):
+        """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
+        commands = []
+
+        if len(self.room_list) > 0:
+            commands.append(f"SCENE_CMD_MAP_DATA(&{self.name})")
+
+        if len(self.chest_list) > 0:
+            commands.append(f"SCENE_CMD_MAP_DATA_CHESTS({len(self.chest_list)}, {self.name}Chest)")
+
+        if len(commands) > 0:
+            return indent + f",\n{indent}".join(commands) + ",\n"
+
+        return ""
+
+    def to_c(self):
+        map_data_c = CData()
+        scene_list_name = f"MapDataScene {self.name}"
+        room_list_name = f"MapDataRoom {self.name}Room[{len(self.room_list)}]"
+        chest_list_name = f"MapDataChest {self.name}Chest[{len(self.chest_list)}]"
+        map_data_header = []
+        map_data_source = ""
+
+        if len(self.room_list) > 0:
+            map_data_header.extend([f"extern {scene_list_name};\n", f"extern {room_list_name};\n"])
+            map_data_source += (
+                # MapDataRoom
+                (room_list_name + " = {\n")
+                + "\n".join(indent + f"{room.to_c()}," for room in self.room_list)
+                + "\n};\n\n"
+                # MapDataScene
+                + (scene_list_name + " = {\n")
+                + (indent + f"{self.name}Room, {self.map_scale}")
+                + "\n};\n\n"
+            )
+
+        if len(self.chest_list) > 0:
+            map_data_header.append(f"extern {chest_list_name};\n")
+            map_data_source += (
+                # MapDataChest
+                (chest_list_name + " = {\n")
+                + "\n".join(indent + f"{chest.to_c()}," for chest in self.chest_list)
+                + "\n};\n\n"
+            )
+
+        # .h
+        if len(map_data_header) > 0:
+            map_data_c.header = "".join(map_data_header)
+
+        # .c
+        if len(map_data_source) > 0:
+            map_data_c.source = map_data_source
+
+        return map_data_c

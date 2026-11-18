@@ -21,10 +21,10 @@ from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
-from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister
+from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister, z64_register_on_enable
 from .fast64_internal.z64.constants import oot_world_defaults
 from .fast64_internal.z64.props_panel_main import OOT_ObjectProperties
-from .fast64_internal.z64.actor.properties import initOOTActorProperties
+from .fast64_internal.z64.utility import getObjectList
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
@@ -81,7 +81,7 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64", 0),
     ("OOT", "OOT", "Ocarina Of Time", 1),
-    # ("MM", "MM", "Majora's Mask", 4),
+    ("MM", "MM", "Majora's Mask", 4),
     ("MK64", "MK64", "Mario Kart 64", 3),
     ("Homebrew", "Homebrew", "Homebrew", 2),
 )
@@ -274,6 +274,9 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
+    def get_addon_version(self):
+        return bl_info["version"]
+
 
 class Fast64_ActionProperties(bpy.types.PropertyGroup):
     """
@@ -441,13 +444,24 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
         world_defaults = {}  # This will set some pretty bad defaults, but trust the user
     if set_ucode:
         scene.f3d_type = f3d_type
-    if scene.world is not None:
+    if scene.world is not None and world_defaults is not None:
         scene.world.rdp_defaults.from_dict(world_defaults)
 
 
 def gameEditorUpdate(scene: bpy.types.Scene, _context):
     game_data.update(scene.gameEditorMode)
     set_game_defaults(scene)
+
+    # reset `currentCutsceneIndex` when switching games
+    if scene.gameEditorMode in {"OOT", "MM"}:
+        for scene_obj in bpy.data.objects:
+            scene_obj.ootAlternateSceneHeaders.currentCutsceneIndex = game_data.z64.cs_index_start
+
+            if scene_obj.type == "EMPTY" and scene_obj.ootEmptyType == "Scene":
+                room_obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Room")
+
+                for room_obj in room_obj_list:
+                    room_obj.ootAlternateRoomHeaders.currentCutsceneIndex = game_data.z64.cs_index_start
 
 
 # called on add-on enabling
@@ -472,7 +486,6 @@ def register():
     addon_updater_ops.register(bl_info)
 
     register_class(Matrix4x4Property)
-    initOOTActorProperties()
     utility_anim_register()
     mat_register()
     bsdf_conv_register()
@@ -483,6 +496,9 @@ def register():
     gltf_extension_register()
 
     repo_settings_operators_register()
+
+    for cls in z64_register_on_enable:
+        register_class(cls)
 
     for cls in classes:
         register_class(cls)
@@ -520,38 +536,43 @@ def register():
 
 # called on add-on disabling
 def unregister():
-    utility_anim_unregister()
-    op_largetexture_unregister()
-    flipbook_unregister()
-    f3d_writer_unregister()
-    f3d_parser_unregister()
-    sm64_unregister(True)
-    oot_unregister(True)
-    mk64_unregister(True)
-    mat_unregister()
-    gltf_extension_unregister()
-    bsdf_conv_unregister()
-    bsdf_conv_panel_unregsiter()
-    unregister_class(Matrix4x4Property)
+    bpy.app.handlers.load_post.remove(after_load)
+    del bpy.types.Action.fast64
+    del bpy.types.Object.fast64
+    del bpy.types.Bone.fast64
+    del bpy.types.Scene.fast64
 
-    del bpy.types.Scene.fullTraceback
-    del bpy.types.Scene.ignoreTextureRestrictions
+    del bpy.types.Scene.blenderF3DScale
+    del bpy.types.Scene.exportInlineF3D
+    del bpy.types.Scene.exportHiddenGeometry
     del bpy.types.Scene.saveTextures
     del bpy.types.Scene.gameEditorMode
-    del bpy.types.Scene.exportHiddenGeometry
-    del bpy.types.Scene.blenderF3DScale
+    del bpy.types.Scene.fullTraceback
+    del bpy.types.Scene.ignoreTextureRestrictions
 
-    del bpy.types.Scene.fast64
-    del bpy.types.Bone.fast64
-    del bpy.types.Object.fast64
-    del bpy.types.Action.fast64
-
-    repo_settings_operators_unregister()
+    op_largetexture_unregister()
+    f3d_parser_unregister()
+    flipbook_unregister()
+    f3d_writer_unregister()
+    bsdf_conv_panel_unregsiter()
 
     for cls in classes:
         unregister_class(cls)
 
-    bpy.app.handlers.load_post.remove(after_load)
+    for cls in reversed(z64_register_on_enable):
+        unregister_class(cls)
+
+    repo_settings_operators_unregister()
+
+    gltf_extension_unregister()
+
+    mk64_unregister(True)
+    oot_unregister(True)
+    sm64_unregister(True)
+    bsdf_conv_unregister()
+    mat_unregister()
+    utility_anim_unregister()
+    unregister_class(Matrix4x4Property)
 
     addon_updater_ops.unregister()
     unregister_class(ExampleAddonPreferences)

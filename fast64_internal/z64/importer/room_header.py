@@ -1,10 +1,9 @@
 import bpy
-import re
 
 from pathlib import Path
 
 from ...utility import PluginError, hexOrDecInt
-from ..utility import setCustomProperty
+from ..utility import setCustomProperty, is_oot_features
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
 from ...game_data import game_data
@@ -63,14 +62,14 @@ def parseRoomCommands(
 
     if headerIndex == 0:
         roomHeader = roomObj.ootRoomHeader
-    elif headerIndex < 4:
+    elif game_data.z64.is_oot() and headerIndex < game_data.z64.cs_index_start:
         roomHeader = getattr(roomObj.ootAlternateRoomHeaders, headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = roomObj.ootAlternateRoomHeaders.cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - 3:
+        while len(cutsceneHeaders) < headerIndex - (game_data.z64.cs_index_start - 1):
             cutsceneHeaders.add()
-        roomHeader = cutsceneHeaders[headerIndex - 4]
+        roomHeader = cutsceneHeaders[headerIndex - game_data.z64.cs_index_start]
 
     commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     cmd_map = parse_commands_data(commands)
@@ -84,7 +83,13 @@ def parseRoomCommands(
             setCustomProperty(roomHeader, "roomBehaviour", args[0], game_data.z64.get_enum("room_type"))
             setCustomProperty(roomHeader, "linkIdleMode", args[1], game_data.z64.get_enum("environment_type"))
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"
-            roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
+
+            if game_data.z64.is_oot():
+                roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
+
+            if not is_oot_features():
+                roomHeader.enable_pos_lights = args[4] == "true" or args[4] == "1"
+                roomHeader.enable_storm = args[5] == "true" or args[5] == "1"
         elif command == "SCENE_CMD_SKYBOX_DISABLES":
             roomHeader.disableSkybox = args[0] == "true" or args[0] == "1"
             roomHeader.disableSunMoon = args[1] == "true" or args[1] == "1"

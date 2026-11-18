@@ -4,9 +4,10 @@ from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
-from ....utility import CData, indent
+from ....utility import PluginError, CData, indent
 from ....game_data import game_data
-from ...utility import getObjectList
+from ...constants import halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
+from ...utility import getObjectList, is_oot_features, getEvalParams
 from ...room.properties import OOTRoomHeaderProperty
 from ...actor.properties import OOTActorProperty
 from ..utility import Utility
@@ -26,8 +27,14 @@ class RoomInfos:
 
     roomBehavior: str
     playerIdleType: str
-    disableWarpSongs: bool
     showInvisActors: bool
+
+    # OoT
+    disableWarpSongs: bool
+
+    # MM
+    enable_pos_lights: bool
+    enable_storm: bool
 
     ### Skybox And Time ###
 
@@ -46,13 +53,26 @@ class RoomInfos:
 
     @staticmethod
     def new(props: Optional[OOTRoomHeaderProperty]):
+        disable_warp_songs = False
+        enable_pos_lights = False
+        enable_storm = False
+
+        if game_data.z64.is_oot():
+            disable_warp_songs = props.disableWarpSongs
+
+        if not is_oot_features():
+            enable_pos_lights = props.enable_pos_lights
+            enable_storm = props.enable_storm
+
         return RoomInfos(
             props.roomIndex,
             props.roomShape,
             Utility.getPropValue(props, "roomBehaviour"),
             Utility.getPropValue(props, "linkIdleMode"),
-            props.disableWarpSongs,
             props.showInvisibleActors,
+            disable_warp_songs,
+            enable_pos_lights,
+            enable_storm,
             props.disableSkybox,
             props.disableSunMoon,
             0xFF if props.leaveTimeUnchanged else props.timeHours,
@@ -71,7 +91,13 @@ class RoomInfos:
         disableSkybox = "true" if self.disableSky else "false"
         disableSunMoon = "true" if self.disableSunMoon else "false"
 
-        roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}"
+        if is_oot_features():
+            roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}"
+        else:
+            enable_pos_lights = "true" if self.enable_pos_lights else "false"
+            enable_storm = "true" if self.enable_storm else "false"
+            roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}, {enable_pos_lights}, {enable_storm}"
+
         cmdList = [
             f"SCENE_CMD_ECHO_SETTINGS({self.echo})",
             f"SCENE_CMD_ROOM_BEHAVIOR({roomBehaviorArgs})",
@@ -143,12 +169,18 @@ class RoomActors:
     def get_rotation_values(actorProp: OOTActorProperty, blender_rot_values: list[int]):
         # Figure out which rotation to export, Blender's or the override
         custom = (
-            "_custom" if not bpy.context.scene.fast64.oot.use_new_actor_panel or actorProp.actor_id == "Custom" else ""
+            "_custom"
+            if not bpy.context.scene.fast64.oot.can_use_new_actor_panel() or actorProp.actor_id == "Custom"
+            else ""
         )
         rot_values = [getattr(actorProp, f"rot_{rot}{custom}") for rot in ["x", "y", "z"]]
-        export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
 
-        if not bpy.context.scene.fast64.oot.use_new_actor_panel or actorProp.actor_id == "Custom":
+        if game_data.z64.is_oot():
+            export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
+        else:
+            export_rot_values = [f"{round(rot * (180 / 0x8000))}" for rot in blender_rot_values]
+
+        if not bpy.context.scene.fast64.oot.can_use_new_actor_panel() or actorProp.actor_id == "Custom":
             export_rot_values = rot_values if actorProp.rot_override else export_rot_values
         else:
             for i, rot in enumerate(["X", "Y", "Z"]):
@@ -167,6 +199,7 @@ class RoomActors:
         headerIndex: int,
         room_index: int,
     ):
+        game_data.z64.update(bpy.context, None)
         actorList: list[Actor] = []
         actorObjList = getObjectList(sceneObj.children, "EMPTY", "Actor", parentObj=roomObj, room_index=room_index)
         for obj in actorObjList:
@@ -174,7 +207,7 @@ class RoomActors:
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
-            # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
+            # The Actor list is filled with `("None", f"{i} (Deleted from the XML)", "None")` for
             # the total number of actors defined in the XML. If the user deletes one, this will prevent
             # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
@@ -188,7 +221,50 @@ class RoomActors:
                 else:
                     actor.id = actorProp.actor_id
 
-                actor.rot = ", ".join(RoomActors.get_rotation_values(actorProp, rot))
+                rotation = RoomActors.get_rotation_values(actorProp, rot)
+
+                if is_oot_features():
+                    actor.rot = ", ".join(rotation)
+                else:
+                    actor.id = f"{actor.id} | {actorProp.actor_flags}"
+
+                    halfday_bits = 0
+
+                    if actorProp.halfday_all:
+                        halfday_bits |= halfday_bits_all_dawns | halfday_bits_all_nights
+                    else:
+                        if actorProp.halfday_all_dawns:
+                            halfday_bits |= halfday_bits_all_dawns
+
+                        if actorProp.halfday_all_nights:
+                            halfday_bits |= halfday_bits_all_nights
+
+                    # if the value is 0 it means it's not all nor all dawns nor all nights
+                    if halfday_bits == 0:
+                        for item in actorProp.halfday_bits:
+                            custom_value = 0
+
+                            try:
+                                if item.value == "Custom":
+                                    custom_value = int(getEvalParams(item.value_custom), base=0)
+                            except Exception:
+                                raise PluginError(
+                                    f"ERROR: custom spawn schedule values don't support non-evaluable characters! ({repr(obj.name)})"
+                                )
+
+                            halfday_bits |= enum_to_halfday_bits.get(item.value, custom_value)
+
+                    # rot.x stores a part of the halfday bits value
+                    # rot.y stores a cutscene index
+                    # rot.z stores the other part of the halfday bits
+                    cs_index = actorProp.actor_cs_index & 0x7F
+                    spawn_flags = [
+                        f"0x{(halfday_bits >> 7) & 0x07:02X}",
+                        "CS_ID_GLOBAL_END" if cs_index == 0x7F else cs_index,
+                        f"0x{halfday_bits & 0x7F:02X}",
+                    ]
+                    spawn_rot = [f"SPAWN_ROT_FLAGS({r}" for r in rotation]
+                    actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actor.name = (
                     game_data.z64.actors.actorsByID[actorProp.actor_id].name.replace(
@@ -199,11 +275,17 @@ class RoomActors:
                 )
 
                 actor.pos = pos
-                actor.params = (
-                    actorProp.params
-                    if bpy.context.scene.fast64.oot.use_new_actor_panel and actorProp.actor_id != "Custom"
-                    else actorProp.params_custom
-                )
+
+                # force custom params for MM (temp solution until the xml is documented properly)
+                if (
+                    game_data.z64.is_oot()
+                    and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
+                    and actorProp.actor_id != "Custom"
+                ):
+                    actor.params = actorProp.params
+                else:
+                    actor.params = actorProp.params_custom
+
                 actorList.append(actor)
         return RoomActors(name, actorList)
 

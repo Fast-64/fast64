@@ -186,8 +186,6 @@ class OOTDefaultRenderModesProperty(PropertyGroup):
 
 
 oot_dl_writer_classes = (
-    OOTDLExportSettings,
-    OOTDLImportSettings,
     OOTDynamicMaterialDrawLayerProperty,
     OOTDynamicMaterialProperty,
     OOTDefaultRenderModesProperty,

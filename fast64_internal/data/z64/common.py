@@ -6,7 +6,7 @@ from dataclasses import dataclass
 class Z64_BaseElement:
     id: str
     key: str
-    name: str
+    name: str | None
     index: int
 
 

@@ -5,9 +5,15 @@ import bpy
 from ...utility import parentObject, hexOrDecInt
 from ..exporter.scene.actors import SceneTransitionActors
 from ..scene.properties import OOTSceneHeaderProperty
-from ..utility import setCustomProperty, getEvalParams, getEvalParamsInt
+from ..utility import setCustomProperty, getEvalParams, getEvalParamsInt, is_oot_features
 from ...game_data import game_data
-from ..constants import ootEnumCamTransition
+from ..constants import (
+    ootEnumCamTransition,
+    halfday_bits_all_dawns,
+    halfday_bits_all_nights,
+    halfday_bits_to_enum,
+    halfday_bits_values,
+)
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
 
@@ -21,10 +27,10 @@ from .utility import (
 
 
 def set_actor_params(actorProp, actor_id, actor_params):
-    if actorProp.actor_id != "Custom":
+    if game_data.z64.is_oot() and actorProp.actor_id != "Custom":
         try:
             actorProp.set_param_value(actor_params, "Params")
-        except:
+        except Exception:
             print("Failed to parse params " + actor_params + " for actor " + actor_id + ":")
             traceback.print_exc()
             print("Defaulting to custom")
@@ -81,6 +87,10 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", actor.cameraBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
+
+            if not is_oot_features():
+                actorProp.actor_cs_index = actor.cs_index
+
             setCustomProperty(actorProp, "actor_id", actor.id, game_data.z64.actors.ootEnumActorID)
             set_actor_params(actorProp, actor.id, actor.params)
             handleActorWithRotAsParam(actorProp, actor.id, rotation)
@@ -108,28 +118,49 @@ def parseEntranceList(
     return entrances
 
 
-def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, list[int], list[int], str]:
+def parseActorInfo(
+    actorMatch: re.Match, nestedBrackets: bool
+) -> tuple[str, str, list[int], tuple[int], tuple[int], str]:
+    spawn_flags = [0x0000] * 3
+    actor_id_flags = "0x0000"
+
     if nestedBrackets:
         actorID = actorMatch.group(1).strip()
         position = tuple(
             [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
         )
-        rotation = tuple(
-            [
-                hexOrDecInt(getEvalParamsInt(value.strip()))
-                for value in actorMatch.group(3).split(",")
-                if value.strip() != ""
-            ]
-        )
+
+        if game_data.z64.is_oot():
+            spawn_rotation = tuple(
+                [
+                    hexOrDecInt(getEvalParamsInt(value.strip()))
+                    for value in actorMatch.group(3).split(",")
+                    if value.strip() != ""
+                ]
+            )
+        else:
+            if "|" in actorID:
+                split = actorID.split("|")
+                actorID = split[0].strip()
+                actor_id_flags = split[1].strip()
+
+            spawn_rotation = []
+            spawn_flags = []
+            for value in actorMatch.group(3).replace(" ", "").replace("\n", "").split("SPAWN_ROT_FLAGS"):
+                if value != "":
+                    rot, flags = value.removeprefix("(").removesuffix(",").removesuffix(")").split(",")
+                    spawn_rotation.append(hexOrDecInt(getEvalParams(rot)))
+                    spawn_flags.append(hexOrDecInt(getEvalParams(flags)))
+
         actorParam = actorMatch.group(4).strip()
     else:
         params = [getEvalParams(value.strip()) for value in actorMatch.group(1).split(",")]
         actorID = params[0]
         position = tuple([hexOrDecInt(value) for value in params[1:4]])
-        rotation = tuple([hexOrDecInt(value) for value in params[4:7]])
+        spawn_rotation = tuple([hexOrDecInt(value) for value in params[4:7]])
         actorParam = params[7]
 
-    return actorID, position, rotation, actorParam.removesuffix(",")
+    return actorID, actor_id_flags, position, tuple(spawn_rotation), tuple(spawn_flags), actorParam.removesuffix(",")
 
 
 def parseSpawnList(
@@ -145,7 +176,9 @@ def parseSpawnList(
     index = 0
     regex, nestedBrackets = getActorRegex(spawnList)
     for spawnMatch in re.finditer(regex, spawnList, flags=re.DOTALL):
-        actorID, position, rotation, actorParam = parseActorInfo(spawnMatch, nestedBrackets)
+        actorID, actor_id_flags, position, rotation, spawn_flags, actorParam = parseActorInfo(
+            spawnMatch, nestedBrackets
+        )
         spawnIndex, roomIndex = [value for value in entranceList if value[0] == index][0]
         actorHash = (actorID, position, rotation, actorParam, spawnIndex, roomIndex)
 
@@ -161,7 +194,7 @@ def parseSpawnList(
             actorProp = spawnProp.actor
             setCustomProperty(actorProp, "actor_id", actorID, game_data.z64.actors.ootEnumActorID)
             set_actor_params(actorProp, actorID, actorParam)
-            handleActorWithRotAsParam(actorProp, actorID, rotation)
+            handleActorWithRotAsParam(actorProp, actorID, rotation if game_data.z64.is_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             sharedSceneData.entranceDict[actorHash] = spawnObj
@@ -190,7 +223,7 @@ def parseActorList(
         actorHash = parseActorInfo(actorMatch, nestedBrackets) + (roomObj.ootRoomHeader.roomIndex,)
 
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Actor", headerIndex):
-            actorID, position, rotation, actorParam, roomIndex = actorHash
+            actorID, actor_id_flags, position, rotation, spawn_flags, actorParam, roomIndex = actorHash
 
             actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Actor"
@@ -201,6 +234,29 @@ def parseActorList(
             set_actor_params(actorProp, actorID, actorParam)
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
+
+            if not is_oot_features():
+                actorProp.actor_flags = actor_id_flags
+
+                if sharedSceneData.includeActorCs:
+                    actorProp.actor_cs_index = spawn_flags[1]
+                    actorProp.use_global_actor_cs = actorProp.actor_cs_index < 127
+
+                # see `Actor_SpawnEntry()`
+                halfday_bits = ((spawn_flags[0] & 7) << 7) | (spawn_flags[2] & 0x7F)
+                actorProp.halfday_all = halfday_bits == halfday_bits_all_dawns | halfday_bits_all_nights
+
+                if not actorProp.halfday_all:
+                    actorProp.halfday_all_dawns = halfday_bits == halfday_bits_all_dawns
+                    actorProp.halfday_all_nights = halfday_bits == halfday_bits_all_nights
+
+                if not actorProp.halfday_all and not actorProp.halfday_all_dawns and not actorProp.halfday_all_nights:
+                    for bits in halfday_bits_values:
+                        value = halfday_bits & bits
+
+                        if value > 0:
+                            new_entry = actorProp.halfday_bits.add()
+                            new_entry.value = halfday_bits_to_enum[value]
 
             sharedSceneData.actorDict[actorHash] = actorObj
 

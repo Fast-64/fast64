@@ -4,6 +4,7 @@ import mathutils
 
 from pathlib import Path
 
+from ...game_data import game_data
 from ...utility import PluginError, hexOrDecInt, removeComments, get_include_data, yUpToZUp
 from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty
 from ..utility import ootParseRotation
@@ -20,11 +21,15 @@ def getBits(value: int, index: int, size: int) -> int:
 
 
 def unsetAllHeadersExceptSpecified(headerSettings: OOTActorHeaderProperty, headerIndex: int):
-    headerSettings.sceneSetupPreset = "Custom"
-    for i in range(len(headerNames)):
-        setattr(headerSettings, headerNames[i], i == headerIndex)
+    if game_data.z64.is_oot():
+        headerSettings.sceneSetupPreset = "Custom"
+        for i in range(len(headerNames)):
+            setattr(headerSettings, headerNames[i], i == headerIndex)
+    else:
+        headerSettings.include_in_all_setups = False
+        headerSettings.childDayHeader = headerIndex == 0
 
-    if headerIndex >= 4:
+    if headerIndex >= game_data.z64.cs_index_start:
         headerSettings.cutsceneHeaders.add().headerIndex = headerIndex
 
 
@@ -64,7 +69,7 @@ def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotatio
 def getDataMatch(
     sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True, strip: bool = False
 ) -> str:
-    arrayText = rf"\[[\s0-9A-Za-z_]*\]\s*" if isArray else ""
+    arrayText = r"\[[\s0-9A-Za-z_]*\]\s*" if isArray else ""
 
     if isinstance(dataType, list):
         dataTypeRegex = "(?:"
@@ -76,7 +81,7 @@ def getDataMatch(
     regex = rf"{dataTypeRegex}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
     match = re.search(regex, sceneData, flags=re.DOTALL)
 
-    if not match:
+    if match is None:
         raise PluginError(f"ERROR: Could not find {errorMessageID} {name}. (regex used: '{regex}')")
 
     # return the match with comments removed

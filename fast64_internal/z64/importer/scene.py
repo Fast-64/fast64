@@ -27,9 +27,22 @@ from ..utility import (
 
 
 def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3dContext: OOTF3DContext):
-    drawFunctionName = "Scene_DrawConfig" + "".join(
-        [value.strip().lower().capitalize() for value in drawConfigName.replace("SDC_", "").split("_")]
-    )
+    if game_data.z64.is_oot():
+        drawFunctionName = "Scene_DrawConfig" + "".join(
+            [value.strip().lower().capitalize() for value in drawConfigName.replace("SDC_", "").split("_")]
+        )
+    else:
+        mm_draw_config_to_func_name = {
+            "SCENE_DRAW_CFG_DEFAULT": "Scene_DrawConfigDefault",
+            "SCENE_DRAW_CFG_MAT_ANIM": "Scene_DrawConfigMatAnim",
+            "SCENE_DRAW_CFG_NOTHING": "Scene_DrawConfigDoNothing",
+            "SCENE_DRAW_CFG_UNUSED_3": "Scene_DrawConfig3",
+            "SCENE_DRAW_CFG_UNUSED_4": "Scene_DrawConfig4",
+            "SCENE_DRAW_CFG_UNUSED_5": "Scene_DrawConfig5",
+            "SCENE_DRAW_CFG_GREAT_BAY_TEMPLE": "Scene_DrawConfigGreatBayTemple",
+            "SCENE_DRAW_CFG_MAT_ANIM_MANUAL_STEP": "Scene_DrawConfigMatAnimManualStep",
+        }
+        drawFunctionName = mm_draw_config_to_func_name[drawConfigName]
 
     # get draw function
     match = re.search(rf"void\s*{re.escape(drawFunctionName)}(.*?)CLOSE\_DISPS", drawConfigData, flags=re.DOTALL)
@@ -169,6 +182,7 @@ def parseScene(
         settings.includeWaterBoxes,
         settings.includeCutscenes,
         settings.includeAnimatedMats,
+        settings.includeActorCs,
         is_single_file,
         f"{sceneName}_scene_header00" in sceneData,
         not_zapd_assets,
