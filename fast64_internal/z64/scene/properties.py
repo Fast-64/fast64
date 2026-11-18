@@ -647,13 +647,6 @@ class OOTSceneHeaderProperty(PropertyGroup):
                 self.animated_material.draw_props(layout, obj, None, headerIndex)
 
 
-def update_cutscene_index(self: "OOTAlternateSceneHeaderProperty", context: Context):
-    if self.currentCutsceneIndex < game_data.z64.cs_index_start:
-        self.currentCutsceneIndex = game_data.z64.cs_index_start
-
-    onHeaderMenuTabChange(self, context)
-
-
 class OOTAlternateSceneHeaderProperty(PropertyGroup):
     childNightHeader: PointerProperty(name="Child Night Header", type=OOTSceneHeaderProperty)
     adultDayHeader: PointerProperty(name="Adult Day Header", type=OOTSceneHeaderProperty)
@@ -661,7 +654,26 @@ class OOTAlternateSceneHeaderProperty(PropertyGroup):
     cutsceneHeaders: CollectionProperty(type=OOTSceneHeaderProperty)
 
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
-    currentCutsceneIndex: IntProperty(default=game_data.z64.cs_index_start, update=update_cutscene_index)
+    currentCutsceneIndex: IntProperty(
+        default=1,
+        get=lambda self: self.get_cs_index(),
+        set=lambda self, value: self.set_cs_index(value),
+        update=onHeaderMenuTabChange,
+    )
+
+    internal_cs_index: IntProperty()
+
+    def get_cs_index(self):
+        if self.internal_cs_index < game_data.z64.cs_index_start:
+            return game_data.z64.cs_index_start
+
+        return self.internal_cs_index
+
+    def set_cs_index(self, value: int):
+        if value < game_data.z64.cs_index_start:
+            value = game_data.z64.cs_index_start
+
+        self.internal_cs_index = value
 
     def draw_props(self, layout: UILayout, obj: Object):
         headerSetup = layout.column()

@@ -107,6 +107,7 @@ class SceneActorCutscene:
         # validate actor cs index
         if empty_type == "Actor":
             for obj in obj_list:
+                actor_prop: OOTActorProperty = obj.ootActorProperty
                 index = actor_prop.actor_cs_index
 
                 if index > i and index < 127:

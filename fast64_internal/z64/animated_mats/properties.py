@@ -136,7 +136,6 @@ class Z64_AnimatedMatColorParams(PropertyGroup):
         self.update_keyframes()
 
     def on_length_get(self):
-        self.update_keyframes()
         return self.internal_keyframe_length
 
     def draw_props(self, layout: UILayout, owner: Object, header_index: int, parent_index: int):

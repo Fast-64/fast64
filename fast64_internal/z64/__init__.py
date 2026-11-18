@@ -143,6 +143,8 @@ class OOT_Properties(bpy.types.PropertyGroup):
     export_cutscene_obj: bpy.props.PointerProperty(
         type=bpy.types.Object, poll=lambda self, obj: obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene"
     )
+    oot_decomp_path: bpy.props.StringProperty(subtype="FILE_PATH")
+    mm_decomp_path: bpy.props.StringProperty(subtype="FILE_PATH")
 
     # internal
     global_actor_cs_count: bpy.props.IntProperty(min=0, default=0)

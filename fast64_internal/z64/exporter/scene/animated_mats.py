@@ -51,6 +51,7 @@ class AnimatedMatColorParams:
         self.use_macros = use_macros
         self.header_suffix = f"_{index:02}"
         self.name = f"{self.base_name}{suffix}ColorParams{self.header_suffix}"
+        props.update_keyframes()
         self.frame_length = len(props.keyframes) if is_draw_color else props.keyframe_length
         self.prim_colors: list[tuple[int, int, int, int, int]] = []
         self.env_colors: list[tuple[int, int, int, int]] = []

@@ -1,10 +1,9 @@
 import bpy
-import re
 
 from pathlib import Path
 
 from ...utility import PluginError, hexOrDecInt
-from ..utility import setCustomProperty
+from ..utility import setCustomProperty, is_oot_features
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
 from ...game_data import game_data
@@ -87,7 +86,8 @@ def parseRoomCommands(
 
             if game_data.z64.is_oot():
                 roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
-            else:
+
+            if not is_oot_features():
                 roomHeader.enable_pos_lights = args[4] == "true" or args[4] == "1"
                 roomHeader.enable_storm = args[5] == "true" or args[5] == "1"
         elif command == "SCENE_CMD_SKYBOX_DISABLES":

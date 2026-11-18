@@ -88,7 +88,7 @@ def parseTransActorList(
 
             actorProp = transActorProp.actor
 
-            if game_data.z64.is_mm():
+            if not is_oot_features():
                 actorProp.actor_cs_index = actor.cs_index
 
             setCustomProperty(actorProp, "actor_id", actor.id, game_data.z64.actors.ootEnumActorID)

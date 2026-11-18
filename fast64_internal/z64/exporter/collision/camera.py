@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList
+from ....game_data import game_data
+from ...utility import getObjectList, is_oot_features
 from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
 from ..utility import Utility
@@ -119,7 +120,9 @@ class BgCamInformations:
                 decomp_compat_map_CameraSType.get(cam_setting, cam_setting) if game_data.z64.is_oot() else cam_setting
             )
 
-        if camProp.hasPositionData or camProp.is_actor_cs_cam:
+        is_actor_cs_cam = not is_oot_features() and camProp.is_actor_cs_cam
+
+        if camProp.hasPositionData or is_actor_cs_cam:
             if camProp.index in cam_pos_data:
                 raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {cam_obj.name}")
 
@@ -138,15 +141,10 @@ class BgCamInformations:
                 cam_obj.ootCameraPositionProperty.bgImageOverrideIndex,
             )
 
-        if camProp.index in camInfoData:
-            raise PluginError(f"ERROR: Repeated camera entry: {camProp.index} for {cam_obj.name}")
-
         return CameraInfo(
             setting,
-            3
-            if camProp.hasPositionData or camProp.is_actor_cs_cam
-            else 0,  # cameras are using 3 entries in the data array
-            cam_pos_data[camProp.index] if camProp.hasPositionData or camProp.is_actor_cs_cam else None,
+            3 if camProp.hasPositionData or is_actor_cs_cam else 0,  # cameras are using 3 entries in the data array
+            cam_pos_data[camProp.index] if camProp.hasPositionData or is_actor_cs_cam else None,
             camProp.index,
         )
 
@@ -162,8 +160,11 @@ class BgCamInformations:
             camProp: OOTCameraPositionProperty = camObj.ootCameraPositionProperty
 
             # ignore non-scene cameras
-            if camProp.is_actor_cs_cam:
+            if not is_oot_features() and camProp.is_actor_cs_cam:
                 continue
+
+            if camProp.index in camInfoData:
+                raise PluginError(f"ERROR: Repeated camera entry: {camProp.index} for {camObj.name}")
 
             camInfoData[camProp.index] = BgCamInformations.get_camera_info(dataHolder, camObj, transform, camPosData)
 

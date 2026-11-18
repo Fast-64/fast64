@@ -13,7 +13,7 @@ from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import getEvalParams, setCustomProperty, is_hackeroot, getEnumIndex, twos_complement, parseColor
+from ..utility import getEvalParams, setCustomProperty, is_oot_features, getEnumIndex, twos_complement, parseColor
 from .constants import headerNames
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
@@ -684,7 +684,7 @@ def parseSceneCommands(
             command_list.remove(command)
 
         # handle Majora's Mask (or modded OoT) exclusive commands
-        elif game_data.z64.is_mm() or is_hackeroot():
+        elif not is_oot_features():
             if command == "SCENE_CMD_SET_REGION_VISITED":
                 sceneHeader.set_region_visited = True
                 command_list.remove(command)
