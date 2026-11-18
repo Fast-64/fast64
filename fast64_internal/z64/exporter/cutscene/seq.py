@@ -35,13 +35,12 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
 
     seqPlayer: str = field(init=False, default=str())
     paramNumber: int = field(init=False, default=11)
-    enumKey: str = field(init=False, default="csFadeOutSeqPlayer")
 
     @staticmethod
-    def from_params(params: list[str], enumKey: str):
-        return CutsceneCmdFadeSeq(
-            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue(enumKey, params[0])
-        )
+    def from_params(params: list[str]):
+        new = CutsceneCmdFadeSeq(getInteger(params[1]), getInteger(params[2]))
+        new.seqPlayer = CutsceneCmdBase.getEnumValue("cs_fade_out_seq_player", params[0])
+        return new
 
     def getCmd(self):
         self.validateFrames()
