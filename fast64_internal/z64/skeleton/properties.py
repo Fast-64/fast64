@@ -128,12 +128,22 @@ class OOTSkeletonImportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
+    ignore_segments: BoolProperty(
+        name="Ignore DL Segments",
+        description=(
+            "Whether to ignore jumps to segmented addresses (like gsSPSegment(0x08000000)), "
+            "instead of importing them as Dynamic Material Properties. "
+            "This ignore option can be used to work around the importer wrongly setting some materials' segments"
+        ),
+        default=False,
+    )
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "drawLayer", "Import Draw Layer")
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
         layout.prop(self, "import_animations")
+        layout.prop(self, "ignore_segments")
         layout.prop(self, "isCustom")
         if self.isCustom:
             prop_split(layout, self, "name", "Skeleton")

@@ -259,6 +259,13 @@ def fixLargeUVs(obj):
                 " that are assigned to an empty material slot."
             )
 
+        # ignore materials using texture references (avoids getTexDimensions throwing an error)
+        # TODO: find a better way
+        if (material.f3d_mat.tex0.tex_set and material.f3d_mat.tex0.use_tex_reference) or (
+            material.f3d_mat.tex1.tex_set and material.f3d_mat.tex1.use_tex_reference
+        ):
+            continue
+
         if material not in texSizeDict:
             texSizeDict[material] = getTexDimensions(material)
         if material.f3d_mat.use_large_textures:
@@ -450,6 +457,18 @@ def saveStaticModel(
     fMeshes: dict[str, FMesh] = {}
     for material_index, faces in faces_by_mat.items():
         material = obj.material_slots[material_index].material
+
+        def try_append_refs(tex):
+            if tex.tex_set and tex.use_tex_reference and tex.extern_refs:
+                if len(tex.tex_reference) > 0 and not tex.tex_reference.lower().startswith("0x"):
+                    fModel.reference_to_extern.append(tex.tex_reference)
+
+                if len(tex.pal_reference) > 0 and not tex.pal_reference.lower().startswith("0x"):
+                    fModel.reference_to_extern.append(tex.pal_reference)
+
+        try_append_refs(material.f3d_mat.tex0)
+        try_append_refs(material.f3d_mat.tex1)
+        fModel.reference_to_extern = list(set(fModel.reference_to_extern))  # remove duplicates
 
         if drawLayerField is not None and material.mat_ver > 3:
             drawLayer = getattr(material.f3d_mat.draw_layer, drawLayerField)

@@ -756,7 +756,8 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input = blend_color_group.column()
             prop_input_name.prop(dataHolder, "set_blend", text="Blend Color")
             prop_input.prop(dataHolder, "blend_color", text="")
-            prop_input.enabled = dataHolder.set_blend
+            if not get_addon_preferences().allow_changing_unset_material_props:
+                prop_input.enabled = dataHolder.set_blend
 
 
 def tmemUsageUI(layout, textureProp):
@@ -780,17 +781,15 @@ def rendermode_presets_checks(material: "F3DMaterialProperty"):
         no_flags_2 = rdp.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
         if no_flags_1 and no_flags_2:
             raise PluginError(
-                "Invalid combination of rendermode presets.\n" "Neither of these presets sets the rendermode flags."
+                "Invalid combination of rendermode presets.\nNeither of these presets sets the rendermode flags."
             )
         elif not no_flags_1 and not no_flags_2:
             raise PluginError(
-                "Invalid combination of rendermode presets.\n" "Both of these presets set the rendermode flags."
+                "Invalid combination of rendermode presets.\nBoth of these presets set the rendermode flags."
             )
     else:
         if no_flags_1:
-            raise PluginError(
-                "Invalid rendermode preset in 1-cycle.\n" "This preset does not set the rendermode flags."
-            )
+            raise PluginError("Invalid rendermode preset in 1-cycle.\nThis preset does not set the rendermode flags.")
 
 
 # UI Assumptions:
@@ -856,7 +855,8 @@ class F3DPanel(Panel):
         prop_input.prop(f3dMat, "prim_color", text="")
         prop_input.prop(f3dMat, "prim_lod_frac", text="Prim LOD Fraction")
         prop_input.prop(f3dMat, "prim_lod_min", text="Min LOD Ratio")
-        prop_input.enabled = setProp
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = setProp
         return inputGroup
 
     def ui_env(self, material, layout, showCheckBox):
@@ -870,7 +870,8 @@ class F3DPanel(Panel):
             prop_input_name.label(text="Environment Color")
         prop_input.prop(material.f3d_mat, "env_color", text="")
         setProp = material.f3d_mat.set_env
-        prop_input.enabled = setProp
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = setProp
         return inputGroup
 
     def ui_chroma(self, material, layout, name, setName, setProp, showCheckBox):
@@ -887,7 +888,8 @@ class F3DPanel(Panel):
         prop_input.prop(f3d_mat, "key_width", text="Width")
         if f3d_mat.key_width[0] > 1 or f3d_mat.key_width[1] > 1 or f3d_mat.key_width[2] > 1:
             layout.box().label(text="NOTE: Keying is disabled for channels with width > 1.")
-        prop_input.enabled = setProp
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = setProp
         return inputGroup
 
     def ui_lights(self, f3d_mat: "F3DMaterialProperty", layout: UILayout, name, showCheckBox):
@@ -969,7 +971,8 @@ class F3DPanel(Panel):
         prop_k5.prop(material, "k5", text="K5")
         prop_k5.label(text=str(int(material.k5 * 255)))
 
-        prop_input.enabled = material.set_k0_5
+        if not get_addon_preferences().allow_changing_unset_material_props:
+            prop_input.enabled = material.set_k0_5
         return inputGroup
 
     def ui_lower_render_mode(self, material, layout, useDropdown):
@@ -1331,7 +1334,8 @@ class F3DPanel(Panel):
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
             combinerCol = combinerBox.row().split(factor=0.45)
-            combinerCol.enabled = f3dMat.set_combiner
+            if not get_addon_preferences().allow_changing_unset_material_props:
+                combinerCol.enabled = f3dMat.set_combiner
             drawCCProps(combinerCol, f3dMat.combiner1, False)
             drawCCProps(combinerCol, f3dMat.combiner1, True, not f3dMat.use_cel_shading)
             if f3dMat.use_cel_shading:
@@ -1342,7 +1346,8 @@ class F3DPanel(Panel):
             if is_two_cycle:
                 combinerBox2 = layout.box()
                 combinerBox2.label(text="Color Combiner Cycle 2")
-                combinerBox2.enabled = f3dMat.set_combiner
+                if not get_addon_preferences().allow_changing_unset_material_props:
+                    combinerBox2.enabled = f3dMat.set_combiner
                 combinerCol2 = combinerBox2.row().split(factor=0.45)
                 drawCCProps(combinerCol2, f3dMat.combiner2, False)
                 drawCCProps(combinerCol2, f3dMat.combiner2, True)
@@ -2550,8 +2555,58 @@ def createOrUpdateSceneProperties():
         _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light1Dir")
         _nodeLight1Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light1Size")
 
-    # Set outputs from render settings
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
+
+    if bpy.app.version >= (3, 4, 0):
+        # ShaderNodeAttribute.attribute_type = "VIEW_LAYER" is new in 3.4.0
+        y = 0
+
+        def add_attribute_node(attribute_name_info, attribute_type, output_socket):
+            nonlocal y
+            if isinstance(attribute_name_info, tuple):
+                # the ShaderNodeAttribute can't access vector elements,
+                # so we target the vector instead and use a ShaderNodeSeparateXYZ to get the specific value
+                attribute_name, index = attribute_name_info
+            else:
+                attribute_name = attribute_name_info
+                index = None
+            attributeNode = new_group.nodes.new("ShaderNodeAttribute")
+            attributeNode: bpy.types.ShaderNodeAttribute
+            attributeNode.attribute_type = "VIEW_LAYER"
+            attributeNode.attribute_name = attribute_name
+            attributeNode.hide = True
+            attributeNode.location = (-500, y)
+            y -= 30
+            if index is not None:
+                attribute_type = "Vector"
+                separateNode = new_group.nodes.new("ShaderNodeSeparateXYZ")
+                separateNode.hide = True
+                separateNode.location = (-400, y)
+                y -= 30
+                new_group.links.new(separateNode.inputs[0], attributeNode.outputs["Vector"])
+                new_group.links.new(sceneOutputs.inputs[output_socket], separateNode.outputs[index])
+            else:
+                if attribute_type == "Fac":
+                    # The socket name changed across Blender versions, but not the order.
+                    # Just use the index
+                    attribute_type = 2
+                new_group.links.new(sceneOutputs.inputs[output_socket], attributeNode.outputs[attribute_type])
+
+        add_attribute_node("fast64.renderSettings.enableFogPreview", "Fac", "FogEnable")
+        add_attribute_node("fast64.renderSettings.fogPreviewColor", "Color", "FogColor")
+        add_attribute_node(("fast64.renderSettings.clippingPlanes", 0), "Fac", "F3D_NearClip")
+        add_attribute_node(("fast64.renderSettings.clippingPlanes", 1), "Fac", "F3D_FarClip")
+        add_attribute_node(("fast64.renderSettings.fogPreviewPosition", 0), "Fac", "FogNear")
+        add_attribute_node(("fast64.renderSettings.fogPreviewPosition", 1), "Fac", "FogFar")
+        add_attribute_node("fast64.renderSettings.ambientColor", "Color", "AmbientColor")
+        add_attribute_node("fast64.renderSettings.light0Color", "Color", "Light0Color")
+        add_attribute_node("fast64.renderSettings.light0Direction", "Vector", "Light0Dir")
+        add_attribute_node("fast64.renderSettings.light0SpecSize", "Fac", "Light0Size")
+        add_attribute_node("fast64.renderSettings.light1Color", "Color", "Light1Color")
+        add_attribute_node("fast64.renderSettings.light1Direction", "Vector", "Light1Dir")
+        add_attribute_node("fast64.renderSettings.light1SpecSize", "Fac", "Light1Size")
+
+    # Set outputs from render settings
     renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
 
     update_scene_props_from_render_settings(sceneOutputs, renderSettings)
@@ -2986,6 +3041,10 @@ class TextureProperty(PropertyGroup):
         min=1,
         default=16,
     )
+    extern_refs: bpy.props.BoolProperty(
+        name="Extern Texture Reference",
+        description="Adds externs to the exported source, useful if the texture or palette reference is a symbol.",
+    )
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
@@ -3146,13 +3205,21 @@ def ui_image(
 
         prop_input.prop(textureProp, "use_tex_reference")
         if textureProp.use_tex_reference:
+            flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
+
+            if (len(textureProp.tex_reference) > 0 and not textureProp.tex_reference.lower().startswith("0x")) or (
+                not flipbook.enable
+                and len(textureProp.pal_reference) > 0
+                and not textureProp.pal_reference.lower().startswith("0x")
+            ):
+                prop_input.prop(textureProp, "extern_refs")
+
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-            if textureProp.tex_format[:2] == "CI":
-                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
-                if flipbook is None or not flipbook.enable:
-                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+
+            if textureProp.tex_format[:2] == "CI" and not flipbook.enable:
+                prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
         else:
             prop_input.template_ID(
@@ -3656,7 +3723,7 @@ class RDPSettings(PropertyGroup):
     clip_ratio: bpy.props.IntProperty(
         default=1,
         min=1,
-        max=2**15 - 1,
+        max=6,
         update=update_node_values_with_preset,
     )
 
@@ -3996,8 +4063,7 @@ def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
     col.label(text="Saved to Repo Settings file", icon="PROPERTIES")
     multilineLabel(
         col,
-        text="If a material setting is the same as the default setting\n"
-        "it won't be set, otherwise a revert will be added.",
+        text="If a material setting is the same as the default setting\nit won't be set, otherwise a revert will be added.",
     )
     if scene.gameEditorMode == "Homebrew":
         multilineLabel(
@@ -4215,15 +4281,6 @@ class AddPresetF3D(AddPresetBase, Operator):
     bl_label = "Add F3D Material Preset"
     preset_menu = "MATERIAL_MT_f3d_presets"
 
-    # variable used for all preset values
-    # do NOT set "mat" in this operator, even in a for loop! it overrides this value
-    preset_defines = ["f3d_mat = bpy.context.material.f3d_mat"]
-
-    # properties to store in the preset
-    preset_values = [
-        "f3d_mat",
-    ]
-
     # where to store the preset
     preset_subdir = "f3d/user"
 
@@ -4369,16 +4426,12 @@ class AddPresetF3D(AddPresetBase, Operator):
                     file_preset = open(filepath, "w", encoding="utf-8")
                     file_preset.write("import bpy\n")
 
-                    if hasattr(self, "preset_defines"):
-                        for rna_path in self.preset_defines:
-                            exec(rna_path)
-                            file_preset.write("%s\n" % rna_path)
-                        file_preset.write("\n")
+                    f3d_mat = bpy.context.material.f3d_mat
+                    file_preset.write("f3d_mat = bpy.context.material.f3d_mat\n")
+                    file_preset.write("\n")
                     file_preset.write("bpy.context.material.f3d_update_flag = True\n")
 
-                    for rna_path in self.preset_values:
-                        value = eval(rna_path)
-                        rna_recursive_attr_expand(value, rna_path, 1)
+                    rna_recursive_attr_expand(f3d_mat, "f3d_mat", 1)
 
                     file_preset.write("bpy.context.material.f3d_update_flag = False\n")
                     file_preset.write(

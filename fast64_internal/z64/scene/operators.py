@@ -172,13 +172,17 @@ class OOT_ExportScene(Operator):
                     settings.auto_add_room_objects,
                 )
 
-                SceneExport.export(
+                degen_tris_found_in = SceneExport.export(
                     obj,
                     finalTransform,
                     exportInfo,
                 )
 
-                self.report({"INFO"}, "Success!")
+                if degen_tris_found_in:
+                    details = ", ".join(f"{mesh} (material {material})" for mesh, material in degen_tris_found_in)
+                    self.report({"WARNING"}, "Success, but skipped degenerate tris in meshes " + details)
+                else:
+                    self.report({"INFO"}, "Success!")
 
                 # don't select the scene
                 for elem in context.selectable_objects:

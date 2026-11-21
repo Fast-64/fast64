@@ -175,7 +175,7 @@ def parseScene(
     )
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath), context="scene")
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
