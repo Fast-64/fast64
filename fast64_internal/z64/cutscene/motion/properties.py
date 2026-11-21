@@ -6,7 +6,7 @@ from bpy.utils import register_class, unregister_class
 from ...upgrade import upgradeCutsceneMotion
 from ...utility import getEnumName
 from ....game_data import game_data
-from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from ..constants import ootEnumCSMotionCamMode
 
 from .operators import (
     CutsceneCmdAddActorCue,
@@ -33,7 +33,9 @@ def getNextCuesStartFrame(self):
 
 class CutsceneCmdActorCueListProperty(PropertyGroup):
     commandType: EnumProperty(
-        items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="actor_cue_0_0"
+        items=lambda self, context: game_data.z64.get_enum("cs_actor_cue_list"),
+        name="CS Actor Cue Command Type",
+        default=1,
     )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
     actorCueListToPreview: PointerProperty(
@@ -58,7 +60,7 @@ class CutsceneCmdActorCueListProperty(PropertyGroup):
                 OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:"
             )
             searchOp.objName = objName
-            searchBox.label(text=getEnumName(ootEnumCSActorCueListCommandType, self.commandType))
+            searchBox.label(text=getEnumName(game_data.z64.get_enum("cs_actor_cue_list"), self.commandType))
 
             if self.commandType == "Custom":
                 split = box.split(factor=0.5)
@@ -87,7 +89,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
         get=lambda self: getNextCuesStartFrame(self),
     )
 
-    playerCueID: EnumProperty(items=game_data.z64.enums.enum_cs_player_cue_id, default="cueid_none")
+    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_player_cue_id"), default=1)
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )

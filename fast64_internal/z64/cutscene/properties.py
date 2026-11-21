@@ -113,13 +113,15 @@ class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
     # subprops
     textID: StringProperty(name="", default="0x0000")
     ocarinaAction: EnumProperty(
-        name="Ocarina Action", items=game_data.z64.enums.enum_ocarina_song_action_id, default="teach_minuet"
+        name="Ocarina Action", items=lambda self, context: game_data.z64.get_enum("cs_song_action_id"), default=1
     )
     ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
     topOptionTextID: StringProperty(name="", default="0x0000")
     bottomOptionTextID: StringProperty(name="", default="0x0000")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
-    csTextType: EnumProperty(name="Text Type", items=game_data.z64.enums.enum_cs_text_type, default="normal")
+    csTextType: EnumProperty(
+        name="Text Type", items=lambda self, context: game_data.z64.get_enum("cs_text_type"), default=1
+    )
     csTextTypeCustom: StringProperty(default="CS_TEXT_CUSTOM")
 
     def getName(self):
@@ -152,10 +154,10 @@ class OOTCSTimeProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "seqList"
     subprops = ["csSeqID", "startFrame", "endFrame"]
-    csSeqID: EnumProperty(name="Seq ID", items=game_data.z64.enums.enum_seq_id, default="general_sfx")
+    csSeqID: EnumProperty(name="Seq ID", items=lambda self, context: game_data.z64.get_enum("seq_id"), default=1)
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
     csSeqPlayer: EnumProperty(
-        name="Seq Player", items=game_data.z64.enums.enum_cs_fade_out_seq_player, default="fade_out_fanfare"
+        name="Seq Player", items=lambda self, context: game_data.z64.get_enum("cs_seq_player"), default=1
     )
     csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
@@ -171,7 +173,7 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSMiscProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "miscList"
     subprops = ["csMiscType", "startFrame", "endFrame"]
-    csMiscType: EnumProperty(name="Type", items=game_data.z64.enums.enum_cs_misc_type, default="rain")
+    csMiscType: EnumProperty(name="Type", items=lambda self, context: game_data.z64.get_enum("cs_misc_type"), default=1)
     csMiscTypeCustom: StringProperty(default="CS_MISC_CUSTOM")
 
 
@@ -197,7 +199,7 @@ class OOTCSListProperty(PropertyGroup):
     miscList: CollectionProperty(type=OOTCSMiscProperty)
     rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
 
-    transitionType: EnumProperty(items=game_data.z64.enums.enum_cs_transition_type, default="gray_fill_in")
+    transitionType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_transition_type"), default=1)
     transitionTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
     transitionStartFrame: IntProperty(name="", default=0, min=0)
     transitionEndFrame: IntProperty(name="", default=1, min=0)
@@ -360,7 +362,7 @@ class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csUseDestination: BoolProperty(name="Cutscene Destination (Scene Change)")
     csDestination: EnumProperty(
-        name="Destination", items=game_data.z64.enums.enum_cs_destination, default="cutscene_map_ganon_horse"
+        name="Destination", items=lambda self, context: game_data.z64.get_enum("cs_destination"), default=1
     )
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)

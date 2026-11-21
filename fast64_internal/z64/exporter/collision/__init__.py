@@ -9,6 +9,7 @@ from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
 
+from ....game_data import game_data
 from ....utility import (
     PluginError,
     CData,
