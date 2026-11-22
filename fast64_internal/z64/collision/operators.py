@@ -29,9 +29,13 @@ class OOT_ExportCollision(Operator):
             try:
                 transform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
                 settings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
-                CollisionHeader.export(obj, transform, settings)
+                degen_tris_found_in = CollisionHeader.export(obj, transform, settings)
 
-                self.report({"INFO"}, "Success!")
+                if degen_tris_found_in:
+                    details = ", ".join(f"{mesh} (material {material})" for mesh, material in degen_tris_found_in)
+                    self.report({"WARNING"}, "Success, but skipped degenerate tris in meshes " + details)
+                else:
+                    self.report({"INFO"}, "Success!")
                 return {"FINISHED"}
             except Exception as e:
                 if context.mode != "OBJECT":

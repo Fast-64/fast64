@@ -42,7 +42,7 @@ class CollisionUtility:
     """This class hosts different functions used to convert mesh data"""
 
     @staticmethod
-    def updateBounds(position: tuple[int, int, int], colBounds: list[tuple[int, int, int]]):
+    def updateBounds(position: tuple[int, int, int], colBounds: list[list[int]]):
         """This is used to update the scene's boundaries"""
 
         if len(colBounds) == 0:
@@ -96,7 +96,9 @@ class CollisionUtility:
         surfaceList: list[SurfaceType] = []
         polyList: list[CollisionPoly] = []
         vertexList: list[CollisionVertex] = []
-        colBounds: list[tuple[int, int, int]] = []
+        colBounds: list[list[int]] = []
+
+        degen_tris_found_in: set[tuple[str, str]] = set()
 
         transformFromMeshObj: dict[Object, Matrix] = {}
         if dataHolder.type == "MESH" and not dataHolder.ignore_collision:
@@ -114,7 +116,7 @@ class CollisionUtility:
                 for i, face in enumerate(meshObj.data.loop_triangles):
                     material = meshObj.material_slots[face.material_index].material
                     colProp = material.ootCollisionProperty
-                    raise_error = False
+                    is_degen_tri = False
 
                     # get bounds and vertices data
                     planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
@@ -139,18 +141,17 @@ class CollisionUtility:
                     nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
                     magSqr = sq(nx) + sq(ny) + sq(nz)
                     if magSqr <= 0:
-                        raise_error = True
+                        is_degen_tri = True
 
                     # for walls only, see https://github.com/zeldaret/oot/blob/eb5dac74d6435baf85ced9158d3ff915ba8872ca/src/code/z_bgcheck.c#L751
                     if normal[1] >= -0.8 and normal[1] <= 0.5:
                         normal_xz = math.sqrt(sq(normal[0]) + sq(normal[2]))
                         if math.fabs(normal_xz) < 0.008:
-                            raise_error = True
+                            is_degen_tri = True
 
-                    if raise_error:
-                        raise PluginError(
-                            f"degenerate triangle detected on mesh object '{meshObj.name}' (material name is '{material.name}')"
-                        )
+                    if is_degen_tri:
+                        degen_tris_found_in.add((meshObj.name, material.name))
+                        continue
 
                     indices: list[int] = []
                     for pos in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
@@ -213,7 +214,10 @@ class CollisionUtility:
             surfaceList.append(surface)
             count += 1
 
-        return colBounds, vertexList, polyList, surfaceList
+        if not colBounds:
+            colBounds = [[0, 0, 0], [0, 0, 0]]
+
+        return colBounds, vertexList, polyList, surfaceList, degen_tris_found_in
 
 
 @dataclass
@@ -243,11 +247,11 @@ class CollisionHeader:
         settings: Optional[OOTCollisionExportSettings] = None,
     ):
         # Ideally everything would be separated but this is complicated since it's all tied together
-        colBounds, vertexList, polyList, surfaceTypeList = CollisionUtility.getCollisionData(
+        colBounds, vertexList, polyList, surfaceTypeList, degen_tris_found_in = CollisionUtility.getCollisionData(
             dataHolder, transform, useMacros, includeChildren
         )
 
-        return CollisionHeader(
+        col_header = CollisionHeader(
             name,
             colBounds[0],
             colBounds[1],
@@ -259,6 +263,8 @@ class CollisionHeader:
             BgCamInformations.new(f"{sceneName}_bgCamInfo", f"{sceneName}_camPosData", dataHolder, transform),
             WaterBoxes.new(f"{sceneName}_waterBoxes", dataHolder, transform, useMacros),
         )
+
+        return col_header, degen_tris_found_in
 
     @staticmethod
     def export(original_obj: Object, transform: Matrix, settings: OOTCollisionExportSettings):
@@ -281,7 +287,7 @@ class CollisionHeader:
         # write file
         if not obj.ignore_collision:
             # create the collision header
-            col_header = CollisionHeader.new(
+            col_header, degen_tris_found_in = CollisionHeader.new(
                 f"{name}_collisionHeader",
                 name,
                 obj,
@@ -304,6 +310,8 @@ class CollisionHeader:
             raise PluginError("ERROR: exporting collision with ignore collision enabled!")
 
         cleanupDuplicatedObjects([obj])
+
+        return degen_tris_found_in
 
     def getCmd(self):
         """Returns the collision header scene command"""

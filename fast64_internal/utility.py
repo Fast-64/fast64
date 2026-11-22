@@ -2206,3 +2206,9 @@ class ExportUtils:
             print("\nExecution type:", exc_type)
             print("\nExecution value:", exc_value)
             print("\nTraceback:", traceback)
+
+
+def get_addon_preferences():
+    from .. import get_addon_preferences
+
+    return get_addon_preferences()
