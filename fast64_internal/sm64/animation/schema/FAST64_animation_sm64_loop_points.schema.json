@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "SM64 Animation Loop Points",
+    "type": "object",
+    "description": "Loop points for an SM64 animation",
+    "required": ["start", "loop_start", "end"],
+    "properties": {
+        "start": {
+            "type": "integer",
+            "description": "The starting frame of the animation, not the same as loop start.",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 32767
+        },
+        "loop_start": {
+            "type": "integer",
+            "description": "If Backwards is not set, this will be the starting frame after each loop, otherwise this will be treated as the loop end frame.",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 32767
+        },
+        "end": {
+            "type": "integer",
+            "description": "Both the end loop frame and the actual end frame. If Backwards is not set, this will be the ending frame of the animation, otherwise this will be treated as the loop start frame.",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 32767
+        }
+    },
+    "additionalProperties": false
+}

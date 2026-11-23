@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sm64_anim_header_hints glTF Animation Header Hints",
+    "type": "object",
+    "description": "Hints from Fast64 on what the assumed values should be for animation headers",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The name generated from the actor and animation name",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "enum": {
+            "type": "string",
+            "description": "The enum generated from the actor and action name",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "loop_points": {
+            "$ref": "sm64_anim_loop_points.schema.json",
+            "description": "The loop points calculated from the Blender action's range"
+        }
+    },
+    "additionalProperties": false
+}
