@@ -532,6 +532,11 @@ class SkinAnimatedLimbData:
 
 
 class OOTTriangleConverter(TriangleConverter):
+    # OoT skinning computes skin vertex normals separately and stores them in
+    # SkinLimbModif structures, which the flat shading optimization does not know about.
+    # Enabling it here also means adding OOTVert.transforms to flat_shading.vertex_key.
+    flatOptimizationSupported = False
+
     def getBufferVert(self, loop: MeshLoop, face: MeshLoopTriangle, groupIndex: int | None) -> BufferVertex:
         vertexGroupInfo: OOTVertexGroupInfo = self.triConverterInfo.vertexGroupInfo
         mesh: bpy.types.Mesh = self.triConverterInfo.mesh

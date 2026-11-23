@@ -118,6 +118,9 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(scene, "saveTextures")
         if scene.saveTextures:
             col.prop(fast64_settings, "texture_name_includes_ci_format")
+        col.prop(scene, "optimizeFlatShading")
+        if scene.optimizeFlatShading:
+            col.prop(scene, "poisonFlatShading")
         col.prop(scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if scene.exportInlineF3D:
             multilineLabel(
