@@ -32,7 +32,7 @@ class SurfaceType:
     echo: int
     canHookshot: bool
     conveyorSpeed: int | str
-    conveyorDirection: int
+    conveyorDirection: int | float
     isWallDamage: bool  # unk27
 
     useMacros: bool
@@ -137,6 +137,9 @@ class SurfaceType:
 
     def getSurfaceType1(self):
         """Returns surface type properties for the second element of the data array"""
+
+        # should only be float when importing
+        assert isinstance(self.conveyorDirection, int)
 
         if self.useMacros:
             return (
