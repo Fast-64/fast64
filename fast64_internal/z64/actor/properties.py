@@ -25,6 +25,7 @@ from ..utility import (
     getEvalParamsInt,
     getShiftFromMask,
     getFormattedParams,
+    get_actor_prop_from_obj,
 )
 
 ootEnumSceneSetupPreset = [
@@ -34,7 +35,9 @@ ootEnumSceneSetupPreset = [
 ]
 
 
-def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int, update: bool = True):
+def get_prop_name(
+    actor_key: str, param_type: str, param_subtype: str, param_index: int, update: bool = True, is_legacy: bool = False
+):
     if update:
         game_data.z64.update(bpy.context, None)
     flag_to_prop_suffix = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
@@ -48,7 +51,11 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
         "Message": "naviMsg",
     }
     suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
-    return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
+
+    if is_legacy:
+        return f"{actor_key}.{suffix}{param_index}"
+    else:
+        return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
 
 
 def create_game_props(game: str):
@@ -83,6 +90,33 @@ def create_game_props(game: str):
 
             if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
                 prop_ats[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
+
+
+def upgrade_game_props(obj: Object, game: str):
+    """Upgrades props from the older version of `create_game_props` to the new one"""
+
+    # temporarily make it `game`
+    game_data.z64.update(None, game, True)
+    actor_props: "OOTActorProperty" = get_actor_prop_from_obj(obj)
+    prefix = game_data.z64.game.lower()
+
+    for actor in game_data.z64.actors.actorList:
+        for param in actor.params:
+            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index, update=False, is_legacy=True)
+
+            if prop_name in actor_props:
+                actor_props[f"{prefix}.{prop_name}"] = actor_props[prop_name]
+                del actor_props[prop_name]
+
+            if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
+                prop_name_custom = f"{prop_name}_custom"
+
+                if prop_name_custom in actor_props:
+                    actor_props[f"{prefix}.{prop_name_custom}"] = actor_props[prop_name_custom]
+                    del actor_props[prop_name_custom]
+
+    # restore the previous state from bpy.context
+    game_data.z64.update(bpy.context, None, True)
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -215,6 +249,7 @@ class OOTActorProperty(PropertyGroup):
     def upgrade_object(obj: Object):
         print(f"Processing '{obj.name}'...")
         upgradeActors(obj)
+        upgrade_game_props(obj, "OOT")
 
     def is_rotation_used(self, target: str):
         actor = game_data.z64.actors.actorsByID[self.actor_id]
