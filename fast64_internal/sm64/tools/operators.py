@@ -14,7 +14,6 @@ from ..sm64_constants import levelIDNames, enumLevelNames
 from ..sm64_utility import import_rom_checks, int_from_str
 from ..sm64_level_parser import parse_level_binary
 from ..sm64_geolayout_utility import createBoneGroups
-from ..sm64_geolayout_parser import generateMetarig
 
 enum_address_conversion_options = [
     ("TO_VIR", "Segmented To Virtual", "Convert address from segmented to virtual"),
@@ -78,6 +77,24 @@ class SM64_AddBoneGroups(OperatorBase):
         createBoneGroups(armature_obj)
 
         self.report({"INFO"}, "Created bone groups.")
+
+
+# TODO find new spot for this?
+def generateMetarig(armatureObj):
+    armature = armatureObj.data
+    startBones = findStartBones(armatureObj)
+    createBoneGroups(armatureObj)
+    for boneName in startBones:
+        traverseArmatureForMetarig(armatureObj, boneName, None)
+    if bpy.app.version >= (4, 0, 0):
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(armature.bones[boneName])
+    else:
+        armatureObj.data.layers = createBoneLayerMask([boneLayers["visual"]])
+
+    if bpy.context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
 
 
 class SM64_CreateMetarig(OperatorBase):
