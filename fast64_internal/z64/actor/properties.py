@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Object, PropertyGroup, UILayout, Context
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import PluginError, prop_split, label_split, get_prop_annotations
+from ...utility import prop_split, label_split, get_prop_annotations
 from ...game_data import game_data
 from ..constants import ootEnumCamTransition
 from ..upgrade import upgradeActors
@@ -26,6 +26,7 @@ from ..utility import (
     getFormattedParams,
     is_oot_features,
     get_list_tab_text,
+    get_actor_prop_from_obj,
 )
 
 ootEnumSceneSetupPreset = [
@@ -54,7 +55,9 @@ enum_half_day = [
 ]
 
 
-def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int, update: bool = True):
+def get_prop_name(
+    actor_key: str, param_type: str, param_subtype: str, param_index: int, update: bool = True, is_legacy: bool = False
+):
     if update:
         game_data.z64.update(bpy.context, None)
     flag_to_prop_suffix = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
@@ -68,11 +71,15 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
         "Message": "naviMsg",
     }
     suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
-    return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
+
+    if is_legacy:
+        return f"{actor_key}.{suffix}{param_index}"
+    else:
+        return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
 
 
 def create_game_props(game: str):
-    """This function is used to edit the Z64_ActorProperty class"""
+    """This function is used to edit the OOTActorProperty class"""
 
     game_data.z64.update(None, game, True)
     prop_ats = get_prop_annotations(OOTActorProperty)
@@ -103,6 +110,33 @@ def create_game_props(game: str):
 
             if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
                 prop_ats[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
+
+
+def upgrade_game_props(obj: Object, game: str):
+    """Upgrades props from the older version of `create_game_props` to the new one"""
+
+    # temporarily make it `game`
+    game_data.z64.update(None, game, True)
+    actor_props: "OOTActorProperty" = get_actor_prop_from_obj(obj)
+    prefix = game_data.z64.game.lower()
+
+    for actor in game_data.z64.actors.actorList:
+        for param in actor.params:
+            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index, update=False, is_legacy=True)
+
+            if prop_name in actor_props:
+                actor_props[f"{prefix}.{prop_name}"] = actor_props[prop_name]
+                del actor_props[prop_name]
+
+            if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
+                prop_name_custom = f"{prop_name}_custom"
+
+                if prop_name_custom in actor_props:
+                    actor_props[f"{prefix}.{prop_name_custom}"] = actor_props[prop_name_custom]
+                    del actor_props[prop_name_custom]
+
+    # restore the previous state from bpy.context
+    game_data.z64.update(bpy.context, None, True)
 
 
 class Z64_HalfdayItem(PropertyGroup):
@@ -296,6 +330,7 @@ class OOTActorProperty(PropertyGroup):
         if game_data.z64.is_oot():
             print(f"Processing '{obj.name}'...")
             upgradeActors(obj)
+            upgrade_game_props(obj, "OOT")
 
     def is_rotation_used(self, target: str):
         game_data.z64.update(bpy.context, None)
@@ -423,7 +458,7 @@ class OOTActorProperty(PropertyGroup):
 
                 if "Rot" in target:
                     attr = getattr(self, get_prop_name(actor.key, "Type", None, 1), None)
-                    type_value = getEvalParamsInt(attr) if attr is not None else None
+                    type_value = getEvalParamsInt(attr) if attr is not None and attr != "Custom" else None
 
                 if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
                     val = ((param_val if param_val is not None else -1) & param.mask) >> getShiftFromMask(param.mask)

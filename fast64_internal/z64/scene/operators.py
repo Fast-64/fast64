@@ -7,9 +7,10 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
 
+from ...game_data import game_data
 from ...utility import PluginError, ExportUtils, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_hackeroot
-from ..constants import ootEnumMusicSeq, ootEnumSceneID
+from ..constants import ootEnumSceneID
 from ..importer import parseScene
 
 from ..exporter import SceneExport, Files
@@ -70,7 +71,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    ootMusicSeq: EnumProperty(items=lambda self, context: game_data.z64.get_enum("seq_id"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 
@@ -172,13 +173,17 @@ class OOT_ExportScene(Operator):
                     settings.auto_add_room_objects,
                 )
 
-                SceneExport.export(
+                degen_tris_found_in = SceneExport.export(
                     obj,
                     finalTransform,
                     exportInfo,
                 )
 
-                self.report({"INFO"}, "Success!")
+                if degen_tris_found_in:
+                    details = ", ".join(f"{mesh} (material {material})" for mesh, material in degen_tris_found_in)
+                    self.report({"WARNING"}, "Success, but skipped degenerate tris in meshes " + details)
+                else:
+                    self.report({"INFO"}, "Success!")
 
                 # don't select the scene
                 for elem in context.selectable_objects:

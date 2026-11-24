@@ -2140,6 +2140,16 @@ def get_include_data(include: str, strip: bool = False):
     return data
 
 
+def get_prop_annotations(cls):
+    prop_annotations = getattr(cls, "__annotations__", None)
+
+    if prop_annotations is None:
+        setattr(cls, "__annotations__", dict())
+        prop_annotations = getattr(cls, "__annotations__")
+
+    return prop_annotations
+
+
 def get_new_object(
     name: str,
     data: Optional[Any],
@@ -2203,11 +2213,7 @@ class ExportUtils:
             print("\nTraceback:", traceback)
 
 
-def get_prop_annotations(cls):
-    prop_annotations = getattr(cls, "__annotations__", None)
+def get_addon_preferences():
+    from .. import get_addon_preferences
 
-    if prop_annotations is None:
-        setattr(cls, "__annotations__", dict())
-        prop_annotations = getattr(cls, "__annotations__")
-
-    return prop_annotations
+    return get_addon_preferences()

@@ -7,13 +7,7 @@ from bpy.utils import register_class, unregister_class
 from ...game_data import game_data
 from ...utility import prop_split
 from ..utility import drawEnumWithCustom
-from .constants import (
-    ootEnumWallSetting,
-    ootEnumConveyer,
-    enum_conveyor_speed,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
-)
+from .constants import ootEnumConveyer
 
 
 class OOTCollisionExportSettings(PropertyGroup):
@@ -69,7 +63,7 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     floorSettingCustom: StringProperty(default="0x00")
     floorSetting: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floor_property"), default=1)
     wallSettingCustom: StringProperty(default="0x00")
-    wallSetting: EnumProperty(items=ootEnumWallSetting, default="0x00")
+    wallSetting: EnumProperty(items=lambda self, context: game_data.z64.get_enum("wall_type"), default=1)
     floorPropertyCustom: StringProperty(default="0x00")
     floorProperty: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floor_type"), default=1)
     exitID: IntProperty(default=0, min=0)
@@ -77,16 +71,16 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     isWallDamage: BoolProperty()
     conveyorOption: EnumProperty(items=ootEnumConveyer)
     conveyorRotation: FloatProperty(min=0, max=2 * math.pi, subtype="ANGLE")
-    conveyorSpeed: EnumProperty(items=enum_conveyor_speed, default="0x00")
+    conveyorSpeed: EnumProperty(items=lambda self, context: game_data.z64.get_enum("conveyor_speed"), default=1)
     conveyorSpeedCustom: StringProperty(default="0x00")
     conveyorKeepMomentum: BoolProperty()
     hookshotable: BoolProperty()
     echo: StringProperty(default="0x00")
     lightingSetting: IntProperty(default=0, min=0)
     terrainCustom: StringProperty(default="0x00")
-    terrain: EnumProperty(items=ootEnumCollisionTerrain, default="0x00")
+    terrain: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floor_effect"), default=1)
     soundCustom: StringProperty(default="0x00")
-    sound: EnumProperty(items=ootEnumCollisionSound, default="0x00")
+    sound: EnumProperty(items=lambda self, context: game_data.z64.get_enum("surface_material"), default=1)
 
     def draw_props(self, layout: UILayout):
         layout.prop(
@@ -100,8 +94,8 @@ class OOTMaterialCollisionProperty(PropertyGroup):
             prop_split(layout, self, "cameraID", "Camera ID")
             prop_split(layout, self, "echo", "Echo")
             prop_split(layout, self, "lightingSetting", "Lighting")
-            drawEnumWithCustom(layout, self, "terrain", "Terrain", "")
-            drawEnumWithCustom(layout, self, "sound", "Sound", "")
+            drawEnumWithCustom(layout, self, "terrain", "Floor Effect", "")
+            drawEnumWithCustom(layout, self, "sound", "Surface Material", "")
 
             layout.prop(self, "eponaBlock", text="Blocks Epona")
             layout.prop(self, "decreaseHeight", text="Decrease Height 1 Unit")
@@ -109,7 +103,7 @@ class OOTMaterialCollisionProperty(PropertyGroup):
             layout.prop(self, "hookshotable", text="Hookshotable")
 
             drawEnumWithCustom(layout, self, "floorSetting", "Floor Property", "")
-            drawEnumWithCustom(layout, self, "wallSetting", "Wall Setting", "")
+            drawEnumWithCustom(layout, self, "wallSetting", "Wall Type", "")
             drawEnumWithCustom(layout, self, "floorProperty", "Floor Type", "")
 
             layout.prop(self, "ignoreCameraCollision", text="Ignore Camera Collision")
