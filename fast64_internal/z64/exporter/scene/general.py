@@ -260,7 +260,7 @@ class SceneInfos:
             drawConfigKey = props.sceneTableEntry.drawConfig
             drawConfig = game_data.z64.get_enum_value("draw_config", drawConfigKey)
         return SceneInfos(
-            Utility.getPropValue(props, "globalObject"),
+            Utility.getPropValue(props, "globalObject", enum_key="global_object"),
             Utility.getPropValue(props, "naviCup"),
             drawConfig,
             props.appendNullEntrance,
@@ -268,7 +268,7 @@ class SceneInfos:
             Utility.getPropValue(props, "title_card_name"),
             Utility.getPropValue(props, "skyboxID"),
             Utility.getPropValue(props, "skyboxCloudiness"),
-            game_data.z64.get_enum_value("seq_id", Utility.getPropValue(props, "musicSeq")),
+            Utility.getPropValue(props, "musicSeq", enum_key="seq_id"),
             Utility.getPropValue(props, "nightSeq"),
             Utility.getPropValue(props, "audioSessionPreset"),
             Utility.getPropValue(props, "mapLocation"),
