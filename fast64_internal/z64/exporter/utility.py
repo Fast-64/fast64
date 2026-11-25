@@ -61,10 +61,7 @@ class Utility:
         value = getattr(data, prop_name)
 
         if value != "Custom":
-            if enum_key is not None:
-                return game_data.z64.enums.enumByKey[enum_key].item_by_key[value].id
-
-            return value
+            return game_data.z64.get_enum_value(enum_key, value) if enum_key is not None else value
 
         return getattr(data, custom_name if custom_name is not None else f"{prop_name}Custom")
 
