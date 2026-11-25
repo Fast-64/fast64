@@ -6,7 +6,7 @@ from bpy.utils import register_class, unregister_class
 
 from ...game_data import game_data
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom
+from ..utility import drawEnumWithCustom, is_oot_features
 from .constants import ootEnumConveyer
 
 
@@ -47,13 +47,16 @@ class OOTCameraPositionProperty(PropertyGroup):
     def draw_props(self, layout: UILayout, cameraObj: Object):
         drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
         prop_split(layout, self, "index", "Camera Index")
-        layout.prop(self, "is_actor_cs_cam")
 
-        if not self.is_actor_cs_cam:
+        if not is_oot_features():
+            layout.prop(self, "is_actor_cs_cam")
+
+        if is_oot_features() or not self.is_actor_cs_cam:
             layout.prop(self, "hasPositionData")
 
         layout.prop(self, "use_setting_default_fov")
-        if not self.is_actor_cs_cam and self.hasPositionData:
+
+        if self.hasPositionData and (is_oot_features() or not self.is_actor_cs_cam):
             if not self.use_setting_default_fov:
                 prop_split(layout, cameraObj.data, "angle", "Field Of View")
             prop_split(layout, self, "bgImageOverrideIndex", "BG Index Override")
