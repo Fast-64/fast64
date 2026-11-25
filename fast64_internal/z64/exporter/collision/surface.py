@@ -45,7 +45,9 @@ class SurfaceType:
             if col_props.conveyorSpeed == "Custom":
                 conveyor_speed = col_props.conveyorSpeedCustom
             else:
-                conveyor_speed = int(col_props.conveyorSpeed, base=16) + (4 if col_props.conveyorKeepMomentum else 0)
+                conveyor_speed = col_props.conveyorSpeed + (
+                    " + /* conveyorKeepMomentum */ 4" if col_props.conveyorKeepMomentum else ""
+                )
         else:
             conveyor_speed = 0
 
