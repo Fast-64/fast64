@@ -63,15 +63,10 @@ class Utility:
         if value != "Custom":
             if enum_key is not None:
                 return game_data.z64.enums.enumByKey[enum_key].item_by_key[value].id
-            else:
-                return value
-        elif custom_name is not None:
-            if enum_key is not None:
-                return game_data.z64.enums.enumByKey[enum_key].item_by_key[getattr(data, custom_name)].id
-            else:
-                return getattr(data, custom_name)
 
-        return getattr(data, f"{prop_name}Custom")
+            return value
+
+        return getattr(data, custom_name if custom_name is not None else f"{prop_name}Custom")
 
     @staticmethod
     def getConvertedTransformWithOrientation(
