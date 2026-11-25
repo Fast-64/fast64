@@ -112,9 +112,9 @@ class SceneTransitionActors:
 
                 transActor.pos = pos
 
-                rot_deg = rot[1] * (180 / 0x8000)
+                rot_deg = rot[1] * (180 / 0x8000)  # TODO: Correct axis?
                 if is_oot_features():
-                    transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"  # TODO: Correct axis?
+                    transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"
                 else:
                     transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({actorProp.actor_cs_index} & 0x7F)"
 
