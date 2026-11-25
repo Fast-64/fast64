@@ -132,7 +132,6 @@ class OOTWaterBoxProperty(PropertyGroup):
 
 
 oot_col_classes = (
-    OOTCollisionExportSettings,
     OOTCameraPositionProperty,
     OOTMaterialCollisionProperty,
     OOTWaterBoxProperty,
