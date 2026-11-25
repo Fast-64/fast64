@@ -1,6 +1,7 @@
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
+from ...game_data import game_data
 from ...utility import PluginError, indent
 from ..utility import ootConvertTranslation, ootConvertRotation
 from ..actor.properties import OOTActorHeaderProperty
@@ -54,11 +55,15 @@ class Utility:
         return False
 
     @staticmethod
-    def getPropValue(data, propName: str):
+    def getPropValue(data, prop_name: str, custom_name: str | None = None, enum_key: str | None = None):
         """Returns a property's value based on if the value is 'Custom'"""
 
-        value = getattr(data, propName)
-        return value if value != "Custom" else getattr(data, f"{propName}Custom")
+        value = getattr(data, prop_name)
+
+        if value != "Custom":
+            return game_data.z64.get_enum_value(enum_key, value) if enum_key is not None else value
+
+        return getattr(data, custom_name if custom_name is not None else f"{prop_name}Custom")
 
     @staticmethod
     def getConvertedTransformWithOrientation(
