@@ -304,6 +304,8 @@ class CreateLargeTextureMesh(bpy.types.Operator):
         createLargeTextureMeshInternal(bm, prop)
         bm.to_mesh(mesh)
         bm.free()
+        mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+        mesh.color_attributes.new("Alpha", "FLOAT_COLOR", "CORNER")
         bpy.context.collection.objects.link(obj)
         obj.parent_type = "OBJECT"
         for o in context.scene.objects:
