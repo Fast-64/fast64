@@ -38,6 +38,13 @@ class Utility:
     def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
+        def check_cs_headers(headerSettings: OOTActorHeaderProperty, headerIndex: int):
+            for csHeader in headerSettings.cutsceneHeaders:
+                if csHeader.headerIndex == headerIndex:
+                    return True
+
+            return False
+
         if game_data.z64.is_oot():
             preset = headerSettings.sceneSetupPreset
 
@@ -48,15 +55,13 @@ class Utility:
                 for i, header in enumerate(["childDay"] + altHeaderList):
                     if getattr(headerSettings, f"{header}Header") and i == headerIndex:
                         return True
-        else:
-            if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
-                return True
 
-        for csHeader in headerSettings.cutsceneHeaders:
-            if csHeader.headerIndex == headerIndex:
-                return True
+            return check_cs_headers(headerSettings, headerIndex)
 
-        return False
+        if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
+            return True
+
+        return check_cs_headers(headerSettings, headerIndex)
 
     @staticmethod
     def getPropValue(data, prop_name: str, custom_name: str | None = None, enum_key: str | None = None):
