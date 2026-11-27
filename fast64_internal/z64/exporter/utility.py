@@ -38,19 +38,30 @@ class Utility:
     def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
-        preset = headerSettings.sceneSetupPreset
-
-        if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
-            return True
-
-        if preset == "Custom":
-            for i, header in enumerate(["childDay"] + altHeaderList):
-                if getattr(headerSettings, f"{header}Header") and i == headerIndex:
-                    return True
-
+        def check_cs_headers(headerSettings: OOTActorHeaderProperty, headerIndex: int):
             for csHeader in headerSettings.cutsceneHeaders:
                 if csHeader.headerIndex == headerIndex:
                     return True
+
+            return False
+
+        if game_data.z64.is_oot():
+            preset = headerSettings.sceneSetupPreset
+
+            if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
+                return True
+
+            if preset == "Custom":
+                for i, header in enumerate(["childDay"] + altHeaderList):
+                    if getattr(headerSettings, f"{header}Header") and i == headerIndex:
+                        return True
+
+                return check_cs_headers(headerSettings, headerIndex)
+        else:
+            if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
+                return True
+
+            return check_cs_headers(headerSettings, headerIndex)
 
         return False
 
