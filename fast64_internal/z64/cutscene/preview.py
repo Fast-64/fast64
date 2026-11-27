@@ -31,10 +31,17 @@ def getColor(value: float) -> float:
     return gammaInverse([value / 0xFF, 0.0, 0.0])[0]
 
 
+def get_node_tree():
+    if bpy.app.version >= (5, 0, 0):
+        return bpy.context.scene.compositing_node_group
+
+    return bpy.context.scene.node_tree
+
+
 def getNode(node: Node, type: str, name: str, location: tuple[float, float]):
     """Returns a compositor node"""
     if node is None:
-        node = bpy.context.scene.node_tree.nodes.new(type)
+        node = get_node_tree().nodes.new(type)
     node.select = False
     node.name = node.label = name
     node.location = location
@@ -43,12 +50,17 @@ def getNode(node: Node, type: str, name: str, location: tuple[float, float]):
 
 def setupCompositorNodes():
     """Creates or re-setups compositor nodes"""
-    if bpy.app.version < (3, 6, 0):
+    if bpy.app.version < (3, 6, 0) or bpy.app.version >= (5, 0, 0):
         # Blender 3.6+ is required in order to use Compositor Nodes
+        # TODO: 5.0 changes many things, it requires some work
         return
 
-    if not bpy.context.scene.use_nodes:
-        bpy.context.scene.use_nodes = True
+    if bpy.app.version >= (5, 0, 0):
+        if not bpy.context.scene.render.use_compositing:
+            bpy.context.scene.render.use_compositing = True
+    else:
+        if not bpy.context.scene.use_nodes:
+            bpy.context.scene.use_nodes = True
 
     # sets the compositor render mode to "Camera"
     space = None
@@ -65,7 +77,8 @@ def setupCompositorNodes():
         return
 
     # get the existing nodes
-    nodeTree = bpy.context.scene.node_tree
+    nodeTree = get_node_tree()
+
     nodeRenderLayer = nodeComposite = nodeRGBTrans = nodeAlphaOver = nodeRGBMisc = nodeMixRGBMisc = None
     node_sep = node_motion_blur = None
 
@@ -95,7 +108,13 @@ def setupCompositorNodes():
 
     # create or set the data of each nodes
     nodeRenderLayer = getNode(nodeRenderLayer, "CompositorNodeRLayers", "CSPreview_RenderLayer", (-500, 0))
-    nodeComposite = getNode(nodeComposite, "CompositorNodeComposite", "CSPreview_Composite", (500, 0))
+
+    if bpy.app.version >= (5, 0, 0):
+        composite_name = "NodeGroupOutput"
+    else:
+        composite_name = "CompositorNodeComposite"
+
+    nodeComposite = getNode(nodeComposite, composite_name, "CSPreview_Composite", (500, 0))
     nodeRGBMisc = getNode(nodeRGBMisc, "CompositorNodeRGB", "CSMisc_RGB", (-500, -200))
     nodeRGBTrans = getNode(nodeRGBTrans, "CompositorNodeRGB", "CSTrans_RGB", (0, -200))
     nodeAlphaOver = getNode(nodeAlphaOver, "CompositorNodeAlphaOver", "CSPreview_AlphaOver", (300, 0))
@@ -140,16 +159,16 @@ def setupCompositorNodes():
     bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewNodesReady = True
 
     # blur settings
-    node_motion_blur.iterations = 1
+    node_motion_blur.inputs[1].default_value = 1
 
 
 def initFirstFrame(csObj: Object, useNodeFeatures: bool, defaultCam: Object):
     # set default values for frame 0
     if useNodeFeatures:
         color = [0.0, 0.0, 0.0, 0.0]
-        bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
-        bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
-        bpy.context.scene.node_tree.nodes["CSMotionBlur"].zoom = 0.0
+        get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
+        get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value = color
+        get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.0
         csObj.ootCutsceneProperty.preview.trigger = False
     csObj.ootCutsceneProperty.preview.isFixedCamSet = False
     if defaultCam is not None:
@@ -184,7 +203,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
 
             if isTriggerInstance and not previewProp.trigger:
                 color = [linear160, linear160, linear160, 1.0]
-                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
 
             if frameCur >= startFrame and frameCur <= endFrame:
                 color = [0.0, 0.0, 0.0, 0.0]
@@ -221,7 +240,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     color[2] = linear255 * alpha
 
                 color[3] = alpha
-                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
 
         for trans_general_cmd in previewProp.transition_general_list:
             startFrame = trans_general_cmd.startFrame
@@ -229,7 +248,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
             frameCur = curFrame
 
             if is_oot_features():
-                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
                 break
 
             if trans_general_cmd.type == "Unknown":
@@ -250,7 +269,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     color[1] = trans_general_cmd.color[1] * alpha
                     color[2] = trans_general_cmd.color[2] * alpha
                     color[3] = alpha
-                    bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
+                    get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
 
         for blur_cmd in previewProp.motion_blur_list:
             startFrame = blur_cmd.startFrame
@@ -258,7 +277,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
             frameCur = curFrame
 
             if is_oot_features():
-                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
                 break
 
             if blur_cmd.type == "Unknown":
@@ -266,15 +285,15 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
 
             if frameCur >= startFrame and frameCur <= endFrame:
                 if blur_cmd.type == "motion_blur_enable":
-                    bpy.context.scene.node_tree.nodes["CSMotionBlur"].zoom = 0.180
+                    get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.180
                     previewProp.blur_reinit = False
                 elif blur_cmd.type == "motion_blur_disable":
                     lerp = getLerp(endFrame, startFrame, frameCur)
 
                     if lerp >= 0.9:
-                        bpy.context.scene.node_tree.nodes["CSMotionBlur"].zoom = 0.0
+                        get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.0
                     else:
-                        bpy.context.scene.node_tree.nodes["CSMotionBlur"].zoom = (1.0 - lerp) * 0.18
+                        get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.0 + ((1.0 - lerp) * 0.18)
 
     for miscCmd in previewProp.miscList:
         startFrame = miscCmd.startFrame
@@ -307,10 +326,10 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                         color[i] = getColor(col[i])
 
                     color[3] = getColor(255.0) * lerp
-                    bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
+                    get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value = color
 
                 elif miscCmd.type == "red_pulsating_lights":
-                    color = bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value
+                    color = get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value
                     color[0] = getColor(255.0)
                     color[1] = color[2] = 0.0
                     step = 0.05
@@ -320,7 +339,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     else:
                         if color[3] > 0.05:
                             color[3] -= step
-                    bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
+                    get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value = color
 
 
 @persistent

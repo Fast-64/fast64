@@ -877,7 +877,7 @@ def getEvalParamsInt(input: str):
         if isinstance(node, Expression):
             return _eval(node.body)
         elif isinstance(node, Constant):
-            return node.n
+            return node.value if bpy.app.version >= (5, 0, 0) else node.n
         elif isinstance(node, UnaryOp):
             if isinstance(node.op, USub):
                 return -_eval(node.operand)
