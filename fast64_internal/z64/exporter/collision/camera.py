@@ -141,9 +141,7 @@ class BgCamInformations:
 
         return CameraInfo(
             setting,
-            3
-            if camProp.hasPositionData or is_actor_cs_cam
-            else 0,  # cameras are using 3 entries in the data array
+            3 if camProp.hasPositionData or is_actor_cs_cam else 0,  # cameras are using 3 entries in the data array
             cam_pos_data[camProp.index] if camProp.hasPositionData or is_actor_cs_cam else None,
             camProp.index,
         )
