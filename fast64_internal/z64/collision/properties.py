@@ -41,6 +41,8 @@ class OOTCameraPositionProperty(PropertyGroup):
     camSType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("camera_setting_type"), default=1)
     camSTypeCustom: StringProperty(default="CAM_SET_NONE")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
+
+    # MM features
     is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
 
     def draw_props(self, layout: UILayout, cameraObj: Object):

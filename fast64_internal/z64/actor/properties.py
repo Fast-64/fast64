@@ -580,11 +580,7 @@ class OOTActorProperty(PropertyGroup):
             split.label(text="Actor ID")
             split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor_id))
 
-            if (
-                game_data.z64.is_oot()
-                and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
-                and self.actor_id != "Custom"
-            ):
+            if bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
                 self.draw_params(actorIDBox, owner)
 
             if self.actor_id == "Custom":
@@ -593,11 +589,7 @@ class OOTActorProperty(PropertyGroup):
             paramBox = actorIDBox.box()
             paramBox.label(text="Actor Parameter")
 
-            if (
-                game_data.z64.is_oot()
-                and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
-                and self.actor_id != "Custom"
-            ):
+            if bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
                 paramBox.prop(self, "eval_params")
                 paramBox.prop(self, "params", text="")
             else:

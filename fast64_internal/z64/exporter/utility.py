@@ -70,10 +70,6 @@ class Utility:
         return getattr(data, custom_name if custom_name is not None else f"{prop_name}Custom")
 
     @staticmethod
-    def enum_id_to_key(enum_value_id: str, enum_key: str):
-        return game_data.z64.enums.enumByKey[enum_key].item_by_id[enum_value_id].key
-
-    @staticmethod
     def getConvertedTransformWithOrientation(
         transform: Matrix, dataHolder: Object, obj: Object, orientation: Quaternion | Matrix
     ):
