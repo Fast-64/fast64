@@ -120,7 +120,9 @@ class BgCamInformations:
                 decomp_compat_map_CameraSType.get(cam_setting, cam_setting) if game_data.z64.is_oot() else cam_setting
             )
 
-        if camProp.hasPositionData or (not is_oot_features() and camProp.is_actor_cs_cam):
+        is_actor_cs_cam = not is_oot_features() and camProp.is_actor_cs_cam
+
+        if camProp.hasPositionData or is_actor_cs_cam:
             if camProp.index in cam_pos_data:
                 raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {cam_obj.name}")
 
@@ -140,9 +142,9 @@ class BgCamInformations:
         return CameraInfo(
             setting,
             3
-            if camProp.hasPositionData or camProp.is_actor_cs_cam
+            if camProp.hasPositionData or is_actor_cs_cam
             else 0,  # cameras are using 3 entries in the data array
-            cam_pos_data[camProp.index] if camProp.hasPositionData or camProp.is_actor_cs_cam else None,
+            cam_pos_data[camProp.index] if camProp.hasPositionData or is_actor_cs_cam else None,
             camProp.index,
         )
 
@@ -158,7 +160,7 @@ class BgCamInformations:
             camProp: OOTCameraPositionProperty = camObj.ootCameraPositionProperty
 
             # ignore non-scene cameras
-            if camProp.is_actor_cs_cam:
+            if not is_oot_features() and camProp.is_actor_cs_cam:
                 continue
 
             if camProp.index in camInfoData:

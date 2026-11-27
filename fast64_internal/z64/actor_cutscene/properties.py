@@ -13,7 +13,7 @@ from bpy.types import PropertyGroup, UILayout, Object
 
 from ...utility import prop_split
 from ..collection_utility import drawAddButton, drawCollectionOps, getCollection
-from ..utility import get_list_tab_text
+from ..utility import get_list_tab_text, is_oot_features
 from ..actor.properties import OOTActorHeaderProperty
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 
@@ -78,7 +78,7 @@ enum_end_cam = [
 
 
 def poll_camera_obj(self, obj: Object):
-    return obj.type == "CAMERA" and obj.ootCameraPositionProperty.is_actor_cs_cam
+    return obj.type == "CAMERA" and (is_oot_features() or obj.ootCameraPositionProperty.is_actor_cs_cam)
 
 
 class Z64_ActorCutscene(PropertyGroup):
