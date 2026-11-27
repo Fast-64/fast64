@@ -56,12 +56,14 @@ class Utility:
                     if getattr(headerSettings, f"{header}Header") and i == headerIndex:
                         return True
 
+                return check_cs_headers(headerSettings, headerIndex)
+        else:
+            if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
+                return True
+
             return check_cs_headers(headerSettings, headerIndex)
 
-        if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
-            return True
-
-        return check_cs_headers(headerSettings, headerIndex)
+        return False
 
     @staticmethod
     def getPropValue(data, prop_name: str, custom_name: str | None = None, enum_key: str | None = None):
