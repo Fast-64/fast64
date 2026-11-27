@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Armature
 from ....utility import PluginError, deselectAllObjects, get_include_data
-from ...utility import is_oot_features
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
@@ -231,7 +230,7 @@ class CutsceneImport(CutsceneObjectFactory):
         new_cs.frameCount = getInteger(params[1])
         return new_cs
 
-    def correct_command_lists(self, command: str):
+    def fix_command_lists(self, command: str):
         """If using the new cs system, moves standalone commands to the proper lists"""
         if self.new_cs_system:
             if command in ootCSSingleCommands:
@@ -278,8 +277,8 @@ class CutsceneImport(CutsceneObjectFactory):
         else:
             raise PluginError("ERROR: File data can't be found!")
 
-        self.correct_command_lists("CS_TRANSITION")
-        self.correct_command_lists("CS_DESTINATION")
+        self.fix_command_lists("CS_TRANSITION")
+        self.fix_command_lists("CS_DESTINATION")
 
         # replace old names
         oldNames = list(ootCSLegacyToNewCmdNames.keys())
@@ -307,37 +306,37 @@ class CutsceneImport(CutsceneObjectFactory):
         # parse cutscenes
         cs_data_map: dict[str, list[str]] = {}
         cs_list_map: dict[str, list[str]] = {}
-        csName = None
+        cs_name = None
         for line in fileLines:
             if not line.startswith("//") and not line.startswith("/*"):
                 if "CutsceneData " in line:
                     # split with "[" just in case the array has a set size
-                    csName = line.split(" ")[1].split("[")[0]
-                    if csName in existingCutsceneNames:
-                        print(f"WARNING: Cutscene '{csName}' already exists in this blend's data.")
-                    cs_data_map[csName] = []
-                    print(f"INFO: Found cutscene '{csName}' in the file data.")
+                    cs_name = line.split(" ")[1].split("[")[0]
+                    if cs_name in existingCutsceneNames:
+                        print(f"WARNING: Cutscene '{cs_name}' already exists in this blend's data.")
+                    cs_data_map[cs_name] = []
+                    print(f"INFO: Found cutscene '{cs_name}' in the file data.")
 
-                if csName is not None:
+                if cs_name is not None:
                     next_line = fileLines[fileLines.index(line) + 1]
 
                     if "#include" in next_line:
-                        cs_data_map[csName] = get_include_data(next_line).split("\n")
-                        csName = None
+                        cs_data_map[cs_name] = get_include_data(next_line).split("\n")
+                        cs_name = None
                     else:
                         s_line = line.strip()
                         cs_cmd = s_line.split("(")[0]
 
                         if "CutsceneData " not in line and "};" not in line and cs_cmd not in ootCutsceneCommandsC:
-                            if len(cs_data_map[csName]) > 0:
-                                cs_data_map[csName][-1] += line
+                            if len(cs_data_map[cs_name]) > 0:
+                                cs_data_map[cs_name][-1] += line
 
                         if s_line.startswith("CS_") and not s_line.startswith("CS_FLOAT"):
-                            if self.csName is None or self.csName == csName:
-                                cs_data_map[csName].append(line)
+                            if self.csName is None or self.csName == cs_name:
+                                cs_data_map[cs_name].append(line)
 
                         if "};" in line:
-                            csName = None
+                            cs_name = None
 
         for cs_name, cs_data in cs_data_map.items():
             cs_list_map[cs_name] = self.parse_cs_lines(cs_name, cs_data)
@@ -807,7 +806,7 @@ class CutsceneImport(CutsceneObjectFactory):
 
         for i, cutscene in enumerate(cutsceneList, csNumber):
             print(f'Found Cutscene "{cutscene.name}"! Importing...')
-            if is_oot_features():
+            if not self.new_cs_system:
                 self.validateCameraData(cutscene)
             csName = f"Cutscene.{cutscene.name}"
             csObj = self.getNewCutsceneObject(csName, cutscene.frameCount, None)
@@ -817,7 +816,7 @@ class CutsceneImport(CutsceneObjectFactory):
             self.setActorCueData(csObj, cutscene.data.actorCueList, "Actor", i)
             self.setActorCueData(csObj, cutscene.data.playerCueList, "Player", i)
 
-            if is_oot_features():
+            if not self.new_cs_system:
                 if len(cutscene.data.camEyeSplineList) > 0:
                     lastIndex = self.setCameraShotData(
                         csObj, cutscene.data.camEyeSplineList, cutscene.data.camATSplineList, "splineEyeOrAT", 1, i
@@ -846,7 +845,7 @@ class CutsceneImport(CutsceneObjectFactory):
                 csProp.csDestinationStartFrame = cutscene.data.destination.startFrame
                 self.setPropOrCustom(csProp, "csDestination", cutscene.data.destination.id)
 
-            if not is_oot_features() and cutscene.data.give_tatl is not None:
+            if self.new_cs_system and cutscene.data.give_tatl is not None:
                 csProp.csUseDestination = True
                 csProp.csDestinationStartFrame = cutscene.data.destination.startFrame
                 self.setPropOrCustom(csProp, "cs_give_tatl", cutscene.data.give_tatl.giveTatl)
@@ -873,7 +872,7 @@ class CutsceneImport(CutsceneObjectFactory):
                 ),
             ]
 
-            if not is_oot_features():
+            if self.new_cs_system:
                 propDataList.extend(
                     [
                         PropertyData("MotionBlur", {"blur_type": "type"}, True),

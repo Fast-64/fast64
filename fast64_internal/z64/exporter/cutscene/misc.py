@@ -248,6 +248,9 @@ class CutsceneCmdTransition(CutsceneCmdBase):
         return indent * idt_by + f"CS_TRANSITION({self.type}, {self.startFrame}, {self.endFrame}),\n"
 
 
+# MM features
+
+
 @dataclass
 class CutsceneCmdTransitionList(CutsceneCmdBase):
     """This class contains Transition list command data"""

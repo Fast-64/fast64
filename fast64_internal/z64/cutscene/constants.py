@@ -25,7 +25,7 @@ csListTypeToIcon = {
     "FadeOutSeqList": "IPO_EASE_IN_OUT",
     "MiscList": "OPTIONS",
     "RumbleList": "OUTLINER_OB_FORCE_FIELD",
-    # from new system
+    # MM features
     "MotionBlurList": "ONIONSKIN_ON",
     "ModifySeqList": "IPO_CONSTANT",
     "CreditsSceneList": "WORLD",
@@ -44,6 +44,7 @@ ootEnumCSTextboxTypeIcons = {
     "Text": "FILE_TEXT",
     "None": "HIDE_ON",
     "OcarinaAction": "FILE_SOUND",
+    # MM features
     "Default": "FILE_TEXT",
     "Type1": "ALIGN_LEFT",
     "Type3": "ALIGN_CENTER",
@@ -75,18 +76,8 @@ ootCSSubPropToName = {
     "rumbleSourceStrength": "Source Strength",
     "rumbleDuration": "Duration",
     "rumbleDecreaseRate": "Decrease Rate",
-    "rumble_type": "Rumble Type",
     # Transition
     "transition_type": "Transition Type",
-    # Motion Blur
-    "blur_type": "Motion Blur Type",
-    # Transition General
-    "trans_general_type": "Transition Type",
-    "trans_color": "Transition Color",
-    # Choose Credits Scene
-    "credits_scene_type": "Credits Scene Type",
-    # Modify Seq
-    "mod_seq_type": "Modify Seq Type",
     # Lists
     "TextList": "Text List",
     "TimeList": "Time List",
@@ -97,6 +88,18 @@ ootCSSubPropToName = {
     "LightSettingsList": "Light Settings List",
     "StopSeqList": "Stop Seq List",
     "RumbleList": "Rumble List",
+    ## MM features
+    # Rumble
+    "rumble_type": "Rumble Type",
+    # Motion Blur
+    "blur_type": "Motion Blur Type",
+    # Transition General
+    "trans_general_type": "Transition Type",
+    "trans_color": "Transition Color",
+    # Choose Credits Scene
+    "credits_scene_type": "Credits Scene Type",
+    # Modify Seq
+    "mod_seq_type": "Modify Seq Type",
     "MotionBlurList": "Motion Blur List",
     "ModifySeqList": "Modify Seq List",
     "CreditsSceneList": "Choose Credits Scene List",
@@ -165,7 +168,7 @@ ootCSListCommands = [
     "CS_PLAY_BGM_LIST",
     "CS_STOP_BGM_LIST",
     "CS_LIGHTING_LIST",
-    # from new system
+    # MM features
     "CS_CAM_SPLINE_LIST",
     "CS_TRANSITION_LIST",
     "CS_DESTINATION_LIST",
@@ -198,7 +201,7 @@ ootCSListEntryCommands = [
     "L_CS_LIGHT_SETTING",
     "L_CS_START_SEQ",
     "L_CS_STOP_SEQ",
-    # from new system
+    # MM features
     "CS_CAM_POINT_NEW",
     "CS_CAM_MISC",
     "CS_CAM_END",
@@ -218,7 +221,7 @@ ootCSListEntryCommands = [
 ootCSSingleCommands = [
     "CS_HEADER",
     "CS_END_OF_SCRIPT",
-    # note: `CutsceneImport.correct_command_lists()` can move these ones in `ootCSListEntryCommands`
+    # note: `CutsceneImport.fix_command_lists()` can move these ones in `ootCSListEntryCommands`
     "CS_TRANSITION",
     "CS_DESTINATION",
 ]

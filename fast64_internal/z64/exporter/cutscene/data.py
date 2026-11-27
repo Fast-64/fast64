@@ -110,10 +110,8 @@ class CutsceneData:
 
         self.totalEntries: int = 0
         self.frameCount: int = 0
-        self.motionFrameCount: int = 0
         self.camEndFrame: int = 0
         self.destination: CutsceneCmdDestination | None = None
-        self.give_tatl: CutsceneCmdGiveTatl | None = None
         self.actorCueList: list[CutsceneCmdActorCueList] = []
         self.playerCueList: list[CutsceneCmdActorCueList] = []
         self.camEyeSplineList: list[CutsceneCmdCamEyeSpline] = []
@@ -131,7 +129,9 @@ class CutsceneData:
         self.seqList: list[CutsceneCmdStartStopSeqList] = []
         self.fadeSeqList: list[CutsceneCmdFadeSeqList] = []
 
-        # lists from the new cutscene system
+        # MM features
+        self.motionFrameCount: int = 0
+        self.give_tatl: CutsceneCmdGiveTatl | None = None
         self.camSplineList: list[CutsceneCmdCamSplineList] = []
         self.motion_blur_list: list[CutsceneCmdMotionBlurList] = []
         self.modify_seq_list: list[CutsceneCmdModifySeqList] = []

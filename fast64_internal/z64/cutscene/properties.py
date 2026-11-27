@@ -215,6 +215,7 @@ class OOTCSTransitionProperty(OOTCutsceneCommon, PropertyGroup):
 
 
 class OOTCSMotionBlurProperty(OOTCutsceneCommon, PropertyGroup):
+    # MM features
     attrName = "motion_blur_list"
     subprops = ["blur_type", "startFrame", "endFrame"]
 
@@ -223,6 +224,7 @@ class OOTCSMotionBlurProperty(OOTCutsceneCommon, PropertyGroup):
 
 
 class OOTCSTransitionGeneralProperty(OOTCutsceneCommon, PropertyGroup):
+    # MM features
     attrName = "trans_general_list"
     subprops = ["trans_general_type", "startFrame", "endFrame", "trans_color"]
 
@@ -242,6 +244,7 @@ class OOTCSTransitionGeneralProperty(OOTCutsceneCommon, PropertyGroup):
 
 
 class OOTCSChooseCreditsSceneProperty(OOTCutsceneCommon, PropertyGroup):
+    # MM features
     attrName = "credits_scene_list"
     subprops = ["credits_scene_type", "startFrame"]
 
@@ -252,6 +255,7 @@ class OOTCSChooseCreditsSceneProperty(OOTCutsceneCommon, PropertyGroup):
 
 
 class OOTCSModifySeqProperty(OOTCutsceneCommon, PropertyGroup):
+    # MM features
     attrName = "mod_seq_list"
     subprops = ["mod_seq_type", "startFrame"]
 
@@ -269,8 +273,9 @@ class OOTCSListProperty(PropertyGroup):
     seqList: CollectionProperty(type=OOTCSSeqProperty)
     miscList: CollectionProperty(type=OOTCSMiscProperty)
     rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
-
     transition_list: CollectionProperty(type=OOTCSTransitionProperty)
+
+    # MM features
     motion_blur_list: CollectionProperty(type=OOTCSMotionBlurProperty)
     trans_general_list: CollectionProperty(type=OOTCSTransitionGeneralProperty)
     credits_scene_list: CollectionProperty(type=OOTCSChooseCreditsSceneProperty)
@@ -377,10 +382,12 @@ class OOTCutsceneMiscProperty(OOTCutsceneCommandBase, PropertyGroup):
 
 
 class OOTCutsceneMotionBlurPreviewProperty(OOTCutsceneCommandBase, PropertyGroup):
+    # MM features
     type: StringProperty(default="Unknown")
 
 
 class OOTCutsceneTransitionGeneralPreviewProperty(OOTCutsceneCommandBase, PropertyGroup):
+    # MM features
     type: StringProperty(default="Unknown")
     color: FloatVectorProperty(
         name="Color",
@@ -395,10 +402,12 @@ class OOTCutsceneTransitionGeneralPreviewProperty(OOTCutsceneCommandBase, Proper
 class OOTCutscenePreviewProperty(PropertyGroup):
     transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
     miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
+
+    # MM features
     motion_blur_list: CollectionProperty(type=OOTCutsceneMotionBlurPreviewProperty)
     transition_general_list: CollectionProperty(type=OOTCutsceneTransitionGeneralPreviewProperty)
 
-    trigger: BoolProperty(default=False)  # for ``CS_TRANS_TRIGGER_INSTANCE``
+    trigger: BoolProperty(default=False)  # for `CS_TRANS_TRIGGER_INSTANCE`
     isFixedCamSet: BoolProperty(default=False)
     prevFrame: IntProperty(default=-1)
     nextFrame: IntProperty(default=1)
@@ -465,9 +474,11 @@ class OOTCutsceneProperty(PropertyGroup):
     )
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
+    csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
+
+    # MM features
     cs_give_tatl: BoolProperty(name="Give Tatl")
     cs_give_tatl_start_frame: IntProperty(name="Start Frame", min=0, default=99)
-    csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
     next_entrance: StringProperty(default="0xFFFF")
     play_on_spawn: IntProperty(min=0, default=0xFF)
     spawn_flag_type: EnumProperty(
@@ -532,7 +543,7 @@ class OOTCutsceneProperty(PropertyGroup):
         split.label(text="Cutscene End Frame")
         split.prop(self, "csEndFrame")
 
-        if game_data.z64.is_mm() or not is_oot_features():
+        if not is_oot_features():
             prop_split(layout, self, "next_entrance", "Next Entrance")
             prop_split(layout, self, "play_on_spawn", "Spawn")
             prop_split(layout, self, "spawn_flag_type", "Spawn Flags")

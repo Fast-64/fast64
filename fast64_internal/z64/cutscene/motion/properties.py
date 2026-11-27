@@ -150,10 +150,10 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
         default="splineEyeOrAT",
     )
 
+    # MM features
     shot_duration: IntProperty(min=0, default=120)
     shot_spline_rel_to: EnumProperty(items=lambda self, context: game_data.z64.get_enum("spline_rel_to"), default=1)
     shot_spline_rel_to_custom: StringProperty(default="CS_CAM_REL_CUSTOM")
-
     shot_interp_type: EnumProperty(
         items=lambda self, context: game_data.z64.get_enum("spline_interp_type"),
         name="Interpolation Type",
@@ -227,6 +227,7 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         set=lambda self, value: self.setValue(value, "roll"),
     )
 
+    # MM features
     shot_point_duration: IntProperty(min=0, default=30, name="Duration")
 
     # internal usage only

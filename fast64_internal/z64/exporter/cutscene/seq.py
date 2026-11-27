@@ -95,6 +95,9 @@ class CutsceneCmdFadeSeqList(CutsceneCmdBase):
         )
 
 
+# MM features
+
+
 @dataclass
 class CutsceneCmdModifySeq(CutsceneCmdBase):
     """This class contains modify seq command data"""
