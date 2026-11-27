@@ -42,7 +42,6 @@ class OOTCameraPositionProperty(PropertyGroup):
     camSTypeCustom: StringProperty(default="CAM_SET_NONE")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
     is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
-    use_setting_default_fov: BoolProperty(name="Use the default FoV from the camera setting", default=False)
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
         drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
@@ -54,11 +53,8 @@ class OOTCameraPositionProperty(PropertyGroup):
         if is_oot_features() or not self.is_actor_cs_cam:
             layout.prop(self, "hasPositionData")
 
-        layout.prop(self, "use_setting_default_fov")
-
         if self.hasPositionData and (is_oot_features() or not self.is_actor_cs_cam):
-            if not self.use_setting_default_fov:
-                prop_split(layout, cameraObj.data, "angle", "Field Of View")
+            prop_split(layout, cameraObj.data, "angle", "Field Of View")
             prop_split(layout, self, "bgImageOverrideIndex", "BG Index Override")
 
 
