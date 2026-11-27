@@ -421,12 +421,12 @@ def parse_animated_material(anim_mat: Z64_AnimatedMaterial, scene_data: str, lis
                 cycle_entry.texture_index = frame_num
 
 
-def parse_cs_script_list(scene_obj: Object, header_index: int, scene_data: str, list_name: str, expected_count: int):
+def parse_cs_script_list(scene_obj: bpy.types.Object, header_index: int, scene_data: str, list_name: str, expected_count: int):
     data_match = getDataMatch(scene_data, list_name, "CutsceneScriptEntry", "scripted cs list")
     cs_data = data_match.strip().replace(" ", "").replace("{", "").replace("}", "").split("\n")
 
     # note: if we want to import cutscenes all the scripts are gonna be processed before the scene is
-    cs_map: dict[str, Object] = {
+    cs_map: dict[str, bpy.types.Object] = {
         cs_obj.name.removeprefix("Cutscene."): cs_obj
         for cs_obj in bpy.data.objects
         if cs_obj.type == "EMPTY" and cs_obj.ootEmptyType == "Cutscene"
