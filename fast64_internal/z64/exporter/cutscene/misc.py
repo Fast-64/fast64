@@ -34,7 +34,7 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
     isLegacy: bool
     lightSetting: int
 
-    paramNumber: int = field(init=False, default=11)
+    paramNumber: int = field(init=False, default=14)
 
     @staticmethod
     def from_params(params: list[str], isLegacy: bool):
@@ -236,6 +236,7 @@ class CutsceneCmdTransition(CutsceneCmdBase):
 
     type: str
     paramNumber: int = field(init=False, default=3)
+    listName: str = field(init=False, default="transitionList")  # TODO: temporary for OoT
 
     @staticmethod
     def from_params(params: list[str]):

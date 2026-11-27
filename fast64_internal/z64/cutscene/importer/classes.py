@@ -535,7 +535,7 @@ class CutsceneImport(CutsceneObjectFactory):
                                     listEntry = entryCmd.from_params(
                                         params, "start" if isStartSeq else "stop", isLegacy
                                     )
-                                elif "CS_TEXT_" in cmdEntryName:
+                                elif "CS_TEXT" in cmdEntryName:
                                     listEntry = entryCmd.from_params(params, cmdEntryName)
                                 else:
                                     listEntry = entryCmd.from_params(params)
@@ -753,7 +753,9 @@ class CutsceneImport(CutsceneObjectFactory):
             if value is not None:
                 if key in custom_values:
                     valueToSet = getattr(entry, value)
-                    self.setPropOrCustom(newSubElem, key, valueToSet)
+
+                    if valueToSet is not None:
+                        self.setPropOrCustom(newSubElem, key, valueToSet)
                 else:
                     setattr(newSubElem, key, getattr(entry, value))
 
@@ -765,9 +767,7 @@ class CutsceneImport(CutsceneObjectFactory):
                 newElem: "OOTCSListProperty" = csProp.csLists.add()
                 newElem.listType = f"{data.listType}List" if data.listType != "Transition" else data.listType
 
-                list.entries.sort(key=lambda elem: elem.startFrame)
-                for entry in list.entries:
-                    name = listName
+                def process_entry(name: str, data: PropertyData, newElem: "OOTCSListProperty", entry):
                     if data.listType in {"StartSeq", "StopSeq", "StartAmbience", "FadeOutSeq"}:
                         name = "seqList"
 
@@ -791,6 +791,15 @@ class CutsceneImport(CutsceneObjectFactory):
                             case _:
                                 raise PluginError("ERROR: Unknown text type!")
                     self.setSubPropertyData(data.subPropsData, newSubElem, entry)
+
+                if not self.new_cs_system and data.listType == "Transition":
+                    # OoT transition commands aren't under a list, that makes `list` the actual entry
+                    # TODO: improve how this works
+                    process_entry(listName, data, newElem, list)
+                else:
+                    list.entries.sort(key=lambda elem: elem.startFrame)
+                    for entry in list.entries:
+                        process_entry(listName, data, newElem, entry)
 
     def setCutsceneData(self, csNumber, use_macros: bool, motion_only: bool):
         """Creates the cutscene empty objects from the file data"""

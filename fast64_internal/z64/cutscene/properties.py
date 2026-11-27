@@ -209,7 +209,7 @@ class OOTCSTransitionProperty(OOTCutsceneCommon, PropertyGroup):
     subprops = ["transition_type", "startFrame", "endFrame"]
 
     transition_type: EnumProperty(
-        name="", items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1
+        name="", items=lambda self, context: game_data.z64.get_enum("cs_transition_type"), default=1
     )
     transition_type_custom: StringProperty(default="CS_TRANS_CUSTOM")
 
@@ -567,7 +567,7 @@ class OOTCutsceneProperty(PropertyGroup):
                 boxRow = searchBox.row()
                 searchOp = boxRow.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
                 searchOp.objName = obj.name
-                boxRow.label(text=getEnumName(game_data.z64.get_enum("csDestination"), self.csDestination))
+                boxRow.label(text=getEnumName(game_data.z64.get_enum("cs_destination"), self.csDestination))
                 layout_custom = searchBox
             else:
                 layout_custom = b
