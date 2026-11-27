@@ -101,6 +101,7 @@ def setupCompositorNodes():
     nodeAlphaOver = getNode(nodeAlphaOver, "CompositorNodeAlphaOver", "CSPreview_AlphaOver", (300, 0))
     node_motion_blur = getNode(node_motion_blur, "CompositorNodeDBlur", "CSMotionBlur", (400, 0))
 
+    # TODO: it's unsure when it actually broke, this needs to be investigated more
     if bpy.app.version < (4, 0, 0):
         nodeMixRGBMisc = getNode(nodeMixRGBMisc, "CompositorNodeMixRGB", "CSMisc_MixRGB", (0, 0))
 
