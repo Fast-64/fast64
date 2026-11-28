@@ -152,7 +152,7 @@ class Z64_EnumData:
 
         # Note: `CS_CMD_UNIMPLEMENTED_16` is an unused actor cue
         self.enum_cs_actor_cue_list_cmd_type = [
-            (item[0], item[1], item[2])
+            item
             for item in self.enum_cs_cmd
             if "actor_cue" in item[0] or "player_cue" in item[0] or item[0] == "unimplemented_16"
         ]

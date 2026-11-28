@@ -461,20 +461,27 @@ class OOTSceneHeaderProperty(PropertyGroup):
         elif menuTab == "Cutscene":
             cutscene = layout.column()
             r = cutscene.row()
-            r.prop(self, "writeCutscene", text="Write Cutscene")
-            if self.writeCutscene:
-                r.prop(self, "csWriteType", text="Data")
-                if self.csWriteType == "Custom":
-                    cutscene.prop(self, "csWriteCustom")
-                else:
-                    cutscene.prop(self, "csWriteObject")
 
-            if headerIndex is None or headerIndex == 0:
-                cutscene.label(text="Extra cutscenes (not in any header):")
+            if game_data.z64.is_oot():
+                r.prop(self, "writeCutscene", text="Write Cutscene")
+
+                if self.writeCutscene:
+                    r.prop(self, "csWriteType", text="Data")
+                    if self.csWriteType == "Custom":
+                        cutscene.prop(self, "csWriteCustom")
+                    else:
+                        cutscene.prop(self, "csWriteObject")
+
+            if headerIndex is None or headerIndex == 0 or game_data.z64.is_mm():
+                if game_data.z64.is_oot():
+                    cutscene.label(text="Extra cutscenes (not in any header):")
+                else:
+                    cutscene.label(text="Scripted Cutscene List:")
+
                 for i in range(len(self.extraCutscenes)):
                     box = cutscene.box().column()
                     drawCollectionOps(box, i, "extraCutscenes", None, obj.name, True)
-                    box.prop(self.extraCutscenes[i], "csObject", text="CS obj")
+                    box.prop(self.extraCutscenes[i], "csObject", text="CS Object")
                 if len(self.extraCutscenes) == 0:
                     drawAddButton(cutscene, 0, "extraCutscenes", 0, obj.name)
 

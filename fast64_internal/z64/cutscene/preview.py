@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from bpy.types import Scene, Object, Node
 from bpy.app.handlers import persistent
 from ...utility import gammaInverse, hexOrDecInt
+from ..utility import is_oot_features
 from .motion.utility import getCutsceneCamera
 
 if TYPE_CHECKING:
@@ -30,10 +31,17 @@ def getColor(value: float) -> float:
     return gammaInverse([value / 0xFF, 0.0, 0.0])[0]
 
 
+def get_node_tree():
+    if bpy.app.version >= (5, 0, 0):
+        return bpy.context.scene.compositing_node_group
+
+    return bpy.context.scene.node_tree
+
+
 def getNode(node: Node, type: str, name: str, location: tuple[float, float]):
     """Returns a compositor node"""
     if node is None:
-        node = bpy.context.scene.node_tree.nodes.new(type)
+        node = get_node_tree().nodes.new(type)
     node.select = False
     node.name = node.label = name
     node.location = location
@@ -42,12 +50,17 @@ def getNode(node: Node, type: str, name: str, location: tuple[float, float]):
 
 def setupCompositorNodes():
     """Creates or re-setups compositor nodes"""
-    if bpy.app.version < (3, 6, 0):
+    if bpy.app.version < (3, 6, 0) or bpy.app.version >= (5, 0, 0):
         # Blender 3.6+ is required in order to use Compositor Nodes
+        # TODO: 5.0 changes many things, it requires some work
         return
 
-    if not bpy.context.scene.use_nodes:
-        bpy.context.scene.use_nodes = True
+    if bpy.app.version >= (5, 0, 0):
+        if not bpy.context.scene.render.use_compositing:
+            bpy.context.scene.render.use_compositing = True
+    else:
+        if not bpy.context.scene.use_nodes:
+            bpy.context.scene.use_nodes = True
 
     # sets the compositor render mode to "Camera"
     space = None
@@ -64,49 +77,98 @@ def setupCompositorNodes():
         return
 
     # get the existing nodes
-    nodeTree = bpy.context.scene.node_tree
+    nodeTree = get_node_tree()
+
     nodeRenderLayer = nodeComposite = nodeRGBTrans = nodeAlphaOver = nodeRGBMisc = nodeMixRGBMisc = None
-    for node in nodeTree.nodes.values():
-        if node.type == "R_LAYERS":
-            nodeRenderLayer = node
-        if node.type == "COMPOSITE":
-            nodeComposite = node
-        if node.label == "CSTrans_RGB":
-            nodeRGBTrans = node
-        if node.label == "CSMisc_RGB":
-            nodeRGBMisc = node
-        if node.label == "CSPreview_AlphaOver":
-            nodeAlphaOver = node
-        if node.label == "CSMisc_MixRGB":
-            nodeMixRGBMisc = node
+    node_sep = node_motion_blur = None
+
+    if len(nodeTree.nodes) <= 8:
+        for node in nodeTree.nodes.values():
+            if node.type == "R_LAYERS":
+                nodeRenderLayer = node
+            if node.type == "COMPOSITE":
+                nodeComposite = node
+            if node.label == "CSTrans_RGB":
+                nodeRGBTrans = node
+            if node.label == "CSMisc_RGB":
+                nodeRGBMisc = node
+            if node.label == "CSPreview_AlphaOver":
+                nodeAlphaOver = node
+            if node.label == "CSMisc_MixRGB":
+                nodeMixRGBMisc = node
+            if node.label == "CSMotionBlur":
+                node_motion_blur = node
+
+            if bpy.app.version >= (4, 0, 0):
+                if node.label == "CSMisc_Separate":
+                    node_sep = node
+    else:
+        # clear the node list if we have extra ones we don't want
+        nodeTree.nodes.clear()
 
     # create or set the data of each nodes
     nodeRenderLayer = getNode(nodeRenderLayer, "CompositorNodeRLayers", "CSPreview_RenderLayer", (-500, 0))
-    nodeRGBMisc = getNode(nodeRGBMisc, "CompositorNodeRGB", "CSMisc_RGB", (-200, -200))
-    nodeRGBTrans = getNode(nodeRGBTrans, "CompositorNodeRGB", "CSTrans_RGB", (0, -200))
-    nodeMixRGBMisc = getNode(nodeMixRGBMisc, "CompositorNodeMixRGB", "CSMisc_MixRGB", (0, 0))
-    nodeAlphaOver = getNode(nodeAlphaOver, "CompositorNodeAlphaOver", "CSPreview_AlphaOver", (200, 0))
-    nodeComposite = getNode(nodeComposite, "CompositorNodeComposite", "CSPreview_Composite", (400, 0))
 
-    # link the nodes together
-    nodeTree.links.new(nodeMixRGBMisc.inputs[1], nodeRenderLayer.outputs[0])
-    nodeTree.links.new(nodeMixRGBMisc.inputs[2], nodeRGBMisc.outputs[0])
-    nodeTree.links.new(nodeAlphaOver.inputs[1], nodeMixRGBMisc.outputs[0])
+    if bpy.app.version >= (5, 0, 0):
+        composite_name = "NodeGroupOutput"
+    else:
+        composite_name = "CompositorNodeComposite"
+
+    nodeComposite = getNode(nodeComposite, composite_name, "CSPreview_Composite", (500, 0))
+    nodeRGBMisc = getNode(nodeRGBMisc, "CompositorNodeRGB", "CSMisc_RGB", (-500, -200))
+    nodeRGBTrans = getNode(nodeRGBTrans, "CompositorNodeRGB", "CSTrans_RGB", (0, -200))
+    nodeAlphaOver = getNode(nodeAlphaOver, "CompositorNodeAlphaOver", "CSPreview_AlphaOver", (300, 0))
+    node_motion_blur = getNode(node_motion_blur, "CompositorNodeDBlur", "CSMotionBlur", (400, 0))
+
+    # TODO: it's unsure when it actually broke, this needs to be investigated more
+    if bpy.app.version < (4, 0, 0):
+        nodeMixRGBMisc = getNode(nodeMixRGBMisc, "CompositorNodeMixRGB", "CSMisc_MixRGB", (0, 0))
+
+        # link the nodes together
+        nodeTree.links.new(nodeMixRGBMisc.inputs[1], nodeRenderLayer.outputs[0])
+        nodeTree.links.new(nodeMixRGBMisc.inputs[2], nodeRGBMisc.outputs[0])
+        nodeTree.links.new(nodeAlphaOver.inputs[1], nodeMixRGBMisc.outputs[0])
+
+        # misc settings
+        nodeMixRGBMisc.use_alpha = True
+    else:
+        # on 4.0+ we need to bind the color alpha to the "factor" input of the rgb mix
+
+        nodeMixRGBMisc = getNode(nodeMixRGBMisc, "ShaderNodeMix", "CSMisc_MixRGB", (0, 50))
+        node_sep = getNode(node_sep, "CompositorNodeSeparateColor", "CSMisc_Separate", (-200, -200))
+
+        # link the nodes together
+        nodeTree.links.new(nodeMixRGBMisc.inputs[6], nodeRenderLayer.outputs[0])
+        nodeTree.links.new(nodeMixRGBMisc.inputs[7], nodeRGBMisc.outputs[0])
+        nodeTree.links.new(nodeAlphaOver.inputs[1], nodeMixRGBMisc.outputs[2])
+        nodeTree.links.new(node_sep.inputs[0], nodeRGBMisc.outputs[0])
+        nodeTree.links.new(nodeMixRGBMisc.inputs[0], node_sep.outputs[3])
+
+        # misc settings
+        nodeMixRGBMisc.data_type = "RGBA"
+        nodeMixRGBMisc.clamp_result = False
+        nodeMixRGBMisc.clamp_factor = False
+        node_sep.mode = "RGB"
+
     nodeTree.links.new(nodeAlphaOver.inputs[2], nodeRGBTrans.outputs[0])
     nodeTree.links.new(nodeComposite.inputs[0], nodeAlphaOver.outputs[0])
+    nodeTree.links.new(node_motion_blur.inputs[0], nodeAlphaOver.outputs[0])
+    nodeTree.links.new(nodeComposite.inputs[0], node_motion_blur.outputs[0])
 
-    # misc settings
-    nodeMixRGBMisc.use_alpha = True
     nodeMixRGBMisc.blend_type = "COLOR"
     bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewNodesReady = True
+
+    # blur settings
+    node_motion_blur.inputs[1].default_value = 1
 
 
 def initFirstFrame(csObj: Object, useNodeFeatures: bool, defaultCam: Object):
     # set default values for frame 0
     if useNodeFeatures:
         color = [0.0, 0.0, 0.0, 0.0]
-        bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
-        bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
+        get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
+        get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value = color
+        get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.0
         csObj.ootCutsceneProperty.preview.trigger = False
     csObj.ootCutsceneProperty.preview.isFixedCamSet = False
     if defaultCam is not None:
@@ -123,6 +185,8 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
         initFirstFrame(csObj, useNodeFeatures, cameraObjects[1])
 
     if useNodeFeatures:
+        previewProp = csObj.ootCutsceneProperty.preview
+
         for transitionCmd in previewProp.transitionList:
             startFrame = transitionCmd.startFrame
             endFrame = transitionCmd.endFrame
@@ -139,7 +203,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
 
             if isTriggerInstance and not previewProp.trigger:
                 color = [linear160, linear160, linear160, 1.0]
-                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
 
             if frameCur >= startFrame and frameCur <= endFrame:
                 color = [0.0, 0.0, 0.0, 0.0]
@@ -155,13 +219,18 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                 else:
                     alpha = (1.0 - lerp) * linear255
 
-                if "half" in transitionCmd.type:
+                if transitionCmd.type == "gray_to_black":
+                    color[0] = color[1] = color[2] = (1.0 - lerp) * linear160
+                    alpha = 1.0
+                elif transitionCmd.type == "black_to_gray":
+                    color[0] = color[1] = color[2] = lerp * linear160
+                    alpha = 1.0
+                elif "half" in transitionCmd.type:
                     if "_in_" in transitionCmd.type:
                         alpha = linear255 - ((1.0 - lerp) * linear155)
                     else:
                         alpha = linear255 - (linear155 * lerp)
-
-                if "gray_" in transitionCmd.type or previewProp.trigger:
+                elif "gray_" in transitionCmd.type or previewProp.trigger:
                     color[0] = color[1] = color[2] = linear160 * alpha
                 elif "red_" in transitionCmd.type:
                     color[0] = linear255 * alpha
@@ -171,7 +240,60 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     color[2] = linear255 * alpha
 
                 color[3] = alpha
-                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
+
+        for trans_general_cmd in previewProp.transition_general_list:
+            startFrame = trans_general_cmd.startFrame
+            endFrame = trans_general_cmd.endFrame
+            frameCur = curFrame
+
+            if is_oot_features():
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
+                break
+
+            if trans_general_cmd.type == "Unknown":
+                print("ERROR: Unknown command!")
+
+            if frameCur >= startFrame and endFrame >= frameCur:
+                color = [0.0, 0.0, 0.0, 0.0]
+                lerp = getLerp(endFrame, startFrame, frameCur)
+                linear255 = getColor(255.0)
+
+                if trans_general_cmd.type in {"trans_general_fill_in", "trans_general_fill_out"}:
+                    if trans_general_cmd.type == "trans_general_fill_in":
+                        alpha = linear255 * lerp
+                    else:
+                        alpha = (1.0 - lerp) * linear255
+
+                    color[0] = trans_general_cmd.color[0] * alpha
+                    color[1] = trans_general_cmd.color[1] * alpha
+                    color[2] = trans_general_cmd.color[2] * alpha
+                    color[3] = alpha
+                    get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = color
+
+        for blur_cmd in previewProp.motion_blur_list:
+            startFrame = blur_cmd.startFrame
+            endFrame = blur_cmd.endFrame
+            frameCur = curFrame
+
+            if is_oot_features():
+                get_node_tree().nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
+                break
+
+            if blur_cmd.type == "Unknown":
+                print("ERROR: Unknown command!")
+
+            if frameCur >= startFrame and frameCur <= endFrame:
+                if blur_cmd.type == "motion_blur_enable":
+                    get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.180
+                    previewProp.blur_reinit = False
+                elif blur_cmd.type == "motion_blur_disable":
+                    lerp = getLerp(endFrame, startFrame, frameCur)
+
+                    if lerp >= 0.9:
+                        get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.0
+                    else:
+                        get_node_tree().nodes["CSMotionBlur"].inputs[4].default_value = 1.0 + ((1.0 - lerp) * 0.18)
 
     for miscCmd in previewProp.miscList:
         startFrame = miscCmd.startFrame
@@ -204,10 +326,10 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                         color[i] = getColor(col[i])
 
                     color[3] = getColor(255.0) * lerp
-                    bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
+                    get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value = color
 
                 elif miscCmd.type == "red_pulsating_lights":
-                    color = bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value
+                    color = get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value
                     color[0] = getColor(255.0)
                     color[1] = color[2] = 0.0
                     step = 0.05
@@ -217,7 +339,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     else:
                         if color[3] > 0.05:
                             color[3] -= step
-                    bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
+                    get_node_tree().nodes["CSMisc_RGB"].outputs[0].default_value = color
 
 
 @persistent
@@ -260,18 +382,34 @@ def cutscenePreviewFrameHandler(scene: Scene):
     # set preview properties
     previewProp.miscList.clear()
     previewProp.transitionList.clear()
+    previewProp.motion_blur_list.clear()
+    previewProp.transition_general_list.clear()
     for item in csObj.ootCutsceneProperty.csLists:
         if item.listType == "Transition":
-            newProp = previewProp.transitionList.add()
-            newProp.startFrame = item.transitionStartFrame
-            newProp.endFrame = item.transitionEndFrame
-            newProp.type = item.transitionType
+            for trans_entry in item.transition_list:
+                newProp = previewProp.transitionList.add()
+                newProp.startFrame = trans_entry.startFrame
+                newProp.endFrame = trans_entry.endFrame
+                newProp.type = trans_entry.transition_type
         elif item.listType == "MiscList":
             for miscEntry in item.miscList:
                 newProp = previewProp.miscList.add()
                 newProp.startFrame = miscEntry.startFrame
                 newProp.endFrame = miscEntry.endFrame
                 newProp.type = miscEntry.csMiscType
+        elif item.listType == "MotionBlurList":
+            for blur_entry in item.motion_blur_list:
+                newProp = previewProp.motion_blur_list.add()
+                newProp.startFrame = blur_entry.startFrame
+                newProp.endFrame = blur_entry.endFrame
+                newProp.type = blur_entry.blur_type
+        elif item.listType == "TransitionGeneralList":
+            for trans_general_entry in item.trans_general_list:
+                newProp = previewProp.transition_general_list.add()
+                newProp.startFrame = trans_general_entry.startFrame
+                newProp.endFrame = trans_general_entry.endFrame
+                newProp.type = trans_general_entry.trans_general_type
+                newProp.color = trans_general_entry.trans_color
 
     # execute the main preview logic
     curFrame = bpy.context.scene.frame_current
