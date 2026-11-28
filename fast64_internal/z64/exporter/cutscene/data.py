@@ -323,9 +323,9 @@ class CutsceneData:
                 pointData.frame = 0
             self.camEndFrame = endFrame
 
-        return self.getCamClassOrList(True, shotObj.data.ootCamShotProp.shotCamMode, useAT)(
-            startFrame, endFrame, entries
-        )
+        cam_data = self.getCamClassOrList(True, shotObj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
+        cam_data.entries = entries
+        return cam_data
 
     def setCameraShotData(self, csObjects: dict[str, list[Object]]):
         shotObjects = csObjects["camShot"]
