@@ -275,6 +275,8 @@ def parseSurfaces(surfaceList: list[str]):
             surface0 = split[0].replace(")", "").split(",")
             surface1 = split[1].replace(")", "").split(",")
 
+            conveyor_dir = hexOrDecInt(surface1[6].removeprefix("CONVEYOR_DIRECTION_FROM_BINANG(").removesuffix(")"))
+
             surface = SurfaceType(
                 hexOrDecInt(surface0[0]),  # bgCamIndex
                 hexOrDecInt(surface0[1]),  # exitIndex
@@ -290,7 +292,7 @@ def parseSurfaces(surfaceList: list[str]):
                 hexOrDecInt(surface1[3]),  # echo
                 surface1[4] == "true",  # canHookshot
                 new_names_to_old_names.get(surface1[5], surface1[5]),  # conveyorSpeed
-                hexOrDecInt(surface1[6].removeprefix("CONVEYOR_DIRECTION_FROM_BINANG(").removesuffix(")")),
+                conveyor_dir / (0x10000 / 64),  # conveyorDirection
                 surface1[7] == "true",  # unk27
                 bpy.context.scene.fast64.oot.useDecompFeatures,
             )

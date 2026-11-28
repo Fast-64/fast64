@@ -2,7 +2,7 @@ import re
 import traceback
 import bpy
 
-from ...utility import parentObject, hexOrDecInt
+from ...utility import PluginError, parentObject, hexOrDecInt
 from ..exporter.scene.actors import SceneTransitionActors
 from ..scene.properties import OOTSceneHeaderProperty
 from ..utility import setCustomProperty, getEvalParams, getEvalParamsInt
@@ -17,6 +17,7 @@ from .utility import (
     getDisplayNameFromActorID,
     handleActorWithRotAsParam,
     unsetAllHeadersExceptSpecified,
+    get_actor_rotation,
 )
 
 
@@ -51,7 +52,7 @@ def parseTransActorList(
         if not sharedSceneData.addHeaderIfItemExists((i, actor), "Transition Actor", headerIndex):
             rotation = tuple([0, hexOrDecInt(actor.rot), 0])
 
-            actorObj = createEmptyWithTransform(actor.pos, [0, 0, 0] if actor.id in actorsWithRotAsParam else rotation)
+            actorObj = createEmptyWithTransform(actor.pos, get_actor_rotation(actor.id, rotation))
             actorObj.ootEmptyType = "Transition Actor"
             actorObj.name = "Transition " + getDisplayNameFromActorID(actor.id)
             transActorProp = actorObj.ootTransitionActorProperty
@@ -150,7 +151,7 @@ def parseSpawnList(
         actorHash = (actorID, position, rotation, actorParam, spawnIndex, roomIndex)
 
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Entrance", headerIndex):
-            spawnObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
+            spawnObj = createEmptyWithTransform(position, get_actor_rotation(actorID, rotation))
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
             spawnObj.empty_display_type = "CONE"
@@ -192,7 +193,7 @@ def parseActorList(
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Actor", headerIndex):
             actorID, position, rotation, actorParam, roomIndex = actorHash
 
-            actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
+            actorObj = createEmptyWithTransform(position, get_actor_rotation(actorID, rotation))
             actorObj.ootEmptyType = "Actor"
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty

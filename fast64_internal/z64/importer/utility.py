@@ -159,3 +159,18 @@ def get_array_count(shared_data: SharedSceneData, symbol: str):
         raise PluginError(f"ERROR: can't find array count for {repr(symbol)}")
 
     return hexOrDecInt(match.group(1))
+
+
+def get_actor_rotation(actor_id: str, rotation: list[int] | tuple[int, ...]):
+    if actor_id in actorsWithRotAsParam:
+        match actorsWithRotAsParam[actor_id]:
+            case "Z":
+                return [rotation[0], rotation[1], 0]
+            case "XZ":
+                return [0, rotation[1], 0]
+            case "XYZ":
+                return [0, 0, 0]
+            case _:
+                raise PluginError("ERROR: unexpected actor rotation")
+
+    return rotation
